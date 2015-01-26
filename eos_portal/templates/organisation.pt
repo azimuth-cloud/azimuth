@@ -1,0 +1,38 @@
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="refresh" content="60">
+<title>JASMIN cloud portal</title>
+
+<!-- purecss.io -->
+<link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.3.0/pure-min.css">
+<link rel="stylesheet" type="text/css" href="${info['paths'].css}/site.css" media="screen" />
+
+<!-- Font icons -->
+<link href="http://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet" />
+
+</head>
+<body>
+<div class="pure-g">
+    <div class="pure-u-1-12">
+        <nav metal:use-macro="load: nav_list.pt">
+        </nav>
+    </div>
+    <div class="pure-u-7-12">
+        <section metal:use-macro="load: item_list.pt" >
+        </section>
+    </div>
+    <div class="pure-u-1-3">
+        <div id="helpmenu" class="pure-menu pure-menu-open pure-menu-horizontal">
+            <ul>
+            <li class="pure-menu-disabled"><a href="#">Documentation</a></li>
+            <li class="pure-menu-disabled"><a href="#">Contact</a></li>
+            <li><button id='signout'>logout</button></li>
+            </ul>
+        </div>
+        <section metal:use-macro="load: option_list.pt" >
+        </section>
+    </div>
+</div>
+</body>
+</html>

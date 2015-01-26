@@ -1,0 +1,40 @@
+<html metal:use-macro="load: base_template.pt" lang="en">
+<section metal:fill-slot="content">
+				
+<!-- Login Form Begins -->
+
+<form role="form" action="/login" method="post" name="1_1-userlogin-post-login">
+<fieldset>
+	<legend>User login</legend>
+		<div class="form-group">
+			<label class="control-label" for="1_1-user login-login-username">Username</label>
+			<input id="1_1-user login-login-username" name="username" class="form-control" value="" placeholder="username" required="required" type="text"/><!-- pattern="\w{8,10}$" -->
+			<div class="help-block">
+				User names are 8 to 10 characters long.
+			</div>
+		</div>
+		<div class="form-group">
+			<label class="control-label" for="1_1-user login-login-password">Password</label>
+			<input id="1_1-user login-login-password" name="password" class="form-control" value="" placeholder="password" required="required" type="password"/><!--  pattern="^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9])(?!.*\s).{8,20}$" -->
+			<div class="help-block">
+				Passwords are between 8 and 20 characters in length.
+				They must contain:
+                <ul>
+	                <li>at least one lowercase letter</li>
+	                <li>at least one uppercase letter</li>
+	                <li>at least one numeric digit</li>
+	                <li>at least one special character</li>
+                </ul>
+                They cannot contain whitespace.
+           	</div>
+		</div>
+		<div class="form-group">
+			<input type="submit" name="submit" class="btn btn-default" value="Log In" />
+		</div>
+	</fieldset>
+</form>
+
+<!-- Login Form Ends -->
+
+</section>
+</html>

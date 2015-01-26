@@ -1,0 +1,87 @@
+<metal:item_list define-macro="item_list">
+<section id="items">
+<ul>
+<li tal:repeat="(itemId, item) items.items()"
+tal:attributes="
+id 'items-{}'.format(itemId);
+">
+<dl
+tal:define="class_ item.__class__.__name__.lower()"
+tal:condition="item['_links'] | None"
+tal:attributes="
+id item['uuid'];
+class class_">
+<div
+tal:repeat="key item.public"
+tal:omit-tag="" >
+<dt
+tal:define="keylabel key.lower().replace(' ','');"
+tal:content="key"
+tal:attributes="
+class keylabel">
+</dt>
+<dd
+tal:define="keylabel key.lower().replace(' ','');"
+tal:condition="keylabel != 'latest'"
+tal:content="item[key]"
+tal:attributes="
+class keylabel">
+<dd
+tal:define="keylabel key.lower().replace(' ','');"
+tal:condition="keylabel == 'latest'"
+tal:content="'{} at {}'.format(item[key].state.name, item[key].at.strftime('%Y-%m-%d %H:%M:%S'))"
+tal:attributes="
+class keylabel">
+</dd>
+</div>
+</dl>
+<div tal:omit-tag="" tal:repeat="action item.get('_links', [])">
+<form class="pure-form"
+tal:condition="action.method != 'get'"
+tal:attributes="
+action action.typ.format(action.ref);
+method action.method;
+name '{}-{}-{}-{}'.format(itemId, action.name, action.method, action.rel).replace(' ','').lower();">
+<fieldset>
+<div
+tal:repeat="field action.parameters"
+tal:omit-tag="">
+<label
+tal:define="id_ '{}-{}-{}-{}'.format(itemId, action.name, action.rel, field.name).lower();"
+tal:attributes="for id_">
+${field.name.upper() if field.name in ('cpu', 'jvo', 'ram') else field.name.capitalize()}
+<input
+tal:condition="not field.values"
+tal:attributes="
+id id_;
+name field.name;
+value field.name if not field.values else field.values[0] ;
+pattern field.regex.pattern;
+required 'required' if field.required else None;
+type 'hidden' if field.name in ('',) else 'text';"/>
+<select
+tal:condition="field.values"
+tal:attributes="
+id id_;
+name field.name">
+<option
+tal:repeat="value field.values"
+tal:content="value"
+tal:attributes="
+value value;
+">
+</option>
+</select>
+</label>
+</div>
+<button tal:content="action.prompt"
+tal:attributes="
+type 'submit';
+class 'pure-button pure-button-primary'"></button>
+</fieldset>
+</form>
+</div>
+</li>
+</ul>
+</section>
+</metal:item_list>

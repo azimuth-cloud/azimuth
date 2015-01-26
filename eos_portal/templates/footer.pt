@@ -1,0 +1,18 @@
+<footer>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6 float-left">
+                <a href="http://www.nerc.ac.uk" title="NERC"><img src="/static/img/nerc-long-logo300.png" title="NERC logo" alt="NERC Logo" class="img-responsive pull-left" /></a>
+            </div>
+            <div class="col-md-6 float-right">
+                <a href="http://www.stfc.ac.uk" title="STFC"><img src="/static/img/eos_logo2.gif" title="EOS Logo" alt="EOS Logo" class="img-responsive pull-right" /></a>
+            </div>  
+        </div>
+        <div class="row">
+            <div class="col-md-12 middle">
+                <p class="site-info text-center"></p>
+                <p class="site-info text-center">Copyright &copy; 2014 <a href="http://www.stfc.ac.uk">STFC</a>  |  All Rights Reserved</p>
+            </div>
+        </div>      
+    </div>
+</footer>

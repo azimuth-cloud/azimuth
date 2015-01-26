@@ -1,0 +1,6 @@
+<div class="container-fluid">
+    <ul class="breadcrumb">
+        <li id="breadcrumb-menu-home"><a href="/">Home</a></li>
+        <li id="breadcrumb-menu-events" class="active">Events</li>
+    </ul>
+</div>

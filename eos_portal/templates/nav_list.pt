@@ -1,0 +1,29 @@
+<metal:nav_list define-macro="nav_list">
+<nav class="pure-menu pure-menu-open">
+<ul>
+<li class="pure-menu-heading" ><a href="/">EOS Cloud</a></li>
+<div tal:omit-tag="" tal:repeat="(itemId, item) nav.items()">
+<li
+tal:repeat="action item.get('_links', [])"
+tal:attributes="
+class 'pure-menu-selected' if action.rel == 'self' else ''
+">
+<a 
+tal:condition="action.rel == 'canonical'"
+tal:content="action.name"
+tal:attributes="
+rel action.rel;
+href action.typ.format(action.ref);
+"></a>
+<a 
+tal:condition="action.rel == 'self'"
+tal:content="action.name"
+tal:attributes="
+rel action.rel;
+href '#';
+"></a>
+</li>
+</div>
+</ul>
+</nav>
+</metal:nav_list>
