@@ -1,1 +1,1 @@
-eos_portal README
+EOS Portal
