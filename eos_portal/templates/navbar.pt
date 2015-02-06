@@ -1,4 +1,4 @@
-<div class="navbar navbar-default navbar-fixed-top" role="navigation">
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
 	<div class="container">
 		<div class="navbar-header">
 			<button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
@@ -11,24 +11,26 @@
 		</div>
 		<div class="navbar-collapse collapse">
 		    <ul class="nav navbar-nav">
-		        <li class="dropdown">
-		            <a href="#" class="dropdown-toggle" data-toggle="dropdown">Organisations <b class="caret"></b></a>
+		        <li class="dropdown" tal:condition="logged_in">
+		            <a href="#" class="dropdown-toggle" data-toggle="dropdown">Servers<b class="caret"></b></a>
 		            <ul class="dropdown-menu">
-		                
+		                <li><a href="/servers">Show all</a></li>
+		                <hr>
+		                <li><a href="/servers/1">Server 1</a></li>
+		                <li><a href="/servers/2">Server 2</a></li>
 		            </ul>
 		        </li>
-		        <li><a href="#">Documentation</a></li>
-		        <li><a href="#">Contact</a></li>
+		        <li><a href="/docs">Documentation</a></li>
+		        <li><a href="mailto:eoscloud@ceh.ac.uk">Contact</a></li>
 		    </ul>
-		    <ul class="nav navbar-nav navbar-right">
-		    	<span tal:condition="logged_in">
-		    		<li>Welcome, ${logged_in}.</li>
-		    		<li><a href="${request.application_url}/logout">Logout</a></li>
-		    	</span>
-		        <span tal:condition="not:logged_in">
-   					<li><a href="/registration">Register</a></li>
-		        	<li><a href="/login">Login</a></li>
-				</span>
+		    <ul class="nav navbar-nav navbar-right" tal:condition="logged_in">
+		    	<li><span class="welcome">Welcome, ${logged_in}.</span></li>
+		    	<li><a href="/account">Account <span class="badge">${credit} credits</span></a></li>
+		    	<li><a href="${request.application_url}/logout">Logout</a></li>
+		   	</ul>
+		    <ul class="nav navbar-nav navbar-right" tal:condition="not:logged_in">
+				<li><a href="/registration">Register</a></li>
+	        	<li><a href="/login">Login</a></li>
 		    </ul>
 		</div>
 	</div>

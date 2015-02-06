@@ -1,5 +1,8 @@
 <html metal:use-macro="load: base_template.pt" lang="en">
 
-<section metal:fill-slot="content"></section>
+<section metal:fill-slot="content">
+	
+	
+</section>
 
 </html>

@@ -9,31 +9,26 @@
 <div class="container-fluid maincontainer">
 <section metal:use-macro="load: navbar.pt" ></section>
 
-<div class="banner">
-	<div class="banner-inner">
-		<h1>EOS Cloud Portal</h1>
-	</div>
+<div class="jumbotron banner">
+	<h1>EOS Cloud Portal</h1>
 </div>
 
 <div class="container content">
-		
-	<div class="container">
-		<div class="row">
-			<div class="col-md-12 middle">
-				<section class="messages"></section>
-        		<div class="panel panel-default">
-        			<div class="panel-body">
-				
-						<section metal:define-slot="content"></section>
+	<div class="row">
+		<div class="col-md-12 middle">
+			<section class="messages"></section>
+    		<div class="panel panel-default">
+    			<div class="panel-body">
+			
+					<section metal:define-slot="content"></section>
 
-	            	</div>
-	            </div>
+            	</div>
             </div>
         </div>
-	</div>
+    </div>
+</div>
 </div>
 <section metal:use-macro="load: footer.pt" ></section>
-</div>
 </body>
 </html>
 

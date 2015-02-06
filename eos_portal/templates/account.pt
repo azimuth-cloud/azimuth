@@ -1,0 +1,20 @@
+<html metal:use-macro="load: base_template.pt" lang="en">
+<section metal:fill-slot="content">
+				
+
+<h2>Account Details</h2>
+<table class="table table-striped table-bordered">
+	<tr><td>Username</td><td>${values['username']}</td></tr>
+	<tr><td>Full name</td><td>${values['name']}</td></tr>
+	<hr>
+	<tr><td>Credits</td><td>${values['credits']}<a href="/docs#credit">&nbsp;(How do I get more?)</a></td></tr>	
+</table>
+
+<h3>History</h3>
+<table class="table table-striped table-bordered">	
+	<tr><th>Date</th><th>Notes</th></tr>
+	<tr><td>2014-08-01</td><td>This is a test event. This is a test event. This is a test event. This is a test event.</td></tr>
+</table>
+
+</section>
+</html>

@@ -1,0 +1,121 @@
+<html metal:use-macro="load: base_template.pt" lang="en">
+<section metal:fill-slot="content">
+				
+<!-- Server List Begins -->
+
+<table class="table table-striped">
+	<tr><th>Server ID</th><th>Create Date</th><th>State</th><th>Last Change</th><th>Operations</th><th></th><th></th></tr>
+	<tr tal:repeat="value values" id="server-${value['artifact_id']}">  
+	   <td class="uuid">${value['artifact_uuid']}</td>
+	   <td class="create_dt">${value['create_dt']}</td>
+	   <td class="state">${value['state']}</td>
+	   <td class="change_dt">${value['change_dt']}</td>
+	   <td>
+		   	<button class="btn btn-xs btn-success btn-start" type="button" id="btn-start" server="${value['artifact_id']}">Start</button>
+		   	<button class="btn btn-xs btn-warning btn-suspend"  id="btn-suspend" type="button" server="${value['artifact_id']}">Suspend</button>
+		   	<button class="btn btn-xs btn-danger btn-stop" id="btn-stop" type="button" server="${value['artifact_id']}">Stop</button>
+		   	<button class="btn btn-xs btn-info btn-restart" id="btn-restart" type="button" server="${value['artifact_id']}">Restart</button>
+		   	<img src="/static/img/throbber.gif" id="throbber-${value['artifact_id']}" class="throbber">
+		</td>
+   		<td></td>
+   		<td>
+	   		<button class="btn btn-xs btn-primary" type="button">Configure</button>
+   		</td>
+	</tr>
+</table>
+
+<!-- Server List Ends -->
+
+<script>
+	
+	$('.btn-start').click(function() {
+		var url = 'http://localhost:6543/servers/asdf/start';
+		var key = $(this).attr("server");
+		console.log(key);
+		$('#throbber-'+key).css({ opacity: 1 });
+		$.ajax({
+			type: 'POST',
+			url: url,
+			dataType: "json",
+			data: "vm_id="+key
+		});
+	});
+	
+	$('.btn-restart').click(function() {
+		var url = 'http://localhost:6543/servers/asdf/restart';
+		var key = $(this).attr("server");
+		console.log(key);
+		$('#throbber-'+key).css({ opacity: 1 });
+		$.ajax({
+			type: 'POST',
+			url: url,
+			dataType: "json",
+			data: "vm_id="+key
+		});
+	});
+	
+	$('.btn-suspend').click(function() {
+		var url = 'http://localhost:6543/servers/asdf/suspend';
+		var key = $(this).attr("server");
+		console.log(key);
+		$('#throbber-'+key).css({ opacity: 1 });
+		$.ajax({
+			type: 'POST',
+			url: url,
+			dataType: "json",
+			data: "vm_id="+key
+		});
+	});
+	
+	$('.btn-stop').click(function() {
+		var url = 'http://localhost:6543/servers/asdf/stop';
+		var key = $(this).attr("server");
+		console.log(key);
+		$('#throbber-'+key).css({ opacity: 1 });
+		$.ajax({
+			type: 'POST',
+			url: url,
+			dataType: "json",
+			data: "vm_id="+key
+		});
+	});
+	
+	(function poll(){
+   		setTimeout(function(){
+      		$.ajax({
+      			url: 'http://localhost:6543/servers',
+      			success: function(data){
+        			console.log(data);
+        			for(var i = 0; i < data.length; i++) {
+        				server = data[i]['artifact_id'];
+        				change_dt = data[i]['change_dt'];
+        				start_state = $("tr#server-"+server).children('td.state').text();
+        				state = data[i]['state'];
+        				console.log(state);
+        				$("tr#server-"+server).children('td.state').text(state);
+        				
+        				/* console.log ($("tr").find("[server='" + server + "']").children("td#state").text()); */
+        				
+        				
+        				/* If state has changed, hide the throbber */
+        				if (start_state != state) {
+        					$('#throbber-'+server).css({ opacity: 0 });
+        				}
+        				
+        				/* Now set table rows to new values */
+        				
+        				
+        			}
+        			poll();
+      			},
+      			dataType: "json",
+      			data: "actor_id=11"});
+  		}, 5000);
+	})();
+	
+	poll();
+	
+</script>
+
+</section>
+</html>
