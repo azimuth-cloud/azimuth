@@ -109,7 +109,7 @@
         			poll();
       			},
       			dataType: "json",
-      			data: "actor_id=11"});
+      			data: "actor_id=${logged_in}"});
   		}, 5000);
 	})();
 	
