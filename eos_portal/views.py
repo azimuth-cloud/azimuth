@@ -51,6 +51,35 @@ def vw_servers(request):
         server_list = "Request Failed"
     return dict(logged_in = request.authenticated_userid, values=server_list, credit=session['credit'])
 
+@view_config(route_name='configure', renderer='templates/configure.pt')
+def vw_configure(request):
+    owner = authenticated_userid(request)
+    session = request.session
+    if ('credit' in session) == False:
+        return HTTPFound(location='http://localhost:6542/logout') #Turn this into a decorator
+    
+    # Need to call retrieve_server and retrieve_server_touches
+    # /servers/{name}/touches and /servers/{name}/
+    
+    server_name = request.matchdict['name']
+        
+    # Abstract this block out and add more error checking
+    
+    r = requests.get('http://localhost:6543/servers/' + server_name)
+    if r.status_code == 200:
+        server_data = json.loads(r.text)
+    else:
+        server_data = "Request Failed" 
+    
+    p = requests.get('http://localhost:6543/servers/' + server_name + '/touches' )    
+    if p.status_code == 200:
+        server_touches = json.loads(p.text)
+    else:
+        server_touches = "Request Failed"
+    
+    return dict(logged_in = request.authenticated_userid, values=server_data, touches = server_touches, credit=session['credit'])
+    
+
 @view_config(route_name='stop', renderer='templates/main.pt')
 def vw_stop(request):
     session = request.session

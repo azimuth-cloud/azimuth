@@ -12,14 +12,13 @@
 	   <td class="change_dt">${value['change_dt']}</td>
 	   <td>
 		   	<button class="btn btn-xs btn-success btn-start" type="button" id="btn-start" server="${value['artifact_id']}">Start</button>
-		   	<button class="btn btn-xs btn-warning btn-suspend"  id="btn-suspend" type="button" server="${value['artifact_id']}">Suspend</button>
 		   	<button class="btn btn-xs btn-danger btn-stop" id="btn-stop" type="button" server="${value['artifact_id']}">Stop</button>
 		   	<button class="btn btn-xs btn-info btn-restart" id="btn-restart" type="button" server="${value['artifact_id']}">Restart</button>
 		   	<img src="/static/img/throbber.gif" id="throbber-${value['artifact_id']}" class="throbber">
 		</td>
    		<td></td>
    		<td>
-	   		<button class="btn btn-xs btn-primary" type="button">Configure</button>
+	   		<button class="btn btn-xs btn-primary" type="button" onclick="window.location.href='/servers/${value['artifact_uuid']}'">Configure</button>
    		</td>
 	</tr>
 </table>

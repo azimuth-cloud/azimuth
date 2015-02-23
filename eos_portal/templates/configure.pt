@@ -1,0 +1,216 @@
+<html metal:use-macro="load: base_template.pt" lang="en">
+<section metal:fill-slot="content">
+<h2>Server Details</h2>
+<table class="table table-striped table-bordered">
+	<tr><td>Server Name</td><td>${values['artifact_uuid']}</td></tr>
+	<tr><td>Server ID</td><td>${values['artifact_id']}</td></tr>
+	<tr><td>Server Created</td><td>${values['create_dt']}<a href="/docs#credit"></a></td></tr>
+	<tr><td>Last Change</td><td>${values['change_dt']}<a href="/docs#credit"></a></td></tr>
+	<tr><td>Current State</td><td>${values['state']}<a href="/docs#credit"></a></td></tr>	
+</table>
+<hr/>
+<button class="btn btn-xs btn-success btn-start" type="button" id="btn-start" server="${values['artifact_id']}">Start</button>
+<button class="btn btn-xs btn-danger btn-stop" id="btn-stop" type="button" server="${values['artifact_id']}">Stop</button>
+<button class="btn btn-xs btn-info btn-restart" id="btn-restart" type="button" server="${values['artifact_id']}">Restart</button>
+<img src="/static/img/throbber.gif" id="throbber-${values['artifact_id']}" class="throbber">
+<button type="button" class="btn btn-xs btn-primary" data-toggle="modal" data-target="#boostModal" data-whatever="@mdo" server="${values['artifact_id']}">Boost</button>
+<div id="boostarea">
+	<hr/>
+	<div class="progress">
+	  <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100" style="width: 45%">
+	    <span class="sr-only">45% Complete</span>
+	  </div>
+	</div>
+	<hr/>	
+</div>
+<h3>History&nbsp;<span class="glyphicon glyphicon-option-horizontal" aria-hidden="true"></span></h3>
+<table class="table table-striped table-bordered">	
+	<tr><th>Date</th><th>Notes</th></tr>
+	<tr><td>2014-08-01</td><td>This is a test event. This is a test event. This is a test event. This is a test event.</td></tr>
+</table>
+<script>
+
+	$('#boostModal').on('show.bs.modal', function (event) {
+	  var button = $(event.relatedTarget); // Button that triggered the modal
+	  var recipient = button.data('whatever'); // Extract info from data-* attributes
+	  // If necessary, you could initiate an AJAX request here (and then do the updating in a callback).
+	  // Update the modal's content. We'll use jQuery here, but you could use a data binding library or other methods instead.
+	  var modal = $(this);
+	  modal.find('.modal-title').text('New message to ' + recipient);
+	  modal.find('.modal-body input').val(recipient);
+	});
+
+	$('.btn-start').click(function() {
+		var url = 'http://localhost:6543/servers/asdf/start';
+		var key = $(this).attr("server");
+		console.log(key);
+		$('#throbber-'+key).css({ opacity: 1 });
+		$.ajax({
+			type: 'POST',
+			url: url,
+			dataType: "json",
+			data: "vm_id="+key
+		});
+	});
+	
+	$('.btn-restart').click(function() {
+		var url = 'http://localhost:6543/servers/asdf/restart';
+		var key = $(this).attr("server");
+		console.log(key);
+		$('#throbber-'+key).css({ opacity: 1 });
+		$.ajax({
+			type: 'POST',
+			url: url,
+			dataType: "json",
+			data: "vm_id="+key
+		});
+	});
+	
+	$('.btn-suspend').click(function() {
+		var url = 'http://localhost:6543/servers/asdf/suspend';
+		var key = $(this).attr("server");
+		console.log(key);
+		$('#throbber-'+key).css({ opacity: 1 });
+		$.ajax({
+			type: 'POST',
+			url: url,
+			dataType: "json",
+			data: "vm_id="+key
+		});
+	});
+	
+	$('.btn-stop').click(function() {
+		var url = 'http://localhost:6543/servers/asdf/stop';
+		var key = $(this).attr("server");
+		console.log(key);
+		$('#throbber-'+key).css({ opacity: 1 });
+		$.ajax({
+			type: 'POST',
+			url: url,
+			dataType: "json",
+			data: "vm_id="+key
+		});
+	});
+	
+	(function poll(){
+   		setTimeout(function(){
+      		$.ajax({
+      			url: 'http://localhost:6543/servers',
+      			success: function(data){
+        			console.log(data);
+        			for(var i = 0; i < data.length; i++) {
+        				server = data[i]['artifact_id'];
+        				change_dt = data[i]['change_dt'];
+        				start_state = $("tr#server-"+server).children('td.state').text();
+        				state = data[i]['state'];
+        				console.log(state);
+        				$("tr#server-"+server).children('td.state').text(state);
+        				
+        				/* console.log ($("tr").find("[server='" + server + "']").children("td#state").text()); */
+        				
+        				
+        				/* If state has changed, hide the throbber */
+        				if (start_state != state) {
+        					$('#throbber-'+server).css({ opacity: 0 });
+        				}
+        				
+        				/* Now set table rows to new values */
+        				
+        				
+        			}
+        			poll();
+      			},
+      			dataType: "json",
+      			data: "actor_id=${logged_in}"});
+  		}, 5000);
+	})();
+	
+	poll();
+	
+</script>
+
+<div class="modal fade" id="boostModal" tabindex="-1" role="dialog" aria-labelledby="Boost" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h3 class="modal-title" id="boostmodaltitle">
+        	<span class="glyphicon glyphicon-signal" aria-hidden="true"></span>
+        	Boost Server
+        </h3>
+      </div>
+      <div class="modal-body">
+    	<div class="alert alert-info" role="alert">
+    		<p><b>Boosting this server will temporarily increase the resources available to you.</b></p>
+    		<p>The duration for which you can boost the server will depend upon the number of credits available in your account.</p>
+    	</div>
+        <hr>
+        <form>
+          <div class="form-group">
+            <h4 id="boosttype">Boost Type - Big (2 Cores, 40GB RAM)</h4>
+            <input type="range"  min="1" max="3" id="slidetype"/>
+          </div>
+          <div class="form-group">
+            <h4>Duration</h4>
+            <div class="col-md-8" style="padding-left:0px;padding-right:0px;"><input type="range"  min="0" max="100" id="slideduration"></div>
+            <div class="col-md-4"><input type="number" size="4" maxlength="4" id="textduration" style="width: 100px; height: 20px; font-size: 10px">&nbsp; hrs</div>
+          </div>
+        <p><br/><br/><i>This boost action will be automatically ended at 15:32 on 24/02/2015. Please note that the machine will be restarted at this time in order to make the change.</i></p>
+        </form>
+        <hr>
+        
+        <div class="alert alert-success" role="alert">
+        	This boost will cost xxxx credits. <i>You currently have <b>${credit}</b> credits.</i></div>
+     	</div>
+      	<div class="modal-footer">
+        	<button class="btn btn-success btn-boost" type="button" server="${values['artifact_id']}">Confirm Boost</button>
+        	<button class="btn btn-danger btn-cancel" >Cancel</button>
+
+      	</div>
+    </div>
+  </div>
+  
+  <script>
+  	
+  		$('.btn-boost').click(function() {
+			$("#boostModal").modal('hide');
+			$("#boostarea").toggle();
+			var url = 'http://localhost:6543/servers/asdf/prepare';
+			var key = $(this).attr("server");
+			console.log(key);
+			$('#throbber-'+key).css({ opacity: 1 });
+			$.ajax({
+				type: 'POST',
+				url: url,
+				dataType: "json",
+				data: "vm_id="+key
+			});
+		});
+  	
+  		$('.btn-cancel').click(function() {
+			$("#boostModal").modal('hide');
+		});
+		
+		$('#slidetype').change(function() {
+			if ($("input#slidetype").val() == 1) {
+				$("h4#boosttype").text("Boost Type - Standard+ (1 Core, 16GB RAM)");
+			}
+			if ($("input#slidetype").val() == 2) {
+				$("h4#boosttype").text("Boost Type - Big (2 Cores, 40GB RAM)");
+			}
+			if ($("input#slidetype").val() == 3) {
+				$("h4#boosttype").text("Boost Type - Max (8 Cores, 140GB RAM)");
+			}
+		});
+  	
+  		$('#slideduration').change(function() {
+			alert("sfopskpsdasdasdasddasdasd");
+		});
+  	
+  </script>
+  
+</div>
+
+
+</section>
+</html>

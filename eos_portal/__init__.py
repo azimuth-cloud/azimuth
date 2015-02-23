@@ -25,6 +25,7 @@ def main(global_config, **settings):
     config.add_route('login', '/login')
     config.add_route('logout', '/logout')
     config.add_route('servers', '/servers')
+    config.add_route('configure', '/servers/{name}')
     config.add_route('stop', '/stop')
     config.add_route('account', '/account')
     config.add_route('forbidden', '/forbidden')
