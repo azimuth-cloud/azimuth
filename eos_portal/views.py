@@ -77,7 +77,14 @@ def vw_configure(request):
     else:
         server_touches = "Request Failed"
     
-    return dict(logged_in = request.authenticated_userid, values=server_data, touches = server_touches, credit=session['credit'])
+    server_list = "gah"
+    r = requests.get('http://localhost:6543/servers?actor_id='+ request.authenticated_userid )
+    if r.status_code == 200:
+        server_list = json.loads(r.text)
+    else:
+        server_list = "Request Failed"
+    
+    return dict(logged_in = request.authenticated_userid, server=server_data, values=server_list, touches = server_touches, credit=session['credit'])
     
 
 @view_config(route_name='stop', renderer='templates/main.pt')
@@ -96,7 +103,15 @@ def vw_account(request):
         account_details = json.loads(json.loads(r.text))
         if account_details['credits'] is None:
             account_details['credits'] = 0
-    return dict(logged_in = request.authenticated_userid, values=account_details, credit=session['credit'])
+    
+    server_list = "gah"
+    r = requests.get('http://localhost:6543/servers?actor_id='+ request.authenticated_userid )
+    if r.status_code == 200:
+        server_list = json.loads(r.text)
+    else:
+        server_list = "Request Failed"
+    
+    return dict(logged_in = request.authenticated_userid, values = server_list, account=account_details, credit=session['credit'])
 
 @view_config(route_name='logout')
 def logout(request):

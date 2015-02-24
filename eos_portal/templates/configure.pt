@@ -2,18 +2,18 @@
 <section metal:fill-slot="content">
 <h2>Server Details</h2>
 <table class="table table-striped table-bordered">
-	<tr><td>Server Name</td><td>${values['artifact_uuid']}</td></tr>
-	<tr><td>Server ID</td><td>${values['artifact_id']}</td></tr>
-	<tr><td>Server Created</td><td>${values['create_dt']}<a href="/docs#credit"></a></td></tr>
-	<tr><td>Last Change</td><td>${values['change_dt']}<a href="/docs#credit"></a></td></tr>
-	<tr><td>Current State</td><td>${values['state']}<a href="/docs#credit"></a></td></tr>	
+	<tr><td>Server Name</td><td>${server['artifact_uuid']}</td></tr>
+	<tr><td>Server ID</td><td>${server['artifact_id']}</td></tr>
+	<tr><td>Server Created</td><td>${server['create_dt']}<a href="/docs#credit"></a></td></tr>
+	<tr><td>Last Change</td><td>${server['change_dt']}<a href="/docs#credit"></a></td></tr>
+	<tr><td>Current State</td><td>${server['state']}<a href="/docs#credit"></a></td></tr>	
 </table>
 <hr/>
-<button class="btn btn-xs btn-success btn-start" type="button" id="btn-start" server="${values['artifact_id']}">Start</button>
-<button class="btn btn-xs btn-danger btn-stop" id="btn-stop" type="button" server="${values['artifact_id']}">Stop</button>
-<button class="btn btn-xs btn-info btn-restart" id="btn-restart" type="button" server="${values['artifact_id']}">Restart</button>
-<img src="/static/img/throbber.gif" id="throbber-${values['artifact_id']}" class="throbber">
-<button type="button" class="btn btn-xs btn-primary" data-toggle="modal" data-target="#boostModal" data-whatever="@mdo" server="${values['artifact_id']}">Boost</button>
+<button class="btn btn-xs btn-success btn-start" type="button" id="btn-start" server="${server['artifact_id']}">Start</button>
+<button class="btn btn-xs btn-danger btn-stop" id="btn-stop" type="button" server="${server['artifact_id']}">Stop</button>
+<button class="btn btn-xs btn-info btn-restart" id="btn-restart" type="button" server="${server['artifact_id']}">Restart</button>
+<img src="/static/img/throbber.gif" id="throbber-${server['artifact_id']}" class="throbber">
+<button type="button" class="btn btn-xs btn-primary" data-toggle="modal" data-target="#boostModal" data-whatever="@mdo" server="${server['artifact_id']}">Boost</button>
 <div id="boostarea">
 	<hr/>
 	<div class="progress">
@@ -155,15 +155,16 @@
             <div class="col-md-8" style="padding-left:0px;padding-right:0px;"><input type="range"  min="0" max="100" id="slideduration"></div>
             <div class="col-md-4"><input type="number" size="4" maxlength="4" id="textduration" style="width: 100px; height: 20px; font-size: 10px">&nbsp; hrs</div>
           </div>
-        <p><br/><br/><i>This boost action will be automatically ended at 15:32 on 24/02/2015. Please note that the machine will be restarted at this time in order to make the change.</i></p>
+        <p><br/><br/><i>This boost action will be automatically ended at <span id="endtime">15:32 on 24/02/2015</span>. Please note that the machine will be restarted at this time in order to make the change.</i></p>
         </form>
         <hr>
         
         <div class="alert alert-success" role="alert">
-        	This boost will cost xxxx credits. <i>You currently have <b>${credit}</b> credits.</i></div>
+        	<p>You currently have <b>${credit}</b> credits.</p>
+        	<p>This boost will cost <span id="boostcost">0</span> credits, leaving <span id="boostremain">0</span> for future use.</p>
      	</div>
       	<div class="modal-footer">
-        	<button class="btn btn-success btn-boost" type="button" server="${values['artifact_id']}">Confirm Boost</button>
+        	<button class="btn btn-success btn-boost" type="button" server="${server['artifact_id']}">Confirm Boost</button>
         	<button class="btn btn-danger btn-cancel" >Cancel</button>
 
       	</div>
@@ -193,19 +194,54 @@
 		
 		$('#slidetype').change(function() {
 			if ($("input#slidetype").val() == 1) {
-				$("h4#boosttype").text("Boost Type - Standard+ (1 Core, 16GB RAM)");
+				$("h4#boosttype").text("Boost Type - Standard+ (2 Cores, 40GB RAM)");
 			}
 			if ($("input#slidetype").val() == 2) {
-				$("h4#boosttype").text("Boost Type - Big (2 Cores, 40GB RAM)");
+				$("h4#boosttype").text("Boost Type - Big (8 Cores, 140GB RAM)");
 			}
 			if ($("input#slidetype").val() == 3) {
-				$("h4#boosttype").text("Boost Type - Max (8 Cores, 140GB RAM)");
+				$("h4#boosttype").text("Boost Type - Max (16 Cores, 500GB RAM)");
 			}
+		});
+ 
+ 		$(document).ready(function() {
+			update_calcs();
+		});
+  	
+  		$('#slidetype').change(function() {
+			update_calcs();
 		});
   	
   		$('#slideduration').change(function() {
-			alert("sfopskpsdasdasdasddasdasd");
+			update_calcs();
 		});
+		
+		multiplier={"1":1,"2":3,"3":12};
+		
+		Date.prototype.addHours = function(h) {
+			this.setTime(this.getTime() + (h*60*60*1000));
+			return this;
+		}
+		
+		function update_calcs() {
+			var availabletime = calculate_available_time($("input#slidetype").val());
+			$("input#slideduration").attr("max", availabletime);
+			$('input#textduration').val($('#slideduration').val());
+			var credits_used = $('#slideduration').val() * multiplier[$("input#slidetype").val()];	
+			$('span#boostremain').text(${credit}-credits_used);
+			$('span#boostcost').text(credits_used);
+			$('span#endtime').text(get_future_date($('#slideduration').val()));
+		}
+		
+		function calculate_available_time(boostlevel) {
+			var credit = ${credit};
+			return credit / multiplier[boostlevel];
+		}
+		
+		function get_future_date(future_hours) {
+			var currentdate = new Date();
+			return currentdate.addHours(future_hours).toLocaleFormat('%H:%M on %A, %B %e, %Y');	
+		}
   	
   </script>
   
