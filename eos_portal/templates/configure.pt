@@ -6,14 +6,24 @@
 	<tr><td>Server ID</td><td>${server['artifact_id']}</td></tr>
 	<tr><td>Server Created</td><td>${server['create_dt']}<a href="/docs#credit"></a></td></tr>
 	<tr><td>Last Change</td><td>${server['change_dt']}<a href="/docs#credit"></a></td></tr>
-	<tr><td>Current State</td><td>${server['state']}<a href="/docs#credit"></a></td></tr>	
+	<tr><td>Current State</td><td>${server['state']}<a href="/docs#credit"></a></td></tr>
+	<tr><td>Boost Status</td><td>${server['boosted']}<a href="/docs#credit"></a></td></tr>
 </table>
 <hr/>
 <button class="btn btn-xs btn-success btn-start" type="button" id="btn-start" server="${server['artifact_id']}">Start</button>
 <button class="btn btn-xs btn-danger btn-stop" id="btn-stop" type="button" server="${server['artifact_id']}">Stop</button>
 <button class="btn btn-xs btn-info btn-restart" id="btn-restart" type="button" server="${server['artifact_id']}">Restart</button>
 <img src="/static/img/throbber.gif" id="throbber-${server['artifact_id']}" class="throbber">
-<button type="button" class="btn btn-xs btn-primary" data-toggle="modal" data-target="#boostModal" data-whatever="@mdo" server="${server['artifact_id']}">Boost</button>
+
+<!-- Only show if server is unboosted -->
+<button type="button" class="btn btn-xs btn-primary" data-toggle="modal" data-target="#boostModal" server="${server['artifact_id']}" tal:condition="server['boosted']!='Boosted'">Boost</button>
+
+<!-- Only show if server is boosted -->
+<button type="button" class="btn btn-xs btn-primary" data-toggle="modal" data-target="#extendModal" server="${server['artifact_id']}" tal:condition="server['boosted']=='Boosted'">Extend Boost</button>
+<button type="button" class="btn btn-xs btn-primary" data-toggle="modal" data-target="#deboostModal" server="${server['artifact_id']}" tal:condition="server['boosted']=='Boosted'">De-Boost</button>
+
+
+
 <div id="boostarea">
 	<hr/>
 	<div class="progress">
@@ -29,16 +39,6 @@
 	<tr><td>2014-08-01</td><td>This is a test event. This is a test event. This is a test event. This is a test event.</td></tr>
 </table>
 <script>
-
-	$('#boostModal').on('show.bs.modal', function (event) {
-	  var button = $(event.relatedTarget); // Button that triggered the modal
-	  var recipient = button.data('whatever'); // Extract info from data-* attributes
-	  // If necessary, you could initiate an AJAX request here (and then do the updating in a callback).
-	  // Update the modal's content. We'll use jQuery here, but you could use a data binding library or other methods instead.
-	  var modal = $(this);
-	  modal.find('.modal-title').text('New message to ' + recipient);
-	  modal.find('.modal-body input').val(recipient);
-	});
 
 	$('.btn-start').click(function() {
 		var url = 'http://localhost:6543/servers/asdf/start';
@@ -129,7 +129,7 @@
 	
 </script>
 
-<div class="modal fade" id="boostModal" tabindex="-1" role="dialog" aria-labelledby="Boost" aria-hidden="true">
+<div class="modal fade" id="boostModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" style="display: none;">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
@@ -168,14 +168,151 @@
         	<button class="btn btn-danger btn-cancel" >Cancel</button>
 
       	</div>
+      </div>
     </div>
   </div>
-  
-  <script>
+</div>
+
+<div class="modal fade" id="extendModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" style="display: none;">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h3 class="modal-title" id="boostmodaltitle">
+        	<span class="glyphicon glyphicon-signal" aria-hidden="true"></span>
+        	Extend Boost
+        </h3>
+      </div>
+      <div class="modal-body">
+    	<div class="alert alert-warning" role="warning">
+    		<p><b>Extending a boost will increase the amount of time your server's greater resources are available.</b></p>
+    		<p>The duration for which you can boost the server will depend upon the number of credits available in your account.</p>
+    	</div>
+        <hr>
+        <form>
+          <div class="form-group">
+            <h4>Extend for how long?</h4>
+            <div class="col-md-8" style="padding-left:0px;padding-right:0px;"><input type="range"  min="0" max="100" id="slideduration"></div>
+            <div class="col-md-4"><input type="number" size="4" maxlength="4" id="textduration" style="width: 100px; height: 20px; font-size: 10px">&nbsp; hrs</div>
+          </div>
+        <p><br/><br/><i>With the additional duration, this boost action will be automatically ended at <span id="endtime">15:32 on 24/02/2015</span>. Please note that the machine will be restarted at this time in order to make the change.</i></p>
+        </form>
+        <hr>
+        <div class="alert alert-success" role="alert">
+        	<p>You currently have <b>${credit}</b> credits.</p>
+        	<p>This extension will cost <span id="boostcost">0</span> credits, leaving <span id="boostremain">0</span> for future use.</p>
+     	</div>
+      	<div class="modal-footer">
+        	<button class="btn btn-success btn-boost" type="button" server="${server['artifact_id']}">Confirm Boost</button>
+        	<button class="btn btn-danger btn-cancel" >Cancel</button>
+      	</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="deboostModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" style="display: none;">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h3 class="modal-title" id="boostmodaltitle">
+        	<span class="glyphicon glyphicon-signal" aria-hidden="true"></span>
+        	De-Boost
+        </h3>
+      </div>
+      <div class="modal-body">
+    	<div class="alert alert-danger" role="danger">
+    		<p><b><span class="glyphicon glyphicon-exclamation-sign"></span>&nbsp;Deboosting will immediately reset your VM and return it to the base configuration.</b></p>
+    		<p>You will be refunded any unused credits.</p>
+    	</div>
+        <hr>
+        	<p>You currently have <b>${credit}</b> credits.</p>
+        	<p>This boost will return you <span id="boostcost">0</span> credits, giving a total of <span id="boostremain">0</span> for future use.</p><br/>
+      	<div class="modal-footer">
+        	<button class="btn btn-success btn-deboost" type="button" server="${server['artifact_id']}">Confirm De-Boost</button>
+        	<button class="btn btn-danger btn-cancel" >Cancel</button>
+      	</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
   	
+  		$('.btn-deboost').click(function() {
+  			var ram = 40;
+  			var cores = 1;
+  			
+  			$("#deboostModal").modal('hide');
+			//$("#boostarea").toggle();
+			var key = '${server['artifact_uuid']}';
+			var url = 'http://localhost:6543/servers/' + key + '/specification';
+			console.log(key);
+			var serverconfig = {ram : ram, cores : cores};
+			$.ajax({
+				type: 'POST',
+				url: url,
+				dataType: "json",
+				data: serverconfig
+			});
+			
+			var url = 'http://localhost:6543/servers/asdf/pre_deboost';
+			var key = $(this).attr("server");
+			console.log(key);
+			$('#throbber-'+key).css({ opacity: 1 });
+			$.ajax({
+				type: 'POST',
+				url: url,
+				dataType: "json",
+				data: "vm_id="+key
+			});
+			/*
+			var url = 'http://localhost:6543/users/asdf/credit';
+			credit = $('span#boostcost').text();
+			credit = 0-credit;
+			var creditconfig = {credit : credit, actor_id : 'bcollier'};
+			console.log(key);
+			$.ajax({
+				type: 'POST',
+				url: url,
+				dataType: "json",
+				data: creditconfig
+			}); */
+  			
+  		});
+  		
   		$('.btn-boost').click(function() {
+			
+			var ram = 40;
+  			var cores = 1;
+  		
+	  		if ($("input#slidetype").val() == 1) {
+				cores = 2;
+				ram = 40;
+			}
+			if ($("input#slidetype").val() == 2) {
+				cores = 8;
+				ram = 140;
+			}
+			if ($("input#slidetype").val() == 3) {
+				cores = 16;
+				ram = 500;
+			}
+			
 			$("#boostModal").modal('hide');
 			$("#boostarea").toggle();
+			var key = '${server['artifact_uuid']}';
+			var url = 'http://localhost:6543/servers/' + key + '/specification';
+			console.log(key);
+			var serverconfig = {ram : ram, cores : cores};
+			$.ajax({
+				type: 'POST',
+				url: url,
+				dataType: "json",
+				data: serverconfig
+			});
+			
 			var url = 'http://localhost:6543/servers/asdf/prepare';
 			var key = $(this).attr("server");
 			console.log(key);
@@ -186,6 +323,19 @@
 				dataType: "json",
 				data: "vm_id="+key
 			});
+			
+			var url = 'http://localhost:6543/users/asdf/credit';
+			credit = $('span#boostcost').text();
+			credit = 0-credit;
+			var creditconfig = {credit : credit, actor_id : 'bcollier'};
+			console.log(key);
+			$.ajax({
+				type: 'POST',
+				url: url,
+				dataType: "json",
+				data: creditconfig
+			});
+			
 		});
   	
   		$('.btn-cancel').click(function() {
@@ -244,9 +394,6 @@
 		}
   	
   </script>
-  
-</div>
-
 
 </section>
 </html>
