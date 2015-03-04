@@ -4,11 +4,14 @@
 <!-- Server List Begins -->
 
 <table class="table table-striped">
-	<tr><th>Server ID</th><th>Create Date</th><th>State</th><th>Last Change</th><th>Operations</th><th></th><th></th></tr>
+	<tr><th>Server ID</th><th>Create Date</th><th>State</th><th>Boost</th><th>RAM</th><th>Cores</th><th>Last Change</th><th>Operations</th><th></th><th></th></tr>
 	<tr tal:repeat="value values" id="server-${value['artifact_id']}">  
 	   <td class="uuid">${value['artifact_uuid']}</td>
 	   <td class="create_dt">${value['create_dt']}</td>
 	   <td class="state">${value['state']}</td>
+	   <td class="booststate">${value['boosted']}</td>
+	   <td class="memory">${value['ram']}</td>
+	   <td class="cores">${value['cores']}</td>
 	   <td class="change_dt">${value['change_dt']}</td>
 	   <td>
 		   	<button class="btn btn-xs btn-success btn-start" type="button" id="btn-start" server="${value['artifact_id']}">Start</button>

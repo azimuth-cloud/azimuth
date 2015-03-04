@@ -8,6 +8,7 @@
 	<tr><td>Last Change</td><td>${server['change_dt']}<a href="/docs#credit"></a></td></tr>
 	<tr><td>Current State</td><td>${server['state']}<a href="/docs#credit"></a></td></tr>
 	<tr><td>Boost Status</td><td>${server['boosted']}<a href="/docs#credit"></a></td></tr>
+	<tr><td>Hours until deboost</td><td>${server['boostremaining']}<a href="/docs#credit"></a></td></tr>
 </table>
 <hr/>
 <button class="btn btn-xs btn-success btn-start" type="button" id="btn-start" server="${server['artifact_id']}">Start</button>
@@ -165,7 +166,7 @@
      	</div>
       	<div class="modal-footer">
         	<button class="btn btn-success btn-boost" type="button" server="${server['artifact_id']}">Confirm Boost</button>
-        	<button class="btn btn-danger btn-cancel" >Cancel</button>
+        	<button class="btn btn-danger btn-boostcancel" >Cancel</button>
 
       	</div>
       </div>
@@ -192,8 +193,8 @@
         <form>
           <div class="form-group">
             <h4>Extend for how long?</h4>
-            <div class="col-md-8" style="padding-left:0px;padding-right:0px;"><input type="range"  min="0" max="100" id="slideduration"></div>
-            <div class="col-md-4"><input type="number" size="4" maxlength="4" id="textduration" style="width: 100px; height: 20px; font-size: 10px">&nbsp; hrs</div>
+            <div class="col-md-8" style="padding-left:0px;padding-right:0px;"><input type="range"  min="0" max="100" id="slideextend"></div>
+            <div class="col-md-4"><input type="number" size="4" maxlength="4" id="textextend" style="width: 100px; height: 20px; font-size: 10px">&nbsp; hrs</div>
           </div>
         <p><br/><br/><i>With the additional duration, this boost action will be automatically ended at <span id="endtime">15:32 on 24/02/2015</span>. Please note that the machine will be restarted at this time in order to make the change.</i></p>
         </form>
@@ -203,8 +204,8 @@
         	<p>This extension will cost <span id="boostcost">0</span> credits, leaving <span id="boostremain">0</span> for future use.</p>
      	</div>
       	<div class="modal-footer">
-        	<button class="btn btn-success btn-boost" type="button" server="${server['artifact_id']}">Confirm Boost</button>
-        	<button class="btn btn-danger btn-cancel" >Cancel</button>
+        	<button class="btn btn-success btn-extendboost" type="button" server="${server['artifact_id']}">Confirm Boost</button>
+        	<button class="btn btn-danger btn-extendboostcancel" >Cancel</button>
       	</div>
       </div>
     </div>
@@ -228,10 +229,10 @@
     	</div>
         <hr>
         	<p>You currently have <b>${credit}</b> credits.</p>
-        	<p>This boost will return you <span id="boostcost">0</span> credits, giving a total of <span id="boostremain">0</span> for future use.</p><br/>
+        	<p>This boost will return you <span id="deboostcost">0</span> credits, giving a total of <span id="deboostremain">0</span> for future use.</p><br/>
       	<div class="modal-footer">
         	<button class="btn btn-success btn-deboost" type="button" server="${server['artifact_id']}">Confirm De-Boost</button>
-        	<button class="btn btn-danger btn-cancel" >Cancel</button>
+        	<button class="btn btn-danger btn-deboostcancel" >Cancel</button>
       	</div>
       </div>
     </div>
@@ -281,6 +282,12 @@
 			}); */
   			
   		});
+  		
+  		$('.btn-extendboost').click(function() {
+  			$("#extendModal").modal('hide');
+  		});
+  		
+  		
   		
   		$('.btn-boost').click(function() {
 			
@@ -338,8 +345,16 @@
 			
 		});
   	
-  		$('.btn-cancel').click(function() {
+  		$('.btn-boostcancel').click(function() {
 			$("#boostModal").modal('hide');
+		});
+		
+		$('.btn-deboostcancel').click(function() {
+			$("#deboostModal").modal('hide');
+		});
+		
+		$('.btn-extendboostcancel').click(function() {
+			$("#extendModal").modal('hide');
 		});
 		
 		$('#slidetype').change(function() {
@@ -353,7 +368,11 @@
 				$("h4#boosttype").text("Boost Type - Max (16 Cores, 500GB RAM)");
 			}
 		});
- 
+
+		$('#slideextend').change(function() {
+			update_calcs();
+		});
+
  		$(document).ready(function() {
 			update_calcs();
 		});
@@ -364,6 +383,10 @@
   	
   		$('#slideduration').change(function() {
 			update_calcs();
+		});
+		
+		$('#slideextend').change(function() {
+			update_extend_cost();
 		});
 		
 		multiplier={"1":1,"2":3,"3":12};
@@ -377,6 +400,22 @@
 			var availabletime = calculate_available_time($("input#slidetype").val());
 			$("input#slideduration").attr("max", availabletime);
 			$('input#textduration').val($('#slideduration').val());
+			var credits_used = $('#slideduration').val() * multiplier[$("input#slidetype").val()];	
+			$('span#boostremain').text(${credit}-credits_used);
+			$('span#boostcost').text(credits_used);
+			$('span#endtime').text(get_future_date($('#slideduration').val()));
+		}
+		
+		function update_deboost_cost() {
+			var credit_refunded = 35;
+			$('span#deboostremain').text(${credit}+credits_refunded);
+			$('span#deboostcost').text(credits_refunded);			
+		}
+		
+		function update_extend_cost() {
+			var availabletime = calculate_available_time($("input#slidetype").val());
+			$("input#slideextend").attr("max", availabletime);
+			$('input#textextend').val($('#slideextend').val());
 			var credits_used = $('#slideduration').val() * multiplier[$("input#slidetype").val()];	
 			$('span#boostremain').text(${credit}-credits_used);
 			$('span#boostcost').text(credits_used);
