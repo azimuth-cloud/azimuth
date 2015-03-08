@@ -195,13 +195,14 @@
             <h4>Extend for how long?</h4>
             <div class="col-md-8" style="padding-left:0px;padding-right:0px;"><input type="range"  min="0" max="100" id="slideextend"></div>
             <div class="col-md-4"><input type="number" size="4" maxlength="4" id="textextend" style="width: 100px; height: 20px; font-size: 10px">&nbsp; hrs</div>
+            <div class="col-md-12" id="extendtimesummary" style="font-size: 10px; font-style: italic;">&nbsp;</div>
           </div>
-        <p><br/><br/><i>With the additional duration, this boost action will be automatically ended at <span id="endtime">15:32 on 24/02/2015</span>. Please note that the machine will be restarted at this time in order to make the change.</i></p>
+        <p><br/><br/><i>Your server is currently due to deboost on <span id="#deboostdt">xxxx</span>. With the additional duration, this boost action will be automatically ended at <b><span id="endtime">15:32 on 24/02/2015</span></b>. Please note that the machine will be restarted at this time in order to make the change.</i></p>
         </form>
         <hr>
         <div class="alert alert-success" role="alert">
         	<p>You currently have <b>${credit}</b> credits.</p>
-        	<p>This extension will cost <span id="boostcost">0</span> credits, leaving <span id="boostremain">0</span> for future use.</p>
+        	<p>This extension will cost <span id="extendcost">0</span> credits, leaving <span id="extendremain">0</span> for future use.</p>
      	</div>
       	<div class="modal-footer">
         	<button class="btn btn-success btn-extendboost" type="button" server="${server['artifact_id']}">Confirm Boost</button>
@@ -375,6 +376,8 @@
 
  		$(document).ready(function() {
 			update_calcs();
+			update_extend_cost();
+			update_deboost_cost();
 		});
   	
   		$('#slidetype').change(function() {
@@ -396,14 +399,26 @@
 			return this;
 		}
 		
+		
+		
 		function update_calcs() {
 			var availabletime = calculate_available_time($("input#slidetype").val());
 			$("input#slideduration").attr("max", availabletime);
-			$('input#textduration').val($('#slideduration').val());
+			$('input#textduration').val(Math.exp($('#slideduration').val()));
+			var hours = $('#slideduration').val() % 24;
+			var days = ($('#slideduration').val() - hours) / 24;
+			console.log($('#slideduration').val());
+			console.log(days + " days, " + hours + " hours.");
+			$('#timesummary').val(days + " days, " + hours + " hours.");
 			var credits_used = $('#slideduration').val() * multiplier[$("input#slidetype").val()];	
 			$('span#boostremain').text(${credit}-credits_used);
 			$('span#boostcost').text(credits_used);
 			$('span#endtime').text(get_future_date($('#slideduration').val()));
+		}
+		
+		function exp_curve_transform(x, min_y, max_y, factor) {
+			// Transform values from a slider such that the maximum matches
+			// the value emitted  
 		}
 		
 		function update_deboost_cost() {
@@ -416,10 +431,16 @@
 			var availabletime = calculate_available_time($("input#slidetype").val());
 			$("input#slideextend").attr("max", availabletime);
 			$('input#textextend').val($('#slideextend').val());
-			var credits_used = $('#slideduration').val() * multiplier[$("input#slidetype").val()];	
-			$('span#boostremain').text(${credit}-credits_used);
-			$('span#boostcost').text(credits_used);
-			$('span#endtime').text(get_future_date($('#slideduration').val()));
+			var current_boost = 1;
+			var credits_used = $('#slideextend').val() * multiplier[current_boost];	
+			$('span#extendremain').text(${credit}-credits_used);
+			$('span#extendcost').text(credits_used);
+			$('span#endtime').text(get_future_date($('#slideextend').val()));
+			var hours = $('#slideextend').val() % 24;
+			var days = ($('#slideextend').val() - hours) / 24;
+			console.log($('#slideextend').val());
+			console.log(days + " days, " + hours + " hours.");
+			$('#extendtimesummary').text(days + " days, " + hours + " hours.");
 		}
 		
 		function calculate_available_time(boostlevel) {
