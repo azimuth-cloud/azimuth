@@ -1,0 +1,12 @@
+Starting
+Stopping
+Started
+Stopped
+Preparing
+Prepared
+Boosting
+Pre_Deboosting
+Pre_Deboosted
+Deboosting
+Deboosted
+Restarting
