@@ -1,0 +1,65 @@
+<html metal:use-macro="load: base_template.pt" lang="en">
+
+<section metal:fill-slot="content">
+        <h1>Introduction to the EOS Cloud</h1>
+        <p>The EOS cloud is a facility for NERC researchers to handle and store Big Data, primarily high-throughput sequencing data, and to run analyses on virtualized Linux machines.</p>
+	<p>Once signed up as a user you will be given access to a fresh Bio-Linux 8 Virtual Machine.  You will be able to log in and work via a virtual desktop or command shell to manipulate data just as you would on a local workstation, and reconfigure the machine with full root privileges.  To accomplish demanding analysis jobs you will be able to request extra compute resources (RAM and CPU) to be made available to your VM.  You will be allocated “boost credits” on your account which can be spent on these resources.</p>
+	<p>The primary installation of the EOS cloud is within the JASMIN2 facility at RAL. A second partner facility is hosted at QMUL.</p>
+	<h1>Getting access to the EOS Cloud<h2>
+	<ul>
+	<li>1. Request a user account by contacting Tim Booth at: tbooth (at) ceh.ac.uk</li>
+	<li>2. Set up your account details on the web portal, including adding an SSH key (see below)</li>
+	<li>3. Start your VM</li>
+	<li>4. Find out the address and port number from the web interface and log in to your new machine</li>
+	</ul>
+	<h1>Set up your SSH Key</h1>
+	<p>You will use an SSH key to log securely into your Bio-Linux VM on the EOS cloud.  For the protection of your own data and the security of other system users it is important that you keep the private part of your SSH key safe.  We can't generate the key for you as this defeats the whole object of the exercise!  If you are in doubt about this please ask for assistance.</p>
+	<p>In <b>Windows</b> generate the key using PuTTY:</p>
+	<ul>
+        <li>1. Download and install PuTTY from: http://www.chiark.greenend.org.uk/~sgtatham/putty/download.html</li>
+        <li>2. Run: <i><b>puttygen.exe</b></i></li>
+        <li>3. In the <i><b>Parameters</b></i> box choose <b>SSH2 DSA</b> and press <i><b>Generate</b></i></li>
+        <li>4. Move your mouse randomly to generate key pairs</li>
+        <li>5. Enter a key comment to identify the key</li>
+        <li>6. Type in the passphrase and confirm, the passphrase is used to protect the key</li>
+        <li>7. Click <i><b>Save private key</b></i> to save the private key, call this <b>id_dsa</b></li>
+        <li>8. Click <i><b>Save public key</b></i> to save the public key, call this <b>id_dsa.pub</b></li>
+        <li>9. Send the public key in an e-mail to the administrator: <b>tbooth (at) ceh.ac.uk</b></li>
+        </ul>
+        <p>In <b>Linux/Mac</b> use <b>ssh-keygen</b>:</p>
+        <ul>
+        <li>1. First check the directory listings to see if you already have a public key: <i><b>ls -al ~/.ssh</b></i></li>
+        <li>2. If you don’t have a public key then you will need to generate one: <b>ssh-keygen -t rsa -C <i>your_email@example.com</i></b></li>
+	<li>3. When you are prompted to Enter a file in which to save the key, just press Enter to continue. Next you will be asked to enter a passphrase. We recommend using a good, secure passphrase. The public key will now be generated in: <i><b>/home/you/.ssh/</i></b></li>
+	<li>4. Send the public key: <i><b>/home/you/.ssh/id_rsa.pub</i></b> to <b>tbooth (at) ceh.ac.uk</b></li>
+	</ul>
+	<p>If you are going to be accessing your VM from multiple computers, the best practise is to generate a new key on each computer and add all the public keys to the VM.  Do not enable password-only logins to the VM - this is a condition of using the system!</p>
+	<p>Once you have provided your SSH key to the administrator a VM will be setup for you ready to be connected to. You will receive an email that the VM is ready to connect to, in this email you will be provided with the <b>IP address</b> and <b>port number</b> of your VM.</p>
+	<h1>Connecting to your VM</h1>
+	<p>You can connect to VM either via command-line SSH, or via a remote desktop session.  We’ll assume you want to do the latter.  You will need to know the IP address and port number for your new VM. The recommended method of accessing EOS Cloud varies depending upon whether you are using Linux, Mac or Windows. We recommend using <b>x2go</b> for your remote desktop.</p>
+	<p>Using x2go in Linux:</p>
+	<p>To install <b>x2goclient</b> in Ubuntu and Debian: <i><b>apt-get install x2goclient</i></b></p>
+	<p>To install <b>x2goclient</b> in Fedora (you will need Fedora 20) and Redhat: <i><b>yum install x2goclient</i></b></p>
+	<p>Once installed, start up <b>x2goclient</b> and then start a new session by clicking on the icon in the top left.</p>
+	<p>Enter the Host, Login, SSH port you have been provided with by your scientific project manager, then start the session.</p>
+	<p>Using x2go in Windows:<p>
+	<p>Download <i><b>x2goclient-setup.exe</i></b> from:</p>
+http://code.x2go.org/releases/binary-win32/x2goclient/releases/</p>
+	<p>Ensure you set the address and port, and point x2go to your private key file.  If you generated your key file with PuTTY you’ll need to ensure you exported the private key in OpenSSH format.</p>
+	<p>You can leave other settings at default, including selecting the KDE desktop, even though what you’ll actually get is the MATE desktop.  You should be able to log in and see a desktop environment with icons and menus.  The desktop should resize properly when you resize the window.</p>
+	<p>Using x2go in <b>Mac</b>:</p>
+	<p>Download and install the latest <b>x2goclient.dmg</b> from: http://code.x2go.org/releases/binary-macosx/x2goclient/releases/</p>
+	<p>On Mac there are various issues with the x2go client: the fullscreen mode in X is troublesome and should probably be turned off, turn off file and printer sharing in the x2go options as this can cause lockups, and there are also occasional known issues with the keyboard, to remede, login again from Linux.</p>
+	<h1>Transferring files to your VM</h1>
+	<p>The shared folder feature in x2go works but is not very good.  You should install an SFTP client and use that to transfer files to and from your VM.  Suggested clients are:</p>
+	<ul>
+        <li>- On <b>Windows</b> use: <b>WinSCP</b></li>
+	<li>- On <b>Linux</b> use: a regular file browser (choose: <b>File</b> then: <b>Connect to server</b>) <i>sftp://manager@YOUR_VM_IP_ADDRESS_HERE/home/manager</i></li>
+	<li>- On <b>Mac</b> use: <b>CyberDuck</b></li>
+	</ul>
+	<p>All of these should accept the same SSH key file as you use to login through x2go.</p>
+	<p>When you finished using your VM logout, if the VM is shutdown you will need to contact the VM administrator to restart it.</p>
+	<h1>Learning more about Bio-Linux</h1>
+	<p>If you are not familiar with Bio-Linux, look at the tutorial link on the desktop to get some pointers.</p>
+	<p><i>Note - the tutorial is based on running the Unity desktop off a USB stick, so things look rather different.</i></p>
+</html>
