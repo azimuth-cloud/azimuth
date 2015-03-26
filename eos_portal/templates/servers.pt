@@ -30,8 +30,20 @@
 
 <script>
 	
+	/* FIXME - This shouldn't be necessary - token is double-quoted */
+	
+	var token = ${token}; 
+    var newtoken = token.substring(1, token.length-1);
+	
+	$.ajaxSetup({
+    	beforeSend: function(xhr) {
+        	xhr.setRequestHeader('eos-token', newtoken);
+        	xhr.withCredentials = true;
+    	}
+	});
+	
 	$('.btn-start').click(function() {
-		var url = 'http://localhost:6543/servers/asdf/start';
+		var url = 'http://localhost:6543/servers/asdf/Starting';
 		var key = $(this).attr("server");
 		console.log(key);
 		$('#throbber-'+key).css({ opacity: 1 });
@@ -44,20 +56,7 @@
 	});
 	
 	$('.btn-restart').click(function() {
-		var url = 'http://localhost:6543/servers/asdf/restart';
-		var key = $(this).attr("server");
-		console.log(key);
-		$('#throbber-'+key).css({ opacity: 1 });
-		$.ajax({
-			type: 'POST',
-			url: url,
-			dataType: "json",
-			data: "vm_id="+key
-		});
-	});
-	
-	$('.btn-suspend').click(function() {
-		var url = 'http://localhost:6543/servers/asdf/suspend';
+		var url = 'http://localhost:6543/servers/asdf/Restarting';
 		var key = $(this).attr("server");
 		console.log(key);
 		$('#throbber-'+key).css({ opacity: 1 });
@@ -70,7 +69,7 @@
 	});
 	
 	$('.btn-stop').click(function() {
-		var url = 'http://localhost:6543/servers/asdf/stop';
+		var url = 'http://localhost:6543/servers/asdf/Stopping';
 		var key = $(this).attr("server");
 		console.log(key);
 		$('#throbber-'+key).css({ opacity: 1 });
@@ -85,6 +84,7 @@
 	(function poll(){
    		setTimeout(function(){
       		$.ajax({
+      			async: true,
       			url: 'http://localhost:6543/servers',
       			success: function(data){
         			console.log(data);

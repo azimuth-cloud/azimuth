@@ -17,10 +17,10 @@
 <img src="/static/img/throbber.gif" id="throbber-${server['artifact_id']}" class="throbber">
 
 <!-- Only show if server is unboosted -->
-<button type="button" class="btn btn-xs btn-primary" data-toggle="modal" data-target="#boostModal" server="${server['artifact_id']}" tal:condition="server['boosted']!='Boosted'">Boost</button>
+<button type="button" class="btn btn-xs btn-primary" data-toggle="modal" data-target="#boostModal" server="${server['artifact_id']}" tal:condition="server['boosted']!='Boosted' and credit > 0">Boost</button>
 
 <!-- Only show if server is boosted -->
-<button type="button" class="btn btn-xs btn-primary" data-toggle="modal" data-target="#extendModal" server="${server['artifact_id']}" tal:condition="server['boosted']=='Boosted'">Extend Boost</button>
+<button type="button" class="btn btn-xs btn-primary" data-toggle="modal" data-target="#extendModal" server="${server['artifact_id']}" tal:condition="server['boosted']=='Boosted' and credit > 0">Extend Boost</button>
 <button type="button" class="btn btn-xs btn-primary" data-toggle="modal" data-target="#deboostModal" server="${server['artifact_id']}" tal:condition="server['boosted']=='Boosted'">De-Boost</button>
 
 
@@ -399,12 +399,10 @@
 			return this;
 		}
 		
-		
-		
 		function update_calcs() {
 			var availabletime = calculate_available_time($("input#slidetype").val());
 			$("input#slideduration").attr("max", availabletime);
-			$('input#textduration').val(Math.exp($('#slideduration').val()));
+			$('input#textduration').val(exp_curve_transform($('#slideduration').val(), availabletime));
 			var hours = $('#slideduration').val() % 24;
 			var days = ($('#slideduration').val() - hours) / 24;
 			console.log($('#slideduration').val());
@@ -416,9 +414,24 @@
 			$('span#endtime').text(get_future_date($('#slideduration').val()));
 		}
 		
-		function exp_curve_transform(x, min_y, max_y, factor) {
+		function exp_curve_reverse_transform(xdash, max) {
+			if (max < 20) {
+				return x;
+			}
+			else {
+				return max * (Math.log(xdash) / Math.log(max));
+			}
+		}
+		
+		function exp_curve_transform(x, max) {
 			// Transform values from a slider such that the maximum matches
-			// the value emitted  
+			// the value emitted
+			if (max < 20) {
+				return x;
+			}
+			else {
+				return Math.exp(x * ((Math.log(max))/max));
+			}
 		}
 		
 		function update_deboost_cost() {
