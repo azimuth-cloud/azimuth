@@ -1,0 +1,15 @@
+*.class
+*.pyc
+*.pyo
+*.class
+py3venv
+*~
+*.deb
+*.gz
+id_*.pub
+*__/
+*.egg-info/
+build/
+docs/_build
+dist/
+*.swp
