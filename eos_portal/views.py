@@ -17,8 +17,7 @@ from pyramid.security import remember, forget, authenticated_userid
 from pyramid.httpexceptions import HTTPFound, HTTPForbidden
 import json, requests
 
-username = 'agent'
-password = 'sharedsecret'
+from pyramid.renderers import render_to_response
 
 ##############################################################################
 #                                                                            #
@@ -26,28 +25,32 @@ password = 'sharedsecret'
 #                                                                            #
 ##############################################################################
 
-def api_get(request_string):
+def api_get(request_string, request):
     """Run an API call and handle exceptions.
     """
-    r = requests.get(request_string, auth=(username, password))
-    if r.status_code == 200:
-        return json.loads(r.text)
-    else:
-        raise ValueError
+    if 'token' in request.session:
+        cookie = {'auth_tkt':request.session['token']}
+        r = requests.get(request_string, cookies=cookie)
+        if r.status_code == 200:
+            return json.loads(r.text)
+        else:
+            raise ValueError(r.text)
 
-def api_post(request_string):
-    r = requests.post(request_string, auth=(username, password))
+def api_post(request_string, request):
+    cookie = {'auth_tkt':request.session['token']}
+    r = requests.post(request_string, cookies=cookie)
     if r.status_code == 200:
         return json.loads(r.text)
     else:
         raise ValueError
 
 def account_details(request):
-    result = api_get('http://localhost:6543/users/asdf?actor_id=' + request.authenticated_userid)
-    account_details = json.loads(result)
-    if account_details['credits'] is None:
-        account_details['credits'] = 0
-    return account_details
+    if 'token' in request.session:
+        result = api_get('http://localhost:6543/user', request)
+        account_details = json.loads(result)
+        if account_details['credits'] is None:
+            account_details['credits'] = 0
+        return account_details
 
 def user_credit(request):
     credit = account_details(request)['credits']
@@ -56,17 +59,18 @@ def user_credit(request):
 def server_list(request):
     """Loads all servers for the logged-in user.
     """
-    return api_get('http://localhost:6543/servers?actor_id=' + request.authenticated_userid)
+    # return api_get('http://localhost:6543/servers?actor_id=' + request.session['username'], request)
+    return api_get('http://localhost:6543/servers', request)
 
-def server_data(server_name):
+def server_data(server_name, request):
     """Loads details of a specific server.
     """
-    return api_get('http://localhost:6543/servers/' + server_name)
+    return api_get('http://localhost:6543/servers/' + server_name, request)
 
-def server_touches(server_name):
+def server_touches(server_name, request):
     """Loads log entries for a given server.
     """
-    return api_get('http://localhost:6543/servers/' + server_name + '/touches')
+    return api_get('http://localhost:6543/servers/' + server_name + '/touches', request)
 
 ##############################################################################
 #                                                                            #
@@ -78,37 +82,54 @@ def server_touches(server_name):
 def vw_home(request):
     """Main landing page for the portal. Contains reference information.
     """
-    if not request.authenticated_userid:
+    account = account_details(request)
+    if account is None:
         return {"logged_in": False}
-
+    username = account['username']
     session = request.session
-    return dict(values=server_list(request), logged_in=request.authenticated_userid, credit=user_credit(request), token=request.session['token'])
+    return dict(values=server_list(request), logged_in=username, credit=user_credit(request), token=request.session['token'])
 
-@view_config(route_name='servers', renderer='templates/servers.pt')
+@view_config(route_name='servers')
 def vw_servers(request):
     """Server View - Lists all servers available to the logged-in user.
     """
     session = request.session
-    if not request.authenticated_userid:
-        return HTTPFound(location='http://localhost:6542/logout')
-    return dict(logged_in=request.authenticated_userid, values=server_list(request), credit=user_credit(request), token=request.session['token'])
+    account = account_details(request)
+    response = render_to_response('templates/servers.pt',
+                              dict(logged_in=account['username'],
+                                   user=account['username'],
+                                   values=server_list(request),
+                                   credit=account['credits'],
+                                   token=request.session['token']),
+                              request=request)
+    response.set_cookie('auth_tkt', request.session['token'])  #!!!!!! SORT THIS
+    return response
 
-@view_config(route_name='configure', renderer='templates/configure.pt')
+@view_config(route_name='configure')
 def vw_configure(request):
     """Config View - List details of a specific server.
     """
     session = request.session
-    if not request.authenticated_userid:
-        return HTTPFound(location='http://localhost:6542/logout')
+    account = account_details(request)
     server_name = request.matchdict['name']
-    return dict(logged_in=request.authenticated_userid, server=server_data(server_name), values=server_list(request), token=request.session['token'], touches=server_touches(server_name), credit=user_credit(request))
+    response = render_to_response('templates/configure.pt',
+                              dict(logged_in=account['username'],
+                                   values=server_list(request),
+                                   server=server_data(server_name, request),
+                                   touches=server_touches(server_name, request),
+                                   credit=account['credits'],
+                                   token=request.session['token']),
+                              request=request)
+    response.set_cookie('auth_tkt', request.session['token'])  #!!!!!! SORT THIS
+    return response
 
 @view_config(route_name='account', renderer='templates/account.pt')
 def vw_account(request):
     session = request.session
-    if not request.authenticated_userid:
+    account = account_details(request)
+    if not account['username']:
         return HTTPFound(location='http://localhost:6542/logout')
-    return dict(logged_in=request.authenticated_userid, values=server_list(request), account=account_details(request), credit=user_credit(request), token=request.session['token'])
+    return dict(logged_in=account['username'], values=server_list(request), account=account_details(request), credit=user_credit(request), token=request.session['token'])
 
 ##############################################################################
 #                                                                            #
@@ -119,19 +140,27 @@ def vw_account(request):
 @view_config(route_name='login', renderer='templates/login.pt')
 def login(request):
     session = request.session
+    account = account_details(request)
+    if account:
+        username = account['username']
+    else:
+        username = None
     error_flag = False
     if 'submit' in request.POST:
-        r = requests.get('http://localhost:6543/users/asdf/password?actor_id=' + request.POST['username'] + '&password=' + request.POST['password'], auth=(username, password))
+        r = requests.get('http://localhost:6543/user', auth=(request.POST['username'], request.POST['password']))
         login = request.params['username']
         if r.status_code == 200:
-            headers = remember(request, login)
-            request.session['token'] = r.text
+            headers = remember(request, login)  # , tokens=[json.loads(r.text)])
+            request.session['token'] = r.headers['Set-Cookie'].split(";")[0].split("=")[1][1:-1]
+            print ("Session token from DB: " + request.session['token'])
             return HTTPFound(location='http://localhost:6542/servers', headers=headers)
         else:
             error_flag = True
-    return {"project": 'eos_portal', "values": error_flag, "logged_in": request.authenticated_userid}
+    return dict(project='eos_portal', values=error_flag, logged_in=username)
 
 @view_config(route_name='logout')
 def logout(request):
     headers = forget(request)
-    return HTTPFound(location=request.resource_url(request.context), headers=headers)
+    if 'token' in request.session:
+        request.session.pop('token')
+    return HTTPFound(location='/', headers=headers)

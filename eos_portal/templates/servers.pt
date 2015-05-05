@@ -4,9 +4,9 @@
 <!-- Server List Begins -->
 
 <table class="table table-striped">
-	<tr><th>Server ID</th><th>Create Date</th><th>State</th><th>Boost</th><th>RAM</th><th>Cores</th><th>Last Change</th><th>Operations</th><th></th><th></th></tr>
+	<tr><th>Server Name</th><th>Create Date</th><th>State</th><th>Boost</th><th>RAM</th><th>Cores</th><th>Last Change</th><th>Operations</th><th></th><th></th></tr>
 	<tr tal:repeat="value values" id="server-${value['artifact_id']}">  
-	   <td class="uuid">${value['artifact_uuid']}</td>
+	   <td class="uuid">${value['artifact_name']}</td>
 	   <td class="create_dt">${value['create_dt']}</td>
 	   <td class="state">${value['state']}</td>
 	   <td class="booststate">${value['boosted']}</td>
@@ -32,12 +32,11 @@
 	
 	/* FIXME - This shouldn't be necessary - token is double-quoted */
 	
-	var token = ${token}; 
+	var token = "${token}"; 
     var newtoken = token.substring(1, token.length-1);
 	
 	$.ajaxSetup({
     	beforeSend: function(xhr) {
-        	xhr.setRequestHeader('eos-token', newtoken);
         	xhr.withCredentials = true;
     	}
 	});
@@ -47,6 +46,7 @@
 		var key = $(this).attr("server");
 		console.log(key);
 		$('#throbber-'+key).css({ opacity: 1 });
+		$.cookie("auth_tkt", token);
 		$.ajax({
 			type: 'POST',
 			url: url,
@@ -84,6 +84,9 @@
 	(function poll(){
    		setTimeout(function(){
       		$.ajax({
+      			xhrFields: {
+      				withCredentials: true
+   				},
       			async: true,
       			url: 'http://localhost:6543/servers',
       			success: function(data){
@@ -110,8 +113,7 @@
         			}
         			poll();
       			},
-      			dataType: "json",
-      			data: "actor_id=${logged_in}"});
+      			dataType: "json"});
   		}, 5000);
 	})();
 	

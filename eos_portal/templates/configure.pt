@@ -2,7 +2,8 @@
 <section metal:fill-slot="content">
 <h2>Server Details</h2>
 <table class="table table-striped table-bordered">
-	<tr><td>Server Name</td><td>${server['artifact_uuid']}</td></tr>
+	<tr><td>Server Name</td><td>${server['artifact_name']}</td></tr>
+	<tr><td>Server UUID</td><td>${server['artifact_uuid']}</td></tr>
 	<tr><td>Server ID</td><td>${server['artifact_id']}</td></tr>
 	<tr><td>Server Created</td><td>${server['create_dt']}<a href="/docs#credit"></a></td></tr>
 	<tr><td>Last Change</td><td>${server['change_dt']}<a href="/docs#credit"></a></td></tr>
@@ -41,8 +42,20 @@
 </table>
 <script>
 
+	/* FIXME - This shouldn't be necessary - token is double-quoted */
+	
+	var token = ${token}; 
+    var newtoken = token.substring(1, token.length-1);
+	
+	$.ajaxSetup({
+    	beforeSend: function(xhr) {
+        	xhr.setRequestHeader('eos-token', newtoken);
+        	xhr.withCredentials = true;
+    	}
+	});
+
 	$('.btn-start').click(function() {
-		var url = 'http://localhost:6543/servers/asdf/start';
+		var url = 'http://localhost:6543/servers/asdf/Starting';
 		var key = $(this).attr("server");
 		console.log(key);
 		$('#throbber-'+key).css({ opacity: 1 });
@@ -55,20 +68,7 @@
 	});
 	
 	$('.btn-restart').click(function() {
-		var url = 'http://localhost:6543/servers/asdf/restart';
-		var key = $(this).attr("server");
-		console.log(key);
-		$('#throbber-'+key).css({ opacity: 1 });
-		$.ajax({
-			type: 'POST',
-			url: url,
-			dataType: "json",
-			data: "vm_id="+key
-		});
-	});
-	
-	$('.btn-suspend').click(function() {
-		var url = 'http://localhost:6543/servers/asdf/suspend';
+		var url = 'http://localhost:6543/servers/asdf/Restarting';
 		var key = $(this).attr("server");
 		console.log(key);
 		$('#throbber-'+key).css({ opacity: 1 });
@@ -81,7 +81,7 @@
 	});
 	
 	$('.btn-stop').click(function() {
-		var url = 'http://localhost:6543/servers/asdf/stop';
+		var url = 'http://localhost:6543/servers/asdf/Stopping';
 		var key = $(this).attr("server");
 		console.log(key);
 		$('#throbber-'+key).css({ opacity: 1 });
@@ -259,7 +259,7 @@
 				data: serverconfig
 			});
 			
-			var url = 'http://localhost:6543/servers/asdf/pre_deboost';
+			var url = 'http://localhost:6543/servers/asdf/Pre_Deboosting';
 			var key = $(this).attr("server");
 			console.log(key);
 			$('#throbber-'+key).css({ opacity: 1 });
@@ -311,7 +311,7 @@
 			$("#boostModal").modal('hide');
 			$("#boostarea").toggle();
 			var key = '${server['artifact_uuid']}';
-			var url = 'http://localhost:6543/servers/' + key + '/specification';
+			var url = 'http://localhost:6543/servers/specific/specification';
 			console.log(key);
 			var serverconfig = {ram : ram, cores : cores};
 			$.ajax({
@@ -321,7 +321,7 @@
 				data: serverconfig
 			});
 			
-			var url = 'http://localhost:6543/servers/asdf/prepare';
+			var url = 'http://localhost:6543/servers/asdf/Preparing';
 			var key = $(this).attr("server");
 			console.log(key);
 			$('#throbber-'+key).css({ opacity: 1 });
