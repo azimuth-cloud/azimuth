@@ -1,0 +1,60 @@
+Deployment of EOS-Portal.  How do we make it both simple and secure?
+
+We want a master directory under a dedicated account:
+
+/home/cloudhands-eos/
+
+Under this, owned by cloudhands-eos:
+
+eos-db/
+eos-agents/
+eos-portal/
+py3venv/
+run/
+
+And under run/
+
+eos-db/ owned by eos-db
+  Contains database password (if we had one).  Symlink eos-db/eos_db/config.py to here.
+  Contains agent_secret and token_secret
+  Has logs for the DB
+eos-agents/ owned by eos-agents
+  Contains the VCloud username/password.  Likewise, config.py is symlinked into eos-agents.
+  Contains agent_secret
+  Has logs for the agents
+  Has database of warnings sent from the , if I ever make one
+eos-portal/ owned by www-data
+  Contains the token secret, if I need one?
+  Has logs for the web portal server
+
+Deployment script.  I could put this under eos-portal but instruct people to download it and run it.
+
+1) Check for git and python requisites and www-data/nobody user.
+1a) umask 022
+2) Create user 'cloudhands-eos', with empty HOME /home/cloudhands-eos
+   useradd -MU cloudhands-eos
+   install -d "`getent passwd cloudhands-eos | cut -d: -f6`" -o cloudhands-eos -m755
+3) Make $HOME/var
+   cd "`getent passwd cloudhands-eos | cut -d: -f6`"
+   install -d var -o cloudhands-eos -m755
+4) Create eos-db and eos-agents users with HOME's under ./var/
+   useradd -MN -b "`pwd`"/var -g cloudhands-eos eos-db
+   useradd -MN -b "`pwd`"/var -g cloudhands-eos eos-agents
+   install -d var/eos-db -o eos-db -m755
+   install -d var/eos-db -o eos-agents -m755
+5) Create eos-portal directory owned by www-data/nobody
+   install -d var/eos-portal -o www-data -m755
+6) As cloudhands-eos user, git clone all 3 repos
+   sudo -Hu cloudhands-eos ...
+7) Build initial py3venv
+   ...
+8) 'setup.py develop' on all three modules
+   ...
+
+Now, it might seem much more reasonable to bundle a pre-made py3venv and use this in place of 6-8.
+This would also work, but I'd need to see what happens with the password config.  In any case,
+running the code will be the same.
+
+9) Prompt the user to configure any passwords and then to run 'sudo controller.sh'.  Each service will
+   be run as the owner of the relevant var/ directory, so on the test machine I can use one owner
+   for all three services.
