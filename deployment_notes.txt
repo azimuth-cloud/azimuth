@@ -31,9 +31,12 @@ Deployment script.  I could put this under eos-portal but instruct people to dow
 
 1) Check for git and python requisites and www-data/nobody user.
 1a) umask 022
+1b) Sort ot PostgreSQL
+    sudo -u postgres psql -c 'CREATE ROLE "eos-db" LOGIN'
+    sudo -u postgres psql -c 'CREATE DATABASE "eos_db" WITH OWNER "eos-db"'
 2) Create user 'cloudhands-eos', with empty HOME /home/cloudhands-eos
-   useradd -MU cloudhands-eos
-   install -d "`getent passwd cloudhands-eos | cut -d: -f6`" -o cloudhands-eos -m755
+   useradd -MU -s /bin/bash cloudhands-eos
+   install -d "`getent passwd cloudhands-eos | cut -d: -f6`" -o cloudhands-eos -g cloudhands-eos -m755
 3) Make $HOME/var
    cd "`getent passwd cloudhands-eos | cut -d: -f6`"
    install -d var -o cloudhands-eos -m755
@@ -45,11 +48,17 @@ Deployment script.  I could put this under eos-portal but instruct people to dow
 5) Create eos-portal directory owned by www-data/nobody
    install -d var/eos-portal -o www-data -m755
 6) As cloudhands-eos user, git clone all 3 repos
-   sudo -Hu cloudhands-eos ...
+   sudo -iHu cloudhands-eos
+   git clone https://github.com/environmentalomics/eos-portal.git
+   git clone https://github.com/environmentalomics/eos-db.git
+   git clone https://github.com/environmentalomics/eos-agents.git
 7) Build initial py3venv
-   ...
+   pyvenv-3.4 --without-pip ~/eoscloud-venv
+   wget -q -O- https://bootstrap.pypa.io/get-pip.py | ~/eoscloud-venv/bin/python
 8) 'setup.py develop' on all three modules
-   ...
+   ( cd eos-db && ~/eoscloud-venv/bin/python setup.py develop )
+   ( cd eos-db && ~/eoscloud-venv/bin/python -m unittest )
+   And the same for eos-portal and eos-agents
 
 Now, it might seem much more reasonable to bundle a pre-made py3venv and use this in place of 6-8.
 This would also work, but I'd need to see what happens with the password config.  In any case,
