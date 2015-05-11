@@ -98,6 +98,7 @@ clear_logs()
 	    true > "$l"
 	fi
     done
+    true
 }
 
 clear_pids()
@@ -106,6 +107,7 @@ clear_pids()
 	     "${AGENT_WORKING_DIR}/controller.pid" ; do
 	rm -f "$p"
     done
+    true
 }
 
 dstart()
@@ -114,6 +116,11 @@ dstart()
     make_secrets
     export authtkt_secretfile="`readlink -e "$DB_WORKING_DIR"/token_secret`"
     export agent_secretfile="`readlink -e "$DB_WORKING_DIR"/agent_secret`"
+
+    #################################
+    # Ensure the database is set up.  No harm calling this repeatedly.  It should
+    # be killed off and done on DB start really.
+    "$PY3VENV"/bin/python "$WD"/eos-db/bin/eos-init || exit 1
 
     ###############################
     # Fire up the database
@@ -156,6 +163,7 @@ dstart()
     start-stop-daemon -CbS -mp ${AGENT_WORKING_DIR}/controller.pid -u $AGENT_USER -c $AGENT_USER \
 	-x "$PY3VENV"/bin/python -- "$WD/eos-agents/eos_agents/controller.py" \
 	-s "$AGENT_WORKING_DIR"/agent_secret -q >"${AGENT_WORKING_DIR}/agents.log" 2>&1
+
 }
 
 dstop()
@@ -178,9 +186,6 @@ dstop()
 
 
 case "$1" in
-    "")
-	echo "Usage: $0 start|stop|restart"
-	;;
     freshstart)
 	clear_logs && clear_pids && dstart
 	;;
@@ -189,6 +194,9 @@ case "$1" in
 	;;
     restart)
 	check_root && {	dstop ; dstart ; }
+	;;
+    *)
+	echo "Usage: $0 start|stop|restart|freshstart"
 	;;
 esac
 
