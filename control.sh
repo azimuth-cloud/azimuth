@@ -93,7 +93,7 @@ make_secrets()
 clear_logs()
 {
     for l in "${DB_WORKING_DIR}/server.log" "${PORTAL_WORKING_DIR}/server.log" \
-	     "${AGENT_WORKING_DIR}/agents.log" do ;
+	     "${AGENT_WORKING_DIR}/agents.log" ; do
 	if [ -e "$l" ] ; then
 	    true > "$l"
 	fi
@@ -103,7 +103,7 @@ clear_logs()
 clear_pids()
 {
     for p in "${DB_WORKING_DIR}/server.pid" "${PORTAL_WORKING_DIR}/server.pid" \
-	     "${AGENT_WORKING_DIR}/controller.pid" do ;
+	     "${AGENT_WORKING_DIR}/controller.pid" ; do
 	rm -f "$p"
     done
 }
