@@ -120,7 +120,7 @@ dstart()
     #################################
     # Ensure the database is set up.  No harm calling this repeatedly.  It should
     # be killed off and done on DB start really.
-    "$PY3VENV"/bin/python "$WD"/eos-db/bin/eos-init || exit 1
+    sudo -Hu "$DB_USER" "$PY3VENV"/bin/python "$WD"/eos-db/bin/eos-init || exit 1
 
     ###############################
     # Fire up the database
