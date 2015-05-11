@@ -90,6 +90,24 @@ make_secrets()
     #echo "Starting with shared secret $a_ss and $d_ss"
 }
 
+clear_logs()
+{
+    for l in "${DB_WORKING_DIR}/server.log" "${PORTAL_WORKING_DIR}/server.log" \
+	     "${AGENT_WORKING_DIR}/agents.log" do ;
+	if [ -e "$l" ] ; then
+	    true > "$l"
+	fi
+    done
+}
+
+clear_pids()
+{
+    for p in "${DB_WORKING_DIR}/server.pid" "${PORTAL_WORKING_DIR}/server.pid" \
+	     "${AGENT_WORKING_DIR}/controller.pid" do ;
+	rm -f "$p"
+    done
+}
+
 dstart()
 {
     echo Starting...
@@ -162,6 +180,9 @@ dstop()
 case "$1" in
     "")
 	echo "Usage: $0 start|stop|restart"
+	;;
+    freshstart)
+	clear_logs && clear_pids && dstart
 	;;
     start | stop)
 	check_root && d$1
