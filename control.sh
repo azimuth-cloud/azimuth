@@ -15,7 +15,7 @@ _WD="`dirname $0`"
 _CONTROL_CONF="$_WD/control.conf"
 
 CONTROL_CONF=${CONTROL_CONF:-$_CONTROL_CONF}
-source "$CONTROL_CONF"
+[ -e "$CONTROL_CONF" ] && source "$CONTROL_CONF"
 WD="${WORKING_DIR:-$_WD/..}"
 
 # So assuming you just check out eos-db, eos-portal and eos-agents in the same folder
@@ -46,7 +46,7 @@ done
 check_root()
 {
     if ! [ `id -u` = 0 ] ; then
-	echo "Not root"
+	echo "This script needs to run as root"
 	return 1
     fi
     return 0
@@ -59,6 +59,8 @@ make_shared_secret()
     head -c 42 /dev/urandom | base64
 }
 
+# A shared secret that the agents use to prove to the database they are legit.
+# If 2-way verification is needed make a double secret.
 make_secrets()
 {
     a_ss=`make_shared_secret`
@@ -66,7 +68,7 @@ make_secrets()
 
     ( umask 077
 
-      #Database makes secure tokens
+      #Database makes secure authtkt tokens
       rm -f "$DB_WORKING_DIR"/token_secret
       echo "$t_ss" > "$DB_WORKING_DIR"/token_secret
       chown $DB_USER "$DB_WORKING_DIR"/token_secret
@@ -145,9 +147,6 @@ dstop()
 
 }
 
-
-# A shared secret that the agents use to prove to the database they are legit.
-# If 2-way verification is needed make a double secret.
 
 case "$1" in
     "")

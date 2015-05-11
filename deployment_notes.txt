@@ -53,11 +53,11 @@ Deployment script.  I could put this under eos-portal but instruct people to dow
    git clone https://github.com/environmentalomics/eos-db.git
    git clone https://github.com/environmentalomics/eos-agents.git
 7) Build initial py3venv
-   pyvenv-3.4 --without-pip ~/eoscloud-venv
-   wget -q -O- https://bootstrap.pypa.io/get-pip.py | ~/eoscloud-venv/bin/python
+   pyvenv-3.4 --without-pip ~/py3venv
+   wget -q -O- https://bootstrap.pypa.io/get-pip.py | ~/py3venv/bin/python
 8) 'setup.py develop' on all three modules
-   ( cd eos-db && ~/eoscloud-venv/bin/python setup.py develop )
-   ( cd eos-db && ~/eoscloud-venv/bin/python -m unittest )
+   ( cd eos-db && ~/py3venv/bin/python setup.py develop )
+   ( cd eos-db && ~/py3venv/bin/python -m unittest )
    And the same for eos-portal and eos-agents
 
 Now, it might seem much more reasonable to bundle a pre-made py3venv and use this in place of 6-8.
