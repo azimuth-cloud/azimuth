@@ -110,6 +110,19 @@ clear_pids()
     true
 }
 
+dsetup()
+{
+    #################################
+    # Ensure the database is set up.  No harm calling this repeatedly.  It should
+    # be killed off and done on DB start really.
+    if sudo -Hu "$DB_USER" psql -Aqt -d eos_db -c "select 1 from state limit 0" 2>/dev/null ; then
+	echo "Seems to be set up already."
+	return 1
+    fi
+
+    sudo -Hu "$DB_USER" "$PY3VENV"/bin/python "$WD"/eos-db/bin/eos-init || exit 1
+}
+
 dstart()
 {
     echo Starting...
@@ -117,10 +130,6 @@ dstart()
     export authtkt_secretfile="`readlink -e "$DB_WORKING_DIR"/token_secret`"
     export agent_secretfile="`readlink -e "$DB_WORKING_DIR"/agent_secret`"
 
-    #################################
-    # Ensure the database is set up.  No harm calling this repeatedly.  It should
-    # be killed off and done on DB start really.
-    sudo -Hu "$DB_USER" "$PY3VENV"/bin/python "$WD"/eos-db/bin/eos-init || exit 1
 
     ###############################
     # Fire up the database
@@ -187,16 +196,16 @@ dstop()
 
 case "$1" in
     freshstart)
-	clear_logs && clear_pids && dstart
+	clear_logs && dstart
 	;;
-    start | stop)
+    start | stop | setup)
 	check_root && d$1
 	;;
     restart)
 	check_root && {	dstop ; dstart ; }
 	;;
     *)
-	echo "Usage: $0 start|stop|restart|freshstart"
+	echo "Usage: $0 start|stop|restart|setup|freshstart"
 	;;
 esac
 
