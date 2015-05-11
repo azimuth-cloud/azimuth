@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -u
+
 ## Control script for the EOS Cloud boost controller portal. ##
 
 # While the components of the system all run separately as good little
@@ -20,7 +22,7 @@ WD="${WORKING_DIR:-$_WD/..}"
 
 # So assuming you just check out eos-db, eos-portal and eos-agents in the same folder
 # and run with the default settings:
-PY3VENV="${PY3VENV:-$WD/py3venv}"
+PY3VENV="`readlink -e "${PY3VENV:-$WD/py3venv}"`"
 AGENT_WORKING_DIR="${AGENT_WORKING_DIR:-$WD/var/eos-agents}"
 DB_WORKING_DIR="${DB_WORKING_DIR:-$WD/var/eos-db}"
 PORTAL_WORKING_DIR="${PORTAL_WORKING_DIR:-$WD/var/eos-portal}"
@@ -69,12 +71,12 @@ make_secrets()
     ( umask 077
 
       #Database makes secure authtkt tokens
-      rm -f "$DB_WORKING_DIR"/token_secret
+      #rm -f "$DB_WORKING_DIR"/token_secret
       echo "$t_ss" > "$DB_WORKING_DIR"/token_secret
       chown $DB_USER "$DB_WORKING_DIR"/token_secret
 
       #Database knows how to recognise agents
-      rm -f "$DB_WORKING_DIR"/agent_secret
+      #rm -f "$DB_WORKING_DIR"/agent_secret
       echo "$a_ss" > "$DB_WORKING_DIR"/agent_secret
       chown $DB_USER "$DB_WORKING_DIR"/agent_secret
 
@@ -92,8 +94,12 @@ dstart()
 {
     echo Starting...
     make_secrets
+    export authtkt_secretfile="`readlink -e "$DB_WORKING_DIR"/token_secret`"
+    export agent_secretfile="`readlink -e "$DB_WORKING_DIR"/agent_secret`"
 
+    ###############################
     # Fire up the database
+
     DB_INI="${DB_WORKING_DIR}/${INI_FLAVOUR}.ini"
     if [ ! -e "$DB_INI" ] && [ -e "$WD/eos-db/${INI_FLAVOUR}.ini" ] ; then
        echo "$DB_INI not found - linking to $WD/eos-db/${INI_FLAVOUR}.ini"
@@ -109,7 +115,9 @@ dstart()
 	--log-file="${DB_WORKING_DIR}/server.log" \
 	"${DB_WORKING_DIR}/${INI_FLAVOUR}.ini"
 
+    ################################
     # Fire up the portal
+
     PORTAL_INI="${PORTAL_WORKING_DIR}/${INI_FLAVOUR}.ini"
     if [ ! -e "$PORTAL_INI" ] && [ -e "$WD/eos-portal/${INI_FLAVOUR}.ini" ] ; then
        echo "$PORTAL_INI not found - linking to $WD/eos-portal/${INI_FLAVOUR}.ini"
@@ -122,11 +130,14 @@ dstart()
 	--log-file="${PORTAL_WORKING_DIR}/server.log" \
 	"${PORTAL_WORKING_DIR}/${INI_FLAVOUR}.ini"
 
-    # Fire up the agent herder.  I've not built in daemon functionality to it
+    #################################
+    # Fire up the agent herder.
+    # I've not built in daemon functionality to it
     # yet so just use start-stop-daemon with the -b option
-    start-stop-daemon -CbS -p ${AGENTS_WORKING_DIR}/controller.pid -u $AGENT_USER -c $AGENT_USER \
+
+    start-stop-daemon -CbS -mp ${AGENT_WORKING_DIR}/controller.pid -u $AGENT_USER -c $AGENT_USER \
 	-x "$PY3VENV"/bin/python -- "$WD/eos-agents/eos_agents/controller.py" \
-	-s "$AGENT_WORKING_DIR"/agent_secret -q >"${AGENT_WORKING_DIR}/agents.log"
+	-s "$AGENT_WORKING_DIR"/agent_secret -q >"${AGENT_WORKING_DIR}/agents.log" 2>&1
 }
 
 dstop()
@@ -134,11 +145,11 @@ dstop()
     echo Stopping...
 
     # Stop the agents
-    start-stop-daemon -K -s TERM -p ${AGENTS_WORKING_DIR}/controller.pid -u $AGENT_USER -c $AGENT_USER \
+    start-stop-daemon -K -s TERM -p ${AGENT_WORKING_DIR}/controller.pid -u $AGENT_USER -c $AGENT_USER \
 	-x "$PY3VENV"/bin/python
 
     # Stop the portal
-    "$PY3VENV"/bin/pserve --stop-aemon --user=$PORTAL_USER \
+    "$PY3VENV"/bin/pserve --stop-daemon --user=$PORTAL_USER \
 	--pid-file="${PORTAL_WORKING_DIR}/server.pid"
 
     # Stop the DB
