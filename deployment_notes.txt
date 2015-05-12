@@ -1,4 +1,4 @@
-Deployment of EOS-Portal.  How do we make it both simple and secure?
+Deployment of EOS-Portal.  How do we make it both simple(ish) and secure?
 
 We want a master directory under a dedicated account:
 
@@ -29,41 +29,51 @@ eos-portal/ owned by www-data
 
 Deployment script.  I could put this under eos-portal but instruct people to download it and run it.
 
-1) Check for git and python requisites and www-data/nobody user.
-1a) umask 022
-1b) Sort ot PostgreSQL
-    sudo -u postgres psql -c 'CREATE ROLE "eos-db" LOGIN'
-    sudo -u postgres psql -c 'CREATE DATABASE "eos_db" WITH OWNER "eos-db"'
-2) Create user 'cloudhands-eos', with empty HOME /home/cloudhands-eos
+1) Install git, python3, python3-dev, apache2, libffi-dev, libpq-dev
+1a) Ensure you are root and using umask 022
+2) Sort ot PostgreSQL
+    sudo -Hi -u postgres createuser -w "eos-db" -DRS
+    sudo -Hi -u postgres createdb -w eos_db -E UTF8 -O "eos-db"
+3) Create user 'cloudhands-eos', with empty HOME /home/cloudhands-eos
    useradd -MU -s /bin/bash cloudhands-eos
-   install -d "`getent passwd cloudhands-eos | cut -d: -f6`" -o cloudhands-eos -g cloudhands-eos -m755
-3) Make $HOME/var
-   cd "`getent passwd cloudhands-eos | cut -d: -f6`"
-   install -d var -o cloudhands-eos -m755
-4) Create eos-db and eos-agents users with HOME's under ./var/
+   install -d /home/cloudhands-eos -o cloudhands-eos -g cloudhands-eos -m755
+4) Make $HOME/var
+   cd /home/cloudhands-eos
+   install -d var -o root -m755
+5) Create eos-db and eos-agents users with HOME's under ./var/
    useradd -MN -b "`pwd`"/var -g cloudhands-eos eos-db
    useradd -MN -b "`pwd`"/var -g cloudhands-eos eos-agents
    install -d var/eos-db -o eos-db -m755
-   install -d var/eos-db -o eos-agents -m755
-5) Create eos-portal directory owned by www-data/nobody
+   install -d var/eos-agents -o eos-agents -m755
+6) Create eos-portal directory owned by www-data
    install -d var/eos-portal -o www-data -m755
-6) As cloudhands-eos user, git clone all 3 repos
+   chgrp cloudhands-eos var/*
+6a) Check it all looks ok:
+   ls -ld `pwd` `pwd`/var/*
+7) As cloudhands-eos user, git clone all 3 repos
    sudo -iHu cloudhands-eos
-   git clone https://github.com/environmentalomics/eos-portal.git
-   git clone https://github.com/environmentalomics/eos-db.git
-   git clone https://github.com/environmentalomics/eos-agents.git
-7) Build initial py3venv
-   pyvenv-3.4 --without-pip ~/py3venv
-   wget -q -O- https://bootstrap.pypa.io/get-pip.py | ~/py3venv/bin/python
-8) 'setup.py develop' on all three modules
+    git clone https://github.com/environmentalomics/eos-portal.git
+    git clone https://github.com/environmentalomics/eos-db.git
+    git clone https://github.com/environmentalomics/eos-agents.git
+8) Build initial py3venv
+    pyvenv-3.4 --without-pip ~/py3venv
+    wget -q -O- https://bootstrap.pypa.io/get-pip.py | ~/py3venv/bin/python
+9) 'setup.py develop' on all three modules
    ( cd eos-db && ~/py3venv/bin/python setup.py develop )
    ( cd eos-db && ~/py3venv/bin/python -m unittest )
-   And the same for eos-portal and eos-agents
+   ...And the same for eos-portal and eos-agents
+
+At this point you probably get an error about eos_agents.settings, which you
+need to provide.
+And I've just realised that the eos-agents account should really be killed and
+the agents should run as cloudhands-eos.  Oh well.  Next time.
 
 Now, it might seem much more reasonable to bundle a pre-made py3venv and use this in place of 6-8.
 This would also work, but I'd need to see what happens with the password config.  In any case,
 running the code will be the same.
 
-9) Prompt the user to configure any passwords and then to run 'sudo controller.sh'.  Each service will
+10) Prompt the user to configure any passwords and then to run 'sudo controller.sh'.  Each service will
    be run as the owner of the relevant var/ directory, so on the test machine I can use one owner
    for all three services.
+11) Run:
+    sudo -Hu eos-db /home/cloudhands-eos/py3venv/bin/eos-admin

@@ -194,7 +194,7 @@ dstop()
 }
 
 
-case "$1" in
+case "${1:-help}" in
     freshstart)
 	clear_logs && dstart
 	;;
@@ -205,7 +205,7 @@ case "$1" in
 	check_root && {	dstop ; dstart ; }
 	;;
     *)
-	echo "Usage: $0 start|stop|restart|setup|freshstart"
+	echo "Usage: $0 start|stop|restart|setup"
 	;;
 esac
 
