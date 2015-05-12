@@ -19,6 +19,7 @@ _CONTROL_CONF="$_WD/control.conf"
 CONTROL_CONF=${CONTROL_CONF:-$_CONTROL_CONF}
 [ -e "$CONTROL_CONF" ] && source "$CONTROL_CONF"
 WD="${WORKING_DIR:-$_WD/..}"
+WD="`readlink -e "$WD"`"
 
 # So assuming you just check out eos-db, eos-portal and eos-agents in the same folder
 # and run with the default settings:
