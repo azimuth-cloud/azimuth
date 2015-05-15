@@ -77,3 +77,5 @@ running the code will be the same.
    for all three services.
 11) Run:
     sudo -Hu eos-db /home/cloudhands-eos/py3venv/bin/eos-admin
+
+For apache2 setup see the notes on Garudimimus.

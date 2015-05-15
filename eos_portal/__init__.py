@@ -4,13 +4,22 @@ from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.session import UnencryptedCookieSessionFactoryConfig
 from pyramid.events import NewRequest, NewResponse
 
-from eos_portal.security import groupfinder
+#from eos_portal.security import groupfinder
 
 my_session_factory = UnencryptedCookieSessionFactoryConfig('asdfasdfas')
 
 def main(global_config, **settings):
     """ This function returns a Pyramid WSGI application.
     """
+
+    #Default settings for portal_endpoint and db_endpoint
+    if "portal_endpoint" not in settings:
+        settings['portal_endpoint'] = "http://localhost:6542"
+    if "db_endpoint_x" not in settings:
+        settings['db_endpoint_x'] = settings.get('db_endpoint', "http://localhost:6543")
+    if "db_endpoint_i" not in settings:
+        settings['db_endpoint_i'] = settings.get('db_endpoint', "http://localhost:6543")
+
     config = Configurator(settings=settings, session_factory=my_session_factory)
 
     config.include('pyramid_chameleon')
