@@ -109,12 +109,14 @@ def vw_servers(request):
     """
     session = request.session
     account = account_details(request)
+    db_endpoint = request.registry.settings.get('db_endpoint_x')
     response = render_to_response('templates/servers.pt',
-                              dict(logged_in=account['username'],
-                                   user=account['username'],
-                                   values=server_list(request),
-                                   credit=account['credits'],
-                                   token=request.session['token']),
+                              dict(logged_in   = account['username'],
+                                   user        = account['username'],
+                                   values      = server_list(request),
+                                   credit      = account['credits'],
+                                   token       = request.session['token'],
+                                   db_endpoint = db_endpoint),
                               request=request)
     response.set_cookie('auth_tkt', request.session['token'])  #!!!!!! SORT THIS
     return response
@@ -126,13 +128,15 @@ def vw_configure(request):
     session = request.session
     account = account_details(request)
     server_name = request.matchdict['name']
+    db_endpoint = request.registry.settings.get('db_endpoint_x')
     response = render_to_response('templates/configure.pt',
-                              dict(logged_in=account['username'],
-                                   values=server_list(request),
-                                   server=server_data(server_name, request),
-                                   touches=server_touches(server_name, request),
-                                   credit=account['credits'],
-                                   token=request.session['token']),
+                              dict(logged_in = account['username'],
+                                   values    = server_list(request),
+                                   server    = server_data(server_name, request),
+                                   touches   = server_touches(server_name, request),
+                                   credit    = account['credits'],
+                                   token     = request.session['token'],
+                                   db_endpoint = db_endpoint),
                               request=request)
     response.set_cookie('auth_tkt', request.session['token'])  #!!!!!! SORT THIS
     return response

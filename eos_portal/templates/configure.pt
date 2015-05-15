@@ -54,9 +54,10 @@
 </table>
 <script>
 
-    /* FIXME - This shouldn't be necessary - token is double-quoted */
-
     var token = ${token};
+    var db_endpoint = "${db_endpoint}";
+
+    /* FIXME - This shouldn't be necessary - token is double-quoted */
     var newtoken = token.substring(1, token.length-1);
 
     $.ajaxSetup({
@@ -66,49 +67,35 @@
         }
     });
 
-    $('.btn-start').click(function() {
-        var url = 'http://localhost:6543/servers/asdf/Starting';
-        var key = $(this).attr("server");
-        console.log(key);
+    function init_server_action(key, action) {
+        var url = db_endpoint + '/servers/' + key + '/' + action;
+        console.log(action + ' ' + key);
         $('#throbber-'+key).css({ opacity: 1 });
+        //$.cookie("auth_tkt", token);
         $.ajax({
             type: 'POST',
             url: url,
-            dataType: "json",
-            data: "vm_id="+key
+            dataType: "json"
         });
+    }
+
+    $('.btn-start').click(function() {
+            init_server_action($(this).attr("server"), 'Starting')
     });
 
     $('.btn-restart').click(function() {
-        var url = 'http://localhost:6543/servers/asdf/Restarting';
-        var key = $(this).attr("server");
-        console.log(key);
-        $('#throbber-'+key).css({ opacity: 1 });
-        $.ajax({
-            type: 'POST',
-            url: url,
-            dataType: "json",
-            data: "vm_id="+key
-        });
+            init_server_action($(this).attr("server"), 'Restarting')
     });
 
     $('.btn-stop').click(function() {
-        var url = 'http://localhost:6543/servers/asdf/Stopping';
-        var key = $(this).attr("server");
-        console.log(key);
-        $('#throbber-'+key).css({ opacity: 1 });
-        $.ajax({
-            type: 'POST',
-            url: url,
-            dataType: "json",
-            data: "vm_id="+key
-        });
+            init_server_action($(this).attr("server"), 'Stopping')
     });
+
 
     (function poll(){
        setTimeout(function(){
           $.ajax({
-              url: 'http://localhost:6543/servers',
+              url: db_endpoint + '/servers',
               success: function(data){
                 console.log(data);
                 for(var i = 0; i < data.length; i++) {
@@ -141,11 +128,14 @@
 
 </script>
 
-<div class="modal fade" id="boostModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" style="display: none;">
+<div class="modal fade" id="boostModal" tabindex="-1" role="dialog"
+     aria-labelledby="myModalLabel" aria-hidden="true" style="display: none;">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
         <h3 class="modal-title" id="boostmodaltitle">
             <span class="glyphicon glyphicon-signal" aria-hidden="true"></span>
             Boost Server
@@ -154,7 +144,8 @@
       <div class="modal-body">
         <div class="alert alert-info" role="alert">
             <p><b>Boosting this server will temporarily increase the resources available to you.</b></p>
-            <p>The duration for which you can boost the server will depend upon the number of credits available in your account.</p>
+            <p>The duration for which you can boost the server will depend upon the number of credits
+               available in your account.</p>
         </div>
         <hr>
         <form>
@@ -167,16 +158,19 @@
             <div class="col-md-8" style="padding-left:0px;padding-right:0px;"><input type="range"  min="0" max="100" id="slideduration"></div>
             <div class="col-md-4"><input type="number" size="4" maxlength="4" id="textduration" style="width: 100px; height: 20px; font-size: 10px">&nbsp; hrs</div>
           </div>
-        <p><br/><br/><i>This boost action will be automatically ended at <span id="endtime">15:32 on 24/02/2015</span>. Please note that the machine will be restarted at this time in order to make the change.</i></p>
+        <p><br/><br/><i>This boost action will be automatically ended at <span id="endtime">00:00 on 00/00/0000</span>.
+            Please note that the machine will be restarted at this time in order to make the change.</i></p>
         </form>
         <hr>
 
         <div class="alert alert-success" role="alert">
             <p>You currently have <b>${credit}</b> credits.</p>
-            <p>This boost will cost <span id="boostcost">0</span> credits, leaving <span id="boostremain">0</span> for future use.</p>
+            <p>This boost will cost <span id="boostcost">0</span> credits, leaving <span id="boostremain">0</span>
+               for future use.</p>
          </div>
           <div class="modal-footer">
-            <button class="btn btn-success btn-boost" type="button" server="${server['artifact_id']}">Confirm Boost</button>
+            <button class="btn btn-success btn-boost" type="button"
+                    server="${server['artifact_id']}">Confirm Boost</button>
             <button class="btn btn-danger btn-boostcancel" >Cancel</button>
 
           </div>
@@ -185,11 +179,14 @@
   </div>
 </div>
 
-<div class="modal fade" id="extendModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" style="display: none;">
+<div class="modal fade" id="extendModal" tabindex="-1" role="dialog"
+     aria-labelledby="myModalLabel" aria-hidden="true" style="display: none;">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
         <h3 class="modal-title" id="boostmodaltitle">
             <span class="glyphicon glyphicon-signal" aria-hidden="true"></span>
             Extend Boost
@@ -197,26 +194,36 @@
       </div>
       <div class="modal-body">
         <div class="alert alert-warning" role="warning">
-            <p><b>Extending a boost will increase the amount of time your server's greater resources are available.</b></p>
-            <p>The duration for which you can boost the server will depend upon the number of credits available in your account.</p>
+            <p><b>Extending a boost will increase the amount of time your server's boosted resources are available.</b></p>
+            <p>The duration for which you can boost the server will depend upon the number of credits available
+               in your account.</p>
         </div>
         <hr>
         <form>
           <div class="form-group">
             <h4>Extend for how long?</h4>
-            <div class="col-md-8" style="padding-left:0px;padding-right:0px;"><input type="range"  min="0" max="100" id="slideextend"></div>
-            <div class="col-md-4"><input type="number" size="4" maxlength="4" id="textextend" style="width: 100px; height: 20px; font-size: 10px">&nbsp; hrs</div>
+            <div class="col-md-8" style="padding-left:0px;padding-right:0px;">
+                <input type="range"  min="0" max="100" id="slideextend">
+            </div>
+            <div class="col-md-4">
+                <input type="number" size="4" maxlength="4" id="textextend"
+                       style="width: 100px; height: 20px; font-size: 10px">&nbsp; hrs</div>
             <div class="col-md-12" id="extendtimesummary" style="font-size: 10px; font-style: italic;">&nbsp;</div>
           </div>
-        <p><br/><br/><i>Your server is currently due to deboost on <span id="#deboostdt">xxxx</span>. With the additional duration, this boost action will be automatically ended at <b><span id="endtime">15:32 on 24/02/2015</span></b>. Please note that the machine will be restarted at this time in order to make the change.</i></p>
+        <p><br/><br/><i>Your server is currently due to deboost on <span id="#deboostdt">xxxx</span>. 
+               With the additional duration, this boost action will be automatically ended at 
+               <b><span id="endtime">00:00 on 00/00/0000</span></b>. 
+               Please note that the machine will be restarted at this time in order to make the change.</i></p>
         </form>
         <hr>
         <div class="alert alert-success" role="alert">
             <p>You currently have <b>${credit}</b> credits.</p>
-            <p>This extension will cost <span id="extendcost">0</span> credits, leaving <span id="extendremain">0</span> for future use.</p>
+            <p>This extension will cost <span id="extendcost">0</span> credits, leaving
+            <span id="extendremain">0</span> for future use.</p>
          </div>
           <div class="modal-footer">
-            <button class="btn btn-success btn-extendboost" type="button" server="${server['artifact_id']}">Confirm Boost</button>
+            <button class="btn btn-success btn-extendboost" type="button"
+                    server="${server['artifact_id']}">Confirm Boost</button>
             <button class="btn btn-danger btn-extendboostcancel" >Cancel</button>
           </div>
       </div>
@@ -224,11 +231,14 @@
   </div>
 </div>
 
-<div class="modal fade" id="deboostModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" style="display: none;">
+<div class="modal fade" id="deboostModal" tabindex="-1" role="dialog"
+     aria-labelledby="myModalLabel" aria-hidden="true" style="display: none;">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
         <h3 class="modal-title" id="boostmodaltitle">
             <span class="glyphicon glyphicon-signal" aria-hidden="true"></span>
             De-Boost
@@ -236,14 +246,17 @@
       </div>
       <div class="modal-body">
         <div class="alert alert-danger" role="danger">
-            <p><b><span class="glyphicon glyphicon-exclamation-sign"></span>&nbsp;Deboosting will immediately reset your VM and return it to the base configuration.</b></p>
+            <p><b><span class="glyphicon glyphicon-exclamation-sign"></span>&nbsp;Deboosting will
+               immediately reset your VM and return it to the base configuration.</b></p>
             <p>You will be refunded any unused credits.</p>
         </div>
         <hr>
             <p>You currently have <b>${credit}</b> credits.</p>
-            <p>This boost will return you <span id="deboostcost">0</span> credits, giving a total of <span id="deboostremain">0</span> for future use.</p><br/>
+            <p>This boost will return you <span id="deboostcost">0</span> credits, giving a total of
+               <span id="deboostremain">0</span> for future use.</p><br/>
           <div class="modal-footer">
-            <button class="btn btn-success btn-deboost" type="button" server="${server['artifact_id']}">Confirm De-Boost</button>
+            <button class="btn btn-success btn-deboost" type="button"
+                    server="${server['artifact_id']}">Confirm De-Boost</button>
             <button class="btn btn-danger btn-deboostcancel" >Cancel</button>
           </div>
       </div>
@@ -253,13 +266,14 @@
 
 <script>
       $('.btn-deboost').click(function() {
+          //FIXME - should be configurable
           var ram = 40;
           var cores = 1;
 
           $("#deboostModal").modal('hide');
         //$("#boostarea").toggle();
         var key = '${server['artifact_uuid']}';
-        var url = 'http://localhost:6543/servers/' + key + '/specification';
+        var url = db_endpoint + '/servers/' + key + '/specification';
         console.log(key);
         var serverconfig = {ram : ram, cores : cores};
         $.ajax({
@@ -269,7 +283,7 @@
             data: serverconfig
         });
 
-        var url = 'http://localhost:6543/servers/asdf/Pre_Deboosting';
+        var url = db_endpoint + '/servers/' + key + '/Pre_Deboosting';
         var key = $(this).attr("server");
         console.log(key);
         $('#throbber-'+key).css({ opacity: 1 });
@@ -321,7 +335,7 @@
         $("#boostModal").modal('hide');
         $("#boostarea").toggle();
         var key = '${server['artifact_uuid']}';
-        var url = 'http://localhost:6543/servers/specific/specification';
+        var url = db_endpoint + '/servers/' + key + '/specification';
         console.log(key);
         var serverconfig = {ram : ram, cores : cores};
         $.ajax({
@@ -331,21 +345,20 @@
             data: serverconfig
         });
 
-        var url = 'http://localhost:6543/servers/asdf/Preparing';
         var key = $(this).attr("server");
-        console.log(key);
+        var url = db_endpoint + '/servers/' + key + '/Preparing';
+        console.log('Preparing ' + key);
         $('#throbber-'+key).css({ opacity: 1 });
         $.ajax({
             type: 'POST',
             url: url,
-            dataType: "json",
-            data: "vm_id="+key
+            dataType: "json"
         });
 
-        var url = 'http://localhost:6543/users/asdf/credit';
+        var url = db_endpoint + '/servers/' + key + '/credit';
         credit = $('span#boostcost').text();
         credit = 0-credit;
-        var creditconfig = {credit : credit, actor_id : 'bcollier'};
+        var creditconfig = {credit : credit};
         console.log(key);
         $.ajax({
             type: 'POST',

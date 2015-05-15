@@ -49,9 +49,12 @@
 <script>
 
     /* FIXME - This shouldn't be necessary - token is double-quoted */
+    /* FIXME2 - why are servers.pt and configure.py authenticating in different ways?
+       Which actually works ?? */
 
     var token = "${token}";
-        var newtoken = token.substring(1, token.length-1);
+    var db_endpoint = "${db_endpoint}";
+    //var newtoken = token.substring(1, token.length-1);
 
     $.ajaxSetup({
         beforeSend: function(xhr) {
@@ -59,44 +62,28 @@
         }
     });
 
-    $('.btn-start').click(function() {
-        var url = 'http://localhost:6543/servers/asdf/Starting';
-        var key = $(this).attr("server");
-        console.log(key);
+    function init_server_action(key, action) {
+        var url = db_endpoint + '/servers/' + key + '/' + action;
+        console.log(action + ' ' + key);
         $('#throbber-'+key).css({ opacity: 1 });
         $.cookie("auth_tkt", token);
         $.ajax({
             type: 'POST',
             url: url,
-            dataType: "json",
-            data: "vm_id="+key
+            dataType: "json"
         });
+    }
+
+    $('.btn-start').click(function() {
+	    init_server_action($(this).attr("server"), 'Starting')
     });
 
     $('.btn-restart').click(function() {
-        var url = 'http://localhost:6543/servers/asdf/Restarting';
-        var key = $(this).attr("server");
-        console.log(key);
-        $('#throbber-'+key).css({ opacity: 1 });
-        $.ajax({
-            type: 'POST',
-            url: url,
-            dataType: "json",
-            data: "vm_id="+key
-        });
+	    init_server_action($(this).attr("server"), 'Restarting')
     });
 
     $('.btn-stop').click(function() {
-        var url = 'http://localhost:6543/servers/asdf/Stopping';
-        var key = $(this).attr("server");
-        console.log(key);
-        $('#throbber-'+key).css({ opacity: 1 });
-        $.ajax({
-            type: 'POST',
-            url: url,
-            dataType: "json",
-            data: "vm_id="+key
-        });
+	    init_server_action($(this).attr("server"), 'Stopping')
     });
 
     (function poll(){
@@ -106,7 +93,7 @@
                       withCredentials: true
                    },
                   async: true,
-                  url: 'http://localhost:6543/servers',
+                  url: db_endpoint + '/servers',
                   success: function(data){
                     console.log(data);
                     for(var i = 0; i < data.length; i++) {
