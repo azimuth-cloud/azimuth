@@ -12,7 +12,8 @@ def main(global_config, **settings):
     """ This function returns a Pyramid WSGI application.
     """
 
-    #Default settings for portal_endpoint and db_endpoint
+    #Default settings for portal_endpoint and db_endpoint.  Note that you
+    #may provide just db_endpoint if using the same URL for internal and external purposes.
     if "portal_endpoint" not in settings:
         settings['portal_endpoint'] = "http://localhost:6542"
     if "db_endpoint_x" not in settings:
