@@ -19,8 +19,8 @@
 		                <li tal:repeat="value values"><a href="/servers/${value['artifact_uuid']}">${value['artifact_uuid']}</a></li>
 		            </ul>
 		        </li>
-		        <li><a href="/docs">Documentation</a></li>
-		        <li><a href="mailto:eoscloud@ceh.ac.uk">Contact</a></li>
+		        <li><a href="http://environmentalomics.org/portfolio/big-data-infrastructure/">Documentation</a></li>
+		        <li><a href="mailto:tbooth@ceh.ac.uk">Contact</a></li>
 		    </ul>
 		    <ul class="nav navbar-nav navbar-right" tal:condition="logged_in">
 		    	<li><span class="welcome">Welcome, ${logged_in}.</span></li>

@@ -2,10 +2,12 @@
 
 <section metal:fill-slot="content">
 	<h1>Welcome to the EOS Cloud</h1>
-	<p>EOS cloud is a facility for NERC researchers to handle and store <i>Big Data</i>, primarily high-throughput sequencing data, and to run analyses using Bio-Linux on virtualized Linux machines. EOS Cloud is hosted by the JASMIN2 facility in RAL and at QMUL.</p>
-	
-	<p>To start using the EOS Cloud register as a user. It is recommended that the user documentation is read before logging in.</p>
-	<p>This is a pilot project, for more information please contact Tim Booth at: tbooth (at) ceh.ac.uk</p>  
+	<p>EOS cloud is a facility for NERC researchers to handle and store <i>Big Data</i>, primarily
+       	high-throughput sequencing data, and to run analyses using Bio-Linux on virtualized Linux machines.
+       	EOS Cloud is hosted by the JASMIN2 facility in RAL and at QMUL.</p>
+	<p>To start using the EOS Cloud register as a user. It is recommended that the user documentation
+       	is read before logging in.</p>
+	<p>This is a pilot project, for more information please contact Tim Booth at: tbooth (at) ceh.ac.uk</p>
 </section>
 
 </html>

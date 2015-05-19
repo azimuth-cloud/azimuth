@@ -19,8 +19,7 @@
 			<section class="messages"></section>
     		<div class="panel panel-default">
     			<div class="panel-body">
-			
-					<section metal:define-slot="content"></section>
+				<section metal:define-slot="content"></section>
 
             	</div>
             </div>

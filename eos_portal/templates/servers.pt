@@ -12,8 +12,8 @@
         <th>Cores</th>
         <th>Last Change</th>
         <th>Operations</th><th></th><th></th></tr>
-    <tr tal:repeat="value values" id="server-${value['artifact_id']}">
-        <td class="uuid">${value['artifact_name']}</td>
+    <tr tal:repeat="value values" id="server-${value['artifact_id']}" name="${value['artifact_name']}">
+        <td class="name">${value['artifact_name']}</td>
         <td class="create_dt">${value['create_dt']}</td>
         <td class="state">${value['state']}</td>
         <td class="booststate">${value['boosted']}</td>
@@ -39,7 +39,7 @@
         <td>
             <button class="btn btn-xs btn-primary"
                     type="button"
-                    onclick="window.location.href='/servers/${value['artifact_uuid']}'">Configure</button>
+                    onclick="window.location.href='/servers/${value['artifact_name']}'">Configure</button>
            </td>
     </tr>
 </table>
@@ -58,16 +58,18 @@
 
     $.ajaxSetup({
         beforeSend: function(xhr) {
-            xhr.withCredentials = true;
+            //This is all I have to do to authenticate my self to the database, Ben!
 	    xhr.setRequestHeader("auth_tkt", token);
         }
     });
 
     function init_server_action(key, action) {
-        var url = db_endpoint + '/servers/' + key + '/' + action;
-        console.log(action + ' ' + key);
+	//Convert server id to name
+	var sname = $('#server-'+key).attr("name")
+        var url = db_endpoint + '/servers/' + sname + '/' + action;
+        console.log(action + ' ' + key + ' ' + sname);
         $('#throbber-'+key).css({ opacity: 1 });
-        $.cookie("auth_tkt", token);
+        // FIXME - delete - $.cookie("auth_tkt", token);
         $.ajax({
             type: 'POST',
             url: url,
@@ -90,9 +92,6 @@
     (function poll(){
            setTimeout(function(){
               $.ajax({
-                  xhrFields: {
-                      withCredentials: true
-                   },
                   async: true,
                   url: db_endpoint + '/servers',
                   success: function(data){
@@ -118,7 +117,8 @@
           }, 5000);
     })();
 
-    poll();
+    //FIXME - isn't poll called twice here?
+    //poll();
 
 </script>
 

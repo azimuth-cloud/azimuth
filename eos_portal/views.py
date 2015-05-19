@@ -14,7 +14,7 @@ forbidden_view
 from pyramid.view import view_config, forbidden_view_config
 from pyramid.security import remember, forget
 from pyramid.httpexceptions import HTTPFound, HTTPForbidden
-import json, requests
+import requests
 
 from pyramid.renderers import render_to_response
 
@@ -45,7 +45,7 @@ def api_get(request_string, request):
     cookie = {'auth_tkt':request.session['auth_tkt']}
     r = requests.get(rs, cookies=cookie)
     if r.status_code == 200:
-        return json.loads(r.text)
+        return r.json()
     else:
         #FIXME - ensure return to login form on receipt of a 401
         raise ValueError(r.text)
@@ -57,20 +57,13 @@ def api_post(request_string, request):
     cookie = {'auth_tkt':request.session['auth_tkt']}
     r = requests.post(rs, headers=cookie)
     if r.status_code == 200:
-        return json.loads(r.text)
+        return r.json()
     else:
         #FIXME - ensure return to login form on receipt of a 401
         raise ValueError
 
-def account_details(request):
-    #FIXME - this returns None if there is no tkt but raises an exception
-    #if the tkt is bad.  Should be consistent.
-    if 'auth_tkt' in request.session:
-        return api_get('user', request)
-
 def user_credit(request):
-    credit = account_details(request)['credits']
-    return credit
+    return api_get('user', request)['credits']
 
 def server_list(request):
     """Loads all servers for the logged-in user.
@@ -94,64 +87,72 @@ def server_touches(server_name, request):
 #                                                                            #
 ##############################################################################
 
+#FIXME - home page should be login page.  This should be the /about page or summat.
 @view_config(route_name='home', renderer='templates/home.pt')
 def vw_home(request):
     """Main landing page for the portal. Contains reference information.
     """
-    account = account_details(request)
-    if account is None:
-        return {"logged_in": False}
-    username = account['username']
-    session = request.session
-    return dict(values=server_list(request),
-                logged_in=username,
-                credit=user_credit(request),
-                token=request.session['auth_tkt'])
+    account = None
+    try:
+        account = api_get('user', request)
+    except:
+        #We need to be able to look at this page even if not logged in.
+        account = dict()
+    return dict(values      = [],
+                logged_in   = account.get('username'),
+                credit      = account.get('credits'))
 
-@view_config(route_name='servers')
+@view_config(route_name='servers', renderer='templates/servers.pt')
 def vw_servers(request):
     """Server View - Lists all servers available to the logged-in user.
     """
-    account = account_details(request)
-    #FIXME - bounce back to login if above request fails.
+    account = None
+    try:
+        account = api_get('user', request)
+    except:
+        return logout(request)
     #Tell the browser how to query the database via the external endpoint.
     db_endpoint = request.registry.settings.get('db_endpoint_x')
-    response = render_to_response('templates/servers.pt',
-                              dict(logged_in   = account['username'],
-                                   user        = account['username'],
-                                   values      = server_list(request),
-                                   credit      = account['credits'],
-                                   token       = request.session['auth_tkt'],
-                                   db_endpoint = db_endpoint),
-                              request=request)
-    return response
+    return dict(   logged_in   = account['username'],
+                   user        = account['username'],
+                   values      = server_list(request),
+                   credit      = account['credits'],
+                   token       = request.session['auth_tkt'],
+                   db_endpoint = db_endpoint)
 
-@view_config(route_name='configure')
+@view_config(route_name='configure', renderer='templates/configure.pt')
 def vw_configure(request):
     """Config View - List details of a specific server.
     """
-    session = request.session
-    account = account_details(request)
+    #FIXME - this boilerplate could be made into a handle_logout decorator,
+    #as well as adding token, db_endpoint, logged_in, credit to all templates.
+    account = None
+    try:
+        account = api_get('user', request)
+    except:
+        return logout(request)
     server_name = request.matchdict['name']
     db_endpoint = request.registry.settings.get('db_endpoint_x')
-    response = render_to_response('templates/configure.pt',
-                              dict(logged_in = account['username'],
-                                   values    = server_list(request),
-                                   server    = server_data(server_name, request),
-                                   touches   = server_touches(server_name, request),
-                                   credit    = account['credits'],
-                                   token     = request.session['auth_tkt'],
-                                   db_endpoint = db_endpoint),
-                              request=request)
-    return response
+    return dict(   logged_in    = account['username'],
+                   values       = server_list(request),
+                   server       = server_data(server_name, request),
+                   touches      = server_touches(server_name, request),
+                   credit       = account['credits'],
+                   token        = request.session['auth_tkt'],
+                   db_endpoint  = db_endpoint)
 
 @view_config(route_name='account', renderer='templates/account.pt')
 def vw_account(request):
-    session = request.session
-    account = account_details(request)
-    if not account['username']:
-        return HTTPFound(location=request.registry.settings.get('portal_endpoint') + '/logout')
-    return dict(logged_in=account['username'], values=server_list(request), account=account_details(request), credit=user_credit(request), token=request.session['auth_tkt'])
+    account = None
+    try:
+        account = api_get('user', request)
+    except:
+        return logout(request)
+    return dict( logged_in = account['username'],
+                 values    = server_list(request),
+                 account   = account_details(request),
+                 credit    = user_credit(request),
+                 token     = request.session['auth_tkt'])
 
 ##############################################################################
 #                                                                            #
@@ -161,32 +162,47 @@ def vw_account(request):
 
 @view_config(route_name='login', renderer='templates/login.pt')
 def login(request):
-    """??? What exactly does this do ???
+    """Either log the user in or show the login page.
     """
-    session = request.session
-    account = account_details(request)
-    if account:
-        username = account['username']
-    else:
-        username = None
-    error_flag = False
+    username = request.POST.get('username')
+    account = None
+    error_msg = None
+
+    #1) If the user submitted the form, try to log in.
     if 'submit' in request.POST:
-        rs = request.registry.settings.get('db_endpoint_i') + '/user'
-        r = requests.get(rs, auth=(request.POST['username'], request.POST['password']))
-        login = request.params['username']
+        user_url = request.registry.settings.get('db_endpoint_i') + '/user'
+        r = requests.get(user_url, auth=(request.POST['username'], request.POST['password']))
         if r.status_code == 200:
-            headers = remember(request, login)  # , tokens=[json.loads(r.text)])
+            headers = remember(request, r.json()['username'])
             #FIXME - must be a nicer way to read this!
             request.session['auth_tkt'] = r.headers['Set-Cookie'].split(";")[0].split("=")[1][1:-1]
             print ("Session token from DB: " + request.session['auth_tkt'])
             return HTTPFound(location=request.registry.settings.get('portal_endpoint') + '/servers', headers=headers)
+        if r.status_code == 401:
+            error_msg = "Username or password not recognised"
         else:
-            error_flag = True
-    return dict(project='eos_portal', values=error_flag, logged_in=username)
+            error_msg = "Server error"
+    #2) Already logged in, maybe?  See if any of the following raise an exception...
+    else:
+        try:
+            auth_tkt = request.session['auth_tkt']
+            #If that didn't raise an exception, try using it...
+            error_msg = "Session has expired"
+            account = api_get('user', request)
+            username = account['username']
+            print("Already logged in")
+            headers = remember(request, username)
+            return HTTPFound(location=request.registry.settings.get('portal_endpoint') + '/servers', headers=headers)
+        except:
+            pass #Continue to show login form.
+
+    #FIXME - make use of error_msg and username if set.
+    return dict(project='eos_portal', values=[], logged_in=None)
 
 @view_config(route_name='logout')
 def logout(request):
     """Forget the login credentials and redirect to the front page.
+       Note that other methods rely on this to always return an HTTPFound instance.
     """
     headers = forget(request)
     if 'auth_tkt' in request.session:
