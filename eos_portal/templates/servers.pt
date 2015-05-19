@@ -59,6 +59,7 @@
     $.ajaxSetup({
         beforeSend: function(xhr) {
             xhr.withCredentials = true;
+	    xhr.setRequestHeader("auth_tkt", token);
         }
     });
 

@@ -1,12 +1,12 @@
 from pyramid.config import Configurator
-from pyramid.authentication import AuthTktAuthenticationPolicy
-from pyramid.authorization import ACLAuthorizationPolicy
-from pyramid.session import UnencryptedCookieSessionFactoryConfig
+from pyramid.session import SignedCookieSessionFactory
 from pyramid.events import NewRequest, NewResponse
 
 #from eos_portal.security import groupfinder
 
-my_session_factory = UnencryptedCookieSessionFactoryConfig('asdfasdfas')
+#FIXME - while the portal does not 'do' security a weak signing key will
+#potentially allow a CSRF attack to be made (I think).
+my_session_factory = SignedCookieSessionFactory('FIXME')
 
 def main(global_config, **settings):
     """ This function returns a Pyramid WSGI application.

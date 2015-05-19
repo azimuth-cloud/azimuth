@@ -41,30 +41,32 @@ def api_get(request_string, request):
     """
     rs = request.registry.settings.get('db_endpoint_i') + '/' + request_string
 
-    cookie = {'auth_tkt':request.session['token']}
+    #Pass auth_tkt in cookie rather than header.
+    cookie = {'auth_tkt':request.session['auth_tkt']}
     r = requests.get(rs, cookies=cookie)
     if r.status_code == 200:
         return json.loads(r.text)
     else:
+        #FIXME - ensure return to login form on receipt of a 401
         raise ValueError(r.text)
 
 def api_post(request_string, request):
     rs = request.registry.settings.get('db_endpoint_i') + '/' + request_string
 
-    cookie = {'auth_tkt':request.session['token']}
-    r = requests.post(rs, cookies=cookie)
+    #Pass auth_tkt in cookie rather than header.
+    cookie = {'auth_tkt':request.session['auth_tkt']}
+    r = requests.post(rs, headers=cookie)
     if r.status_code == 200:
         return json.loads(r.text)
     else:
+        #FIXME - ensure return to login form on receipt of a 401
         raise ValueError
 
 def account_details(request):
-    if 'token' in request.session:
-        result = api_get('user', request)
-        account_details = json.loads(result)
-        if account_details['credits'] is None:
-            account_details['credits'] = 0
-        return account_details
+    #FIXME - this returns None if there is no tkt but raises an exception
+    #if the tkt is bad.  Should be consistent.
+    if 'auth_tkt' in request.session:
+        return api_get('user', request)
 
 def user_credit(request):
     credit = account_details(request)['credits']
@@ -101,24 +103,27 @@ def vw_home(request):
         return {"logged_in": False}
     username = account['username']
     session = request.session
-    return dict(values=server_list(request), logged_in=username, credit=user_credit(request), token=request.session['token'])
+    return dict(values=server_list(request),
+                logged_in=username,
+                credit=user_credit(request),
+                token=request.session['auth_tkt'])
 
 @view_config(route_name='servers')
 def vw_servers(request):
     """Server View - Lists all servers available to the logged-in user.
     """
-    session = request.session
     account = account_details(request)
+    #FIXME - bounce back to login if above request fails.
+    #Tell the browser how to query the database via the external endpoint.
     db_endpoint = request.registry.settings.get('db_endpoint_x')
     response = render_to_response('templates/servers.pt',
                               dict(logged_in   = account['username'],
                                    user        = account['username'],
                                    values      = server_list(request),
                                    credit      = account['credits'],
-                                   token       = request.session['token'],
+                                   token       = request.session['auth_tkt'],
                                    db_endpoint = db_endpoint),
                               request=request)
-    response.set_cookie('auth_tkt', request.session['token'])  #!!!!!! SORT THIS
     return response
 
 @view_config(route_name='configure')
@@ -135,10 +140,9 @@ def vw_configure(request):
                                    server    = server_data(server_name, request),
                                    touches   = server_touches(server_name, request),
                                    credit    = account['credits'],
-                                   token     = request.session['token'],
+                                   token     = request.session['auth_tkt'],
                                    db_endpoint = db_endpoint),
                               request=request)
-    response.set_cookie('auth_tkt', request.session['token'])  #!!!!!! SORT THIS
     return response
 
 @view_config(route_name='account', renderer='templates/account.pt')
@@ -147,7 +151,7 @@ def vw_account(request):
     account = account_details(request)
     if not account['username']:
         return HTTPFound(location=request.registry.settings.get('portal_endpoint') + '/logout')
-    return dict(logged_in=account['username'], values=server_list(request), account=account_details(request), credit=user_credit(request), token=request.session['token'])
+    return dict(logged_in=account['username'], values=server_list(request), account=account_details(request), credit=user_credit(request), token=request.session['auth_tkt'])
 
 ##############################################################################
 #                                                                            #
@@ -172,8 +176,9 @@ def login(request):
         login = request.params['username']
         if r.status_code == 200:
             headers = remember(request, login)  # , tokens=[json.loads(r.text)])
-            request.session['token'] = r.headers['Set-Cookie'].split(";")[0].split("=")[1][1:-1]
-            print ("Session token from DB: " + request.session['token'])
+            #FIXME - must be a nicer way to read this!
+            request.session['auth_tkt'] = r.headers['Set-Cookie'].split(";")[0].split("=")[1][1:-1]
+            print ("Session token from DB: " + request.session['auth_tkt'])
             return HTTPFound(location=request.registry.settings.get('portal_endpoint') + '/servers', headers=headers)
         else:
             error_flag = True
@@ -184,6 +189,6 @@ def logout(request):
     """Forget the login credentials and redirect to the front page.
     """
     headers = forget(request)
-    if 'token' in request.session:
-        request.session.pop('token')
+    if 'auth_tkt' in request.session:
+        request.session.pop('auth_tkt')
     return HTTPFound(location=request.registry.settings.get('portal_endpoint'), headers=headers)

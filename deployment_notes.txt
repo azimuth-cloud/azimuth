@@ -10,7 +10,9 @@ eos-db/
 eos-agents/
 eos-portal/
 py3venv/
-run/
+
+#Owned by root:
+var/
 
 And under run/
 
@@ -18,16 +20,17 @@ eos-db/ owned by eos-db
   Contains database password (if we had one).  Symlink eos-db/eos_db/config.py to here.
   Contains agent_secret and token_secret
   Has logs for the DB
-eos-agents/ owned by eos-agents
+eos-agents/ owned by cloudhands-eos
   Contains the VCloud username/password.  Likewise, config.py is symlinked into eos-agents.
   Contains agent_secret
   Has logs for the agents
-  Has database of warnings sent from the , if I ever make one
+  Has database of warnings sent from the deboost daemon, if I ever make one
 eos-portal/ owned by www-data
   Contains the token secret, if I need one?
   Has logs for the web portal server
 
-Deployment script.  I could put this under eos-portal but instruct people to download it and run it.
+Deployment script.  I could put this under eos-portal but instruct people to
+download it and run it separately, maybe.
 
 1) Install git, python3, python3-dev, apache2, libffi-dev, libpq-dev
 1a) Ensure you are root and using umask 022
@@ -40,15 +43,14 @@ Deployment script.  I could put this under eos-portal but instruct people to dow
 4) Make $HOME/var
    cd /home/cloudhands-eos
    install -d var -o root -m755
-5) Create eos-db and eos-agents users with HOME's under ./var/
+5) Create eos-db user with HOME under ./var/
    useradd -MN -b "`pwd`"/var -g cloudhands-eos eos-db
-   useradd -MN -b "`pwd`"/var -g cloudhands-eos eos-agents
    install -d var/eos-db -o eos-db -m755
-   install -d var/eos-agents -o eos-agents -m755
-6) Create eos-portal directory owned by www-data
+6) Create eos-portal directory owned by www-data, and eos-agents owned by cloudhands-eos.
    install -d var/eos-portal -o www-data -m755
+   install -d var/eos-agents -o cloudhands-eos -m755
    chgrp cloudhands-eos var/*
-6a) Check it all looks ok:
+6b) Check it all looks ok:
    ls -ld `pwd` `pwd`/var/*
 7) As cloudhands-eos user, git clone all 3 repos
    sudo -iHu cloudhands-eos
@@ -65,8 +67,9 @@ Deployment script.  I could put this under eos-portal but instruct people to dow
 
 At this point you probably get an error about eos_agents.settings, which you
 need to provide.
-And I've just realised that the eos-agents account should really be killed and
-the agents should run as cloudhands-eos.  Oh well.  Next time.
+In my original setup I had an eos-agents account, but now I'm sure I don't
+need that.  eos-db is still wanted as no web-facing code runs with meaningful
+privileges.
 
 Now, it might seem much more reasonable to bundle a pre-made py3venv and use this in place of 6-8.
 This would also work, but I'd need to see what happens with the password config.  In any case,
