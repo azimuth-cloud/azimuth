@@ -133,6 +133,10 @@ def vw_configure(request):
         return logout(request)
     server_name = request.matchdict['name']
     db_endpoint = request.registry.settings.get('db_endpoint_x')
+
+    #Currently we get a 500 error if the server name is invalid.
+    #This seems reasonable.
+
     return dict(   logged_in    = account['username'],
                    values       = server_list(request),
                    server       = server_data(server_name, request),

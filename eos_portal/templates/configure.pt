@@ -1,51 +1,86 @@
 <html metal:use-macro="load: base_template.pt" lang="en">
 <section metal:fill-slot="content">
+
 <h2>Server Details</h2>
 <table class="table table-striped table-bordered">
-    <tr><td>Server Name</td><td>${server['artifact_name']}</td></tr>
-    <tr><td>Server UUID</td><td>${server['artifact_uuid']}</td></tr>
-    <tr><td>Server ID</td><td>${server['artifact_id']}</td></tr>
-    <tr><td>Server Created</td><td>${server['create_dt']}<a href="/docs#credit"></a></td></tr>
-    <tr><td>Last Change</td><td>${server['change_dt']}<a href="/docs#credit"></a></td></tr>
-    <tr><td>Current State</td><td>${server['state']}<a href="/docs#credit"></a></td></tr>
-    <tr><td>Boost Status</td><td>${server['boosted']}<a href="/docs#credit"></a></td></tr>
-    <tr><td>Hours until deboost</td><td>${server['boostremaining']}<a href="/docs#credit"></a></td></tr>
+    <tr><th>Server Name</th>    <td>${server['artifact_name']}</td></tr>
+    <tr><th>Server UUID</th>    <td class="artifact-uuid">${server['artifact_uuid']}</td></tr>
+    <tr><th>Server ID</th>      <td class="artifact_id">${server['artifact_id']}</td></tr>
+    <tr><th>Server Created</th><td>
+	    <span class="create_dt">${server['create_dt']}</span>
+	    <a href="/docs#credit"></a></td>
+    </tr>
+    <tr><th>Last Change</th><td>
+	    <span class="change_dt">${server['change_dt']}</span>
+	    <a href="/docs#credit"></a></td>
+    </tr>
+    <tr><th>Current State</th><td>
+	    <span class="state">${server['state']}</span>
+	    <a href="/docs#credit"></a></td>
+    </tr>
+    <tr><th>Boost Status</th><td>
+	    <span class="boosted">${server['boosted']}</span>
+	    <a href="/docs#credit"></a></td>
+    </tr>
+    <tr><th>Hours until deboost</th><td>
+	    <span class="boostremaining">${server['boostremaining']}</span>
+	    <a href="/docs#credit"></a></td>
+    </tr>
 </table>
 <hr/>
+
 <button class="btn btn-xs btn-success btn-start"
         type="button"
         id="btn-start"
-        server="${server['artifact_id']}">Start</button>
+        servername="${server['artifact_name']}">Start</button>
 <button class="btn btn-xs btn-danger btn-stop"
         id="btn-stop"
         type="button"
-        server="${server['artifact_id']}">Stop</button>
+        servername="${server['artifact_name']}">Stop</button>
 <button class="btn btn-xs btn-info btn-restart"
         id="btn-restart"
         type="button"
-        server="${server['artifact_id']}">Restart</button>
+        servername="${server['artifact_name']}">Restart</button>
 <img src="/static/img/throbber.gif"
-     id="throbber-${server['artifact_id']}"
+     id="throbber1"
      class="throbber">
 
 <!-- Only show if server is unboosted -->
-<button type="button" class="btn btn-xs btn-primary" data-toggle="modal" data-target="#boostModal" server="${server['artifact_id']}" tal:condition="server['boosted']!='Boosted' and credit > 0">Boost</button>
+<button type="button" class="btn btn-xs btn-primary"
+        data-toggle="modal"
+	data-target="#boostModal"
+	server="${server['artifact_id']}"
+	tal:condition="server['boosted']!='Boosted'">Boost</button>
 
 <!-- Only show if server is boosted -->
-<button type="button" class="btn btn-xs btn-primary" data-toggle="modal" data-target="#extendModal" server="${server['artifact_id']}" tal:condition="server['boosted']=='Boosted' and credit > 0">Extend Boost</button>
-<button type="button" class="btn btn-xs btn-primary" data-toggle="modal" data-target="#deboostModal" server="${server['artifact_id']}" tal:condition="server['boosted']=='Boosted'">De-Boost</button>
+<button type="button" class="btn btn-xs btn-primary"
+        data-toggle="modal"
+	data-target="#extendModal"
+       	server="${server['artifact_id']}"
+       	tal:condition="server['boosted']=='Boosted'">Extend Boost</button>
+
+<button type="button"
+        class="btn btn-xs btn-primary"
+	data-toggle="modal"
+       	data-target="#deboostModal"
+       	server="${server['artifact_id']}"
+       	tal:condition="server['boosted']=='Boosted'">De-Boost</button>
 
 
 
 <div id="boostarea">
     <hr/>
     <div class="progress">
-      <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100" style="width: 45%">
+      <div class="progress-bar progress-bar-striped active"
+	   role="progressbar"
+	   aria-valuenow="45" aria-valuemin="0" aria-valuemax="100"
+	   style="width: 45%">
         <span class="sr-only">45% Complete</span>
       </div>
     </div>
     <hr/>
 </div>
+
 <h3>History&nbsp;<span class="glyphicon glyphicon-option-horizontal" aria-hidden="true"></span></h3>
 <table class="table table-striped table-bordered">
     <tr><th>Date</th><th>Notes</th></tr>
@@ -54,24 +89,21 @@
 </table>
 <script>
 
-    var token = ${token};
-    var db_endpoint = "${db_endpoint}";
-
-    /* FIXME - This shouldn't be necessary - token is double-quoted */
-    var newtoken = token.substring(1, token.length-1);
-
+    /* This is all we need to authenticate to the DB with our token. */
     $.ajaxSetup({
-        beforeSend: function(xhr) {
-            xhr.setRequestHeader('eos-token', newtoken);
-            xhr.withCredentials = true;
+        beforeSend: function(xhr, settings) {
+            if(settings.url.startsWith("${db_endpoint}"))
+            {
+                xhr.setRequestHeader("auth_tkt", "${token}");
+            }
         }
     });
 
     function init_server_action(key, action) {
-        var url = db_endpoint + '/servers/' + key + '/' + action;
+	var url = "${db_endpoint}/servers/" + key + '/' + action;
         console.log(action + ' ' + key);
-        $('#throbber-'+key).css({ opacity: 1 });
-        //$.cookie("auth_tkt", token);
+        $('#throbber1').css({ opacity: 1 });
+
         $.ajax({
             type: 'POST',
             url: url,
@@ -79,52 +111,58 @@
         });
     }
 
-    $('.btn-start').click(function() {
-            init_server_action($(this).attr("server"), 'Starting')
+    $('#btn-start').click(function() {
+	init_server_action($(this).attr("servername"), 'Starting')
     });
 
-    $('.btn-restart').click(function() {
-            init_server_action($(this).attr("server"), 'Restarting')
+    $('#btn-restart').click(function() {
+	init_server_action($(this).attr("servername"), 'Restarting')
     });
 
-    $('.btn-stop').click(function() {
-            init_server_action($(this).attr("server"), 'Stopping')
+    $('#btn-stop').click(function() {
+	init_server_action($(this).attr("servername"), 'Stopping')
+    });
+
+    //Allow the user to pop up a modal dialog immediately by adding #xyz
+    //to the end of the URL.
+    $(document).ready(function() {
+	if(window.location.hash)
+	{
+	    $(window.location.hash).modal('show');
+	}
     });
 
 
     (function poll(){
        setTimeout(function(){
           $.ajax({
-              url: db_endpoint + '/servers',
+	      url: "${db_endpoint}/servers/${server['artifact_name']}",
               success: function(data){
                 console.log(data);
-                for(var i = 0; i < data.length; i++) {
-                    server = data[i]['artifact_id'];
-                    change_dt = data[i]['change_dt'];
-                    start_state = $("tr#server-"+server).children('td.state').text();
-                    state = data[i]['state'];
-                    console.log(state);
-                    $("tr#server-"+server).children('td.state').text(state);
 
-                    /* console.log ($("tr").find("[server='" + server + "']").children("td#state").text()); */
+		/*state and boosted and change_dt can change*/
+		var start_state = $(".state").text()
+		console.log("start_state=" + start_state + ", new_state=" + data['state'] )
 
-                    /* If state has changed, hide the throbber */
-                    if (start_state != state) {
-                        $('#throbber-'+server).css({ opacity: 0 });
-                    }
+		$(".state").text(data['state'])
+		/* If state has changed, re-hide the throbber */
+		if (start_state != data['state']) {
+		    $('#throbber1').css({ opacity: 0 });
+		}
 
-                    /* Now set table rows to new values */
-                    #TODO
-                    #TODO
-                }
+		/* Now set other table rows that may change to new values */
+		$(".boosted").text(data['boosted'])
+		$(".change_dt").text(data['change_dt'])
+
+		/* Now show or hide the buttons as appropriate */
+		// TODO
+
                 poll();
               },
               dataType: "json",
               data: "actor_id=${logged_in}"});
           }, 5000);
     })();
-
-    poll();
 
 </script>
 
@@ -273,7 +311,7 @@
           $("#deboostModal").modal('hide');
         //$("#boostarea").toggle();
         var key = '${server['artifact_uuid']}';
-        var url = db_endpoint + '/servers/' + key + '/specification';
+	var url = "${db_endpoint}/servers/" + key + '/specification';
         console.log(key);
         var serverconfig = {ram : ram, cores : cores};
         $.ajax({
@@ -283,7 +321,7 @@
             data: serverconfig
         });
 
-        var url = db_endpoint + '/servers/' + key + '/Pre_Deboosting';
+	var url = "${db_endpoint}/servers/" + key + '/Pre_Deboosting';
         var key = $(this).attr("server");
         console.log(key);
         $('#throbber-'+key).css({ opacity: 1 });
@@ -335,7 +373,7 @@
         $("#boostModal").modal('hide');
         $("#boostarea").toggle();
         var key = '${server['artifact_uuid']}';
-        var url = db_endpoint + '/servers/' + key + '/specification';
+	var url = "${db_endpoint}/servers/" + key + '/specification';
         console.log(key);
         var serverconfig = {ram : ram, cores : cores};
         $.ajax({
@@ -346,7 +384,7 @@
         });
 
         var key = $(this).attr("server");
-        var url = db_endpoint + '/servers/' + key + '/Preparing';
+	var url = "${db_endpoint}/servers/" + key + '/Preparing';
         console.log('Preparing ' + key);
         $('#throbber-'+key).css({ opacity: 1 });
         $.ajax({
@@ -355,7 +393,7 @@
             dataType: "json"
         });
 
-        var url = db_endpoint + '/servers/' + key + '/credit';
+	var url = "${db_endpoint}/servers/" + key + '/credit';
         credit = $('span#boostcost').text();
         credit = 0-credit;
         var creditconfig = {credit : credit};
@@ -458,7 +496,8 @@
         }
 
         function update_deboost_cost() {
-            var credit_refunded = 35;
+	    // FIXME - this is clearly a placeholder.
+            var credits_refunded = 35;
             $('span#deboostremain').text(${credit}+credits_refunded);
             $('span#deboostcost').text(credits_refunded);
         }
@@ -484,9 +523,16 @@
             return credit / multiplier[boostlevel];
         }
 
+	//JavaScript date handling is braindead.  Ben's original version only
+	//worked in Firefox.
+	var date_formatter = new Intl.DateTimeFormat('en-GB',
+		{day: 'numeric', weekday: 'long', year: 'numeric', month: 'long',
+                 hour: 'numeric', minute: 'numeric', hour12: false});
+
         function get_future_date(future_hours) {
-            var currentdate = new Date();
-            return currentdate.addHours(future_hours).toLocaleFormat('%H:%M on %A, %B %e, %Y');
+            var enddate = new Date();
+	    enddate.addHours(future_hours)
+            return date_formatter.format(enddate);
         }
   </script>
 

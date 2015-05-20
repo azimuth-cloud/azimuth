@@ -16,7 +16,7 @@
 		            <ul class="dropdown-menu">
 		                <li><a href="/servers">Show all</a></li>
 		                <hr>
-		                <li tal:repeat="value values"><a href="/servers/${value['artifact_uuid']}">${value['artifact_uuid']}</a></li>
+		                <li tal:repeat="value values"><a href="/servers/${value['artifact_name']}">${value['artifact_name']}</a></li>
 		            </ul>
 		        </li>
 		        <li><a href="http://environmentalomics.org/portfolio/big-data-infrastructure/">Documentation</a></li>

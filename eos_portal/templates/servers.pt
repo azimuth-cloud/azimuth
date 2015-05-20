@@ -13,34 +13,46 @@
         <th>Last Change</th>
         <th>Operations</th><th></th><th></th></tr>
     <tr tal:repeat="value values" id="server-${value['artifact_id']}" name="${value['artifact_name']}">
-        <td class="name">${value['artifact_name']}</td>
+	<td class="name"><a href="/servers/${value['artifact_name']}">
+	    ${value['artifact_name']}
+	</a></td>
         <td class="create_dt">${value['create_dt']}</td>
         <td class="state">${value['state']}</td>
-        <td class="booststate">${value['boosted']}</td>
-        <td class="memory">${value['ram']}</td>
+        <td class="boosted">${value['boosted']}</td>
+        <td class="ram">${value['ram']}</td>
         <td class="cores">${value['cores']}</td>
         <td class="change_dt">${value['change_dt']}</td>
         <td>
            <button class="btn btn-xs btn-success btn-start"
                    type="button"
-                   id="btn-start"
+                   func="start"
                    server="${value['artifact_id']}">Start</button>
            <button class="btn btn-xs btn-danger btn-stop"
-                   id="btn-stop"
                    type="button"
+                   func="stop"
                    server="${value['artifact_id']}">Stop</button>
            <button class="btn btn-xs btn-info btn-restart"
-                   id="btn-restart"
                    type="button"
+                   func="restart"
                    server="${value['artifact_id']}">Restart</button>
-            <img src="/static/img/throbber.gif" id="throbber-${value['artifact_id']}" class="throbber">
+           <img src="/static/img/throbber.gif" id="throbber-${value['artifact_id']}" class="throbber">
         </td>
         <td></td>
         <td>
+	    <!-- Boost or configure depending on status -->
             <button class="btn btn-xs btn-primary"
                     type="button"
-                    onclick="window.location.href='/servers/${value['artifact_name']}'">Configure</button>
-           </td>
+                    func="boost"
+		    servername="${value['artifact_name']}"
+		    style="display: ${'none' if value['boosted']=='Boosted' else 'inline'}"
+		    >Boost</button>
+            <button class="btn btn-xs btn-primary"
+                    type="button"
+                    func="configure"
+		    servername="${value['artifact_name']}"
+		    style="display: ${'inline' if value['boosted']=='Boosted' else 'none'}"
+		    >Configure</button>
+        </td>
     </tr>
 </table>
 
@@ -48,28 +60,24 @@
 
 <script>
 
-    /* FIXME - This shouldn't be necessary - token is double-quoted */
-    /* FIXME2 - why are servers.pt and configure.py authenticating in different ways?
-       Which actually works ?? */
-
-    var token = "${token}";
-    var db_endpoint = "${db_endpoint}";
-    //var newtoken = token.substring(1, token.length-1);
-
+    /* This is all we need to authenticate to the DB with our token.
+       Ben take note!  */
     $.ajaxSetup({
-        beforeSend: function(xhr) {
-            //This is all I have to do to authenticate my self to the database, Ben!
-	    xhr.setRequestHeader("auth_tkt", token);
+        beforeSend: function(xhr, settings) {
+            if(settings.url.startsWith("${db_endpoint}"))
+            {
+                xhr.setRequestHeader("auth_tkt", "${token}");
+            }
         }
     });
 
     function init_server_action(key, action) {
-	//Convert server id to name
-	var sname = $('#server-'+key).attr("name")
-        var url = db_endpoint + '/servers/' + sname + '/' + action;
+    //Convert server id to name
+    var sname = $('#server-'+key).attr("name")
+    var url = "${db_endpoint}/servers/" + sname + '/' + action;
         console.log(action + ' ' + key + ' ' + sname);
         $('#throbber-'+key).css({ opacity: 1 });
-        // FIXME - delete - $.cookie("auth_tkt", token);
+
         $.ajax({
             type: 'POST',
             url: url,
@@ -77,48 +85,66 @@
         });
     }
 
-    $('.btn-start').click(function() {
-	    init_server_action($(this).attr("server"), 'Starting')
+    $("button[func='start']").click(function() {
+        init_server_action($(this).attr("server"), 'Starting')
     });
 
-    $('.btn-restart').click(function() {
-	    init_server_action($(this).attr("server"), 'Restarting')
+    $("button[func='restart']").click(function() {
+        init_server_action($(this).attr("server"), 'Restarting')
     });
 
-    $('.btn-stop').click(function() {
-	    init_server_action($(this).attr("server"), 'Stopping')
+    $("button[func='stop']").click(function() {
+        init_server_action($(this).attr("server"), 'Stopping')
     });
 
+    $("button[func='boost']").click(function() {
+	window.location.href="/servers/" + $(this).attr("servername") + "#boostModal";
+    });
+
+    $("button[func='configure']").click(function() {
+	window.location.href="/servers/" + $(this).attr("servername");
+    });
+
+    //Update every 5 sec.
     (function poll(){
            setTimeout(function(){
               $.ajax({
                   async: true,
-                  url: db_endpoint + '/servers',
+		  url: "${db_endpoint}/servers",
                   success: function(data){
                     console.log(data);
                     for(var i = 0; i < data.length; i++) {
-                        server = data[i]['artifact_id'];
-                        change_dt = data[i]['change_dt'];
-                        start_state = $("tr#server-"+server).children('td.state').text();
-                        state = data[i]['state'];
-                        console.log(state);
-                        $("tr#server-"+server).children('td.state').text(state);
+		        var datum = data[i]
+                        var tablerow = $("tr#server-"+datum['artifact_id']);
 
-                        /* console.log ($("tr").find("[server='" + server + "']").children("td#state").text()); */
-                        /* If state has changed, hide the throbber */
+			/*state and boosted and change_dt can change
+			  state is fiddly beacause we look for a change to update the throbber */
+                        var start_state = tablerow.children('td.state').text();
+                        var state = datum['state'];
+                        console.log(state);
+                        tablerow.children('td.state').text(state);
+
+                        /* If state has changed, re-hide the throbber */
                         if (start_state != state) {
-                            $('#throbber-'+server).css({ opacity: 0 });
+                            $('#throbber-'+datum['artifact_id']).css({ opacity: 0 });
                         }
-                        /* Now set table rows to new values */
+
+                        /* Now set other table rows to new values */
+                        var boosted = data[i]['boosted'];
+                        tablerow.children('td.boosted').text(boosted);
+                        var change_dt = data[i]['change_dt'];
+                        tablerow.children('td.change_dt').text(change_dt);
+
                     }
                     poll();
                   },
+                  error: function(xhr){
+		    //Note polling stops immediately after a failure - we assume token has expired.
+		    //Could force a return to the login page here but that is annoying.
+		  },
                   dataType: "json"});
           }, 5000);
     })();
-
-    //FIXME - isn't poll called twice here?
-    //poll();
 
 </script>
 
