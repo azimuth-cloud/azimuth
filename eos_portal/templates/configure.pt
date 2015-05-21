@@ -478,6 +478,11 @@
             update_calcs();
         });
 
+	//Or sets duration directly...
+	$('#textduration').change(function() {
+	    update_with_new_hours($(this).val());
+	});
+
          $(document).ready(function() {
             update_calcs();
             update_extend_cost();
@@ -490,19 +495,15 @@
 	//FIXME - this should be set from the configuration in eos-db.
         multiplier={"1":1,"2":3,"3":12};
 
-	
+	//Update sliders when new hours value is entered.
+	//Called when the hours input is changed directly.
+	function update_with_new_hours(duration) {
+            var availabletime = $("input#slideduration").attr("max");
 
-	// Works out the duration and cost of boost based on the two sliders.
-        function update_calcs() {
-	    //Simple calculation of max time = credit / rate used to set slider limits
-	    //on change of boost type.
-            var availabletime = calculate_available_time($("input#slidetype").val());
-            $("input#slideduration").attr("max", availabletime);
-
-	    //Convert to hours - we can't boost for fractional hours, so round it
-	    //and force the slider to the integer location.
-            //console.log("slider moved to " + $('#slideduration').val() + " of " + $("input#slideduration").attr("max"));
-	    var duration = exp_curve_transform($('#slideduration').val(), availabletime);
+	    //Ensure duration is not out-of-bounds or NaN
+	    duration = Math.round(duration);
+	    if(! duration >= 1) { duration = 1 }
+	    if(duration > availabletime) { duration = availabletime }
 
             $('input#textduration').val(duration);
             $('input#slideduration').val(exp_curve_reverse_transform(duration, availabletime));
@@ -518,6 +519,20 @@
             $('span#boostremain').text(${credit}-credits_used);
             $('span#boostcost').text(credits_used);
             $('span#endtime').text(get_future_date(duration));
+	}
+
+	// Works out the duration and cost of boost based on the two sliders.
+        // Called when a slider is moved.
+        function update_calcs() {
+	    //Simple calculation of max time = credit / rate used to set slider limits
+	    //on change of boost type.
+            var availabletime = calculate_available_time($("input#slidetype").val());
+            $("input#slideduration").attr("max", availabletime);
+
+	    //Convert to hours - we can't boost for fractional hours, so round it
+	    //and force the slider to the integer location.
+            //console.log("slider moved to " + $('#slideduration').val() + " of " + $("input#slideduration").attr("max"));
+	    update_with_new_hours(exp_curve_transform($('#slideduration').val(), availabletime))
         }
 
 	// We want a non-linear slider so as to allow us to set low numbers accurately
