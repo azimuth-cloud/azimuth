@@ -212,3 +212,34 @@ def logout(request):
     if 'auth_tkt' in request.session:
         request.session.pop('auth_tkt')
     return HTTPFound(location=request.registry.settings.get('portal_endpoint'), headers=headers)
+
+@view_config(route_name='test_configure', renderer='templates/configure.pt')
+def test_configure(request):
+    """Provides dummy values to the configure page so I can test it out without
+       starting the eos-db server.
+    """
+    ram = '40'
+    cores = 1
+    boosted = "Unboosted"
+    if request.params.get('boost'):
+        ram = "100"
+        cores = "8"
+        boosted = "Boosted"
+
+    return dict(   logged_in    = 'nobody',
+                   values       = [ { "artifact_name": "dummy" } ],
+                   server       = {"artifact_name": "dummy",
+                                   "artifact_uuid": "dummy-123",
+                                   "state": "Restarting",
+                                   "boostremaining": "N/A",
+                                   "change_dt": "2015-05-20 17:32",
+                                   "ram": ram,
+                                   "cores": cores,
+                                   "create_dt": "2015-05-18 18:38",
+                                   "boosted": boosted,
+                                   "artifact_id": 123
+                                   },
+                   touches      = [],
+                   credit       = 500,
+                   token        = 'none',
+                   db_endpoint  = 'none://')

@@ -87,6 +87,7 @@
     <tr><td>2014-08-01</td>
     <td>This is a test event. This is a test event. This is a test event. This is a test event.</td></tr>
 </table>
+
 <script>
 
     /* This is all we need to authenticate to the DB with our token. */
@@ -188,13 +189,20 @@
         <hr>
         <form>
           <div class="form-group">
-            <h4 id="boosttype">Boost Type - Big (2 Cores, 40GB RAM)</h4>
+            <h4 id="boosttype">Boost Type - Big (8 Cores, 40GB RAM) @ 3 credit/hr</h4>
             <input type="range"  min="1" max="3" id="slidetype"/>
           </div>
           <div class="form-group">
             <h4>Duration</h4>
-            <div class="col-md-8" style="padding-left:0px;padding-right:0px;"><input type="range"  min="0" max="100" id="slideduration"></div>
-            <div class="col-md-4"><input type="number" size="4" maxlength="4" id="textduration" style="width: 100px; height: 20px; font-size: 10px">&nbsp; hrs</div>
+            <div class="col-md-8" style="padding-left:0px;padding-right:0px;">
+		<input type="range"  min="0" max="100" id="slideduration">
+	    </div>
+            <div class="col-md-4">
+		<input type="number" size="4" maxlength="4" id="textduration"
+		       style="width: 100px; height: 20px; font-size: 10px">
+		&nbsp; hrs
+	    </div>
+            <div class="col-md-12" id="timesummary" style="font-size: 10px; font-style: italic;">Time Here</div>
           </div>
         <p><br/><br/><i>This boost action will be automatically ended at <span id="endtime">00:00 on 00/00/0000</span>.
             Please note that the machine will be restarted at this time in order to make the change.</i></p>
@@ -303,6 +311,15 @@
 </div>
 
 <script>
+
+    // Major FIXME
+      /* So Ben for some reason decided that the boost should be accomplished by the Javascript
+	 debiting money from the user, then setting the machine spec, then scheduling a deboost
+	 and finally resetting the VM. I told him to change it, but he didn't.
+	 For release 1 I'm leaving it his way, even though
+	 it allows users to give themselves arbitrary credits by calling the API directly. */
+
+      // Set the system RAM/CPU to baseline level and de-boost it.
       $('.btn-deboost').click(function() {
           //FIXME - should be configurable
           var ram = 40;
@@ -310,9 +327,8 @@
 
           $("#deboostModal").modal('hide');
         //$("#boostarea").toggle();
-        var key = '${server['artifact_uuid']}';
-	var url = "${db_endpoint}/servers/" + key + '/specification';
-        console.log(key);
+        var servername = '${server['artifact_name']}';
+	var url = "${db_endpoint}/servers/" + servername + '/specification';
         var serverconfig = {ram : ram, cores : cores};
         $.ajax({
             type: 'POST',
@@ -321,43 +337,47 @@
             data: serverconfig
         });
 
-	var url = "${db_endpoint}/servers/" + key + '/Pre_Deboosting';
-        var key = $(this).attr("server");
-        console.log(key);
-        $('#throbber-'+key).css({ opacity: 1 });
+	var url = "${db_endpoint}/servers/" + servername + '/Pre_Deboosting';
+        $('#throbber1').css({ opacity: 1 });
         $.ajax({
             type: 'POST',
             url: url,
-            dataType: "json",
-            data: "vm_id="+key
+            dataType: "json"
         });
-        /*
-        var url = 'http://localhost:6543/users/asdf/credit';
+
+	//Credit any unused time
+	var url = "${db_endpoint}/credit";
         credit = $('span#boostcost').text();
         credit = 0-credit;
-        var creditconfig = {credit : credit, actor_id : 'bcollier'};
-        console.log(key);
         $.ajax({
             type: 'POST',
             url: url,
             dataType: "json",
-            data: creditconfig
-        }); */
+	    data: {credit : credit }
+        });
+
+	//FIXME - we need to cancel the deboost too.
+	// Move this to Python.
 
       });
 
+      /* FIXME - unimplemented as yet */
       $('.btn-extendboost').click(function() {
           $("#extendModal").modal('hide');
       });
 
 
-
+      //Determine the boost to apply and send updates to the database:
+      // 1- Set machine spec
+      // 2- Set machine state
+      // Debit cost
+      // Schedule a deboost
       $('.btn-boost').click(function() {
 
         var ram = 40;
-          var cores = 1;
+        var cores = 1;
 
-          if ($("input#slidetype").val() == 1) {
+        if ($("input#slidetype").val() == 1) {
             cores = 2;
             ram = 40;
         }
@@ -367,14 +387,17 @@
         }
         if ($("input#slidetype").val() == 3) {
             cores = 16;
-            ram = 500;
+            ram = 400;
         }
 
+	//Hide the dialog
         $("#boostModal").modal('hide');
+	//Show the boost progress bar, which doesn't actually work yet
         $("#boostarea").toggle();
-        var key = '${server['artifact_uuid']}';
-	var url = "${db_endpoint}/servers/" + key + '/specification';
-        console.log(key);
+        var servername = '${server['artifact_name']}';
+
+	// 1- set the spec
+	var url = "${db_endpoint}/servers/" + servername + '/specification';
         var serverconfig = {ram : ram, cores : cores};
         $.ajax({
             type: 'POST',
@@ -383,27 +406,34 @@
             data: serverconfig
         });
 
-        var key = $(this).attr("server");
-	var url = "${db_endpoint}/servers/" + key + '/Preparing';
-        console.log('Preparing ' + key);
-        $('#throbber-'+key).css({ opacity: 1 });
+	// 2- Set server to boost mode
+	var url = "${db_endpoint}/servers/" + servername + '/Preparing';
+        console.log('Preparing ' + servername);
+        $('#throbber1').css({ opacity: 1 });
         $.ajax({
             type: 'POST',
             url: url,
             dataType: "json"
         });
 
-	var url = "${db_endpoint}/servers/" + key + '/credit';
+	// 3- Debit the cost
+	var url = "${db_endpoint}/credit";
         credit = $('span#boostcost').text();
         credit = 0-credit;
         var creditconfig = {credit : credit};
-        console.log(key);
         $.ajax({
             type: 'POST',
             url: url,
             dataType: "json",
             data: creditconfig
         });
+
+	// 4 - Where the heck is 4??
+	// FIXME - actually, it's not worth trying to implement this in JS.
+	// Shift the Boost logic into Python (it's partially implemented already)
+        // and fix it there.
+	// var url = "${db_endpoint}/servers/" + servername + '/Boost';
+	// var specs = {level : 'Big', duration : 48 }
 
         });
 
@@ -419,19 +449,32 @@
             $("#extendModal").modal('hide');
         });
 
+	//FIXME - should be configurable
         $('#slidetype').change(function() {
             if ($("input#slidetype").val() == 1) {
-                $("h4#boosttype").text("Boost Type - Standard+ (2 Cores, 40GB RAM)");
+                $("h4#boosttype").text("Boost Type - Standard+ (2 Cores, 40GB RAM) @ 1 credit/hr");
             }
             if ($("input#slidetype").val() == 2) {
-                $("h4#boosttype").text("Boost Type - Big (8 Cores, 140GB RAM)");
+                $("h4#boosttype").text("Boost Type - Big (8 Cores, 140GB RAM) @ 3 credit/hr");
             }
             if ($("input#slidetype").val() == 3) {
-                $("h4#boosttype").text("Boost Type - Max (16 Cores, 500GB RAM)");
+                $("h4#boosttype").text("Boost Type - Max (16 Cores, 400GB RAM) @ 12 credit/hr");
             }
         });
 
+	//When the user moved the extend slider, do this.
         $('#slideextend').change(function() {
+            update_extend_cost();
+        });
+
+        //When the user changes the level of boost wanted...
+        $('#slidetype').change(function() {
+            update_calcs();
+        });
+
+        //Or the duration...
+        //Apparently this won't fire if I move it from the code.
+        $('#slideduration').change(function() {
             update_calcs();
         });
 
@@ -441,59 +484,63 @@
             update_deboost_cost();
         });
 
-          $('#slidetype').change(function() {
-            update_calcs();
-        });
 
-          $('#slideduration').change(function() {
-            update_calcs();
-        });
-
-        $('#slideextend').change(function() {
-            update_extend_cost();
-        });
-
+</script> <!-- purely because it helps Vim syntax hilighting -->
+<script>
+	//FIXME - this should be set from the configuration in eos-db.
         multiplier={"1":1,"2":3,"3":12};
 
-        Date.prototype.addHours = function(h) {
-            this.setTime(this.getTime() + (h*60*60*1000));
-            return this;
-        }
+	
 
+	// Works out the duration and cost of boost based on the two sliders.
         function update_calcs() {
+	    //Simple calculation of max time = credit / rate used to set slider limits
+	    //on change of boost type.
             var availabletime = calculate_available_time($("input#slidetype").val());
             $("input#slideduration").attr("max", availabletime);
-            $('input#textduration').val(exp_curve_transform($('#slideduration').val(), availabletime));
-            var hours = $('#slideduration').val() % 24;
-            var days = ($('#slideduration').val() - hours) / 24;
-            console.log($('#slideduration').val());
-            console.log(days + " days, " + hours + " hours.");
-            $('#timesummary').val(days + " days, " + hours + " hours.");
-            var credits_used = $('#slideduration').val() * multiplier[$("input#slidetype").val()];
+
+	    //Convert to hours - we can't boost for fractional hours, so round it
+	    //and force the slider to the integer location.
+            //console.log("slider moved to " + $('#slideduration').val() + " of " + $("input#slideduration").attr("max"));
+	    var duration = exp_curve_transform($('#slideduration').val(), availabletime);
+
+            $('input#textduration').val(duration);
+            $('input#slideduration').val(exp_curve_reverse_transform(duration, availabletime));
+
+	    //Split duration into days and hours for display
+            var hours = duration % 24;
+            var days =  Math.floor(duration / 24);
+            //console.log(days + " days, " + hours + " hours.");
+            $('#timesummary').text(days + " days, " + hours + " hours.");
+
+	    //Calculate the cost.
+            var credits_used = duration * multiplier[$("input#slidetype").val()];
             $('span#boostremain').text(${credit}-credits_used);
             $('span#boostcost').text(credits_used);
-            $('span#endtime').text(get_future_date($('#slideduration').val()));
+            $('span#endtime').text(get_future_date(duration));
         }
 
-        function exp_curve_reverse_transform(xdash, max) {
-            if (max < 20) {
-                return x;
-            }
-            else {
-                return max * (Math.log(xdash) / Math.log(max));
-            }
-        }
-
+	// We want a non-linear slider so as to allow us to set low numbers accurately
+	// while still dialling up to high numbers.  Ben cam up with this:
         function exp_curve_transform(x, max) {
             // Transform values from a slider such that the maximum matches
             // the value emitted
-            if (max < 20) {
-                return x;
-            }
-            else {
-                return Math.exp(x * ((Math.log(max))/max));
-            }
+	    if (x >= max) { return max }
+	    if (x <= 0)   { return 1 }
+            if (max < 10) { return x }  // This doesn't work well for small max values
+
+            return Math.round(Math.exp(x * ( Math.log(max) / max ) ));
         }
+
+        function exp_curve_reverse_transform(xdash, max) {
+	    // Reverse of above
+	    if (xdash >= max) { return max }
+	    if (xdash <= 1)   { return 0 }
+            if (max < 10)     { return xdash }
+
+            return Math.round(max * (Math.log(xdash) / Math.log(max)));
+        }
+
 
         function update_deboost_cost() {
 	    // FIXME - this is clearly a placeholder.
@@ -502,8 +549,13 @@
             $('span#deboostcost').text(credits_refunded);
         }
 
+	//Function for working out cost of extension.  There is a very similar one
+        //for initial boost.
         function update_extend_cost() {
+	    //Simple calculation of max time = credit / rate
             var availabletime = calculate_available_time($("input#slidetype").val());
+
+	    //Slider max is equal to max time
             $("input#slideextend").attr("max", availabletime);
             $('input#textextend').val($('#slideextend').val());
             var current_boost = 1;
@@ -518,9 +570,10 @@
             $('#extendtimesummary').text(days + " days, " + hours + " hours.");
         }
 
+	//Calculate max boost we can have, given we can't have fractional hours.
         function calculate_available_time(boostlevel) {
             var credit = ${credit};
-            return credit / multiplier[boostlevel];
+            return Math.floor(credit / multiplier[boostlevel]);
         }
 
 	//JavaScript date handling is braindead.  Ben's original version only
@@ -529,9 +582,10 @@
 		{day: 'numeric', weekday: 'long', year: 'numeric', month: 'long',
                  hour: 'numeric', minute: 'numeric', hour12: false});
 
-        function get_future_date(future_hours) {
+	//Return a date X hours in the future, as text.
+        function get_future_date(added_hours) {
             var enddate = new Date();
-	    enddate.addHours(future_hours)
+            enddate.setTime(enddate.getTime() + (added_hours*60*60*1000));
             return date_formatter.format(enddate);
         }
   </script>

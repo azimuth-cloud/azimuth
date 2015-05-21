@@ -25,14 +25,22 @@ def main(global_config, **settings):
 
     config.include('pyramid_chameleon')
     config.add_static_view('static', 'static', cache_max_age=3600)
+
     config.add_route('home', '/')
     config.add_route('login', '/login')
     config.add_route('logout', '/logout')
+
+    #Main pages - server overview and individual server config
     config.add_route('servers', '/servers')
     config.add_route('configure', '/servers/{name}')
+
+    # Not sure about these
     config.add_route('stop', '/stop')
     config.add_route('account', '/account')
     config.add_route('forbidden', '/forbidden')
+
+    # Test pages - mainly so I can try out the JavaScript.
+    config.add_route('test_configure', '/test_configure')
 
     config.scan()
     return config.make_wsgi_app()
