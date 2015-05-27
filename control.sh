@@ -49,8 +49,8 @@ done
 check_root()
 {
     if ! [ `id -u` = 0 ] ; then
-	echo "This script needs to run as root"
-	return 1
+	echo "This script probably needs to run as root"
+	return 0
     fi
     return 0
 }
@@ -113,14 +113,17 @@ clear_pids()
 
 dsetup()
 {
+    [ `id -u` = 0 ] || return
+
     #################################
-    # Ensure the database is set up.  No harm calling this repeatedly.  It should
-    # be killed off and done on DB start really.
-    if sudo -Hu "$DB_USER" psql -Aqt -d eos_db -c "select 1 from state limit 0" 2>/dev/null ; then
-	echo "Seems to be set up already."
+    # Ensure the database is set up.  No harm calling this repeatedly.  Really eos_db should do this.
+    res=`sudo -Hu "$DB_USER" psql -Aqt -d eos_db -c "select 1 from state limit 1" 2>/dev/null`
+    if [ "$res" = 1 ] ; then
+	echo "Database seems to be set up already."
 	return 1
     fi
 
+    echo "** Calling eos-init to set up database"
     sudo -Hu "$DB_USER" "$PY3VENV"/bin/python "$WD"/eos-db/bin/eos-init || exit 1
 }
 
@@ -134,6 +137,7 @@ dstart()
 
     ###############################
     # Fire up the database
+    dsetup
 
     DB_INI="${DB_WORKING_DIR}/${INI_FLAVOUR}.ini"
     if [ ! -e "$DB_INI" ] && [ -e "$WD/eos-db/${INI_FLAVOUR}.ini" ] ; then
@@ -172,7 +176,7 @@ dstart()
 
     start-stop-daemon -CbS -mp ${AGENT_WORKING_DIR}/controller.pid -u $AGENT_USER -c $AGENT_USER \
 	-x "$PY3VENV"/bin/python -- "$WD/eos-agents/eos_agents/controller.py" \
-	-s "$AGENT_WORKING_DIR"/agent_secret -q >"${AGENT_WORKING_DIR}/agents.log" 2>&1
+	-s "$AGENT_WORKING_DIR"/agent_secret >"${AGENT_WORKING_DIR}/agents.log" 2>&1
 
 }
 
