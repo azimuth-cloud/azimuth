@@ -176,7 +176,7 @@ dstart()
 
     start-stop-daemon -CbS -mp ${AGENT_WORKING_DIR}/controller.pid -u $AGENT_USER -c $AGENT_USER \
 	-x "$PY3VENV"/bin/python -- "$WD/eos-agents/eos_agents/controller.py" \
-	-s "$AGENT_WORKING_DIR"/agent_secret >"${AGENT_WORKING_DIR}/agents.log" 2>&1
+	-s "$AGENT_WORKING_DIR"/agent_secret >>"${AGENT_WORKING_DIR}/agents.log" 2>&1
 
 }
 
