@@ -111,33 +111,12 @@ clear_pids()
     true
 }
 
-dsetup()
-{
-    [ `id -u` = 0 ] || return
-
-    #################################
-    # Ensure the database is set up.  No harm calling this repeatedly.  Really eos_db should do this.
-    res=`sudo -Hu "$DB_USER" psql -Aqt -d eos_db -c "select 1 from state limit 1" 2>/dev/null`
-    if [ "$res" = 1 ] ; then
-	echo "Database seems to be set up already."
-	return 1
-    fi
-
-    echo "** Calling eos-init to set up database"
-    sudo -Hu "$DB_USER" "$PY3VENV"/bin/python "$WD"/eos-db/bin/eos-init || exit 1
-}
-
 dstart()
 {
     echo Starting...
     make_secrets
     export authtkt_secretfile="`readlink -e "$DB_WORKING_DIR"/token_secret`"
     export agent_secretfile="`readlink -e "$DB_WORKING_DIR"/agent_secret`"
-
-
-    ###############################
-    # Fire up the database
-    dsetup
 
     DB_INI="${DB_WORKING_DIR}/${INI_FLAVOUR}.ini"
     if [ ! -e "$DB_INI" ] && [ -e "$WD/eos-db/${INI_FLAVOUR}.ini" ] ; then
@@ -203,14 +182,14 @@ case "${1:-help}" in
     freshstart)
 	clear_logs && dstart
 	;;
-    start | stop | setup)
+    start | stop )
 	check_root && d$1
 	;;
     restart)
 	check_root && {	dstop ; dstart ; }
 	;;
     *)
-	echo "Usage: $0 start|stop|restart|setup"
+	echo "Usage: $0 start|stop|restart"
 	;;
 esac
 
