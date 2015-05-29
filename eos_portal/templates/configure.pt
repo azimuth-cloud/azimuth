@@ -7,24 +7,24 @@
     <tr><th>Server UUID</th>    <td class="artifact-uuid">${server['artifact_uuid']}</td></tr>
     <tr><th>Server ID</th>      <td class="artifact_id">${server['artifact_id']}</td></tr>
     <tr><th>Server Created</th><td>
-	    <span class="create_dt">${server['create_dt']}</span>
-	    <a href="/docs#credit"></a></td>
+            <span class="create_dt">${server['create_dt']}</span>
+            <a href="/docs#credit"></a></td>
     </tr>
     <tr><th>Last Change</th><td>
-	    <span class="change_dt">${server['change_dt']}</span>
-	    <a href="/docs#credit"></a></td>
+            <span class="change_dt">${server['change_dt']}</span>
+            <a href="/docs#credit"></a></td>
     </tr>
     <tr><th>Current State</th><td>
-	    <span class="state">${server['state']}</span>
-	    <a href="/docs#credit"></a></td>
+            <span class="state">${server['state']}</span>
+            <a href="/docs#credit"></a></td>
     </tr>
     <tr><th>Boost Status</th><td>
-	    <span class="boosted">${server['boosted']}</span>
-	    <a href="/docs#credit"></a></td>
+            <span class="boosted">${server['boosted']}</span>
+            <a href="/docs#credit"></a></td>
     </tr>
     <tr><th>Hours until deboost</th><td>
-	    <span class="boostremaining">${server['boostremaining']}</span>
-	    <a href="/docs#credit"></a></td>
+            <span class="boostremaining">${server['boostremaining']}</span>
+            <a href="/docs#credit"></a></td>
     </tr>
 </table>
 <hr/>
@@ -46,25 +46,25 @@
      class="throbber">
 
 <!-- Only show if server is unboosted -->
-<button type="button" class="btn btn-xs btn-primary"
+<button type="button" class="btn btn-xs btn-primary" id="show_boost_button"
         data-toggle="modal"
-	data-target="#boostModal"
-	server="${server['artifact_id']}"
-	tal:condition="server['boosted']!='Boosted'">Boost</button>
+        server="${server['artifact_id']}"
+        style="display: ${'none' if server['boosted']=='Boosted' else 'inline'}"
+        data-target="#boostModal">Boost</button>
 
 <!-- Only show if server is boosted -->
-<button type="button" class="btn btn-xs btn-primary"
+<button type="button" class="btn btn-xs btn-primary" id="show_extend_button"
         data-toggle="modal"
-	data-target="#extendModal"
-       	server="${server['artifact_id']}"
-       	tal:condition="server['boosted']=='Boosted'">Extend Boost</button>
+               server="${server['artifact_id']}"
+        style="display: ${'inline' if server['boosted']=='Boosted' else 'none'}"
+        data-target="#extendModal">Extend Boost</button>
 
-<button type="button"
-        class="btn btn-xs btn-primary"
-	data-toggle="modal"
-       	data-target="#deboostModal"
-       	server="${server['artifact_id']}"
-       	tal:condition="server['boosted']=='Boosted'">De-Boost</button>
+<button type="button" class="btn btn-xs btn-primary" id="show_deboost_button"
+        data-toggle="modal"
+               data-target="#deboostModal"
+               server="${server['artifact_id']}"
+        style="display: ${'inline' if server['boosted']=='Boosted' else 'none'}"
+               data-target="#deboostModal">De-Boost</button>
 
 
 
@@ -72,9 +72,9 @@
     <hr/>
     <div class="progress">
       <div class="progress-bar progress-bar-striped active"
-	   role="progressbar"
-	   aria-valuenow="45" aria-valuemin="0" aria-valuemax="100"
-	   style="width: 45%">
+           role="progressbar"
+           aria-valuenow="45" aria-valuemin="0" aria-valuemax="100"
+           style="width: 45%">
         <span class="sr-only">45% Complete</span>
       </div>
     </div>
@@ -101,7 +101,7 @@
     });
 
     function init_server_action(key, action) {
-	var url = "${db_endpoint}/servers/" + key + '/' + action;
+        var url = "${db_endpoint}/servers/" + key + '/' + action;
         console.log(action + ' ' + key);
         $('#throbber1').css({ opacity: 1 });
 
@@ -113,50 +113,61 @@
     }
 
     $('#btn-start').click(function() {
-	init_server_action($(this).attr("servername"), 'Starting')
+        init_server_action($(this).attr("servername"), 'Starting')
     });
 
     $('#btn-restart').click(function() {
-	init_server_action($(this).attr("servername"), 'Restarting')
+        init_server_action($(this).attr("servername"), 'Restarting')
     });
 
     $('#btn-stop').click(function() {
-	init_server_action($(this).attr("servername"), 'Stopping')
+        init_server_action($(this).attr("servername"), 'Stopping')
     });
 
     //Allow the user to pop up a modal dialog immediately by adding #xyz
     //to the end of the URL.
     $(document).ready(function() {
-	if(window.location.hash)
-	{
-	    $(window.location.hash).modal('show');
-	}
+        if(window.location.hash)
+        {
+            $(window.location.hash).modal('show');
+        }
     });
 
 
     (function poll(){
        setTimeout(function(){
           $.ajax({
-	      url: "${db_endpoint}/servers/${server['artifact_name']}",
+              url: "${db_endpoint}/servers/${server['artifact_name']}",
               success: function(data){
-                console.log(data);
+                //console.log(data);
 
-		/*state and boosted and change_dt can change*/
-		var start_state = $(".state").text()
-		console.log("start_state=" + start_state + ", new_state=" + data['state'] )
+                /*state and boosted and change_dt can change*/
+                var start_state = $(".state").text()
+                //console.log("start_state=" + start_state + ", new_state=" + data['state'] )
 
-		$(".state").text(data['state'])
-		/* If state has changed, re-hide the throbber */
-		if (start_state != data['state']) {
-		    $('#throbber1').css({ opacity: 0 });
-		}
+                $(".state").text(data['state'])
+                /* If state has changed, re-hide the throbber */
+                if (start_state != data['state']) {
+                    $('#throbber1').css({ opacity: 0 });
+                }
 
-		/* Now set other table rows that may change to new values */
-		$(".boosted").text(data['boosted'])
-		$(".change_dt").text(data['change_dt'])
+                /* Now set other table rows that may change to new values */
+                $(".boosted").text(data['boosted'])
+                $(".change_dt").text(data['change_dt'])
 
-		/* Now show or hide the buttons as appropriate */
-		// TODO
+                /* Now show or hide the buttons as appropriate */
+                if(data['boosted'] == "Boosted")
+                {
+                    $('#show_extend_button').css({ display: 'inline' });
+                    $('#show_deboost_button').css({ display: 'inline' });
+                    $('#show_boost_button').css({ display: 'none' });
+                }
+                else
+                {
+                    $('#show_extend_button').css({ display: 'none' });
+                    $('#show_deboost_button').css({ display: 'none' });
+                    $('#show_boost_button').css({ display: 'inline' });
+                }
 
                 poll();
               },
@@ -195,13 +206,13 @@
           <div class="form-group">
             <h4>Duration</h4>
             <div class="col-md-8" style="padding-left:0px;padding-right:0px;">
-		<input type="range"  min="0" max="100" id="slideduration">
-	    </div>
+                <input type="range"  min="0" max="100" id="slideduration">
+            </div>
             <div class="col-md-4">
-		<input type="number" size="4" maxlength="4" id="textduration"
-		       style="width: 100px; height: 20px; font-size: 10px">
-		&nbsp; hrs
-	    </div>
+                <input type="number" size="4" maxlength="4" id="textduration"
+                       style="width: 100px; height: 20px; font-size: 10px">
+                &nbsp; hrs
+            </div>
             <div class="col-md-12" id="timesummary" style="font-size: 10px; font-style: italic;">Time Here</div>
           </div>
         <p><br/><br/><i>This boost action will be automatically ended at <span id="endtime">00:00 on 00/00/0000</span>.
@@ -312,52 +323,20 @@
 
 <script>
 
-    // Major FIXME
-      /* So Ben for some reason decided that the boost should be accomplished by the Javascript
-	 debiting money from the user, then setting the machine spec, then scheduling a deboost
-	 and finally resetting the VM. I told him to change it, but he didn't.
-	 For release 1 I'm leaving it his way, even though
-	 it allows users to give themselves arbitrary credits by calling the API directly. */
-
-      // Set the system RAM/CPU to baseline level and de-boost it.
+      // Deboost the system.  Calculation of refund and cancelling of Boost is now
+      // handled on the database side.
       $('.btn-deboost').click(function() {
-          //FIXME - should be configurable
-          var ram = 40;
-          var cores = 1;
 
-          $("#deboostModal").modal('hide');
-        //$("#boostarea").toggle();
-        var servername = '${server['artifact_name']}';
-	var url = "${db_endpoint}/servers/" + servername + '/specification';
-        var serverconfig = {ram : ram, cores : cores};
-        $.ajax({
-            type: 'POST',
-            url: url,
-            dataType: "json",
-            data: serverconfig
-        });
-
-	var url = "${db_endpoint}/servers/" + servername + '/Pre_Deboosting';
+        $("#deboostModal").modal('hide');
         $('#throbber1').css({ opacity: 1 });
+        //$("#boostarea").toggle();
+
+        var url = "${db_endpoint}/servers/${server['artifact_name']}/Deboost";
         $.ajax({
             type: 'POST',
             url: url,
             dataType: "json"
         });
-
-	//Credit any unused time
-	var url = "${db_endpoint}/credit";
-        credit = $('span#boostcost').text();
-        credit = 0-credit;
-        $.ajax({
-            type: 'POST',
-            url: url,
-            dataType: "json",
-	    data: {credit : credit }
-        });
-
-	//FIXME - we need to cancel the deboost too.
-	// Move this to Python.
 
       });
 
@@ -370,7 +349,7 @@
       // Schedule a deboost.  Most if the logic for this is now in eos_db
       $('.btn-boost').click(function() {
 
-	//FIXME - should just pass the Boost level to the backend.
+        //FIXME - should just pass the Boost level to the backend.
         var cores = 2;
         var ram = 40;
 
@@ -387,26 +366,26 @@
             ram = 400;
         }
 
-	var hours = $('input#textduration').val()
+        var hours = $('input#textduration').val()
 
-	//Show the boost progress bar, which doesn't actually work yet
+        //Show the boost progress bar, which doesn't actually work yet
         //$("#boostarea").toggle();
         $('#throbber1').css({ opacity: 1 });
 
         var serverconfig = {ram : ram, cores : cores, hours : hours};
-	// Set server to boost mode
-	var url = "${db_endpoint}/servers/${server['artifact_name']}/Boost";
+        // Set server to boost mode
+        var url = "${db_endpoint}/servers/${server['artifact_name']}/Boost";
         $.ajax({
             type: 'POST',
             url: url,
             dataType: "json",
-	    data: serverconfig
+            data: serverconfig
         });
 
-	//Hide the dialog
+        //Hide the dialog
         $("#boostModal").modal('hide');
 
-	//End of btn-boost function.
+        //End of btn-boost function.
         });
 
         $('.btn-boostcancel').click(function() {
@@ -421,7 +400,7 @@
             $("#extendModal").modal('hide');
         });
 
-	//FIXME - should be configurable
+        //FIXME - should be configurable
         $('#slidetype').change(function() {
             if ($("input#slidetype").val() == 1) {
                 $("h4#boosttype").text("Boost Type - Standard+ (2 Cores, 40GB RAM) @ 1 credit/hr");
@@ -434,7 +413,7 @@
             }
         });
 
-	//When the user moved the extend slider, do this.
+        //When the user moved the extend slider, do this.
         $('#slideextend').change(function() {
             update_extend_cost();
         });
@@ -450,10 +429,10 @@
             update_calcs();
         });
 
-	//Or sets duration directly...
-	$('#textduration').change(function() {
-	    update_with_new_hours($(this).val());
-	});
+        //Or sets duration directly...
+        $('#textduration').change(function() {
+            update_with_new_hours($(this).val());
+        });
 
          $(document).ready(function() {
             update_calcs();
@@ -464,65 +443,65 @@
 
 </script> <!-- purely because it helps Vim syntax hilighting -->
 <script>
-	//FIXME - this should be set from the configuration in eos-db.
+        //FIXME - this should be set from the configuration in eos-db.
         multiplier={"1":1,"2":3,"3":12};
 
-	//Update sliders when new hours value is entered.
-	//Called when the hours input is changed directly.
-	function update_with_new_hours(duration) {
+        //Update sliders when new hours value is entered.
+        //Called when the hours input is changed directly.
+        function update_with_new_hours(duration) {
             var availabletime = $("input#slideduration").attr("max");
 
-	    //Ensure duration is not out-of-bounds or NaN
-	    duration = Math.round(duration);
-	    if(! duration >= 1) { duration = 1 }
-	    if(duration > availabletime) { duration = availabletime }
+            //Ensure duration is not out-of-bounds or NaN
+            duration = Math.round(duration);
+            if(! duration >= 1) { duration = 1 }
+            if(duration > availabletime) { duration = availabletime }
 
             $('input#textduration').val(duration);
             $('input#slideduration').val(exp_curve_reverse_transform(duration, availabletime));
 
-	    //Split duration into days and hours for display
+            //Split duration into days and hours for display
             var hours = duration % 24;
             var days =  Math.floor(duration / 24);
             //console.log(days + " days, " + hours + " hours.");
             $('#timesummary').text(days + " days, " + hours + " hours.");
 
-	    //Calculate the cost.
+            //Calculate the cost.
             var credits_used = duration * multiplier[$("input#slidetype").val()];
             $('span#boostremain').text(${credit}-credits_used);
             $('span#boostcost').text(credits_used);
             $('span#endtime').text(get_future_date(duration));
-	}
+        }
 
-	// Works out the duration and cost of boost based on the two sliders.
+        // Works out the duration and cost of boost based on the two sliders.
         // Called when a slider is moved.
         function update_calcs() {
-	    //Simple calculation of max time = credit / rate used to set slider limits
-	    //on change of boost type.
+            //Simple calculation of max time = credit / rate used to set slider limits
+            //on change of boost type.
             var availabletime = calculate_available_time($("input#slidetype").val());
             $("input#slideduration").attr("max", availabletime);
 
-	    //Convert to hours - we can't boost for fractional hours, so round it
-	    //and force the slider to the integer location.
+            //Convert to hours - we can't boost for fractional hours, so round it
+            //and force the slider to the integer location.
             //console.log("slider moved to " + $('#slideduration').val() + " of " + $("input#slideduration").attr("max"));
-	    update_with_new_hours(exp_curve_transform($('#slideduration').val(), availabletime))
+            update_with_new_hours(exp_curve_transform($('#slideduration').val(), availabletime))
         }
 
-	// We want a non-linear slider so as to allow us to set low numbers accurately
-	// while still dialling up to high numbers.  Ben cam up with this:
+        // We want a non-linear slider so as to allow us to set low numbers accurately
+        // while still dialling up to high numbers.  Ben cam up with this:
         function exp_curve_transform(x, max) {
             // Transform values from a slider such that the maximum matches
             // the value emitted
-	    if (x >= max) { return max }
-	    if (x <= 0)   { return 1 }
+            if (x >= max) { return max }
+            if (x <= 0)   { return 1 }
             if (max < 10) { return x }  // This doesn't work well for small max values
 
             return Math.round(Math.exp(x * ( Math.log(max) / max ) ));
         }
 
         function exp_curve_reverse_transform(xdash, max) {
-	    // Reverse of above
-	    if (xdash >= max) { return max }
-	    if (xdash <= 1)   { return 0 }
+            // Reverse of above
+            if (xdash >= max) { return max }
+            if (xdash <= 1)   { return 0 }
             if (max < 10)     { return xdash }
 
             return Math.round(max * (Math.log(xdash) / Math.log(max)));
@@ -530,19 +509,19 @@
 
 
         function update_deboost_cost() {
-	    // FIXME - this is clearly a placeholder.
+            // FIXME - this is clearly a placeholder.
             var credits_refunded = 35;
             $('span#deboostremain').text(${credit}+credits_refunded);
             $('span#deboostcost').text(credits_refunded);
         }
 
-	//Function for working out cost of extension.  There is a very similar one
+        //Function for working out cost of extension.  There is a very similar one
         //for initial boost.
         function update_extend_cost() {
-	    //Simple calculation of max time = credit / rate
+            //Simple calculation of max time = credit / rate
             var availabletime = calculate_available_time($("input#slidetype").val());
 
-	    //Slider max is equal to max time
+            //Slider max is equal to max time
             $("input#slideextend").attr("max", availabletime);
             $('input#textextend').val($('#slideextend').val());
             var current_boost = 1;
@@ -557,19 +536,19 @@
             $('#extendtimesummary').text(days + " days, " + hours + " hours.");
         }
 
-	//Calculate max boost we can have, given we can't have fractional hours.
+        //Calculate max boost we can have, given we can't have fractional hours.
         function calculate_available_time(boostlevel) {
             var credit = ${credit};
             return Math.floor(credit / multiplier[boostlevel]);
         }
 
-	//JavaScript date handling is braindead.  Ben's original version only
-	//worked in Firefox.
-	var date_formatter = new Intl.DateTimeFormat('en-GB',
-		{day: 'numeric', weekday: 'long', year: 'numeric', month: 'long',
+        //JavaScript date handling is braindead.  Ben's original version only
+        //worked in Firefox.
+        var date_formatter = new Intl.DateTimeFormat('en-GB',
+                {day: 'numeric', weekday: 'long', year: 'numeric', month: 'long',
                  hour: 'numeric', minute: 'numeric', hour12: false});
 
-	//Return a date X hours in the future, as text.
+        //Return a date X hours in the future, as text.
         function get_future_date(added_hours) {
             var enddate = new Date();
             enddate.setTime(enddate.getTime() + (added_hours*60*60*1000));
