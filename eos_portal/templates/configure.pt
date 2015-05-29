@@ -367,15 +367,12 @@
       });
 
 
-      //Determine the boost to apply and send updates to the database:
-      // 1- Set machine spec
-      // 2- Set machine state
-      // Debit cost
-      // Schedule a deboost
+      // Schedule a deboost.  Most if the logic for this is now in eos_db
       $('.btn-boost').click(function() {
 
+	//FIXME - should just pass the Boost level to the backend.
+        var cores = 2;
         var ram = 40;
-        var cores = 1;
 
         if ($("input#slidetype").val() == 1) {
             cores = 2;
@@ -390,54 +387,29 @@
             ram = 400;
         }
 
+	var hours = $('input#textduration').val()
+
+	//Show the boost progress bar, which doesn't actually work yet
+        //$("#boostarea").toggle();
+        $('#throbber1').css({ opacity: 1 });
+
+        var serverconfig = {ram : ram, cores : cores, hours : hours};
+	// Set server to boost mode
+	var url = "${db_endpoint}/servers/${server['artifact_name']}/Boost";
+        $.ajax({
+            type: 'POST',
+            url: url,
+            dataType: "json",
+	    data: serverconfig
+        });
+
 	//Hide the dialog
         $("#boostModal").modal('hide');
-	//Show the boost progress bar, which doesn't actually work yet
-        $("#boostarea").toggle();
-        var servername = '${server['artifact_name']}';
 
-	// 1- set the spec
-	var url = "${db_endpoint}/servers/" + servername + '/specification';
-        var serverconfig = {ram : ram, cores : cores};
-        $.ajax({
-            type: 'POST',
-            url: url,
-            dataType: "json",
-            data: serverconfig
+	//End of btn-boost function.
         });
 
-	// 2- Set server to boost mode
-	var url = "${db_endpoint}/servers/" + servername + '/Preparing';
-        console.log('Preparing ' + servername);
-        $('#throbber1').css({ opacity: 1 });
-        $.ajax({
-            type: 'POST',
-            url: url,
-            dataType: "json"
-        });
-
-	// 3- Debit the cost
-	var url = "${db_endpoint}/credit";
-        credit = $('span#boostcost').text();
-        credit = 0-credit;
-        var creditconfig = {credit : credit};
-        $.ajax({
-            type: 'POST',
-            url: url,
-            dataType: "json",
-            data: creditconfig
-        });
-
-	// 4 - Where the heck is 4??
-	// FIXME - actually, it's not worth trying to implement this in JS.
-	// Shift the Boost logic into Python (it's partially implemented already)
-        // and fix it there.
-	// var url = "${db_endpoint}/servers/" + servername + '/Boost';
-	// var specs = {level : 'Big', duration : 48 }
-
-        });
-
-          $('.btn-boostcancel').click(function() {
+        $('.btn-boostcancel').click(function() {
             $("#boostModal").modal('hide');
         });
 
