@@ -148,6 +148,10 @@ dstart()
 	--log-file="${PORTAL_WORKING_DIR}/server.log" \
 	"${PORTAL_WORKING_DIR}/${INI_FLAVOUR}.ini"
 
+    # Wait 3 seconds.  Yes, I know, horrible hack...
+    # But the consequence of not waiting is just a warning in the agent log.
+    sleep 3
+
     #################################
     # Fire up the agent herder.
     # I've not built in daemon functionality to it
