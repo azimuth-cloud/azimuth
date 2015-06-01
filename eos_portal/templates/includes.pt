@@ -8,7 +8,7 @@
 <link rel="stylesheet" type="text/css" href="/static/css/bootstrap-theme.css" media="screen" />
 <link rel="stylesheet" type="text/css" href="/static/css/site.css" media="screen" />
 
-<script src="https://code.jquery.com/jquery-1.11.3.min.js" ></script>
+<script src="/static/js/jquery-1.11.3.min.js" ></script>
 <script src="/static/js/bootstrap.js" ></script>
 <script src="/static/js/bootstrap-extras.js" ></script>
 <script src="/static/js/jquery.cookie.js" ></script>

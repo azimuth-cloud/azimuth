@@ -233,7 +233,7 @@ def test_configure(request):
                                    "state": "Restarting",
                                    "boostremaining": "N/A",
                                    "change_dt": "2015-05-20 17:32",
-                                   "ram": ram,
+                                   "ram": "%s GB" % ram,
                                    "cores": cores,
                                    "create_dt": "2015-05-18 18:38",
                                    "boosted": boosted,

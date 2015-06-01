@@ -21,6 +21,9 @@
     <tr><th>Boost Status</th><td>
             <span class="boosted">${server['boosted']}</span>
             <a href="/docs#credit"></a></td>
+    <tr><th>Cores / RAM</th><td>
+            <span class="cores_slash_ram">${"%s / %s" % (server['cores'], server['ram'])}</span>
+            <a href="/docs#credit"></a></td>
     </tr>
     <tr><th>Hours until deboost</th><td>
             <span class="boostremaining">${server['boostremaining']}</span>
@@ -81,12 +84,15 @@
     <hr/>
 </div>
 
+<!-- Hide this until it does something -->
+<span style="display:none">
 <h3>History&nbsp;<span class="glyphicon glyphicon-option-horizontal" aria-hidden="true"></span></h3>
 <table class="table table-striped table-bordered">
     <tr><th>Date</th><th>Notes</th></tr>
-    <tr><td>2014-08-01</td>
-    <td>This is a test event. This is a test event. This is a test event. This is a test event.</td></tr>
+    <tr><td>2000-01-01</td>
+    <td>History viewing is not yet implemented.</td></tr>
 </table>
+</span>
 
 <script>
 
@@ -154,6 +160,7 @@
                 /* Now set other table rows that may change to new values */
                 $(".boosted").text(data['boosted'])
                 $(".change_dt").text(data['change_dt'])
+		$(".cores_slash_ram").text(data['cores'] + ' / ' + data['ram'])
 
                 /* Now show or hide the buttons as appropriate */
                 if(data['boosted'] == "Boosted")
