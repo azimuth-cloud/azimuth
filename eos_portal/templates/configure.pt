@@ -338,7 +338,7 @@
         $('#throbber1').css({ opacity: 1 });
         //$("#boostarea").toggle();
 
-        var url = "${db_endpoint}/servers/${server['artifact_name']}/Deboost";
+        var url = "${db_endpoint}/servers/${server['artifact_name']}/Pre_Deboosting";
         $.ajax({
             type: 'POST',
             url: url,
@@ -381,7 +381,7 @@
 
         var serverconfig = {ram : ram, cores : cores, hours : hours};
         // Set server to boost mode
-        var url = "${db_endpoint}/servers/${server['artifact_name']}/Boost";
+        var url = "${db_endpoint}/servers/${server['artifact_name']}/Preparing";
         $.ajax({
             type: 'POST',
             url: url,

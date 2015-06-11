@@ -221,17 +221,19 @@ def test_configure(request):
     ram = '40'
     cores = 1
     boosted = "Unboosted"
+    boostremaining = "N/A"
     if request.params.get('boost'):
         ram = "100"
         cores = "8"
         boosted = "Boosted"
+        boostremaining = "10"
 
     return dict(   logged_in    = 'nobody',
                    values       = [ { "artifact_name": "dummy" } ],
                    server       = {"artifact_name": "dummy",
                                    "artifact_uuid": "dummy-123",
-                                   "state": "Restarting",
-                                   "boostremaining": "N/A",
+                                   "state": "Started",
+                                   "boostremaining": boostremaining,
                                    "change_dt": "2015-05-20 17:32",
                                    "ram": "%s GB" % ram,
                                    "cores": cores,
