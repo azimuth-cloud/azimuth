@@ -160,7 +160,8 @@
                 /* Now set other table rows that may change to new values */
                 $(".boosted").text(data['boosted'])
                 $(".change_dt").text(data['change_dt'])
-		$(".cores_slash_ram").text(data['cores'] + ' / ' + data['ram'])
+                $(".cores_slash_ram").text(data['cores'] + ' / ' + data['ram'])
+                $(".boostremaining").text(data['boostremaining'])
 
                 /* Now show or hide the buttons as appropriate */
                 if(data['boosted'] == "Boosted")
