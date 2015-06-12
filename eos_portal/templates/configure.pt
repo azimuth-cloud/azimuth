@@ -96,7 +96,9 @@
 
 <script>
 
-    /* This is all we need to authenticate to the DB with our token. */
+    /* This is all we need to authenticate to the DB with our token.
+     * The server thus knows who we are.
+     */
     $.ajaxSetup({
         beforeSend: function(xhr, settings) {
             if(settings.url.startsWith("${db_endpoint}"))
@@ -106,6 +108,7 @@
         }
     });
 
+    //This handles the Start/Stop/Restart
     function init_server_action(key, action) {
         var url = "${db_endpoint}/servers/" + key + '/' + action;
         console.log(action + ' ' + key);
@@ -181,8 +184,7 @@
 
                 poll();
               },
-              dataType: "json",
-              data: "actor_id=${logged_in}"});
+              dataType: "json"});
           }, 5000);
     })();
 
@@ -345,7 +347,7 @@
         $.ajax({
             type: 'POST',
             url: url,
-            dataType: "json"
+            dataType: "json",
             success: function(data){
 		//Re-jig the credit
 		set_credit(data['credit']);
