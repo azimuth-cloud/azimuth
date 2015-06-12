@@ -222,25 +222,29 @@ def test_configure(request):
     cores = 1
     boosted = "Unboosted"
     boostremaining = "N/A"
+    deboost_credit = 0
     if request.params.get('boost'):
         ram = "100"
         cores = "8"
         boosted = "Boosted"
-        boostremaining = "10"
+        boostremaining = "10 hrs, 12 min"
+        deboost_credit = 30
 
     return dict(   logged_in    = 'nobody',
                    values       = [ { "artifact_name": "dummy" } ],
-                   server       = {"artifact_name": "dummy",
-                                   "artifact_uuid": "dummy-123",
-                                   "state": "Started",
-                                   "boostremaining": boostremaining,
-                                   "change_dt": "2015-05-20 17:32",
-                                   "ram": "%s GB" % ram,
-                                   "cores": cores,
-                                   "create_dt": "2015-05-18 18:38",
-                                   "boosted": boosted,
-                                   "artifact_id": 123
-                                   },
+                   server       = dict(
+                       artifact_name = "dummy",
+                       artifact_uuid = "dummy-123",
+                       state         = "Started",
+                       boostremaining= boostremaining,
+                       change_dt     = "2015-05-20 17:32",
+                       ram           = "%s GB" % ram,
+                       cores         = cores,
+                       create_dt     = "2015-05-18 18:38",
+                       boosted       = boosted,
+                       artifact_id   = 123,
+                       deboost_credit= deboost_credit
+                                  ),
                    touches      = [],
                    credit       = 500,
                    token        = 'none',

@@ -24,7 +24,7 @@
 		    </ul>
 		    <ul class="nav navbar-nav navbar-right" tal:condition="logged_in">
 		    	<li><span class="welcome">Welcome, ${logged_in}.</span></li>
-		    	<li><a href="/account">Account <span class="badge">${credit} credits</span></a></li>
+			<li><a href="/account">Account <span class="badge"><span class="credit">${credit}</span> credits</span></a></li>
 		    	<li><a href="/logout">Logout</a></li>
 		   	</ul>
 		    <ul class="nav navbar-nav navbar-right" tal:condition="not:logged_in">

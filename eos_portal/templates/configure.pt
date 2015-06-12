@@ -25,7 +25,7 @@
             <span class="cores_slash_ram">${"%s / %s" % (server['cores'], server['ram'])}</span>
             <a href="/docs#credit"></a></td>
     </tr>
-    <tr><th>Hours until deboost</th><td>
+    <tr><th>Time until deboost</th><td>
             <span class="boostremaining">${server['boostremaining']}</span>
             <a href="/docs#credit"></a></td>
     </tr>
@@ -163,6 +163,8 @@
                 $(".cores_slash_ram").text(data['cores'] + ' / ' + data['ram'])
                 $(".boostremaining").text(data['boostremaining'])
 
+		update_deboost_cost(data['deboost_credit']);
+
                 /* Now show or hide the buttons as appropriate */
                 if(data['boosted'] == "Boosted")
                 {
@@ -282,7 +284,7 @@
         </form>
         <hr>
         <div class="alert alert-success" role="alert">
-            <p>You currently have <b>${credit}</b> credits.</p>
+	    <p>You currently have <b><span class="credit">${credit}</span></b> credits.</p>
             <p>This extension will cost <span id="extendcost">0</span> credits, leaving
             <span id="extendremain">0</span> for future use.</p>
          </div>
@@ -316,8 +318,8 @@
             <p>You will be refunded any unused credits.</p>
         </div>
         <hr>
-            <p>You currently have <b>${credit}</b> credits.</p>
-            <p>This boost will return you <span id="deboostcost">0</span> credits, giving a total of
+            <p>You currently have <b><span class="credit">${credit}</span></b> credits.</p>
+            <p>This will return you <span id="deboostcost">0</span> credits, giving a total of
                <span id="deboostremain">0</span> for future use.</p><br/>
           <div class="modal-footer">
             <button class="btn btn-success btn-deboost" type="button"
@@ -344,6 +346,10 @@
             type: 'POST',
             url: url,
             dataType: "json"
+            success: function(data){
+		//Re-jig the credit
+		set_credit(data['credit']);
+	    }
         });
 
       });
@@ -387,7 +393,11 @@
             type: 'POST',
             url: url,
             dataType: "json",
-            data: serverconfig
+            data: serverconfig,
+            success: function(data){
+		//Re-jig the credit
+		set_credit(data['cost']);
+	    }
         });
 
         //Hide the dialog
@@ -445,7 +455,7 @@
          $(document).ready(function() {
             update_calcs();
             update_extend_cost();
-            update_deboost_cost();
+	    update_deboost_cost(${server['deboost_credit']});
         });
 
 
@@ -455,7 +465,8 @@
         multiplier={"1":1,"2":3,"3":12};
 
         //Update sliders when new hours value is entered.
-        //Called when the hours input is changed directly.
+        //Called when the hours input is changed directly, or else indirectly when the
+	//slider is moved.
         function update_with_new_hours(duration) {
             var availabletime = $("input#slideduration").attr("max");
 
@@ -475,7 +486,7 @@
 
             //Calculate the cost.
             var credits_used = duration * multiplier[$("input#slidetype").val()];
-            $('span#boostremain').text(${credit}-credits_used);
+            $('span#boostremain').text(get_credit()-credits_used);
             $('span#boostcost').text(credits_used);
             $('span#endtime').text(get_future_date(duration));
         }
@@ -515,11 +526,20 @@
             return Math.round(max * (Math.log(xdash) / Math.log(max)));
         }
 
+	var credit = ${credit}
+	function set_credit(new_credit) {
+	    // Stash the new credit value and update all credit fields
+	    credit = new_credit;
+	    $('span.deboostremain').text(credit);
+	}
 
-        function update_deboost_cost() {
-            // FIXME - this is clearly a placeholder.
-            var credits_refunded = 35;
-            $('span#deboostremain').text(${credit}+credits_refunded);
+        function get_credit() {
+	    //Might be useful if caller can't see the lexical variable directly
+	    return credit
+	}
+
+        function update_deboost_cost(credits_refunded) {
+            $('span#deboostremain').text(credit+credits_refunded);
             $('span#deboostcost').text(credits_refunded);
         }
 
@@ -534,7 +554,7 @@
             $('input#textextend').val($('#slideextend').val());
             var current_boost = 1;
             var credits_used = $('#slideextend').val() * multiplier[current_boost];
-            $('span#extendremain').text(${credit}-credits_used);
+            $('span#extendremain').text(get_credit()-credits_used);
             $('span#extendcost').text(credits_used);
             $('span#endtime').text(get_future_date($('#slideextend').val()));
             var hours = $('#slideextend').val() % 24;
@@ -546,8 +566,7 @@
 
         //Calculate max boost we can have, given we can't have fractional hours.
         function calculate_available_time(boostlevel) {
-            var credit = ${credit};
-            return Math.floor(credit / multiplier[boostlevel]);
+            return Math.floor(get_credit() / multiplier[boostlevel]);
         }
 
         //JavaScript date handling is braindead.  Ben's original version only
