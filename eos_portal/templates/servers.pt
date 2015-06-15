@@ -121,7 +121,7 @@
 			  state is fiddly beacause we look for a change to update the throbber */
                         var start_state = tablerow.children('td.state').text();
                         var state = datum['state'];
-                        console.log(state);
+
                         tablerow.children('td.state').text(state);
 
                         /* If state has changed, re-hide the throbber */

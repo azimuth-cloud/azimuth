@@ -148,7 +148,7 @@
           $.ajax({
               url: "${db_endpoint}/servers/${server['artifact_name']}",
               success: function(data){
-                //console.log(data);
+                console.log(data);
 
                 /*state and boosted and change_dt can change*/
                 var start_state = $(".state").text()
@@ -166,7 +166,8 @@
                 $(".cores_slash_ram").text(data['cores'] + ' / ' + data['ram'])
                 $(".boostremaining").text(data['boostremaining'])
 
-		update_deboost_cost(data['deboost_credit']);
+		deboost_credit = data['deboost_credit']
+		update_deboost_credit();
 
                 /* Now show or hide the buttons as appropriate */
                 if(data['boosted'] == "Boosted")
@@ -233,7 +234,7 @@
         <hr>
 
         <div class="alert alert-success" role="alert">
-            <p>You currently have <b>${credit}</b> credits.</p>
+	    <p>You currently have <b><span class="credit">${credit}</span></b> credits.</p>
             <p>This boost will cost <span id="boostcost">0</span> credits, leaving <span id="boostremain">0</span>
                for future use.</p>
          </div>
@@ -321,7 +322,7 @@
         </div>
         <hr>
             <p>You currently have <b><span class="credit">${credit}</span></b> credits.</p>
-            <p>This will return you <span id="deboostcost">0</span> credits, giving a total of
+            <p>This will return you <span id="deboostcredit">0</span> credits, giving a total of
                <span id="deboostremain">0</span> for future use.</p><br/>
           <div class="modal-footer">
             <button class="btn btn-success btn-deboost" type="button"
@@ -350,7 +351,7 @@
             dataType: "json",
             success: function(data){
 		//Re-jig the credit
-		set_credit(data['credit']);
+		add_credit(data['credit']);
 	    }
         });
 
@@ -398,15 +399,19 @@
             data: serverconfig,
             success: function(data){
 		//Re-jig the credit
-		set_credit(data['cost']);
+		add_credit(0 - data['cost']);
+
+		//This should immediately be overwritten by the poll.
+		deboost_credit = data['cost'];
+		update_deboost_credit();
 	    }
-        });
+         });
 
         //Hide the dialog
         $("#boostModal").modal('hide');
 
         //End of btn-boost function.
-        });
+      });
 
         $('.btn-boostcancel').click(function() {
             $("#boostModal").modal('hide');
@@ -420,6 +425,7 @@
             $("#extendModal").modal('hide');
         });
 
+	//User changes type of boost wanted...
         //FIXME - should be configurable
         $('#slidetype').change(function() {
             if ($("input#slidetype").val() == 1) {
@@ -431,15 +437,7 @@
             if ($("input#slidetype").val() == 3) {
                 $("h4#boosttype").text("Boost Type - Max (16 Cores, 400GB RAM) @ 12 credit/hr");
             }
-        });
 
-        //When the user moved the extend slider, do this.
-        $('#slideextend').change(function() {
-            update_extend_cost();
-        });
-
-        //When the user changes the level of boost wanted...
-        $('#slidetype').change(function() {
             update_calcs();
         });
 
@@ -454,10 +452,16 @@
             update_with_new_hours($(this).val());
         });
 
+        //When the user moved the extend slider, do this.
+        $('#slideextend').change(function() {
+            update_extend_cost();
+        });
+
+        deboost_credit = ${server['deboost_credit']};
          $(document).ready(function() {
             update_calcs();
             update_extend_cost();
-	    update_deboost_cost(${server['deboost_credit']});
+	    update_deboost_credit();
         });
 
 
@@ -529,10 +533,14 @@
         }
 
 	var credit = ${credit}
-	function set_credit(new_credit) {
+	function add_credit(new_credit) {
 	    // Stash the new credit value and update all credit fields
-	    credit = new_credit;
-	    $('span.deboostremain').text(credit);
+	    credit = credit + new_credit;
+	    $('span.credit').text(credit);
+	    //Update everything.
+            update_calcs();
+            update_extend_cost();
+	    return credit;
 	}
 
         function get_credit() {
@@ -540,9 +548,9 @@
 	    return credit
 	}
 
-        function update_deboost_cost(credits_refunded) {
-            $('span#deboostremain').text(credit+credits_refunded);
-            $('span#deboostcost').text(credits_refunded);
+        function update_deboost_credit() {
+            $('span#deboostremain').text(credit+deboost_credit);
+            $('span#deboostcredit').text(deboost_credit);
         }
 
         //Function for working out cost of extension.  There is a very similar one
