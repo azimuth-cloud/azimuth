@@ -601,9 +601,9 @@
 	    //Here is yet more nasty cruft caused by not abstracting the boost_levels.
 	    // FIXME please please FIXME
 	    current_boost = 0;
-	    if(${server['cores']} >=2 )  current_boost = 1;
-	    if(${server['cores']} >=8 )  current_boost = 2;
-	    if(${server['cores']} >=10)  current_boost = 3;
+	    if("${server['cores']}" >=2 )  current_boost = 1;
+	    if("${server['cores']}" >=8 )  current_boost = 2;
+	    if("${server['cores']}" >=10)  current_boost = 3;
 
 	    var availabletime = Math.floor(get_credit() / multiplier[current_boost]);
 	    $("input#slideextend").attr("max", availabletime);
