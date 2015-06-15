@@ -169,6 +169,10 @@
 		deboost_credit = data['deboost_credit']
 		update_deboost_credit();
 
+		deboost_time = new Date(0);
+		deboost_time.setUTCSeconds(data['deboost_time']);
+		update_extend_cost();
+
                 /* Now show or hide the buttons as appropriate */
                 if(data['boosted'] == "Boosted")
                 {
@@ -280,7 +284,7 @@
                        style="width: 100px; height: 20px; font-size: 10px">&nbsp; hrs</div>
             <div class="col-md-12" id="extendtimesummary" style="font-size: 10px; font-style: italic;">&nbsp;</div>
           </div>
-        <p><br/><br/><i>Your server is currently due to deboost on <span id="#deboostdt">xxxx</span>. 
+        <p><br/><br/><i>Your server is currently due to deboost on <span id="deboostdt">00:00 on 00/00/0000</span>. 
                With the additional duration, this boost action will be automatically ended at 
                <b><span id="endtime">00:00 on 00/00/0000</span></b>. 
                Please note that the machine will be restarted at this time in order to make the change.</i></p>
@@ -357,9 +361,32 @@
 
       });
 
-      /* FIXME - unimplemented as yet */
+      // Extend a boost.  Very similar to starting one from the point of view
+      // of this web application.
       $('.btn-extendboost').click(function() {
-          $("#extendModal").modal('hide');
+        var hours = $('input#textextend').val()
+
+	// Don't show the throbber as there is not going to be a state change.
+
+	// Make a POST...
+	var serverconfig = {hours : hours};
+        var url = "${db_endpoint}/servers/${server['artifact_name']}/extent_boost";
+        $.ajax({
+            type: 'POST',
+            url: url,
+            dataType: "json",
+            data: serverconfig,
+            success: function(data){
+		//Re-jig the credit
+		add_credit(0 - data['cost']);
+
+		//This should immediately be overwritten by the poll but no matter.
+		deboost_credit = deboost_credit + data['cost'];
+		update_deboost_credit();
+	    }
+         });
+
+        $("#extendModal").modal('hide');
       });
 
 
@@ -457,9 +484,20 @@
             update_extend_cost();
         });
 
+        //Or sets extend duration directly...
+        $('#textextend').change(function() {
+            update_extend_new_hours($(this).val());
+        });
+
+	//Some global variables.  Maybe these should be at the top?
         deboost_credit = ${server['deboost_credit']};
+	deboost_time = new Date(0);
+	deboost_time.setUTCSeconds(${server['deboost_time']});
+	credit = ${credit};
+
          $(document).ready(function() {
             update_calcs();
+	    $("input#slideextend").val("1")
             update_extend_cost();
 	    update_deboost_credit();
         });
@@ -474,11 +512,11 @@
         //Called when the hours input is changed directly, or else indirectly when the
 	//slider is moved.
         function update_with_new_hours(duration) {
-            var availabletime = $("input#slideduration").attr("max");
+            var availabletime = Math.floor($("input#slideduration").attr("max"));
 
             //Ensure duration is not out-of-bounds or NaN
             duration = Math.round(duration);
-            if(! duration >= 1) { duration = 1 }
+            if(duration < 1) { duration = 1 }
             if(duration > availabletime) { duration = availabletime }
 
             $('input#textduration').val(duration);
@@ -494,7 +532,7 @@
             var credits_used = duration * multiplier[$("input#slidetype").val()];
             $('span#boostremain').text(get_credit()-credits_used);
             $('span#boostcost').text(credits_used);
-            $('span#endtime').text(get_future_date(duration));
+            $('span#endtime').text(get_future_date(null, duration));
         }
 
         // Works out the duration and cost of boost based on the two sliders.
@@ -532,7 +570,6 @@
             return Math.round(max * (Math.log(xdash) / Math.log(max)));
         }
 
-	var credit = ${credit}
 	function add_credit(new_credit) {
 	    // Stash the new credit value and update all credit fields
 	    credit = credit + new_credit;
@@ -544,10 +581,11 @@
 	}
 
         function get_credit() {
-	    //Might be useful if caller can't see the lexical variable directly
+	    //Simple getter for credit.
 	    return credit
 	}
 
+	//Call this if you change either credit or deboost_credit.
         function update_deboost_credit() {
             $('span#deboostremain').text(credit+deboost_credit);
             $('span#deboostcredit').text(deboost_credit);
@@ -555,23 +593,54 @@
 
         //Function for working out cost of extension.  There is a very similar one
         //for initial boost.
-        function update_extend_cost() {
-            //Simple calculation of max time = credit / rate
-            var availabletime = calculate_available_time($("input#slidetype").val());
+        //This first function is called when the hours input is changed directly,
+        //or else indirectly when the extend slider is moved.
+        function update_extend_new_hours(duration) {
+            //Calculate the max duration:
+	    //console.log("Setting duration to " + duration)
 
-            //Slider max is equal to max time
-            $("input#slideextend").attr("max", availabletime);
-            $('input#textextend').val($('#slideextend').val());
-            var current_boost = 1;
-            var credits_used = $('#slideextend').val() * multiplier[current_boost];
+	    //Here is yet more nasty cruft caused by not abstracting the boost_levels.
+	    // FIXME please please FIXME
+	    current_boost = 0;
+	    if(${server['cores']} >=2 )  current_boost = 1;
+	    if(${server['cores']} >=8 )  current_boost = 2;
+	    if(${server['cores']} >=10)  current_boost = 3;
+
+	    var availabletime = Math.floor(get_credit() / multiplier[current_boost]);
+	    $("input#slideextend").attr("max", availabletime);
+
+            //Ensure duration is not out-of-bounds or NaN
+            duration = Math.round(duration);
+            if(duration < 1) { duration = 1 }
+            if(duration > availabletime) { duration = availabletime }
+
+	    //Fix the display and/or slider.
+            $('input#textextend').val(duration);
+            $('input#slideextend').val(exp_curve_reverse_transform(duration, availabletime));
+
+            //Split duration into days and hours for display
+            var hours = duration % 24;
+            var days =  Math.floor(duration / 24);
+            //console.log(days + " days, " + hours + " hours.");
+            $('#extendtimesummary').text(days + " days, " + hours + " hours.");
+
+	    //Calculate the cost
+            var credits_used = duration * multiplier[current_boost];
             $('span#extendremain').text(get_credit()-credits_used);
             $('span#extendcost').text(credits_used);
-            $('span#endtime').text(get_future_date($('#slideextend').val()));
-            var hours = $('#slideextend').val() % 24;
-            var days = ($('#slideextend').val() - hours) / 24;
-            console.log($('#slideextend').val());
-            console.log(days + " days, " + hours + " hours.");
-            $('#extendtimesummary').text(days + " days, " + hours + " hours.");
+            $('span#deboostdt').text(get_future_date(deboost_time, 0));
+            $('span#endtime').text(get_future_date(deboost_time, duration));
+        }
+
+        // This second function is called when the extend slider is moved.
+        function update_extend_cost() {
+	    //Simpler than initial boost because the level of current_boost is fixed.
+	    //console.log("Extend slider at " + $("input#slideextend").val() + " of " + $("input#slideextend").attr("max"))
+
+            update_extend_new_hours(
+		    exp_curve_transform($("input#slideextend").val(),
+			                Math.floor($("input#slideextend").attr("max")))
+	    );
         }
 
         //Calculate max boost we can have, given we can't have fractional hours.
@@ -586,9 +655,13 @@
                  hour: 'numeric', minute: 'numeric', hour12: false});
 
         //Return a date X hours in the future, as text.
-        function get_future_date(added_hours) {
+        function get_future_date(start_date, added_hours) {
             var enddate = new Date();
-            enddate.setTime(enddate.getTime() + (added_hours*60*60*1000));
+	    if(start_date == null) {
+		enddate.setTime(enddate.getTime() + (added_hours*60*60*1000));
+	    } else {
+		enddate.setTime(start_date.getTime() + (added_hours*60*60*1000));
+	    }
             return date_formatter.format(enddate);
         }
   </script>
