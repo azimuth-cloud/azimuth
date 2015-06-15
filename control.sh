@@ -13,7 +13,8 @@ set -u
 # You may configure settings in a file pointed to by $CONTROL_CONF, or else just
 # use the defaults.  See deployment_notes.txt.
 
-_WD="`dirname $0`"
+_RL="`readlink -f "$0"`"
+_WD="`dirname "$_RL"`"
 _CONTROL_CONF="$_WD/control.conf"
 
 CONTROL_CONF=${CONTROL_CONF:-$_CONTROL_CONF}
