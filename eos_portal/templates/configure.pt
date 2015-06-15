@@ -151,13 +151,10 @@
                 console.log(data);
 
                 /*state and boosted and change_dt can change*/
-                var start_state = $(".state").text()
-                //console.log("start_state=" + start_state + ", new_state=" + data['state'] )
-
-                $(".state").text(data['state'])
                 /* If state has changed, re-hide the throbber */
-                if (start_state != data['state']) {
+                if ($(".state").text() != data['state']) {
                     $('#throbber1').css({ opacity: 0 });
+		    $(".state").text(data['state'])
                 }
 
                 /* Now set other table rows that may change to new values */
@@ -286,7 +283,7 @@
           </div>
         <p><br/><br/><i>Your server is currently due to deboost on <span id="deboostdt">00:00 on 00/00/0000</span>. 
                With the additional duration, this boost action will be automatically ended at 
-               <b><span id="endtime">00:00 on 00/00/0000</span></b>. 
+               <b><span id="ext_endtime">00:00 on 00/00/0000</span></b>.
                Please note that the machine will be restarted at this time in order to make the change.</i></p>
         </form>
         <hr>
@@ -366,11 +363,13 @@
       $('.btn-extendboost').click(function() {
         var hours = $('input#textextend').val()
 
-	// Don't show the throbber as there is not going to be a state change.
+	// Show the throbber and fake the state in the display.
+        $('#throbber1').css({ opacity: 1 });
+	$(".state").text("Extending_Boost")
 
 	// Make a POST...
 	var serverconfig = {hours : hours};
-        var url = "${db_endpoint}/servers/${server['artifact_name']}/extent_boost";
+        var url = "${db_endpoint}/servers/${server['artifact_name']}/extend_boost";
         $.ajax({
             type: 'POST',
             url: url,
@@ -629,7 +628,7 @@
             $('span#extendremain').text(get_credit()-credits_used);
             $('span#extendcost').text(credits_used);
             $('span#deboostdt').text(get_future_date(deboost_time, 0));
-            $('span#endtime').text(get_future_date(deboost_time, duration));
+            $('span#ext_endtime').text(get_future_date(deboost_time, duration));
         }
 
         // This second function is called when the extend slider is moved.
