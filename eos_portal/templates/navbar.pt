@@ -7,7 +7,7 @@
 		        <span class="icon-bar"></span>
 		        <span class="icon-bar"></span>
 			</button>
-			<a class="navbar-brand active" href="/">EOS</a>
+			<a class="navbar-brand active" href="http://environmentalomics.org">EOS</a>
 		</div>
 		<div class="navbar-collapse collapse">
 		    <ul class="nav navbar-nav">
@@ -19,7 +19,7 @@
 		                <li tal:repeat="value values"><a href="/servers/${value['artifact_name']}">${value['artifact_name']}</a></li>
 		            </ul>
 		        </li>
-		        <li><a href="http://environmentalomics.org/portfolio/big-data-infrastructure/">Documentation</a></li>
+		        <li><a href="http://environmentalomics.org/eoscloud-jasmin/">Documentation</a></li>
 		        <li><a href="mailto:tbooth@ceh.ac.uk">Contact</a></li>
 		    </ul>
 		    <ul class="nav navbar-nav navbar-right" tal:condition="logged_in">
