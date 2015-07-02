@@ -214,7 +214,7 @@
         <hr>
         <form>
           <div class="form-group">
-            <h4 id="boosttype">Boost Type - Big (8 Cores, 40GB RAM) @ 3 credit/hr</h4>
+            <h4 id="boosttype">Boost Type - Big (8 Cores, 140GB RAM) @ 3 credit/hr</h4>
             <input type="range"  min="1" max="3" id="slidetype"/>
           </div>
           <div class="form-group">
