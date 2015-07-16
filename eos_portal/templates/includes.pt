@@ -13,6 +13,8 @@
 <script src="/static/js/bootstrap-extras.js" ></script>
 <script src="/static/js/jquery.cookie.js" ></script>
 
+<script src="/static/js/local-fixups.js" ></script>
+
 <!--[if lt IE 9]>
 <script src="static/js/html5shiv.js" %}"></script>
 <script src="static/js/respond.min.js" %}"></script>
