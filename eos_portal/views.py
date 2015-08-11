@@ -179,6 +179,7 @@ def login(request):
         if r.status_code == 200:
             headers = remember(request, r.json()['username'])
             #FIXME - must be a nicer way to read this!
+            #FIXME FIXME - Matt reports this mangles his login tokens and is a bug.
             request.session['auth_tkt'] = r.headers['Set-Cookie'].split(";")[0].split("=")[1][1:-1]
             print ("Session token from DB: " + request.session['auth_tkt'])
             return HTTPFound(location=request.registry.settings.get('portal_endpoint') + '/servers', headers=headers)
