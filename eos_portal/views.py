@@ -14,9 +14,11 @@ forbidden_view
 from pyramid.view import view_config, forbidden_view_config
 from pyramid.security import remember, forget
 from pyramid.httpexceptions import HTTPFound, HTTPForbidden
-import requests
-
 from pyramid.renderers import render_to_response
+
+import requests
+from http import cookies
+
 
 ##############################################################################
 #                                                                            #
@@ -166,9 +168,8 @@ def login(request):
         r = requests.get(user_url, auth=(request.POST['username'], request.POST['password']))
         if r.status_code == 200:
             headers = remember(request, r.json()['username'])
-            #FIXME - must be a nicer way to read this!
-            #FIXME FIXME - Matt reports this mangles his login tokens and is a bug.
-            request.session['auth_tkt'] = r.headers['Set-Cookie'].split(";")[0].split("=")[1][1:-1]
+            #FIXME - there should really be a regression test for this.
+            request.session['auth_tkt'] = cookies.SimpleCookie(r.headers['Set-Cookie'])['auth_tkt'].value
             print ("Session token from DB: " + request.session['auth_tkt'])
             return HTTPFound(location=request.registry.settings.get('portal_endpoint') + '/servers', headers=headers)
         if r.status_code == 401:
