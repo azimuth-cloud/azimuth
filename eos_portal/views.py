@@ -24,24 +24,12 @@ from pyramid.renderers import render_to_response
 #                                                                            #
 ##############################################################################
 
-# FIXME - maybe don't need this?
-def api_request_string(request_string, request):
-    """Process the request string based on request.registry.settings['db_endpoint_i']
-       to work out how to make a server-side call to the eos-db server.
-    """
-    db_endpoint = request.registry.settings.get('db_endpoint_i')
-
-    #Ensure the request string is just a base URL
-    assert('://' not in request_string)
-
-    return db_endpoint + '/' + request_string
-
 def api_get(request_string, request):
     """Run an API call and handle exceptions.
     """
     rs = request.registry.settings.get('db_endpoint_i') + '/' + request_string
 
-    #Pass auth_tkt in cookie rather than header.
+    #Pass auth_tkt as a cookie rather than header, though it shouldn't matter.
     cookie = {'auth_tkt':request.session['auth_tkt']}
     r = requests.get(rs, cookies=cookie)
     if r.status_code == 200:
