@@ -8,7 +8,6 @@ __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
 from pyramid.view import view_config, forbidden_view_config, notfound_view_config
 from pyramid.security import remember, forget
-from pyramid.settings import aslist
 from pyramid.httpexceptions import (
     HTTPSeeOther, HTTPNotFound, HTTPUnauthorized, HTTPForbidden, HTTPBadRequest
 )
@@ -196,9 +195,7 @@ def new_machine(request):
             description = request.params.get('description', '')
             desc_field['value'] = description
             try:
-                machine = request.vcd_session.provision_machine(
-                    image_id, name, description, aslist(request.registry.settings['vcloud_networks'])
-                )
+                machine = request.vcd_session.provision_machine(image_id, name, description)
                 request.session.flash('Machine provisioned successfully', 'success')
                 return HTTPSeeOther(location = request.route_url('machines'))
             # Catch more specific provisioning errors here

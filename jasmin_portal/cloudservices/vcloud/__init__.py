@@ -303,7 +303,7 @@ class VCloudSession(Session):
                 pass
         return Machine(machine_id, name, status, description, created, os, internal_ip, external_ip)
         
-    def provision_machine(self, image_id, name, description, networks):
+    def provision_machine(self, image_id, name, description):
         # Image id is the id of a catalog item, so we need to get the vAppTemplate from there
         item = ET.fromstring(self.api_request('GET', 'catalogItem/{}'.format(image_id)).text)
         entity = item.find('.//vcd:Entity[@type="application/vnd.vmware.vcloud.vAppTemplate+xml"]', _NS)
@@ -341,20 +341,12 @@ class VCloudSession(Session):
         if vdc_ref is None:
             raise ProvisioningError('Organisation has no VDCs')
         vdc = ET.fromstring(self.api_request('GET', vdc_ref.attrib['href']).text)
-        # Check that the networks to connect to are available in the VDC
-        network_refs = []
-        if networks:
-            available = vdc.find('.//vcd:AvailableNetworks', _NS)
-            if available is None:
-                raise ProvisioningError('No networks available in vdc')
-            # Use a for rather than a comprehension so we can issue errors and collect refs in 1 loop
-            # network_refs must be in the same order as networks
-            network_refs = []
-            for network in networks:
-                ref = available.find('./*[@name="{}"]'.format(network), _NS)
-                if ref is None:
-                    raise ProvisioningError('Unable to find network \'{}\' in VDC'.format(network))
-                network_refs.append(ref)
+        # Find the available networks from the VDC
+        network_refs = vdc.findall(
+            './/vcd:AvailableNetworks/vcd:Network[@type="application/vnd.vmware.vcloud.network+xml"]', _NS
+        )
+        if not network_refs:
+            raise ProvisioningError('No networks available in vdc')
         # Check that there are enough networks to satisfy the VMs
         if len(network_refs) < n_networks_required:
             raise ProvisioningError('Not enough networks for number of NICs')
@@ -365,7 +357,7 @@ class VCloudSession(Session):
                 'description' : description,
                 'vms'         : vm_configs,
             },
-            'networks': [{ 'href' : n.attrib['href'], 'name' : n.attrib['name'] } for n in network_refs],
+            'networks': [n.attrib for n in network_refs],
         })
         # Send the request to vCD
         # The response is a vapp object
