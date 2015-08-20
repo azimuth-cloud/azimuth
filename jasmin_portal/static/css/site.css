@@ -1,0 +1,118 @@
+/**
+ * This file contains custom CSS for the JASMIN Cloud Portal site
+ *
+ * Author: Matt Pryor
+ *
+ * Copyright 2015 STFC
+ */
+ 
+/* CSS rules to force footer to the bottom of the page on short pages */
+
+html {
+	margin : 0;
+	padding : 0;
+	height : 100%;
+	box-sizing : border-box;
+}
+
+body {
+	position : relative;
+	margin : 0;
+	min-height : 100%;
+	padding-bottom : 160px;
+}
+
+footer {
+	position : absolute;
+	bottom : 0px;
+    height : 130px;
+    width : 100%;
+    background-color: #F8F8F8;
+    border-top: 1px solid #E7E7E7;
+    padding: 25px 0 15px;
+}
+
+/* Other small fixes */
+
+.panel-grid-row {
+    display : flex;
+}
+
+.panel-grid-row [class*="col-"] {
+    display : flex;
+    flex : 1 1 auto;
+}
+
+.panel-grid-row .panel {
+    display : flex;
+    flex-direction : column;
+    flex : 1 1 auto;
+}
+
+.panel-grid-row .panel-heading {
+	flex : 0 0 auto;
+}
+
+.panel-grid-row .panel-body {
+	flex : 1 1 auto;
+}
+
+.panel-grid-row .panel-footer {
+	border-top : none;
+	flex : 0 0 auto;
+}
+
+.page-header {
+    margin-top : 20px;
+}
+
+#content {
+	margin-top : 70px;
+}
+
+ul.actions {
+	display : block;
+	list-style-type : none;
+}
+
+ul.actions > li {
+	display : inline-block;
+}
+
+.has-error .form-control::-webkit-input-placeholder {
+    color : #d4a2a0 !important;
+}
+	
+.has-error .form-control:-moz-placeholder {
+    color : #d4a2a0 !important;
+}
+	
+.has-error .form-control::-moz-placeholder {
+    color : #d4a2a0 !important;
+}
+	
+.has-error .form-control:-ms-input-placeholder {
+    color : #d4a2a0 !important;
+}
+
+.alert span {
+	display : inline-block;
+	vertical-align : middle;
+}
+
+.alert .glyphicon {
+    font-size : 25px;
+    margin-right : 10px;
+}
+
+.form-control[name="image_id"] {
+	font-family: Menlo,Monaco,Consolas,"Courier New",monospace;
+}
+
+.help-block:last-child {
+	margin-bottom : 0;
+}
+
+td > form {
+	display : inline-block;
+}

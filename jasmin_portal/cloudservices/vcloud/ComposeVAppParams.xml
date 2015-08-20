@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ComposeVAppParams xmlns="http://www.vmware.com/vcloud/v1.5" xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1"
+	               deploy="false" powerOn="false" name="{{ appliance.name|e }}">
+    <Description>{{ appliance.description|e }}</Description>
+
+    <InstantiationParams>
+        <NetworkConfigSection>
+            <ovf:Info>Configuration parameters for logical networks</ovf:Info>
+            {%- for network in networks %}
+            <NetworkConfig networkName="{{ network.name }}">
+                <Configuration>
+                    <ParentNetwork name="{{ network.name }}" href="{{ network.href }}" />
+                    <FenceMode>bridged</FenceMode>
+                </Configuration>
+            </NetworkConfig>
+            {%- endfor %}
+        </NetworkConfigSection>
+    </InstantiationParams>
+
+    {%- for vm in appliance.vms %}
+    <SourcedItem>
+        <Source href="{{ vm.href }}" />
+
+        <InstantiationParams>
+            <NetworkConnectionSection type="application/vnd.vmware.vcloud.networkConnectionSection+xml"
+                                      ovf:required="false">
+                <ovf:Info />
+                <PrimaryNetworkConnectionIndex>0</PrimaryNetworkConnectionIndex>
+                
+                {#- Connect to available networks in order #}
+                {%- for n in range(vm.n_nics) %}
+                <NetworkConnection network="{{ networks[n].name }}">
+                    <NetworkConnectionIndex>{{ n }}</NetworkConnectionIndex>
+                    <IsConnected>true</IsConnected>
+                    <IpAddressAllocationMode>POOL</IpAddressAllocationMode>
+                </NetworkConnection>
+                {%- endfor %}
+            </NetworkConnectionSection>
+
+            <GuestCustomizationSection type="application/vnd.vmware.vcloud.guestCustomizationSection+xml"
+                                       ovf:required="false">
+                <ovf:Info>Specifies Guest OS Customization Settings</ovf:Info>
+                <Enabled>true</Enabled>
+                <AdminPasswordEnabled>false</AdminPasswordEnabled>
+                <AdminAutoLogonEnabled>false</AdminAutoLogonEnabled>
+                <AdminAutoLogonCount>0</AdminAutoLogonCount>
+                <CustomizationScript>{{ vm.customisation }}</CustomizationScript>
+                <ComputerName>{{ vm.name }}</ComputerName>
+            </GuestCustomizationSection>
+        </InstantiationParams>
+    </SourcedItem>
+    {%- endfor %}
+</ComposeVAppParams>

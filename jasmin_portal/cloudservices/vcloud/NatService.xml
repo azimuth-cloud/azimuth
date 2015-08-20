@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<NatService xmlns="http://www.vmware.com/vcloud/v1.5">
+    <IsEnabled>true</IsEnabled>
+</NatService>

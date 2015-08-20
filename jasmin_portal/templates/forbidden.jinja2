@@ -1,0 +1,12 @@
+{% extends "templates/layout.jinja2" %}
+
+{% block pagetitle %}403 Forbidden{% endblock %}
+
+{% block content %}
+<div class="panel panel-danger">
+    <div class="panel-heading">Insufficient Permissions</div>
+    <div class="panel-body">
+        <p>You have insufficient permissions to access this resource.</p>
+    </div>
+</div>
+{% endblock %}

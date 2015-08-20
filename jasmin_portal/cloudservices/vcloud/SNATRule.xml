@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<NatRule xmlns="http://www.vmware.com/vcloud/v1.5">
+    <RuleType>SNAT</RuleType>
+    <IsEnabled>true</IsEnabled>
+    <GatewayNatRule>
+        <Interface type="application/vnd.vmware.admin.network+xml" href="{{ network.href }}" name="{{ network.name }}" />
+        <OriginalIp>{{ internal_ip }}</OriginalIp>
+        <OriginalPort>any</OriginalPort>
+        <TranslatedIp>{{ external_ip }}</TranslatedIp>
+        <TranslatedPort>any</TranslatedPort>
+        <Protocol>any</Protocol>
+    </GatewayNatRule>
+</NatRule>

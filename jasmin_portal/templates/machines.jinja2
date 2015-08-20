@@ -1,0 +1,89 @@
+{% extends "templates/layout.jinja2" %}
+
+{% block pagetitle %}Available machines{% endblock %}
+
+{% block content %}
+<div class="row">
+    <ul class="pull-right actions">
+        <li>
+            <a title="New machine" href="{{ request.route_url('catalogue') }}" class="btn btn-success">
+                <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> New machine
+            </a>
+        </li>
+        <li>
+            <a title="Refresh machines" href="{{ request.route_url('machines') }}" class="btn btn-info">
+                <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span> Refresh
+            </a>
+        </li>
+    </ul>
+</div>
+
+<div class="row">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Status</th>
+                <th>Operating System</th>
+                <th>Internal IP</th>
+                <th>External IP</th>
+                <th>Created</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {%- for machine in machines %}
+                <tr>
+                    <td><code>{{ machine.name }}</code></td>
+                    <td>
+                        {%- if machine.status.is_on() %}
+                            {%- set label_type = "success" %}
+                        {%- elif machine.status.is_warning() %}
+                            {%- set label_type = "warning" %}
+                        {%- elif machine.status.is_error() %}
+                            {%- set label_type = "danger" %}
+                        {%- else %}
+                            {%- set label_type = "info" %}
+                        {%- endif %}
+                        <span class="label label-{{ label_type }}">{{ machine.status.value }}</span>
+                    </td>
+                    <td>{{ machine.os }}</td>
+                    <td><code>{{ machine.internal_ip|default('-', true) }}</code></td>
+                    <td><code>{{ machine.external_ip|default('-', true) }}</code></td>
+                    <td>{{ machine.created.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td>
+                        <form class="disable-on-submit" method="POST" action="{{ request.route_url('machine_action', id = machine.id) }}">
+                            <input name="action" type="hidden" value="start" />
+                            <button title="Power On" type="submit" class="btn btn-success btn-xs">
+                                <span class="glyphicon glyphicon-play" aria-hidden="true"></span>
+                                <span class="sr-only">Power On</span>
+                            </button>
+                        </form>
+                        <form class="disable-on-submit" method="POST" action="{{ request.route_url('machine_action', id = machine.id) }}">
+                            <input name="action" type="hidden" value="destroy" />
+                            <button title="Power Off" type="submit" class="btn btn-warning btn-xs">
+                                <span class="glyphicon glyphicon-off" aria-hidden="true"></span>
+                                <span class="sr-only">Power Off</span>
+                            </button>
+                        </form>
+                        <form class="disable-on-submit" method="POST" action="{{ request.route_url('machine_action', id = machine.id) }}">
+                            <input name="action" type="hidden" value="restart" />
+                            <button title="Restart" type="submit" class="btn btn-info btn-xs">
+                                <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                                <span class="sr-only">Restart</span>
+                            </button>
+                        </form>
+                        <form class="disable-on-submit" method="POST" action="{{ request.route_url('machine_action', id = machine.id) }}">
+                            <input name="action" type="hidden" value="delete" />
+                            <button title="Delete" type="submit" class="btn btn-danger btn-xs">
+                                <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>
+                                <span class="sr-only">Delete</span>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+            {%- endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

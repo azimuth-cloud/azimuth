@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        
+        <title>{% block pagetitle %}Home{% endblock %} - JASMIN Cloud Portal</title>
+
+        {#- CSS includes #}
+        <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet" />
+        <link href="/static/css/bootstrap-theme.css" rel="stylesheet" />
+        <link href="/static/css/site.css" rel="stylesheet" />
+
+        {#- IE8 support #}
+        <!--[if lt IE 9]>
+            <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+            <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+        <![endif]-->
+    </head>
+  
+    <body>
+        <div class="container-fluid">
+            <nav class="navbar navbar-default navbar-fixed-top">
+                <div class="container">
+                    <div class="navbar-header">
+                        <button type="button" class="navbar-toggle collapsed"
+                                data-toggle="collapse" data-target="#nav-main" aria-expanded="false">
+                            <span class="sr-only">Toggle Navigation</span>
+                            <span class="icon-bar"></span>
+                            <span class="icon-bar"></span>
+                            <span class="icon-bar"></span>
+                        </button>
+                        <a class="navbar-brand" href="{{ request.route_url('home') }}">JASMIN Cloud Portal</a>
+                    </div>
+                
+                    <div id="nav-main" class="collapse navbar-collapse">
+                        {%- if request.authenticated_userid %}
+                            <ul class="nav navbar-nav navbar-left">
+                                <li {% if request.matched_route.name == 'machines' %}class="active"{% endif %}>
+                                    <a href="{{ request.route_url('machines') }}">Machines</a>
+                                </li>
+                                <li {% if request.matched_route.name == 'catalogue' %}class="active"{% endif %}>
+                                    <a href="{{ request.route_url('catalogue') }}">Catalogue</a>
+                                </li>
+                            </ul>
+                        {%- endif %}
+                        
+                        {%- if request.authenticated_userid %}
+                            <ul class="nav navbar-nav navbar-right">
+                                <li class="dropdown">
+                                    <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
+                                        <span class="glyphicon glyphicon-user" aria-hidden="true"></span>&nbsp;
+                                        {{ request.authenticated_userid }}
+                                        <span class="caret"></span>
+                                    </a>
+                                    <ul class="dropdown-menu">
+                                        <li><a href="{{ request.route_url('logout') }}">Sign out</a></li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        {%- else %}
+                            <form class="navbar-form navbar-right" method="POST" action="{{ request.route_url('login') }}">
+                                <div class="form-group">
+                                    <label for="username" class="sr-only">Username</label>
+                                    <input name="username" type="text" class="form-control" placeholder="user@organisation" />
+                                    <label for="username" class="sr-only">Password</label>
+                                    <input name="password" type="password" class="form-control" placeholder="password" />
+                                </div>
+                                <input name="submitted" type="submit" value="Sign in" class="btn btn-default" />
+                            </form>
+                        {%- endif %}
+                        
+                        <ul class="nav navbar-nav navbar-right">
+                            <li><a href="#">Help</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+        
+            <div id="content" class="container">
+                <div class="col-md-12">
+                    <h1 class="page-header">{{ self.pagetitle() }}</h1>
+                </div>
+                
+                {%- if request.session.peek_flash('success') or request.session.peek_flash('error') %}
+                    <div class="row">
+                        <div class="col-md-6 col-md-offset-3">
+                            {%- for message in request.session.pop_flash('success') %}
+                                <div class="alert alert-success alert-dismissible" role="alert">
+                                    <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                                    <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>&nbsp;&nbsp;
+                                    <span>{{ message }}</span>
+                                </div>
+                            {%- endfor %}
+                            {%- for message in request.session.pop_flash('error') %}
+                                <div class="alert alert-danger alert-dismissible" role="alert">
+                                    <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                                    <span class="glyphicon glyphicon-alert" aria-hidden="true"></span>
+                                    <span>{{ message }}</span>
+                                </div>
+                            {%- endfor %}
+                        </div>
+                    </div>
+                {%- endif %}
+                
+                <div class="col-md-12">
+                    {% block content %}{% endblock %}
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-6 float-left">
+                        <a href="http://www.nerc.ac.uk" title="NERC">
+                            <img src="/static/img/nerc-long-logo-261.png" title="NERC logo" height="53" width="261" alt="NERC logo" class="img-responsive pull-left" />
+                        </a>
+                    </div>
+                    <div class="col-md-6 float-right">
+                        <a href="http://www.stfc.ac.uk" title="STFC">
+                            <img src="/static/img/STFCMediumColourTrans.png" title="STFC logo" height="57" width="261" alt="STFC logo" class="img-responsive pull-right" />
+                        </a>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12 middle">
+                        <p class="site-info text-center">Copyright &copy; 2015 <a href="http://www.stfc.ac.uk">STFC</a>  |  All Rights Reserved</p>
+                    </div>
+                </div>
+            </div>
+        </footer>
+
+        {#- Javascripts #}
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+        <script src="/static/js/site.js"></script>
+    </body>
+</html>
