@@ -52,28 +52,32 @@
                     <td><code>{{ machine.external_ip|default('-', true) }}</code></td>
                     <td>{{ machine.created.strftime('%Y-%m-%d %H:%M:%S') }}</td>
                     <td>
-                        <form class="disable-on-submit" method="POST" action="{{ request.route_url('machine_action', id = machine.id) }}">
+                        <form class="disable-on-submit power-action" autocomplete="off" method="POST"
+                              action="{{ request.route_url('machine_action', id = machine.id) }}">
                             <input name="action" type="hidden" value="start" />
                             <button title="Power On" type="submit" class="btn btn-success btn-xs">
                                 <span class="glyphicon glyphicon-play" aria-hidden="true"></span>
                                 <span class="sr-only">Power On</span>
                             </button>
                         </form>
-                        <form class="disable-on-submit" method="POST" action="{{ request.route_url('machine_action', id = machine.id) }}">
+                        <form class="disable-on-submit power-action" autocomplete="off" method="POST"
+                              action="{{ request.route_url('machine_action', id = machine.id) }}">
                             <input name="action" type="hidden" value="destroy" />
                             <button title="Power Off" type="submit" class="btn btn-warning btn-xs">
                                 <span class="glyphicon glyphicon-off" aria-hidden="true"></span>
                                 <span class="sr-only">Power Off</span>
                             </button>
                         </form>
-                        <form class="disable-on-submit" method="POST" action="{{ request.route_url('machine_action', id = machine.id) }}">
+                        <form class="disable-on-submit power-action" autocomplete="off" method="POST"
+                              action="{{ request.route_url('machine_action', id = machine.id) }}">
                             <input name="action" type="hidden" value="restart" />
                             <button title="Restart" type="submit" class="btn btn-info btn-xs">
                                 <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
                                 <span class="sr-only">Restart</span>
                             </button>
                         </form>
-                        <form class="disable-on-submit" method="POST" action="{{ request.route_url('machine_action', id = machine.id) }}">
+                        <form class="disable-on-submit power-action" autocomplete="off" method="POST"
+                              action="{{ request.route_url('machine_action', id = machine.id) }}">
                             <input name="action" type="hidden" value="delete" />
                             <button title="Delete" type="submit" class="btn btn-danger btn-xs">
                                 <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>

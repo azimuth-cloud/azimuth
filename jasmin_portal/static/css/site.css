@@ -116,3 +116,8 @@ ul.actions > li {
 td > form {
 	display : inline-block;
 }
+
+td > .progress {
+	height : 22px;
+	margin-bottom : 0;
+}
