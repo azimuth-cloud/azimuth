@@ -283,7 +283,7 @@ class VCloudSession(Session):
             app.find('vcd:DateCreated', _NS).text[:19], '%Y-%m-%dT%H:%M:%S'
         )
         # For the OS, we use the value from the first VM
-        # For IP addresses, we use the values from the first NIC of the first VM
+        # For IP addresses, we use the values from the primary NIC of the first VM
         os = 'Unknown'
         internal_ip = external_ip = None
         vm = app.find('.//vcd:Vm', _NS)
@@ -292,7 +292,15 @@ class VCloudSession(Session):
                 os = vm.find('.//ovf:OperatingSystemSection/ovf:Description', _NS).text or 'Unknown'
             except AttributeError:
                 os = 'Unknown'
-            nic = vm.find('.//vcd:NetworkConnection', _NS)
+            # Get the NIC for the primary network
+            nic = None
+            try:
+                primary_net_idx = vm.find('.//vcd:PrimaryNetworkConnectionIndex', _NS).text
+                nic = vm.find(
+                    './/vcd:NetworkConnection[vcd:NetworkConnectionIndex="{}"]'.format(primary_net_idx), _NS
+                )
+            except AttributeError:
+                pass
             try:
                 internal_ip = ipaddress.IPv4Address(nic.find('vcd:IpAddress', _NS).text)
             except AttributeError:
