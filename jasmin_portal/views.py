@@ -110,32 +110,6 @@ def catalogue(request):
     return { 'items' : items }
 
 
-@view_config(route_name = 'catalogue_item',
-             request_method = 'GET',
-             renderer = 'templates/catalogue_item.jinja2', permission = 'view')
-def catalogue_item(request):
-    """
-    Handler for /catalogue_item/{id}
-    
-    User must be logged in
-    
-    Shows the details for the catalogue item
-    """
-    try:
-        item = request.vcd_session.get_image(request.matchdict['id'])
-    # Convert some of the cloud service errors to appropriate HTTP errors
-    except cloud.AuthenticationError:
-        return HTTPUnauthorized()
-    except cloud.PermissionsError:
-        return HTTPForbidden()
-    except cloud.NoSuchResourceError:
-        return HTTPNotFound()
-    except cloud.CloudServiceError as e:
-        request.session.flash(str(e), 'error')
-        return HTTPSeeOther(location = request.route_url('catalogue'))
-    return { 'item' : item }
-   
-
 @view_config(route_name = 'machines',
              request_method = 'GET',
              renderer = 'templates/machines.jinja2', permission = 'view')
@@ -215,32 +189,6 @@ def new_machine(request):
     except cloud.CloudServiceError as e:
         request.session.flash(str(e), 'error')
         return HTTPSeeOther(location = request.route_url('machines'))
-
-
-@view_config(route_name = 'machine',
-             request_method = 'GET',
-             renderer = 'templates/machine.jinja2', permission = 'view')
-def machine(request):
-    """
-    Handler for /machine/{id}
-    
-    User must be logged in
-    
-    Shows details for the machine
-    """
-    try:
-        machine = request.vcd_session.get_machine(request.matchdict['id'])
-    # Convert some of the cloud service errors to appropriate HTTP errors
-    except cloud.AuthenticationError:
-        return HTTPUnauthorized()
-    except cloud.PermissionsError:
-        return HTTPForbidden()
-    except cloud.NoSuchResourceError:
-        return HTTPNotFound()
-    except cloud.CloudServiceError as e:
-        request.session.flash(str(e), 'error')
-        return HTTPSeeOther(location = request.route_url('machines'))
-    return { 'machine' : machine }
 
 
 @view_config(route_name = 'machine_action',

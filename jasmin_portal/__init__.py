@@ -53,12 +53,10 @@ def main(global_config, **settings):
     
     # Catalogue routes
     config.add_route('catalogue',      '/catalogue')
-    config.add_route('catalogue_item', '/catalogue_item/{id}')
     
     # VM routes
     config.add_route('machines',       '/machines')
     config.add_route('new_machine',    '/machine/new/{id}')
-    config.add_route('machine',        '/machine/{id}')
     config.add_route('machine_action', '/machine/{id}/action')
 
     config.scan()
