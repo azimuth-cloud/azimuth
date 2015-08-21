@@ -234,37 +234,12 @@ class VCloudSession(Session):
             # We only catch authentication-related errors
             return False
             
-    def list_images(self):
-        # Get a list of uris of catalogs available to the user
-        results = ET.fromstring(self.api_request('GET', 'catalogs/query').text)
-        cat_refs = [result.attrib['href'] for result in results.findall('vcd:CatalogRecord', _NS)]
-        # Now we know the catalogs we have access to, we can get the items
-        images = []
-        for cat_ref in cat_refs:
-            # Query the catalog to find its items
-            catalog = ET.fromstring(self.api_request('GET', cat_ref).text)
-            items = catalog.findall('.//vcd:CatalogItem', _NS)
-            item_ids = [i.attrib['href'].rstrip('/').split('/').pop() for i in items]
-            images.extend(self.get_image(id) for id in item_ids)
-        return images
-        
     def list_machines(self):
         # This will return all the VMs available to the user
         results = ET.fromstring(self.api_request('GET', 'vApps/query').text)
         apps = results.findall('vcd:VAppRecord', _NS)
         machine_ids = [app.attrib['href'].rstrip('/').split('/').pop() for app in apps]
         return [self.get_machine(id) for id in machine_ids]
-        
-    def get_image(self, image_id):
-        # Image IDs are catalog item ids
-        item = ET.fromstring(self.api_request('GET', 'catalogItem/{}'.format(image_id)).text)
-        name = item.attrib['name']
-        description = ''
-        try:
-            description = item.find('vcd:Description', _NS).text or ''
-        except AttributeError:
-            pass
-        return Image(image_id, name, description)
         
     def get_machine(self, machine_id):
         app = ET.fromstring(self.api_request('GET', 'vApp/{}'.format(machine_id)).text)
@@ -312,12 +287,8 @@ class VCloudSession(Session):
         return Machine(machine_id, name, status, description, created, os, internal_ip, external_ip)
         
     def provision_machine(self, image_id, name, description):
-        # Image id is the id of a catalog item, so we need to get the vAppTemplate from there
-        item = ET.fromstring(self.api_request('GET', 'catalogItem/{}'.format(image_id)).text)
-        entity = item.find('.//vcd:Entity[@type="application/vnd.vmware.vcloud.vAppTemplate+xml"]', _NS)
-        if entity is None:
-            raise ProvisioningError('No vAppTemplate associated with catalogue item')
-        template = ET.fromstring(self.api_request('GET', entity.attrib['href']).text)
+        # Image id is the id of a vAppTemplate
+        template = ET.fromstring(self.api_request('GET', 'vAppTemplate/{}'.format(image_id)).text)
         # Configure each VM contained in the vApp
         vm_configs = []
         # Track the maximum number of NICs for a VM

@@ -5,6 +5,7 @@ Pyramid view callables for the JASMIN cloud portal
 __author__ = "Matt Pryor"
 __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
+import json
 
 from pyramid.view import view_config, forbidden_view_config, notfound_view_config
 from pyramid.security import remember, forget
@@ -95,18 +96,10 @@ def catalogue(request):
     
     Shows the catalogue items available to the user
     """
-    items = []
-    try:
-        items = request.vcd_session.list_images()
-    # Convert some of the cloud service errors to appropriate HTTP errors
-    except cloud.AuthenticationError:
-        return HTTPUnauthorized()
-    except cloud.PermissionsError:
-        return HTTPForbidden()
-    except cloud.NoSuchResourceError:
-        return HTTPNotFound()
-    except cloud.CloudServiceError as e:
-        request.session.flash(str(e), 'error')
+    # We don't hit the vCD for catalog items - we load them from the config file
+    # as they have metadata attached
+    with open(request.registry.settings['catalogue_file']) as f:
+        items = json.load(f)
     return { 'items' : items }
 
 
@@ -173,8 +166,10 @@ def new_machine(request):
                     cloud.ProvisioningError) as e:
                 # Let all other exceptions bubble up
                 request.session.flash(str(e), 'error')
-        # Get the image object so we can display the image name with the form
-        image = request.vcd_session.get_image(image_id)
+        # Get the information about the template from the JSON file
+        with open(request.registry.settings['catalogue_file']) as f:
+            items = json.load(f)
+        image = items[image_id]
         return {
             'image'       : image,
             'name'        : name,

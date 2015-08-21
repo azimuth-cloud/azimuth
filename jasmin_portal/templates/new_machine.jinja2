@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="col-md-8 col-md-offset-2">
-    <form method="POST" action="{{ request.route_url('new_machine', id = image.id) }}" class="form-horizontal disable-on-submit provisioning">
+    <form method="POST" action="{{ request.route_url('new_machine', id = image.uuid) }}" class="form-horizontal disable-on-submit provisioning">
         <div class="form-group">
             <label for="name" class="col-sm-3 control-label">Machine name</label>
             <div class="col-sm-9">

@@ -4,16 +4,16 @@
 
 {% block content %}
 {#- We want to render the images in a grid in rows of 4 #}
-{%- for item in items %}
+{%- for item in items.values() %}
     {%- if ( loop.index0 % 4 ) == 0 %}
     <div class="row panel-grid-row">
     {%- endif %}
         <div class="col-md-3">
             <div class="panel panel-default">
                 <div class="panel-heading"><code>{{ item.name }}</code></div>
-                <div class="panel-body">{{ item.description|default('No description', true) }}</div>
+                <div class="panel-body">{{ item.description|default('No description', true)|safe }}</div>
                 <div class="panel-footer">
-                    <a href="{{ request.route_url('new_machine', id = item.id) }}"
+                    <a href="{{ request.route_url('new_machine', id = item.uuid) }}"
                        title="Provision machine from template" class="btn btn-primary btn-block">
                         <i class="fa fa-pencil"></i>&nbsp; Use template
                     </a>

@@ -53,17 +53,12 @@ footer {
     flex : 1 1 auto;
 }
 
-.panel-grid-row .panel-heading {
+.panel-grid-row .panel-heading, .panel-grid-row .panel-footer {
     flex : 0 0 auto;
 }
 
 .panel-grid-row .panel-body {
     flex : 1 1 auto;
-}
-
-.panel-grid-row .panel-footer {
-    border-top : none;
-    flex : 0 0 auto;
 }
 
 .page-header {
