@@ -10,6 +10,7 @@
         {#- CSS includes #}
         <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet" />
         <link href="/static/css/bootstrap-theme.css" rel="stylesheet" />
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
         <link href="/static/css/site.css" rel="stylesheet" />
 
         {#- IE8 support #}
@@ -50,12 +51,12 @@
                             <ul class="nav navbar-nav navbar-right">
                                 <li class="dropdown">
                                     <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
-                                        <span class="glyphicon glyphicon-user" aria-hidden="true"></span>&nbsp;
+                                        <i class="fa fa-user"></i>&nbsp;
                                         {{ request.authenticated_userid }}
                                         <span class="caret"></span>
                                     </a>
                                     <ul class="dropdown-menu">
-                                        <li><a href="{{ request.route_url('logout') }}">Sign out</a></li>
+                                        <li><a href="{{ request.route_url('logout') }}"><i class="fa fa-sign-out"></i>&nbsp; Sign out</a></li>
                                     </ul>
                                 </li>
                             </ul>
@@ -89,15 +90,13 @@
                             {%- for message in request.session.pop_flash('success') %}
                                 <div class="alert alert-success alert-dismissible" role="alert">
                                     <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                                    <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>&nbsp;&nbsp;
-                                    <span>{{ message }}</span>
+                                    <i class="fa fa-check-circle"></i> <span>{{ message }}</span>
                                 </div>
                             {%- endfor %}
                             {%- for message in request.session.pop_flash('error') %}
                                 <div class="alert alert-danger alert-dismissible" role="alert">
                                     <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                                    <span class="glyphicon glyphicon-alert" aria-hidden="true"></span>
-                                    <span>{{ message }}</span>
+                                    <i class="fa fa-exclamation-circle"></i> <span>Error message{{ message }}</span>
                                 </div>
                             {%- endfor %}
                         </div>

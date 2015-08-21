@@ -11,6 +11,8 @@ import pickle
 from pyramid.request import Request
 from pyramid.security import Allow, Authenticated, DENY_ALL
 
+from jasmin_portal.cloudservices import CloudServiceError
+
 
 class RequestFactory(Request):
     """
@@ -53,13 +55,17 @@ def check_session(user_id, request):
     """
     # We want to make sure appropriate messages are displayed to the user
     # if a vCD session is not available
-    if request.vcd_session is None:
+    try:
+        if request.vcd_session is None:
+            return None
+        if not request.vcd_session.is_active():
+            request.vcd_session = None
+            return None
+        else:
+            return []
+    except CloudServiceError as e:
+        request.session.flash(str(e), 'error')
         return None
-    if not request.vcd_session.is_active():
-        request.vcd_session = None
-        return None
-    else:
-        return []
 
 
 class RootFactory:

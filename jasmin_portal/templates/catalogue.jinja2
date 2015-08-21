@@ -13,9 +13,9 @@
                 <div class="panel-heading"><code>{{ item.name }}</code></div>
                 <div class="panel-body">{{ item.description|default('No description', true) }}</div>
                 <div class="panel-footer">
-                    <a href="{{ request.route_url('new_machine', _query = { 'image_id' : item.id }) }}"
+                    <a href="{{ request.route_url('new_machine', id = item.id) }}"
                        title="Provision machine from template" class="btn btn-primary btn-block">
-                        <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>&nbsp;&nbsp;Use template
+                        <i class="fa fa-pencil"></i>&nbsp; Use template
                     </a>
                 </div>
             </div>

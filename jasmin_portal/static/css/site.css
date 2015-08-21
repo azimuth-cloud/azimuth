@@ -9,30 +9,34 @@
 /* CSS rules to force footer to the bottom of the page on short pages */
 
 html {
-	margin : 0;
-	padding : 0;
-	height : 100%;
-	box-sizing : border-box;
+    margin : 0;
+    padding : 0;
+    height : 100%;
+    box-sizing : border-box;
 }
 
 body {
-	position : relative;
-	margin : 0;
-	min-height : 100%;
-	padding-bottom : 160px;
+    position : relative;
+    margin : 0;
+    min-height : 100%;
+    padding-bottom : 160px;
 }
 
 footer {
-	position : absolute;
-	bottom : 0px;
+    position : absolute;
+    bottom : 0px;
     height : 130px;
     width : 100%;
-    background-color: #F8F8F8;
-    border-top: 1px solid #E7E7E7;
-    padding: 25px 0 15px;
+    background-color : #F8F8F8;
+    border-top : 1px solid #E7E7E7;
+    padding : 25px 0 15px;
 }
 
 /* Other small fixes */
+
+.dropdown-menu {
+	width : 100%;
+}
 
 .panel-grid-row {
     display : flex;
@@ -50,16 +54,16 @@ footer {
 }
 
 .panel-grid-row .panel-heading {
-	flex : 0 0 auto;
+    flex : 0 0 auto;
 }
 
 .panel-grid-row .panel-body {
-	flex : 1 1 auto;
+    flex : 1 1 auto;
 }
 
 .panel-grid-row .panel-footer {
-	border-top : none;
-	flex : 0 0 auto;
+    border-top : none;
+    flex : 0 0 auto;
 }
 
 .page-header {
@@ -67,57 +71,63 @@ footer {
 }
 
 #content {
-	margin-top : 70px;
+    margin-top : 70px;
 }
 
 ul.actions {
-	display : block;
-	list-style-type : none;
+    display : block;
+    list-style-type : none;
 }
 
 ul.actions > li {
-	display : inline-block;
+    display : inline-block;
 }
 
 .has-error .form-control::-webkit-input-placeholder {
     color : #d4a2a0 !important;
 }
-	
+    
 .has-error .form-control:-moz-placeholder {
     color : #d4a2a0 !important;
 }
-	
+    
 .has-error .form-control::-moz-placeholder {
     color : #d4a2a0 !important;
 }
-	
+    
 .has-error .form-control:-ms-input-placeholder {
     color : #d4a2a0 !important;
 }
 
-.alert span {
-	display : inline-block;
-	vertical-align : middle;
-}
-
-.alert .glyphicon {
-    font-size : 25px;
-    margin-right : 10px;
-}
-
-.form-control[name="image_id"] {
-	font-family: Menlo,Monaco,Consolas,"Courier New",monospace;
-}
-
 .help-block:last-child {
-	margin-bottom : 0;
+    margin-bottom : 0;
 }
 
 td > form {
-	display : inline-block;
+    display : inline-block;
 }
 
 td > .progress {
-	height : 22px;
-	margin-bottom : 0;
+    height : 22px;
+    margin-bottom : 0;
+}
+
+.working-message {
+    display : inline-block;
+    vertical-align : middle;
+    margin-left : 10px;
+    padding-left : 25px;
+    line-height : 20px;
+    background : url("../img/spinner.gif") left center no-repeat;
+}
+
+.alert span {
+    display : inline-block;
+    vertical-align : middle;
+}
+
+.alert .fa {
+    font-size : 25px;
+    vertical-align : middle;
+    margin-right : 5px;
 }

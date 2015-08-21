@@ -6,19 +6,21 @@ $('.form-control').on('input', function() {
 });
 
 // Find forms requesting the disable-on-submit functionality and enable it
-$(document).on('submit', 'form.disable-on-submit', function() {
+$(document).on('submit', 'form.disable-on-submit', function(e) {
     $(document).on('submit', 'form', function(e) { e.preventDefault(); });
     $(document).find('button[type="submit"], input[type="submit"]').attr('disabled', 'disabled');
     return true;
 });
 
-// Find forms tagged as power-action forms and enable the replacement of cell content
+// Find forms tagged as power-action forms and enable the replacement of cell content with a progress bar
 $(document).on('submit', 'form.power-action', function(e) {
     // Hide all the forms in the cell, and append an element
-    $cell = $(this).closest('td');
-    $cell.find('form').hide();
-    $cell.append(
-        '<div class="progress"><div class="progress-bar progress-bar-info progress-bar-striped active" style="width: 100%">Working...</div></div>'
-    );
+    $(this).closest('td').find('form').hide().siblings('.progress').removeClass('hidden');
+    return true;
+});
+
+// Find forms tagged as provisioning forms and enable replacing of the button content
+$(document).on('submit', 'form.provisioning', function(e) {
+    $(this).find('.working-message').removeClass('hidden');
     return true;
 });

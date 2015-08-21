@@ -1,12 +1,26 @@
 {% extends "templates/layout.jinja2" %}
 
-{% block pagetitle %}403 Forbidden{% endblock %}
+{#-
+    If there is a vCD session, this page will say that they have insufficient permission
+    If there is not a vCD session, prompt them to log in 
+#}
+
+{% block pagetitle %}Access Denied{% endblock %}
 
 {% block content %}
-<div class="panel panel-danger">
-    <div class="panel-heading">Insufficient Permissions</div>
-    <div class="panel-body">
-        <p>You have insufficient permissions to access this resource.</p>
-    </div>
-</div>
+    {%- if request.vcd_sesssion %}
+        <div class="panel panel-danger">
+            <div class="panel-heading">Insufficient Permissions</div>
+            <div class="panel-body">
+                <p>You have insufficient permissions to access this resource.</p>
+            </div>
+        </div>
+    {%- else %}
+        <div class="panel panel-danger">
+            <div class="panel-heading">Please log in</div>
+            <div class="panel-body">
+                <p>Please log in to access this resource.</p>
+            </div>
+        </div>
+    {%- endif %}
 {% endblock %}

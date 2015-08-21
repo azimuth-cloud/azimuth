@@ -57,7 +57,7 @@ def main(global_config, **settings):
     
     # VM routes
     config.add_route('machines',       '/machines')
-    config.add_route('new_machine',    '/machine/new')
+    config.add_route('new_machine',    '/machine/new/{id}')
     config.add_route('machine',        '/machine/{id}')
     config.add_route('machine_action', '/machine/{id}/action')
 

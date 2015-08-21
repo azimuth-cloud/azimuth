@@ -167,14 +167,14 @@ def machines(request):
              renderer = 'templates/new_machine.jinja2', permission = 'edit')
 def new_machine(request):
     """
-    Handler for /machine/new
+    Handler for /machine/new/{id}
     
     User must be logged in
     
-    GET: Shows a form to gather information required for provisioning
-         image_id may be given as a request parameter, and is the ID of the catalog item to use
-         If image_id is not given, user selects from a dropdown
+    {id} is the id of the template to use
     
+    GET: Shows a form to gather information required for provisioning
+         
     POST: Attempts to provision a machine with the given details
           If the provisioning is successful, redirect to /machines with a success message
           If the provisioning is successful but NATing fails, redirect to /machines
@@ -182,36 +182,29 @@ def new_machine(request):
           If the provisioning fails, show form with error message
     """
     try:
-        # For the form fields, we use dict objects to capture error info
-        # image id can be given as a get parameter, so we fetch it here
-        image_id = request.params.get('image_id', '')
-        image_field = { 'value' : image_id, 'error' : False }
-        name_field  = { 'value' : '', 'error' : False }
-        desc_field  = { 'value' : '', 'error' : False }
+        image_id = request.matchdict['id']
+        name = ''
+        description = ''
         # If we have a POST request, try and provision a machine with the info
         if request.method == 'POST':
             name = request.params.get('name', '')
-            name_field['value'] = name
             description = request.params.get('description', '')
-            desc_field['value'] = description
             try:
                 machine = request.vcd_session.provision_machine(image_id, name, description)
                 request.session.flash('Machine provisioned successfully', 'success')
                 return HTTPSeeOther(location = request.route_url('machines'))
             # Catch more specific provisioning errors here
-            except (cloud.DuplicateNameError, cloud.BadRequestError) as e:
-                # Assume bad request errors are down to the name, since it is the only
-                # required field
+            except (cloud.DuplicateNameError, 
+                    cloud.BadRequestError,
+                    cloud.ProvisioningError) as e:
+                # Let all other exceptions bubble up
                 request.session.flash(str(e), 'error')
-                name_field['error'] = True
-            except cloud.ProvisioningError as e:
-                request.session.flash(str(e), 'error')
-        # Inject the items from the catalogue as choices for image
-        image_field['choices'] = request.vcd_session.list_images()
+        # Get the image object so we can display the image name with the form
+        image = request.vcd_session.get_image(image_id)
         return {
-            'image'       : image_field,
-            'name'        : name_field,
-            'description' : desc_field,
+            'image'       : image,
+            'name'        : name,
+            'description' : description,
         }
     except cloud.AuthenticationError:
         return HTTPUnauthorized()
