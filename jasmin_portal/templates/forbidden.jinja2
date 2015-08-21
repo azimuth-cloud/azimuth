@@ -8,19 +8,14 @@
 {% block pagetitle %}Access Denied{% endblock %}
 
 {% block content %}
-    {%- if request.vcd_sesssion %}
-        <div class="panel panel-danger">
-            <div class="panel-heading">Insufficient Permissions</div>
-            <div class="panel-body">
-                <p>You have insufficient permissions to access this resource.</p>
-            </div>
+    <div class="col-md-6 col-md-offset-3">
+        <div class="alert alert-danger" role="alert">
+            <i class="fa fa-exclamation-circle"></i>
+            {%- if request.vcd_sesssion %}
+                <span>You have insufficient permissions to access this resource.</span>
+            {%- else %}
+                <span>Please log in to access this resource.</span>
+            {%- endif %}
         </div>
-    {%- else %}
-        <div class="panel panel-danger">
-            <div class="panel-heading">Please log in</div>
-            <div class="panel-body">
-                <p>Please log in to access this resource.</p>
-            </div>
-        </div>
-    {%- endif %}
+    </div>
 {% endblock %}

@@ -76,8 +76,9 @@
                                 <span class="sr-only">Restart</span>
                             </button>
                         </form>
-                        <form class="disable-on-submit power-action" autocomplete="off" method="POST"
-                              action="{{ request.route_url('machine_action', id = machine.id) }}">
+                        <form class="disable-on-submit power-action confirm" autocomplete="off" method="POST"
+                              action="{{ request.route_url('machine_action', id = machine.id) }}"
+                              data-confirm-message="Are you sure? Once deleted, a machine cannot be restored!">
                             <input name="action" type="hidden" value="delete" />
                             <button title="Delete" type="submit" class="btn btn-danger btn-xs">
                                 <i class="fa fa-ban"></i>

@@ -35,7 +35,7 @@ footer {
 /* Other small fixes */
 
 .dropdown-menu {
-	width : 100%;
+    width : 100%;
 }
 
 .panel-grid-row {
@@ -130,4 +130,11 @@ td > .progress {
     font-size : 25px;
     vertical-align : middle;
     margin-right : 5px;
+}
+
+.modal .modal-dialog {
+    position : relative;
+    top : 50%;
+    transform : translateY(-50%) !important;
+    margin : 0 auto;
 }

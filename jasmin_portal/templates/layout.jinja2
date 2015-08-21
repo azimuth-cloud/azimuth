@@ -96,7 +96,7 @@
                             {%- for message in request.session.pop_flash('error') %}
                                 <div class="alert alert-danger alert-dismissible" role="alert">
                                     <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                                    <i class="fa fa-exclamation-circle"></i> <span>Error message{{ message }}</span>
+                                    <i class="fa fa-exclamation-circle"></i> <span>{{ message }}</span>
                                 </div>
                             {%- endfor %}
                         </div>
@@ -134,6 +134,7 @@
         {#- Javascripts #}
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+        <script src="/static/js/bootbox.min.js"></script>
         <script src="/static/js/site.js"></script>
     </body>
 </html>
