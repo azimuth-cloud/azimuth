@@ -150,8 +150,10 @@ def new_machine(request):
     """
     try:
         image_id = request.matchdict['id']
-        name = ''
-        description = ''
+        # Load image from JSON file - we need it to check if we need to do routing
+        with open(request.registry.settings['catalogue_file']) as f:
+            items = json.load(f)
+        image = items[image_id]
         # If we have a POST request, try and provision a machine with the info
         if request.method == 'POST':
             name = request.params.get('name', '')
@@ -159,21 +161,31 @@ def new_machine(request):
             try:
                 machine = request.vcd_session.provision_machine(image_id, name, description)
                 request.session.flash('Machine provisioned successfully', 'success')
-                return HTTPSeeOther(location = request.route_url('machines'))
             # Catch more specific provisioning errors here
             except (cloud.DuplicateNameError, 
                     cloud.BadRequestError,
                     cloud.ProvisioningError) as e:
-                # Let all other exceptions bubble up
-                request.session.flash(str(e), 'error')
-        # Get the information about the template from the JSON file
-        with open(request.registry.settings['catalogue_file']) as f:
-            items = json.load(f)
-        image = items[image_id]
+                # If provisioning fails, we want to report an error and show the form again
+                request.session.flash('Provisioning error - {}'.format(str(e)), 'error')
+                return {
+                    'image'       : image,
+                    'name'        : name,
+                    'description' : description,
+                }
+            # Now see if we need to apply NAT and firewall rules
+            if image['allow_inbound']:
+                try:
+                    machine = request.vcd_session.expose(machine.id)
+                    request.session.flash('Inbound access from internet enabled', 'success')
+                except cloud.NetworkingError as e:
+                    request.session.flash('Networking error - {}'.format(str(e)), 'error')
+            # Whatever happens, if we get this far we are redirecting to machines
+            return HTTPSeeOther(location = request.route_url('machines'))
+        # Only get requests should get this far
         return {
             'image'       : image,
-            'name'        : name,
-            'description' : description,
+            'name'        : '',
+            'description' : '',
         }
     except cloud.AuthenticationError:
         return HTTPUnauthorized()

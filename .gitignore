@@ -14,3 +14,4 @@ docs/_build
 dist/
 *.swp
 development.ini
+catalogue.json

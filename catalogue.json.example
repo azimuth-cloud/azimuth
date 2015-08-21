@@ -1,0 +1,15 @@
+{
+    "<vAppTemplate uuid>" : {
+        "uuid" : "<vAppTemplate uuid>",
+        "name" : "template_1",
+        "description" : "<p>Description for template 1.</p><p>You can use HTML in here!</p>",
+        "allow_inbound" : false
+    },
+    
+    "<vAppTemplate uuid>" : {
+        "uuid" : "<vAppTemplate uuid>",
+        "name" : "template_2",
+        "description" : "<p>Description for template 2.</p><p>This template allows inbound traffic from the internet.</p>",
+        "allow_inbound" : true
+    }
+}
