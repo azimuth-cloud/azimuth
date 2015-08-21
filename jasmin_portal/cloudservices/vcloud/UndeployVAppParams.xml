@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<UndeployVAppParams xmlns="http://www.vmware.com/vcloud/v1.5">
+    <UndeployPowerAction>default</UndeployPowerAction>
+</UndeployVAppParams>

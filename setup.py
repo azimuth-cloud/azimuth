@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 import os
 
 from setuptools import setup, find_packages
@@ -13,37 +14,38 @@ with open(os.path.join(here, 'VERSION')) as f:
 
 requires = [
     'pyramid',
-    'pyramid_chameleon',
     'pyramid_debugtoolbar',
+    'pyramid_jinja2',
     'waitress',
     'requests',
-    'webtest',     # Needed to run the tests
-    ]
+    'webtest',
+]
 
 if __name__ == "__main__":
 
-    setup(name='eos_portal',
-          version=VERSION,
-          description='eos_portal',
-          long_description=README + '\n\n' + CHANGES,
-          classifiers=[
+    setup(
+        name = 'jasmin_portal',
+        version = VERSION,
+        description = 'jasmin_portal',
+        long_description = README + '\n\n' + CHANGES,
+        classifiers = [
             "Programming Language :: Python",
             "Framework :: Pyramid",
             "Topic :: Internet :: WWW/HTTP",
             "Topic :: Internet :: WWW/HTTP :: WSGI :: Application",
-            ],
-          author='Benjamin Collier, Tim Booth',
-          author_email='bmcollier@gmail.com, tbooth@ceh.ac.uk',
-          url='http://eoscloud.nerc.ac.uk',
-          keywords='web pyramid pylons',
-          packages=find_packages(),
-          include_package_data=True,
-          zip_safe=False,
-          install_requires=requires,
-          tests_require=requires,
-          test_suite="eos_portal.test",
-          entry_points="""\
-          [paste.app_factory]
-          main = eos_portal:main
-          """,
-          )
+        ],
+        author = 'Matt Pryor',
+        author_email = 'matt.pryor@stfc.ac.uk',
+        url = 'http://jasmin.ac.uk',
+        keywords = 'web pyramid cloud jasmin',
+        packages = find_packages(),
+        include_package_data = True,
+        zip_safe = False,
+        install_requires = requires,
+        tests_require = requires,
+        test_suite = "jasmin_portal.test",
+        entry_points = """\
+        [paste.app_factory]
+        main = jasmin_portal:main
+        """,
+    )

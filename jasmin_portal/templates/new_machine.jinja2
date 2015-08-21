@@ -1,0 +1,36 @@
+{% extends "templates/layout.jinja2" %}
+
+{% block pagetitle %}Provision a machine{% endblock %}
+
+{% block content %}
+<div class="col-md-8 col-md-offset-2">
+    <form method="POST" action="{{ request.route_url('new_machine', id = image.id) }}" class="form-horizontal disable-on-submit provisioning">
+        <div class="form-group">
+            <label for="name" class="col-sm-3 control-label">Machine name</label>
+            <div class="col-sm-9">
+                <input name="name" type="text" class="form-control" value="{{ name }}" required
+                       pattern="[a-zA-Z0-9_]+" title="Name must use only alphanumeric and _ characters" placeholder="Required" />
+                <span class="help-block">Name must use only alphanumeric and _ characters</span>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="image_id" class="col-sm-3 control-label">Template</label>
+            <div class="col-sm-9">
+                <p class="form-control-static"><code>{{ image.name }}</code></p>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="description" class="col-sm-3 control-label">Description</label>
+            <div class="col-sm-9">
+                <textarea name="description" class="form-control" rows="5" placeholder="Optional...">{{ description }}</textarea>
+            </div>
+        </div>
+        <div class="form-group">
+            <div class="col-sm-offset-3 col-sm-9">
+                <button name="submitted" type="submit" class="btn btn-primary" autocomplete="off">Provision machine</button>
+                <span class="working-message text-muted hidden">Provisioning...</span>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
