@@ -5,7 +5,7 @@ Pyramid view callables for the JASMIN cloud portal
 __author__ = "Matt Pryor"
 __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
-import json
+import os, tempfile, subprocess, json
 
 from pyramid.view import view_config, forbidden_view_config, notfound_view_config
 from pyramid.security import remember, forget
@@ -198,6 +198,20 @@ def new_machine(request):
             name = request.params.get('name', '')
             description = request.params.get('description', '')
             ssh_key = request.params.get('ssh-key', '')
+            # Check that the SSH key is valid using ssh-keygen
+            fd, temp = tempfile.mkstemp()
+            with os.fdopen(fd, mode = 'w') as f:
+                f.write(ssh_key)
+            try:
+                subprocess.check_call('ssh-keygen -l -f {}'.format(temp), shell = True)
+            except subprocess.CalledProcessError:
+                request.session.flash('SSH Key is not valid', 'error')
+                return {
+                    'image'       : image,
+                    'name'        : name,
+                    'description' : description,
+                    'ssh-key'     : ssh_key,
+                }
             try:
                 machine = request.vcd_session.provision_machine(image_id, name, description, ssh_key)
                 request.session.flash('Machine provisioned successfully', 'success')
