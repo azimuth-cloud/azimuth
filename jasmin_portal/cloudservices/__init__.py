@@ -166,18 +166,12 @@ class Session(metaclass = abc.ABCMeta):
         """
         
     @abc.abstractmethod
-    def provision_machine(self, image_id, name, description, networks):
+    def provision_machine(self, image_id, name, description):
         """
         Provisions an instance of the specified image with the given name and
-        description and a list of networks to connect to
+        description
         
         Returns the provisioned machine on success
-        
-        Networks are assigned to the NICs of the machine in the order in which
-        they are given
-        There must be a network for every NIC, otherwise an error is thrown
-        If there are more networks than NICs, only the first N networks will be
-        connected to
         """
         
     @abc.abstractmethod

@@ -38,32 +38,28 @@ footer {
     width : 100%;
 }
 
-.panel-grid-row {
-    display : flex;
-}
-
-.panel-grid-row [class*="col-"] {
-    display : flex;
-    flex : 1 1 auto;
+.panel-grid-row, .panel-grid-row [class*="col-"] {
+	display : flex;
 }
 
 .panel-grid-row .panel {
-    display : flex;
-    flex-direction : column;
-    flex : 1 1 auto;
+	display : flex;
+	flex-direction : column;
+	flex : 1 1 auto;
 }
 
-.panel-grid-row .panel-heading {
-    flex : 0 0 auto;
+.panel-grid-row .panel-heading, .panel-grid-row .panel-footer {
+	flex : 0 0 auto;
 }
 
 .panel-grid-row .panel-body {
-    flex : 1 1 auto;
+	flex : 1 1 auto;
 }
 
-.panel-grid-row .panel-footer {
-    border-top : none;
-    flex : 0 0 auto;
+.panel-grid-row .alert {
+	margin-bottom : 10px;
+	padding : 5px 10px;
+	text-align : center;
 }
 
 .page-header {

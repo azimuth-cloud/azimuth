@@ -5,6 +5,7 @@ Pyramid view callables for the JASMIN cloud portal
 __author__ = "Matt Pryor"
 __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
+import json
 
 from pyramid.view import view_config, forbidden_view_config, notfound_view_config
 from pyramid.security import remember, forget
@@ -95,9 +96,20 @@ def catalogue(request):
     
     Shows the catalogue items available to the user
     """
+    # Get the catalogue items from vCD, then overwrite with values from the
+    # config file where present
+    # Items from vCD catalogues have no NAT or firewall rules applied unless
+    # overridden in the catalogue file
     items = []
     try:
         items = request.vcd_session.list_images()
+        # Get items in the same format as the catalogue file
+        items = ({
+            'uuid'          : i.id,
+            'name'          : i.name,
+            'description'   : i.description,
+            'allow_inbound' : False
+        } for i in items)
     # Convert some of the cloud service errors to appropriate HTTP errors
     except cloud.AuthenticationError:
         return HTTPUnauthorized()
@@ -107,7 +119,12 @@ def catalogue(request):
         return HTTPNotFound()
     except cloud.CloudServiceError as e:
         request.session.flash(str(e), 'error')
-    return { 'items' : items }
+    if items:
+        with open(request.registry.settings['catalogue_file']) as f:
+            overrides = json.load(f)
+    return {
+        'items' : [overrides[i['uuid']] if i['uuid'] in overrides else i for i in items]
+    }
 
 
 @view_config(route_name = 'machines',
@@ -157,8 +174,20 @@ def new_machine(request):
     """
     try:
         image_id = request.matchdict['id']
-        name = ''
-        description = ''
+        # Try to load the image data from the JSON file
+        with open(request.registry.settings['catalogue_file']) as f:
+            items = json.load(f)
+        if image_id in items:
+            image = items[image_id]
+        else:
+            # If that fails, get the image data from vCD in the same format
+            image = request.vcd_session.get_image(image_id)
+            image = {
+                'uuid'          : image.id,
+                'name'          : image.name,
+                'description'   : image.description,
+                'allow_inbound' : False,
+            }
         # If we have a POST request, try and provision a machine with the info
         if request.method == 'POST':
             name = request.params.get('name', '')
@@ -166,19 +195,31 @@ def new_machine(request):
             try:
                 machine = request.vcd_session.provision_machine(image_id, name, description)
                 request.session.flash('Machine provisioned successfully', 'success')
-                return HTTPSeeOther(location = request.route_url('machines'))
             # Catch more specific provisioning errors here
             except (cloud.DuplicateNameError, 
                     cloud.BadRequestError,
                     cloud.ProvisioningError) as e:
-                # Let all other exceptions bubble up
-                request.session.flash(str(e), 'error')
-        # Get the image object so we can display the image name with the form
-        image = request.vcd_session.get_image(image_id)
+                # If provisioning fails, we want to report an error and show the form again
+                request.session.flash('Provisioning error - {}'.format(str(e)), 'error')
+                return {
+                    'image'       : image,
+                    'name'        : name,
+                    'description' : description,
+                }
+            # Now see if we need to apply NAT and firewall rules
+            if image['allow_inbound']:
+                try:
+                    machine = request.vcd_session.expose(machine.id)
+                    request.session.flash('Inbound access from internet enabled', 'success')
+                except cloud.NetworkingError as e:
+                    request.session.flash('Networking error - {}'.format(str(e)), 'error')
+            # Whatever happens, if we get this far we are redirecting to machines
+            return HTTPSeeOther(location = request.route_url('machines'))
+        # Only get requests should get this far
         return {
             'image'       : image,
-            'name'        : name,
-            'description' : description,
+            'name'        : '',
+            'description' : '',
         }
     except cloud.AuthenticationError:
         return HTTPUnauthorized()
