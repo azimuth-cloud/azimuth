@@ -55,6 +55,7 @@
                         <form class="disable-on-submit power-action" autocomplete="off" method="POST"
                               action="{{ request.route_url('machine_action', id = machine.id) }}">
                             <input name="action" type="hidden" value="start" />
+                            <input name="csrf_token" type="hidden" value="{{ request.session.get_csrf_token() }}" />
                             <button title="Power On" type="submit" class="btn btn-success btn-xs">
                                 <i class="fa fa-play"></i>
                                 <span class="sr-only">Power On</span>
@@ -63,6 +64,7 @@
                         <form class="disable-on-submit power-action" autocomplete="off" method="POST"
                               action="{{ request.route_url('machine_action', id = machine.id) }}">
                             <input name="action" type="hidden" value="destroy" />
+                            <input name="csrf_token" type="hidden" value="{{ request.session.get_csrf_token() }}" />
                             <button title="Power Off" type="submit" class="btn btn-warning btn-xs">
                                 <i class="fa fa-power-off"></i>
                                 <span class="sr-only">Power Off</span>
@@ -71,6 +73,7 @@
                         <form class="disable-on-submit power-action" autocomplete="off" method="POST"
                               action="{{ request.route_url('machine_action', id = machine.id) }}">
                             <input name="action" type="hidden" value="restart" />
+                            <input name="csrf_token" type="hidden" value="{{ request.session.get_csrf_token() }}" />
                             <button title="Restart" type="submit" class="btn btn-info btn-xs">
                                 <i class="fa fa-repeat"></i>
                                 <span class="sr-only">Restart</span>
@@ -80,6 +83,7 @@
                               action="{{ request.route_url('machine_action', id = machine.id) }}"
                               data-confirm-message="Are you sure? Once deleted, a machine cannot be restored!">
                             <input name="action" type="hidden" value="delete" />
+                            <input name="csrf_token" type="hidden" value="{{ request.session.get_csrf_token() }}" />
                             <button title="Delete" type="submit" class="btn btn-danger btn-xs">
                                 <i class="fa fa-ban"></i>
                                 <span class="sr-only">Delete</span>
