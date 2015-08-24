@@ -9,6 +9,7 @@ import json
 
 from pyramid.view import view_config, forbidden_view_config, notfound_view_config
 from pyramid.security import remember, forget
+from pyramid.session import check_csrf_token
 from pyramid.httpexceptions import (
     HTTPSeeOther, HTTPNotFound, HTTPUnauthorized, HTTPForbidden, HTTPBadRequest
 )
@@ -62,6 +63,8 @@ def login(request):
     try:
         provider = vcloud.VCloudProvider(request.registry.settings['vcloud_endpoint'])
         request.vcd_session = provider.new_session(username, password)
+        # When a user logs in, force a refresh of the CSRF token
+        request.session.new_csrf_token()
         return HTTPSeeOther(location = request.route_url('machines'),
                             headers  = remember(request, username))
     except cloud.CloudServiceError as e:
@@ -190,6 +193,8 @@ def new_machine(request):
             }
         # If we have a POST request, try and provision a machine with the info
         if request.method == 'POST':
+            # For a POST request, the request must pass a CSRF test
+            check_csrf_token(request)
             name = request.params.get('name', '')
             description = request.params.get('description', '')
             try:
@@ -243,6 +248,8 @@ def machine_action(request):
     Attempt to perform the specified action
     Redirect to machines with a suitable success or failure message
     """
+    # Request must pass a CSRF test
+    check_csrf_token(request)
     try:
         action = getattr(request.vcd_session,
                          '{}_machine'.format(request.params['action']), None)
