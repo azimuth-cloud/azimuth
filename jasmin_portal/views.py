@@ -197,8 +197,9 @@ def new_machine(request):
             check_csrf_token(request)
             name = request.params.get('name', '')
             description = request.params.get('description', '')
+            ssh_key = request.params.get('ssh-key', '')
             try:
-                machine = request.vcd_session.provision_machine(image_id, name, description)
+                machine = request.vcd_session.provision_machine(image_id, name, description, ssh_key)
                 request.session.flash('Machine provisioned successfully', 'success')
             # Catch more specific provisioning errors here
             except (cloud.DuplicateNameError, 
@@ -210,6 +211,7 @@ def new_machine(request):
                     'image'       : image,
                     'name'        : name,
                     'description' : description,
+                    'ssh-key'     : ssh_key,
                 }
             # Now see if we need to apply NAT and firewall rules
             if image['allow_inbound']:
@@ -225,6 +227,7 @@ def new_machine(request):
             'image'       : image,
             'name'        : '',
             'description' : '',
+            'ssh-key'     : '',
         }
     except cloud.AuthenticationError:
         return HTTPUnauthorized()

@@ -166,10 +166,12 @@ class Session(metaclass = abc.ABCMeta):
         """
         
     @abc.abstractmethod
-    def provision_machine(self, image_id, name, description):
+    def provision_machine(self, image_id, name, description, ssh_key):
         """
         Provisions an instance of the specified image with the given name and
         description
+        
+        The given ssh public key will be granted root access
         
         Returns the provisioned machine on success
         """

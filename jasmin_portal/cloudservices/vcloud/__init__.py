@@ -141,6 +141,15 @@ class VCloudSession(Session):
     Session implementation using the vCloud Director API vn5.5
     """
     
+    _GUEST_CUSTOMISATION = """#!/bin/sh
+if [ x$1 == x"precustomization" ]; then
+  echo "Pre-customisation tasks..."
+elif [ x$1 == x"postcustomization" ]; then
+  echo "Post-customisation tasks..."
+  echo "{}" >> /root/.ssh/authorized_keys
+fi
+"""
+    
     def __init__(self, endpoint, auth_token):
         self.__endpoint = endpoint.rstrip('/')
         
@@ -311,13 +320,16 @@ class VCloudSession(Session):
                 pass
         return Machine(machine_id, name, status, description, created, os, internal_ip, external_ip)
         
-    def provision_machine(self, image_id, name, description):
+    def provision_machine(self, image_id, name, description, ssh_key):
         # Image id is the id of a catalog item, so we need to get the vAppTemplate from there
         item = ET.fromstring(self.api_request('GET', 'catalogItem/{}'.format(image_id)).text)
         entity = item.find('.//vcd:Entity[@type="application/vnd.vmware.vcloud.vAppTemplate+xml"]', _NS)
         if entity is None:
             raise ProvisioningError('No vAppTemplate associated with catalogue item')
         template = ET.fromstring(self.api_request('GET', entity.attrib['href']).text)
+        # Format the guest customisation script
+        # The value is escaped in the XML template
+        script = self._GUEST_CUSTOMISATION.format(ssh_key.strip())
         # Configure each VM contained in the vApp
         vm_configs = []
         # Track the maximum number of NICs for a VM
@@ -334,7 +346,7 @@ class VCloudSession(Session):
                 'href'          : vm.attrib['href'],
                 'name'          : uuid.uuid4().hex,
                 'n_nics'        : n_nics,
-                'customisation' : ''
+                'customisation' : script,
             })
         # Get the VDC to deploy the VM into
         # This is done by selecting the first VCD from the org we are using
