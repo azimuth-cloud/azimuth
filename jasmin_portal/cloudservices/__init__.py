@@ -142,9 +142,21 @@ class Session(metaclass = abc.ABCMeta):
         """
     
     @abc.abstractmethod
+    def list_images(self):
+        """
+        Returns a list of images available to the current session
+        """
+        
+    @abc.abstractmethod
     def list_machines(self):
         """
         Returns a list of the machine available to the current session
+        """
+        
+    @abc.abstractmethod
+    def get_image(self, image_id):
+        """
+        Gets image details for an id, or None if the image doesn't exist
         """
         
     @abc.abstractmethod

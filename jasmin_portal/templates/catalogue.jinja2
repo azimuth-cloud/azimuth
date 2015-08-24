@@ -4,7 +4,7 @@
 
 {% block content %}
 {#- We want to render the images in a grid in rows of 4 #}
-{%- for item in items.values() %}
+{%- for item in items %}
     {%- if ( loop.index0 % 4 ) == 0 %}
     <div class="row panel-grid-row">
     {%- endif %}

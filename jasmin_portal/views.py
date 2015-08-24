@@ -96,11 +96,35 @@ def catalogue(request):
     
     Shows the catalogue items available to the user
     """
-    # We don't hit the vCD for catalog items - we load them from the config file
-    # as they have metadata attached
-    with open(request.registry.settings['catalogue_file']) as f:
-        items = json.load(f)
-    return { 'items' : items }
+    # Get the catalogue items from vCD, then overwrite with values from the
+    # config file where present
+    # Items from vCD catalogues have no NAT or firewall rules applied unless
+    # overridden in the catalogue file
+    items = []
+    try:
+        items = request.vcd_session.list_images()
+        # Get items in the same format as the catalogue file
+        items = ({
+            'uuid'          : i.id,
+            'name'          : i.name,
+            'description'   : i.description,
+            'allow_inbound' : False
+        } for i in items)
+    # Convert some of the cloud service errors to appropriate HTTP errors
+    except cloud.AuthenticationError:
+        return HTTPUnauthorized()
+    except cloud.PermissionsError:
+        return HTTPForbidden()
+    except cloud.NoSuchResourceError:
+        return HTTPNotFound()
+    except cloud.CloudServiceError as e:
+        request.session.flash(str(e), 'error')
+    if items:
+        with open(request.registry.settings['catalogue_file']) as f:
+            overrides = json.load(f)
+    return {
+        'items' : [overrides[i['uuid']] if i['uuid'] in overrides else i for i in items]
+    }
 
 
 @view_config(route_name = 'machines',
@@ -150,10 +174,20 @@ def new_machine(request):
     """
     try:
         image_id = request.matchdict['id']
-        # Load image from JSON file - we need it to check if we need to do routing
+        # Try to load the image data from the JSON file
         with open(request.registry.settings['catalogue_file']) as f:
             items = json.load(f)
-        image = items[image_id]
+        if image_id in items:
+            image = items[image_id]
+        else:
+            # If that fails, get the image data from vCD in the same format
+            image = request.vcd_session.get_image(image_id)
+            image = {
+                'uuid'          : image.id,
+                'name'          : image.name,
+                'description'   : image.description,
+                'allow_inbound' : False,
+            }
         # If we have a POST request, try and provision a machine with the info
         if request.method == 'POST':
             name = request.params.get('name', '')
