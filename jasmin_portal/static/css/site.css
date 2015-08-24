@@ -59,10 +59,7 @@ footer {
 .panel-grid-row .alert {
 	margin-bottom : 10px;
 	padding : 5px 10px;
-}
-
-.panel-grid-row .alert .fa {
-	font-size : inherit;
+	text-align : center;
 }
 
 .page-header {
