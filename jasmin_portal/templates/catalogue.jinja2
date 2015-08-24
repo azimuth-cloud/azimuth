@@ -3,17 +3,19 @@
 {% block pagetitle %}Template Catalogue{% endblock %}
 
 {% block content %}
-{#- We want to render the images in a grid in rows of 4 #}
+{#- We want to render the templates in a grid in rows of 3 #}
 {%- for item in items %}
-    {%- if ( loop.index0 % 4 ) == 0 %}
+    {%- if ( loop.index0 % 3 ) == 0 %}
     <div class="row panel-grid-row">
     {%- endif %}
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="panel panel-default">
                 <div class="panel-heading"><code>{{ item.name }}</code></div>
                 <div class="panel-body">
                     {%- if item.allow_inbound %}
-                        <div class="alert alert-info">This template allows inbound traffic from the internet.</div>
+                        <div class="alert alert-info">
+                            <i class="fa fa-globe"></i> Allows inbound traffic from the internet
+                        </div>
                     {%- endif %}
                     {{ item.description|default('No description', true)|safe }}
                 </div>
@@ -25,7 +27,7 @@
                 </div>
             </div>
         </div>
-    {%- if ( loop.index0 % 4 ) == 3 %}
+    {%- if ( loop.index0 % 3 ) == 2 or loop.last  %}
     </div>
     {%- endif %}
 {%- endfor %}
