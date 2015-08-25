@@ -1,0 +1,27 @@
+{% extends "templates/layout.jinja2" %}
+
+{% block pagetitle %}Login to {{ request.matchdict.org }}{% endblock %}
+
+{% block content %}
+<div class="col-md-6 col-md-offset-3">
+    <form method="POST" action="{{ request.route_url('login') }}" class="form-horizontal disable-on-submit">
+        <div class="form-group">
+            <label for="username" class="col-sm-3 control-label">Username</label>
+            <div class="col-sm-9">
+                <input name="username" type="text" class="form-control" required placeholder="Username" />
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="password" class="col-sm-3 control-label">Password</label>
+            <div class="col-sm-9">
+                <input name="password" type="password" class="form-control" required placeholder="Password" />
+            </div>
+        </div>
+        <div class="form-group">
+            <div class="col-sm-offset-3 col-sm-9">
+                <button name="submitted" type="submit" class="btn btn-primary" autocomplete="off">Log in</button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

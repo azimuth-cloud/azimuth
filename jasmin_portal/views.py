@@ -18,11 +18,19 @@ import jasmin_portal.cloudservices as cloud
 import jasmin_portal.cloudservices.vcloud as vcloud
 
 
-@forbidden_view_config(renderer = 'templates/forbidden.jinja2')
+@forbidden_view_config(renderer = 'templates/login.jinja2')
 def forbidden(request):
     """
     Handler for 403 errors
+    
+    We should only get 403 errors for pages with an org
     """
+    if request.vcd_session is not None:
+        request.session.flash(
+            'You have insufficient permissions to access this resource', 'error'
+        )
+    else:
+        request.session.flash('Please log in to access this resource', 'error')
     return {}
 
 
@@ -31,6 +39,9 @@ def notfound(request):
     """
     Handler for 404 errors
     """
+    request.session.flash(
+        'The resource you requested could not be found', 'error'
+    )
     return {}
 
 
@@ -41,36 +52,46 @@ def home(request):
     """
     Handler for /
     
-    If the user is logged in, this redirects to /machines
+    If the user is logged in, this redirects to /{org}/machines using the
+    org from their username
     If the user is not logged in, this shows a splash page
     """
-    if request.vcd_session and request.vcd_session.is_active():
-        return HTTPSeeOther(location = request.route_url('machines'))
+    if request.authenticated_userid:
+        org = request.authenticated_userid.split('@').pop()
+        return HTTPSeeOther(location = request.route_url('machines', org = org))
     return {}
 
 
-@view_config(route_name = 'login', request_method = 'POST')
+@view_config(route_name = 'login',
+             request_method = ('GET', 'POST'),
+             renderer = 'templates/login.jinja2')
 def login(request):
     """
-    Handler for /login
+    Handler for /{org}/login
     
-    Attempt to authenticate the user with vCD
-    Redirect to /machines on success
-    Show homepage with error on failure
+    GET:
+        Show a login form for the org
+        
+    POST:
+        Attempt to authenticate the user with vCD
+        Redirect to /{org}/machines on success
+        Show login form with error on failure
     """
-    username = request.params['username']
-    password = request.params['password']
-    try:
-        provider = vcloud.VCloudProvider(request.registry.settings['vcloud_endpoint'])
-        request.vcd_session = provider.new_session(username, password)
-        # When a user logs in, force a refresh of the CSRF token
-        request.session.new_csrf_token()
-        return HTTPSeeOther(location = request.route_url('machines'),
-                            headers  = remember(request, username))
-    except cloud.CloudServiceError as e:
-        request.session.flash(str(e), 'error')
-        request.vcd_session = None
-    return HTTPSeeOther(location = request.route_url('home'))
+    if request.method == 'POST':
+        username = '{}@{}'.format(request.params['username'], request.matchdict['org'])
+        password = request.params['password']
+        try:
+            
+            provider = vcloud.VCloudProvider(request.registry.settings['vcloud_endpoint'])
+            request.vcd_session = provider.new_session(username, password)
+            # When a user logs in, force a refresh of the CSRF token
+            request.session.new_csrf_token()
+            return HTTPSeeOther(location = request.route_url('machines'),
+                                headers  = remember(request, username))
+        except cloud.CloudServiceError as e:
+            request.session.flash(str(e), 'error')
+            request.vcd_session = None
+    return {}
             
 
 @view_config(route_name = 'logout')
@@ -84,8 +105,23 @@ def logout(request):
     if request.vcd_session:
         request.vcd_session.close()
         request.vcd_session = None
+    request.session.flash('Logged out successfully', 'success')
     return HTTPSeeOther(location = request.route_url('home'),
                         headers = forget(request))
+    
+
+@view_config(route_name = 'org_home', request_method = 'GET')
+def org_home(request):
+    """
+    Handler for /{org}
+    
+    If the user is authenticated for the org, redirect to /{org}/machines
+    Otherwise, redirect to /{org}/login
+    """
+    if request.matchdict['org'].lower() in request.effective_principals:
+        return HTTPSeeOther(location = request.route_url('machines'))
+    else:
+        return HTTPSeeOther(location = request.route_url('login'))
 
    
 @view_config(route_name = 'catalogue',
@@ -93,9 +129,9 @@ def logout(request):
              renderer = 'templates/catalogue.jinja2', permission = 'view')
 def catalogue(request):
     """
-    Handler for /catalogue
+    Handler for /{org}/catalogue
     
-    User must be logged in
+    User must be logged in to org to reach here
     
     Shows the catalogue items available to the user
     """
@@ -135,9 +171,9 @@ def catalogue(request):
              renderer = 'templates/machines.jinja2', permission = 'view')
 def machines(request):
     """
-    Handler for /machines
+    Handler for /{org}/machines
     
-    User must be logged in
+    User must be logged in to org to reach here
     
     Shows the machines available to the user
     """
@@ -161,9 +197,9 @@ def machines(request):
              renderer = 'templates/new_machine.jinja2', permission = 'edit')
 def new_machine(request):
     """
-    Handler for /machine/new/{id}
+    Handler for /{org}/machine/new/{id}
     
-    User must be logged in
+    User must be logged in to org to reach here
     
     {id} is the id of the template to use
     
@@ -258,9 +294,9 @@ def new_machine(request):
              request_method = 'POST', permission = 'edit')
 def machine_action(request):
     """
-    Handler for /machine/{id}/action
+    Handler for /{org}/machine/{id}/action
     
-    User must be logged in
+    User must be logged in to org to reach here
     
     Attempt to perform the specified action
     Redirect to machines with a suitable success or failure message
