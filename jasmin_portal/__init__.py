@@ -48,16 +48,17 @@ def main(global_config, **settings):
     config.add_static_view(name = 'static', path = 'static', cache_max_age = 3600)
     
     config.add_route('home',   '/')
-    config.add_route('login',  '/login')
-    config.add_route('logout', '/logout')
     
-    # Catalogue routes
-    config.add_route('catalogue',      '/catalogue')
+    # Single logout URI - just clears the current session
+    config.add_route('logout',         '/logout')
     
-    # VM routes
-    config.add_route('machines',       '/machines')
-    config.add_route('new_machine',    '/machine/new/{id}')
-    config.add_route('machine_action', '/machine/{id}/action')
+    # All other routes are org-specific
+    config.add_route('org_home',       '/{org}')
+    config.add_route('login',          '/{org}/login')
+    config.add_route('catalogue',      '/{org}/catalogue')
+    config.add_route('machines',       '/{org}/machines')
+    config.add_route('new_machine',    '/{org}/machine/new/{id}')
+    config.add_route('machine_action', '/{org}/machine/{id}/action')
 
     config.scan()
     return config.make_wsgi_app()
