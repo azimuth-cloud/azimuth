@@ -239,14 +239,19 @@ def new_machine(request):
             with os.fdopen(fd, mode = 'w') as f:
                 f.write(ssh_key)
             try:
-                subprocess.check_call('ssh-keygen -l -f {}'.format(temp), shell = True)
+                # We don't really care about the content of stdout/err
+                # We just care if the command succeeded or not...
+                subprocess.check_call(
+                    'ssh-keygen -l -f {}'.format(temp), shell = True,
+                    stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL
+                )
             except subprocess.CalledProcessError:
                 request.session.flash('SSH Key is not valid', 'error')
                 return {
                     'image'       : image,
                     'name'        : name,
                     'description' : description,
-                    'ssh-key'     : ssh_key,
+                    'ssh_key'     : ssh_key,
                 }
             try:
                 machine = request.vcd_session.provision_machine(image_id, name, description, ssh_key)
@@ -261,7 +266,7 @@ def new_machine(request):
                     'image'       : image,
                     'name'        : name,
                     'description' : description,
-                    'ssh-key'     : ssh_key,
+                    'ssh_key'     : ssh_key,
                 }
             # Now see if we need to apply NAT and firewall rules
             if image['allow_inbound']:
@@ -277,7 +282,7 @@ def new_machine(request):
             'image'       : image,
             'name'        : '',
             'description' : '',
-            'ssh-key'     : '',
+            'ssh_key'     : '',
         }
     except cloud.AuthenticationError:
         return HTTPUnauthorized()

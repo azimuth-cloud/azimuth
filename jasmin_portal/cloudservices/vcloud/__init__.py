@@ -7,7 +7,8 @@ __author__ = "Matt Pryor"
 __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
 
-import os, uuid, re, ipaddress
+import os, uuid, re
+from ipaddress import IPv4Address, AddressValueError, summarize_address_range
 from time import sleep
 from datetime import datetime
 import xml.etree.ElementTree as ET
@@ -280,6 +281,48 @@ fi
         except AttributeError:
             pass
         return Image(image_id, name, description)
+    
+    def __gateway_from_app(self, app):
+        """
+        Given an ET element representing a vApp, returns an ET element representing the
+        edge device for the network to which the primary NIC of the first VM in the vApp
+        is connected, or None
+        """
+        try:
+            vdc_ref = app.find('./vcd:Link[@type="application/vnd.vmware.vcloud.vdc+xml"]', _NS)
+            vdc = ET.fromstring(self.api_request('GET', vdc_ref.attrib['href']).text)
+            gateways_ref = vdc.find('./vcd:Link[@rel="edgeGateways"]', _NS)
+            gateways = ET.fromstring(self.api_request('GET', gateways_ref.attrib['href']).text)
+            # Assume one gateway per vdc
+            gateway_ref = gateways.find('./vcd:EdgeGatewayRecord', _NS)
+            return ET.fromstring(self.api_request('GET', gateway_ref.attrib['href']).text)
+        except AttributeError:
+            return None
+        
+    def __primary_nic_from_app(self, app):
+        """
+        Given an ET element representing a vApp, returns an ET element representing the primary
+        NIC of the first VM within the vApp, or None
+        """
+        try:
+            vm = app.find('.//vcd:Vm', _NS)
+            primary_net_idx = vm.find('.//vcd:PrimaryNetworkConnectionIndex', _NS).text
+            return vm.find(
+                './/vcd:NetworkConnection[vcd:NetworkConnectionIndex="{}"]'.format(primary_net_idx), _NS
+            )
+        except AttributeError:
+            return None
+        
+    def __internal_ip_from_app(self, app):
+        """
+        Given an ET element representing a vApp, returns the internal IP of the primary
+        NIC of the first VM within the vApp, or None
+        """
+        try:
+            nic = self.__primary_nic_from_app(app)
+            return IPv4Address(nic.find('vcd:IpAddress', _NS).text)
+        except AttributeError:
+            return None
         
     def get_machine(self, machine_id):
         app = ET.fromstring(self.api_request('GET', 'vApp/{}'.format(machine_id)).text)
@@ -287,43 +330,46 @@ fi
         # Convert the integer status to one of the statuses in MachineStatus
         status = _STATUS_MAP.get(int(app.attrib['status']), MachineStatus.UNRECOGNISED)
         # Get the description
-        description = ''
         try:
             description = app.find('vcd:Description', _NS).text or ''
         except AttributeError:
-            pass
+            description = ''
         # Convert the string creationDate to a datetime
         # For now, make no attempt to process timezone
         created = datetime.strptime(
             app.find('vcd:DateCreated', _NS).text[:19], '%Y-%m-%dT%H:%M:%S'
         )
         # For the OS, we use the value from the first VM
+        try:
+            os = app.find('.//vcd:Vm//ovf:OperatingSystemSection/ovf:Description', _NS).text
+        except AttributeError:
+            os = None
+        os = os or 'Unknown'
         # For IP addresses, we use the values from the primary NIC of the first VM
-        os = 'Unknown'
-        internal_ip = external_ip = None
-        vm = app.find('.//vcd:Vm', _NS)
-        if vm is not None:
+        internal_ip = self.__internal_ip_from_app(app)
+        external_ip = None
+        # If there is no internal IP, don't even bother trying to find an external one...
+        if internal_ip is not None:
+            # Try the primary NIC first, since it potentially avoids extra API calls
             try:
-                os = vm.find('.//ovf:OperatingSystemSection/ovf:Description', _NS).text or 'Unknown'
-            except AttributeError:
-                os = 'Unknown'
-            # Get the NIC for the primary network
-            nic = None
-            try:
-                primary_net_idx = vm.find('.//vcd:PrimaryNetworkConnectionIndex', _NS).text
-                nic = vm.find(
-                    './/vcd:NetworkConnection[vcd:NetworkConnectionIndex="{}"]'.format(primary_net_idx), _NS
-                )
+                nic = self.__primary_nic_from_app(app)
+                external_ip = IPv4Address(nic.find('vcd:ExternalIpAddress', _NS).text)
             except AttributeError:
                 pass
-            try:
-                internal_ip = ipaddress.IPv4Address(nic.find('vcd:IpAddress', _NS).text)
-            except AttributeError:
-                pass
-            try:
-                external_ip = ipaddress.IPv4Address(nic.find('vcd:ExternalIpAddress', _NS).text)
-            except AttributeError:
-                pass
+            # If no external IP is set in the NIC, try to find a corresponding DNAT rule
+            if not external_ip:
+                try:
+                    gateway = self.__gateway_from_app(app)
+                    nat_rules = gateway.findall('.//vcd:NatRule', _NS)
+                except AttributeError:
+                    nat_rules = []
+                for rule in nat_rules:
+                    if rule.find('vcd:RuleType', _NS).text.upper() == 'DNAT':
+                        # Check if this rule applies to our IP
+                        translated = IPv4Address(rule.find('.//vcd:TranslatedIp', _NS).text)
+                        if translated == internal_ip:
+                            external_ip = IPv4Address(rule.find('.//vcd:OriginalIp', _NS).text)
+                            break
         return Machine(machine_id, name, status, description, created, os, internal_ip, external_ip)
         
     def provision_machine(self, image_id, name, description, ssh_key):
@@ -410,16 +456,9 @@ fi
     def expose(self, machine_id):
         # We need to access the edge device that the machine is connected to the internet via
         # To do this, we first get the machine details, then the vdc details
-        try:
-            app = ET.fromstring(self.api_request('GET', 'vApp/{}'.format(machine_id)).text)
-            vdc_ref = app.find('./vcd:Link[@type="application/vnd.vmware.vcloud.vdc+xml"]', _NS)
-            vdc = ET.fromstring(self.api_request('GET', vdc_ref.attrib['href']).text)
-            gateways_ref = vdc.find('./vcd:Link[@rel="edgeGateways"]', _NS)
-            gateways = ET.fromstring(self.api_request('GET', gateways_ref.attrib['href']).text)
-            # Assume one gateway per vdc
-            gateway_ref = gateways.find('./vcd:EdgeGatewayRecord', _NS)
-            gateway = ET.fromstring(self.api_request('GET', gateway_ref.attrib['href']).text)
-        except AttributeError:
+        app = ET.fromstring(self.api_request('GET', 'vApp/{}'.format(machine_id)).text)
+        gateway = self.__gateway_from_app(app)
+        if gateway is None:
             raise NetworkingError('Could not find edge gateway')
         # Find the uplink gateway interface (assume there is only one)
         uplink = gateway.find('.//vcd:GatewayInterface[vcd:InterfaceType="uplink"]', _NS)
@@ -429,15 +468,11 @@ fi
         ip_range = uplink.find('.//vcd:IpRange', _NS)
         if ip_range is None:
             raise NetworkingError('Uplink has no IP range defined')
-        start_ip = ipaddress.IPv4Address(ip_range.find('./vcd:StartAddress', _NS).text)
-        end_ip = ipaddress.IPv4Address(ip_range.find('./vcd:EndAddress', _NS).text)
-        ip_pool = set(ip for net in ipaddress.summarize_address_range(start_ip, end_ip) for ip in net)
+        start_ip = IPv4Address(ip_range.find('./vcd:StartAddress', _NS).text)
+        end_ip = IPv4Address(ip_range.find('./vcd:EndAddress', _NS).text)
+        ip_pool = set(ip for net in summarize_address_range(start_ip, end_ip) for ip in net)
         # Find our internal IP address
-        # We use the IP address of the first NIC of the first VM in the app
-        try:
-            internal_ip = ipaddress.IPv4Address(app.find('.//vcd:Vm//vcd:IpAddress', _NS).text)
-        except AttributeError:
-            internal_ip = None
+        internal_ip = self.__internal_ip_from_app(app)
         if internal_ip is None:
             raise NetworkingError('Machine has no network connections')
         # Search the existing NAT rules:
@@ -451,15 +486,15 @@ fi
             rule_type = rule.find('vcd:RuleType', _NS).text.upper()
             if rule_type == 'SNAT':
                 # For SNAT rules, we rule out the translated IP
-                ip_pool.discard(ipaddress.IPv4Address(rule.find('.//vcd:TranslatedIp', _NS).text))
+                ip_pool.discard(IPv4Address(rule.find('.//vcd:TranslatedIp', _NS).text))
             elif rule_type == 'DNAT':
                 # Check if this rule applies to our IP
-                translated = ipaddress.IPv4Address(rule.find('.//vcd:TranslatedIp', _NS).text)
+                translated = IPv4Address(rule.find('.//vcd:TranslatedIp', _NS).text)
                 if translated == internal_ip:
                     # Machine is already exposed, so just return
                     return self.get_machine(machine_id)
                 # For DNAT rules, we rule out the original IP
-                ip_pool.discard(ipaddress.IPv4Address(rule.find('.//vcd:OriginalIp', _NS).text))
+                ip_pool.discard(IPv4Address(rule.find('.//vcd:OriginalIp', _NS).text))
         try:
             ip_use = ip_pool.pop()
         except KeyError:
@@ -509,25 +544,14 @@ fi
     def unexpose(self, machine_id):
         # We need to access the edge device that the machine is connected to the internet via
         # To do this, we first get the machine details, then the vdc details
-        try:
-            app = ET.fromstring(self.api_request('GET', 'vApp/{}'.format(machine_id)).text)
-            vdc_ref = app.find('./vcd:Link[@type="application/vnd.vmware.vcloud.vdc+xml"]', _NS)
-            vdc = ET.fromstring(self.api_request('GET', vdc_ref.attrib['href']).text)
-            gateways_ref = vdc.find('./vcd:Link[@rel="edgeGateways"]', _NS)
-            gateways = ET.fromstring(self.api_request('GET', gateways_ref.attrib['href']).text)
-            # Assume one gateway per vdc
-            gateway_ref = gateways.find('./vcd:EdgeGatewayRecord', _NS)
-            gateway = ET.fromstring(self.api_request('GET', gateway_ref.attrib['href']).text)
-        except AttributeError:
+        app = ET.fromstring(self.api_request('GET', 'vApp/{}'.format(machine_id)).text)
+        gateway = self.__gateway_from_app(app)
+        if gateway is None:
             raise NetworkingError('Could not find edge gateway')
         # Find our internal IP address
-        # We use the IP address of the first NIC of the first VM in the app
-        try:
-            internal_ip = ipaddress.IPv4Address(app.find('.//vcd:Vm//vcd:IpAddress', _NS).text)
-        except AttributeError:
-            internal_ip = None
+        internal_ip = self.__internal_ip_from_app(app)
         if internal_ip is None:
-            raise NetworkingError('Machine has no network connections')
+            return self.get_machine(machine_id)
         # Get the current edge gateway configuration
         # If none exists, there aren't any NAT rules
         gateway_config = gateway.find('.//vcd:EdgeGatewayServiceConfiguration', _NS)
@@ -548,21 +572,21 @@ fi
                 # For SNAT rules, we check the original ip
                 # The default SNAT rule has a /24 network, so we need to catch the AddressValueError
                 try:
-                    original = ipaddress.IPv4Address(rule.find('.//vcd:OriginalIp', _NS).text)
+                    original = IPv4Address(rule.find('.//vcd:OriginalIp', _NS).text)
                     if original == internal_ip:
                         nat_service.remove(rule)
                         # The external IP is the translated ip, and should NEVER be a network
-                        external_ip = ipaddress.IPv4Address(rule.find('.//vcd:TranslatedIp', _NS).text)
-                except ipaddress.AddressValueError:
+                        external_ip = IPv4Address(rule.find('.//vcd:TranslatedIp', _NS).text)
+                except AddressValueError:
                     # We should only get to here if original ip is a network, which we ignore
                     pass
             elif rule_type == 'DNAT':
                 # For DNAT rules, we check the translated ip, which should NEVER be a network
-                translated = ipaddress.IPv4Address(rule.find('.//vcd:TranslatedIp', _NS).text)
+                translated = IPv4Address(rule.find('.//vcd:TranslatedIp', _NS).text)
                 if translated == internal_ip:
                     nat_service.remove(rule)
                     # The external ip is the original ip
-                    external_ip = ipaddress.IPv4Address(rule.find('.//vcd:OriginalIp', _NS).text)
+                    external_ip = IPv4Address(rule.find('.//vcd:OriginalIp', _NS).text)
         # If we didn't find an external ip, the machine must not be exposed
         if external_ip is None:
             return self.get_machine(machine_id)
@@ -576,16 +600,16 @@ fi
             # Try the source and destination ips independently
             # We ignore AddressValueErrors, since the ip couldn't possibly match
             try:
-                source_ip = ipaddress.IPv4Address(rule.find('vcd:SourceIp', _NS).text)
+                source_ip = IPv4Address(rule.find('vcd:SourceIp', _NS).text)
                 if source_ip == external_ip:
                     firewall.remove(rule)
-            except ipaddress.AddressValueError:
+            except AddressValueError:
                 pass
             try:
-                dest_ip = ipaddress.IPv4Address(rule.find('vcd:DestinationIp', _NS).text)
+                dest_ip = IPv4Address(rule.find('vcd:DestinationIp', _NS).text)
                 if dest_ip == external_ip:
                     firewall.remove(rule)
-            except ipaddress.AddressValueError:
+            except AddressValueError:
                 pass
         # Make the changes
         edit_url = '{}/action/configureServices'.format(gateway.attrib['href'])
