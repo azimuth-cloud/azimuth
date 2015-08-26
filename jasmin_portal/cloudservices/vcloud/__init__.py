@@ -51,6 +51,12 @@ _ENV = Environment(
     loader = FileSystemLoader(os.path.dirname(os.path.realpath(__file__)))
 )
 
+# Function to escape special chars in guest customisation script for XML
+_escape_script = lambda s: s.replace(os.linesep, '&#13;').\
+                             replace('"', '&quot;').\
+                             replace('%', '&#37;').\
+                             replace("'", '&apos;')
+
 
 ###############################################################################
 ###############################################################################
@@ -205,7 +211,7 @@ fi
         # Since we don't configure requests to throw HTTP exceptions (we deal
         # with status codes instead), if we see an exception it is a problem
         try:
-            return check_response(func(path, *args, verify = False, **kwargs))
+            return check_response(func(path, *args, **kwargs))
         except requests.exceptions.RequestException:
             raise ProviderConnectionError('Could not connect to provider')
     
@@ -328,8 +334,12 @@ fi
             raise ProvisioningError('No vAppTemplate associated with catalogue item')
         template = ET.fromstring(self.api_request('GET', entity.attrib['href']).text)
         # Format the guest customisation script
-        # The value is escaped in the XML template
-        script = self._GUEST_CUSTOMISATION.format(ssh_key.strip())
+        # We escape the SSH key before inserting it, in case it has any dodgy characters
+        ssh_key = _escape_script(ssh_key.strip())
+        # We then escape the whole script again
+        # Since the escape function doesn't insert any characters that it escapes, there
+        # is no chance of double-escaping things
+        script = _escape_script(self._GUEST_CUSTOMISATION.format(ssh_key))
         # Configure each VM contained in the vApp
         vm_configs = []
         # Track the maximum number of NICs for a VM
