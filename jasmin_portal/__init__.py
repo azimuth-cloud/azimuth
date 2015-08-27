@@ -11,7 +11,7 @@ from pyramid.session import SignedCookieSessionFactory
 from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
 
-from .auth import RootFactory, RequestFactory, check_session
+from jasmin_portal.auth import RootFactory, RequestFactory, check_session
 
 
 def main(global_config, **settings):
@@ -62,3 +62,13 @@ def main(global_config, **settings):
 
     config.scan()
     return config.make_wsgi_app()
+
+
+# For debugging, you can just run this script instead of pserve
+if __name__ == "__main__":
+    import sys
+    from pkg_resources import load_entry_point
+
+    sys.exit(
+        load_entry_point('pyramid', 'console_scripts', 'pserve')()
+    )

@@ -10,8 +10,8 @@ __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
 import unittest, uuid
 
-from .util import IntegrationTest
-from .vcd_settings import endpoint, username, password
+from jasmin_portal.test.util import IntegrationTest
+from jasmin_portal.test.vcd_settings import endpoint, username, password
 
 from jasmin_portal.cloudservices import MachineStatus
 from jasmin_portal.cloudservices.vcloud import VCloudProvider

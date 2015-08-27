@@ -43,9 +43,17 @@ settings for your platform. You can then launch the portal using a development s
     $ source $PYENV/bin/activate
     
     # Start the portal web server
+    #     The following two lines are equivalent
+    #     The latter has the advantage that it can be used as a debug configuration
+    #     in PyDev, allowing breakpoints etc.
     ($PYENV) $ pserve development.ini
+    ($PYENV) $ python jasmin_portal/__init__.py development.ini
     
 The portal will then be available in a web browser at `127.0.0.1:6543`.
+
+**NOTE:** The example configuration uses `wsgiref.simple_server`, which is not suitable for
+anything other than development. However, because it is single-threaded, it can be used by the PyDev
+debugger.
 
 
 ## Running the tests
