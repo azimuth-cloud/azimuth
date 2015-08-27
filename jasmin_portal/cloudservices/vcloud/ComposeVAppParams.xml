@@ -44,7 +44,7 @@
                 <AdminPasswordEnabled>false</AdminPasswordEnabled>
                 <AdminAutoLogonEnabled>false</AdminAutoLogonEnabled>
                 <AdminAutoLogonCount>0</AdminAutoLogonCount>
-                <CustomizationScript>{{ vm.customisation|e }}</CustomizationScript>
+                <CustomizationScript>{{ vm.customisation }}</CustomizationScript>
                 <ComputerName>{{ vm.name }}</ComputerName>
             </GuestCustomizationSection>
         </InstantiationParams>

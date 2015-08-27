@@ -1,0 +1,11 @@
+"""
+This module provides settings for the vcd provider integration tests
+"""
+
+__author__ = "Matt Pryor"
+__copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
+
+
+endpoint = 'https://my-vcd.example.com/api'
+username = 'user@organisation'
+password = 'Password123'

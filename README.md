@@ -43,6 +43,27 @@ settings for your platform. You can then launch the portal using a development s
     $ source $PYENV/bin/activate
     
     # Start the portal web server
+    #     The following two lines are equivalent
+    #     The latter has the advantage that it can be used as a debug configuration
+    #     in PyDev, allowing breakpoints etc.
     ($PYENV) $ pserve development.ini
+    ($PYENV) $ python jasmin_portal/__init__.py development.ini
     
 The portal will then be available in a web browser at `127.0.0.1:6543`.
+
+**NOTE:** The example configuration uses `wsgiref.simple_server`, which is not suitable for
+anything other than development. However, because it is single-threaded, it can be used by the PyDev
+debugger.
+
+
+## Running the tests
+
+To run the integration tests for the vCloud Director client, first copy `jasmin_portal/test/vcd_settings.py.example` to `jasmin_portal/test/vcd_settings.py` and insert some credentials for a user in a test vCloud Director organisation (not a production one!). Then run:
+
+    # Activate venv
+    $ source $PYENV/bin/activate
+    
+    # Run the tests
+    ($PYENV) $ python setup.py -q test
+
+If the tests fail, you will need to log into vCloud Director manually and clean up any partially created machines and any NAT and firewall rules associated with the machine.
