@@ -46,3 +46,16 @@ settings for your platform. You can then launch the portal using a development s
     ($PYENV) $ pserve development.ini
     
 The portal will then be available in a web browser at `127.0.0.1:6543`.
+
+
+## Running the tests
+
+To run the integration tests for the vCloud Director client, first copy `jasmin_portal/test/vcd_settings.py.example` to `jasmin_portal/test/vcd_settings.py` and insert some credentials for a user in a test vCloud Director organisation (not a production one!). Then run:
+
+    # Activate venv
+    $ source $PYENV/bin/activate
+    
+    # Run the tests
+    ($PYENV) $ python setup.py -q test
+
+If the tests fail, you will need to log into vCloud Director manually and clean up any partially created machines and any NAT and firewall rules associated with the machine.

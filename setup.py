@@ -18,7 +18,6 @@ requires = [
     'pyramid_jinja2',
     'waitress',
     'requests',
-    'webtest',
 ]
 
 if __name__ == "__main__":

@@ -242,6 +242,8 @@ fi
             sleep(_POLL_INTERVAL)
             
     def is_active(self):
+        if not self.__session:
+            return False
         try:
             # Try making an API request
             self.api_request('GET', 'session')
