@@ -60,7 +60,7 @@ def main(global_config, **settings):
     config.add_route('new_machine',    '/{org}/machine/new/{id}')
     config.add_route('machine_action', '/{org}/machine/{id}/action')
 
-    config.scan()
+    config.scan(ignore = ['.test'])
     return config.make_wsgi_app()
 
 

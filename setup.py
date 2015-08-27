@@ -13,6 +13,7 @@ with open(os.path.join(here, 'VERSION')) as f:
     VERSION = f.read().split()[0]
 
 requires = [
+    'enum34',
     'pyramid',
     'pyramid_debugtoolbar',
     'pyramid_jinja2',
