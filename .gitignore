@@ -16,5 +16,6 @@ dist/
 .coverage
 htmlcov
 development.ini
+production.ini
 catalogue.json
 jasmin_portal/test/vcd_settings.py
