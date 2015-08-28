@@ -1,2 +1,2 @@
-include *.txt *.ini *.cfg *.rst
-recursive-include jasmin_portal *.ico *.png *.css *.gif *.jpg *.pt *.txt *.mak *.mako *.js *.html *.xml
+include *.ini *.md
+recursive-include jasmin_portal *.ico *.png *.gif *.css *.eot *.ttf *.svg *.woff *.js *.jinja2 *.txt *.html *.xml
