@@ -1,2 +1,2 @@
-include *.ini *.md
+include *.ini *.md VERSION
 recursive-include jasmin_portal *.ico *.png *.gif *.css *.eot *.ttf *.svg *.woff *.js *.jinja2 *.txt *.html *.xml
