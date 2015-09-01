@@ -151,7 +151,7 @@ Next, create the WSGI entry point at `/var/www/jasmin-portal/wsgi/portal.wsgi` c
 
 ```python
 from pyramid.paster import get_app, setup_logging
-ini_path = '/path/to/production.ini'
+ini_path = '/var/www/jasmin-portal/conf/application.ini'
 setup_logging(ini_path)
 application = get_app(ini_path, 'main')
 ```
