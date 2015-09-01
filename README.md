@@ -66,18 +66,23 @@ git clone https://github.com/cedadev/eos-portal.git jasmin-portal
 $PYENV/bin/pip install -e jasmin-portal
 ```
 
-To run the portal, you first need to copy `example.ini` to `development.ini` and adjust the
-settings for your platform (see http://docs.pylonsproject.org/docs/pyramid/en/1.5-branch/narr/environment.html).
+To run the portal, you first need to copy `application.ini.example` to `application.ini`
+and adjust the settings for your platform (see
+http://docs.pylonsproject.org/docs/pyramid/en/1.5-branch/narr/environment.html).
 
-You also need to copy `catalogue.json.example` to `catalogue.json` and populate it with information for the catalogue items in your vCloud Director instance. You should then point to this file in `development.ini`. If a catalogue item is in vCloud Director but not in `catalogue.json`, you can still deploy a VM from it, but the portal will never attempt to apply any NAT or firewall rules for the machine. 
+You also need to copy `catalogue.json.example` to `catalogue.json` and populate it with
+information for the catalogue items in your vCloud Director instance. You should then point
+to this file in `application.ini`. If a catalogue item is in vCloud Director but not in
+`catalogue.json`, you can still deploy a VM from it, but the portal will never attempt
+to apply any NAT or firewall rules for the machine.
 
-You can then launch the portal using a development server:
+You can then launch the portal using a development server. The following two lines are
+equivalent, but the latter has the advantage that it can be used as a debug configuration
+in PyDev, allowing breakpoints etc.
 
 ```sh
-# The following two lines are equivalent
-# The latter has the advantage that it can be used as a debug configuration in PyDev, allowing breakpoints etc.
-$PYENV/bin/pserve development.ini
-$PYENV/bin/python jasmin_portal/__init__.py development.ini
+$PYENV/bin/pserve application.ini
+$PYENV/bin/python jasmin_portal/__init__.py application.ini
 ```
     
 The portal will then be available in a web browser at `127.0.0.1:6543`.
@@ -90,8 +95,8 @@ debugger.
 ## Running the tests
 
 To run the integration tests for the vCloud Director client, first copy `jasmin_portal/test/vcd_settings.py.example`
- to `jasmin_portal/test/vcd_settings.py` and insert some credentials for a user in a test vCloud Director
-organisation(not a production one!). Then run:
+to `jasmin_portal/test/vcd_settings.py` and insert some credentials for a user in a test
+vCloud Director organisation (not a production one!). Then run:
 
 ```sh
 $PYENV/bin/python setup.py test
@@ -101,7 +106,7 @@ If the tests fail, you will need to log into vCloud Director manually and clean 
 created machines and any NAT and firewall rules associated with the machine.
 
 
-## Deploying into a staging environment using Apache
+## Deploying using Apache
 
 CentOS 6.x comes with Apache pre-installed, but not activated. To run `jasmin-portal`, we will use `mod_wsgi`.
 This can be installed from the IUS Community repository using:
@@ -110,43 +115,39 @@ This can be installed from the IUS Community repository using:
 sudo yum install python33-mod_wsgi
 ```
 
-The first thing to do is get a frozen list of dependencies from your development venv that you know the current code works with:
+First, freeze the code and dependencies from the development venv:
 
 ```sh
+# Freeze the dependencies, omitting the jasmin portal project
 $PYENV/bin/pip freeze | grep -v jasmin > requirements.txt
+
+# Create a release tarball
+#   This will create a tarball in the dist folder
+$PYENV/bin/python setup.py sdist
 ```
 
-Deploying `jasmin-portal` in production should be done using a dedicated account. To create an account
-and a suitable directory structure, use the following:
+Create the required directories under `/var/www/jasmin-portal` and install the code and dependencies:
 
 ```sh
-# Create a new user
-sudo useradd -MU -s /bin/bash jasmin
-sudo install -d /home/jasmin -o jasmin -g jasmin -m 755
+# Create a basic directory structure
+sudo mkdir -p /var/www/jasmin-portal/conf /var/www/jasmin-portal/wsgi
 
 # Create a venv (if you need to use a proxy, remember to use it)
-sudo -iHu jasmin python3.3 -m venv --clear /home/jasmin/venv
-wget https://bootstrap.pypa.io/get-pip.py -O - | sudo -iHu jasmin /home/jasmin/venv/bin/python
+sudo python3.3 -m venv --clear /var/www/jasmin-portal/venv
+wget https://bootstrap.pypa.io/get-pip.py -O - | sudo /var/www/jasmin-portal/venv/bin/python
 
 # Install the requirements from requirements.txt
-cat requirements.txt | sudo -iHu jasmin tee requirements.txt > /dev/null
-sudo -iHu jasmin /home/jasmin/venv/bin/pip install -r requirements.txt
+sudo /var/www/jasmin-portal/venv/bin/pip install -r /path/to/requirements.txt
 
-# Install the HEAD of the master branch of the portal
-sudo -iHu jasmin /home/jasmin/venv/bin/pip install --no-deps git+https://github.com/cedadev/eos-portal.git@master
-
-# Create directories to act as the config, document root and WSGI script directories for Apache
-sudo -iHu jasmin mkdir -p /home/jasmin/www/conf /home/jasmin/www/root /home/jasmin/www/wsgi
+# Install the jasmin portal code
+sudo /var/www/jasmin-portal/venv/bin/pip install --no-deps /path/to/jasmin_portal-*.tar.gz
 ```
 
-Next, create a `production.ini` and a `catalogue.json` and adjust the settings for a production environment on your platform (see http://docs.pylonsproject.org/docs/pyramid/en/1.5-branch/narr/environment.html). See above for more info. Then copy them to `/home/jasmin/www/conf`:
+Create `/var/www/jasmin-portal/conf/application.ini` and `/var/www/jasmin-portal/conf/catalogue.json`
+and adjust the settings for your environment (see
+http://docs.pylonsproject.org/docs/pyramid/en/1.5-branch/narr/environment.html and above).
 
-```sh
-cat production.ini | sudo -iHu jasmin tee /home/jasmin/www/conf/production.ini > /dev/null
-cat catalogue.json | sudo -iHu jasmin tee /home/jasmin/www/conf/catalogue.json > /dev/null
-```
-
-Now, we need to set up our WSGI entry point. Create a file called `portal.wsgi` containing the following:
+Next, create the WSGI entry point at `/var/www/jasmin-portal/wsgi/portal.wsgi` containing the following:
 
 ```python
 from pyramid.paster import get_app, setup_logging
@@ -155,3 +156,31 @@ setup_logging(ini_path)
 application = get_app(ini_path, 'main')
 ```
 
+Then add the following to your Apache config file:
+
+```
+# This line should be outside any virtual hosts
+WSGISocketPrefix /var/run/wsgi
+
+# The following lines should be *inside* a virtual host
+<Directory "/var/www/jasmin-portal/wsgi">
+    Order allow,deny
+    Allow from all
+</Directory>
+
+# Ensure HTTP authorisation header gets passed to WSGI app
+WSGIPassAuthorization On
+
+WSGIApplicationGroup %{GLOBAL}
+
+WSGIProcessGroup jasmin
+WSGIDaemonProcess jasmin processes=2 threads=15 display-name=%{GROUP} python-path=/var/www/jasmin-portal/venv/lib/python3.3/site-packages:/var/www/jasmin-portal/venv/lib64/python3.3/site-packages
+
+WSGIScriptAlias / /var/www/jasmin-portal/wsgi/portal.wsgi
+```
+
+Then restart Apache:
+
+```sh
+sudo service httpd restart
+```
