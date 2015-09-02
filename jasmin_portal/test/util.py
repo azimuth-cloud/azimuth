@@ -32,22 +32,10 @@ class IntegrationTest(metaclass= abc.ABCMeta):
         Runs the steps for the integration test as sub-tests
         """
         result = None
-        failed = False
-        print()  # Print an empty line first
+        print()  # Print an empty line first for formatting
         for step in self.steps():
             print("    Running step: {} ...".format(step), end = " ", flush = True)
-            # Use subTest for labelling output
-            # However, we still want to exit on first failure, so we need to
-            # check if an exception was thrown and terminate the loop
-            with self.subTest(step):
-                try:
-                    method = getattr(self, step)
-                    result = method(result)
-                except Exception as e:
-                    # Record that we need to exit the loop and rethrow
-                    failed = True
-                    raise e
-            if failed:
-                break
-            else:
-                print("ok")
+            method = getattr(self, step)
+            result = method(result)
+            print("ok")
+
