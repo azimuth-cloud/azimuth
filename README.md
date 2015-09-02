@@ -174,7 +174,9 @@ WSGIPassAuthorization On
 WSGIApplicationGroup %{GLOBAL}
 
 WSGIProcessGroup jasmin
-WSGIDaemonProcess jasmin processes=2 threads=15 display-name=%{GROUP} python-path=/var/www/jasmin-portal/venv/lib/python3.3/site-packages:/var/www/jasmin-portal/venv/lib64/python3.3/site-packages
+
+# Since we are using long-polling to connect to vCD, we need to specify a long timeout
+WSGIDaemonProcess jasmin processes=2 threads=15 display-name=%{GROUP} shutdown-timeout=60 python-path=/var/www/jasmin-portal/venv/lib/python3.3/site-packages:/var/www/jasmin-portal/venv/lib64/python3.3/site-packages
 
 WSGIScriptAlias / /var/www/jasmin-portal/wsgi/portal.wsgi
 ```
