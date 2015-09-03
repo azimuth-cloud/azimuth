@@ -129,8 +129,5 @@ td > .progress {
 }
 
 .modal .modal-dialog {
-    position : relative;
-    top : 50%;
-    transform : translateY(-50%) !important;
-    margin : 0 auto;
+    margin-top : 70px;
 }
