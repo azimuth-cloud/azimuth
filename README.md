@@ -10,7 +10,7 @@ The reference platform is a fully patched CentOS 6.x installation with Python 3.
 The reason we use Python 3.3 is that it is the latest version for which a `mod_wsgi`
 package currently exists in the IUS Community repository.
 
-To install Python 3.3 and pip in CentOS 6.x, the following can be used:
+To install Python 3.3 in CentOS 6.x, the following can be used:
 
 ```sh
 sudo yum install https://dl.iuscommunity.org/pub/ius/stable/CentOS/6/x86_64/ius-release-1.0-14.ius.centos6.noarch.rpm
@@ -63,6 +63,8 @@ instantly picked up by the venv.
 git clone https://github.com/cedadev/eos-portal.git jasmin-portal
 
 # Install in editable (i.e. development) mode
+#   NOTE: This will install the LATEST versions of any packages
+#         This is what you want for development, as we should be keeping up to date!
 $PYENV/bin/pip install -e jasmin-portal
 ```
 
@@ -115,18 +117,23 @@ This can be installed from the IUS Community repository using:
 sudo yum install python33-mod_wsgi
 ```
 
-First, freeze the code and dependencies from the development venv:
+First, on your dev box, freeze the code and dependencies:
 
 ```sh
-# Freeze the dependencies, omitting the jasmin portal project
+# Freeze the dependencies, omitting the jasmin portal project, and commit the requirements.txt
 $PYENV/bin/pip freeze | grep -v jasmin > requirements.txt
+git add requirements.txt
+git commit -m "Freezing dependencies"
+git push -u origin  # If you want to push the changes to Github
 
 # Create a release tarball
 #   This will create a tarball in the dist folder
 $PYENV/bin/python setup.py sdist
 ```
 
-Create the required directories under `/var/www/jasmin-portal` and install the code and dependencies:
+Then copy `requirements.txt` and `dist/jasmin_portal-*.tar.gz` to the server.
+
+On the server, create the required directories under `/var/www/jasmin-portal` and install the portal:
 
 ```sh
 # Create a basic directory structure
@@ -137,7 +144,7 @@ sudo python3.3 -m venv --clear /var/www/jasmin-portal/venv
 wget https://bootstrap.pypa.io/get-pip.py -O - | sudo /var/www/jasmin-portal/venv/bin/python
 
 # Install the requirements from requirements.txt
-sudo /var/www/jasmin-portal/venv/bin/pip install -r /path/to/requirements.txt
+sudo /var/www/jasmin-portal/venv/bin/pip install --no-deps -r /path/to/requirements.txt
 
 # Install the jasmin portal code
 sudo /var/www/jasmin-portal/venv/bin/pip install --no-deps /path/to/jasmin_portal-*.tar.gz
@@ -156,7 +163,7 @@ setup_logging(ini_path)
 application = get_app(ini_path, 'main')
 ```
 
-Then add the following to your Apache config file:
+Add the following to your Apache config file:
 
 ```
 # This line should be outside any virtual hosts
