@@ -82,7 +82,7 @@ def login(request):
         password = request.params['password']
         try:
             
-            provider = vcloud.VCloudProvider(request.registry.settings['vcloud_endpoint'])
+            provider = vcloud.VCloudProvider(request.registry.settings['vcloud.endpoint'])
             request.vcd_session = provider.new_session(username, password)
             # When a user logs in, force a refresh of the CSRF token
             request.session.new_csrf_token()
@@ -159,7 +159,7 @@ def catalogue(request):
     except cloud.CloudServiceError as e:
         request.session.flash(str(e), 'error')
     if items:
-        with open(request.registry.settings['catalogue_file']) as f:
+        with open(request.registry.settings['catalogue.file']) as f:
             overrides = json.load(f)
     return {
         'items' : [overrides[i['uuid']] if i['uuid'] in overrides else i for i in items]
@@ -214,7 +214,7 @@ def new_machine(request):
     try:
         image_id = request.matchdict['id']
         # Try to load the image data from the JSON file
-        with open(request.registry.settings['catalogue_file']) as f:
+        with open(request.registry.settings['catalogue.file']) as f:
             items = json.load(f)
         if image_id in items:
             image = items[image_id]

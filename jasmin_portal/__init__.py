@@ -22,7 +22,7 @@ def main(global_config, **settings):
     config = Configurator(
         settings = settings,
         # TODO: Provide a better secret
-        session_factory = SignedCookieSessionFactory('FIXME')
+        session_factory = SignedCookieSessionFactory(settings['session.secret'])
     )
 
     # We want to use Jinja2 templates
@@ -34,7 +34,7 @@ def main(global_config, **settings):
     config.set_request_factory(RequestFactory)
     # We want to use token based authentication, with a check on the vCD session
     config.set_authentication_policy(AuthTktAuthenticationPolicy(
-        'MY_SECRET', hashalg = 'sha512', callback = check_session
+        settings['auth.secret'], hashalg = 'sha512', callback = check_session
     ))
     # We use a basic ACL policy for authorisation
     config.set_authorization_policy(ACLAuthorizationPolicy())

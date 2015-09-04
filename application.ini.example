@@ -18,10 +18,14 @@ pyramid.includes = pyramid_debugtoolbar
 # debugtoolbar.hosts = 127.0.0.1 ::1
 
 # vCloud endpoint
-vcloud_endpoint = https://www.example.com/vcloud/api
+vcloud.endpoint = https://www.example.com/vcloud/api
 
 # Catalogue config file
-catalogue_file = /path/to/catalogue.json
+catalogue.file = /path/to/catalogue.json
+
+# Secrets
+session.secret = asecret
+auth.secret = anothersecret
 
 
 ###
