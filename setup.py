@@ -17,6 +17,9 @@ requires = [
     'pyramid',
     'pyramid_debugtoolbar',
     'pyramid_jinja2',
+    'jinja2',
+    'pyramid_ldap3',
+    'ldap3',
     'requests',
 ]
 

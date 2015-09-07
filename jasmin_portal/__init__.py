@@ -11,7 +11,8 @@ from pyramid.session import SignedCookieSessionFactory
 from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
 
-from jasmin_portal.auth import RootFactory, RequestFactory, check_session
+from jasmin_portal.auth import RootFactory, check_cloud_sessions
+from jasmin_portal import identity, cloud
 
 
 def main(global_config, **settings):
@@ -21,7 +22,6 @@ def main(global_config, **settings):
 
     config = Configurator(
         settings = settings,
-        # TODO: Provide a better secret
         session_factory = SignedCookieSessionFactory(settings['session.secret'])
     )
 
@@ -29,17 +29,21 @@ def main(global_config, **settings):
     config.include('pyramid_jinja2')
     
     ###############################################################################################
-    ## Define the security configuration using vCD helpers
+    ## Define the security configuration
     ###############################################################################################
-    config.set_request_factory(RequestFactory)
-    # We want to use token based authentication, with a check on the vCD session
+    # We want to use token based authentication, with a check on the cloud sessions
     config.set_authentication_policy(AuthTktAuthenticationPolicy(
-        settings['auth.secret'], hashalg = 'sha512', callback = check_session
+        settings['auth.secret'], hashalg = 'sha512', callback = check_cloud_sessions
     ))
     # We use a basic ACL policy for authorisation
     config.set_authorization_policy(ACLAuthorizationPolicy())
     config.set_root_factory(RootFactory)
-        
+    
+    
+    # Set up the identity management and cloud integration
+    config = identity.setup(config, settings)
+    config = cloud.setup(config, settings)
+    
     
     ###############################################################################################
     ## Define routes
@@ -49,12 +53,15 @@ def main(global_config, **settings):
     
     config.add_route('home',   '/')
     
-    # Single logout URI - just clears the current session
-    config.add_route('logout',         '/logout')
+    # Single login and logout for all orgs
+    config.add_route('login',  '/login')
+    config.add_route('logout', '/logout')
+    
+    # Dashboard route
+    config.add_route('dashboard', '/dashboard')
     
     # All other routes are org-specific
     config.add_route('org_home',       '/{org}')
-    config.add_route('login',          '/{org}/login')
     config.add_route('catalogue',      '/{org}/catalogue')
     config.add_route('machines',       '/{org}/machines')
     config.add_route('new_machine',    '/{org}/machine/new/{id}')

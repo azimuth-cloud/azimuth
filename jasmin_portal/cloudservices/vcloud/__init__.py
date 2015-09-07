@@ -71,7 +71,7 @@ def check_response(res):
     For the status codes returned by the vCD API, see
     http://pubs.vmware.com/vcd-55/topic/com.vmware.vcloud.api.doc_55/GUID-D2B2E6D4-7A92-4D1B-80C0-F32AE0CA3D11.html
     """
-        
+    
     # Check the status code
     if res.status_code == 503:
         # requests reports a 503 if it can't reach the server at all
@@ -204,7 +204,7 @@ fi
             path = '/'.join([self.__endpoint, path.strip('/')])
         # Make the request
         if self.__session is None:
-            raise ImplementationError('Session has already been closed')
+            raise InvalidActionError('Session has already been closed')
         func = getattr(self.__session, method.lower(), None)
         if func is None:
             raise ImplementationError('Invalid HTTP method - {}'.format(method))
@@ -241,16 +241,10 @@ fi
             # Any other statuses, we sleep before fetching the task again
             sleep(_POLL_INTERVAL)
             
-    def is_active(self):
-        if not self.__session:
-            return False
-        try:
-            # Try making an API request
-            self.api_request('GET', 'session')
-            return True
-        except (AuthenticationError, PermissionsError):
-            # We only catch authentication-related errors
-            return False
+    def poll(self):
+        # Just hit an API endpoint that does nothing but report session info
+        self.api_request('GET', 'session')
+        return True
             
     def list_images(self):
         # Get a list of uris of catalogs available to the user

@@ -35,7 +35,7 @@ footer {
 /* Other small fixes */
 
 .dropdown-menu {
-    width : 100%;
+    min-width : 100%;
 }
 
 .panel-grid-row, .panel-grid-row [class*="col-"] {
