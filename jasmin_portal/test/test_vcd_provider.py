@@ -13,7 +13,7 @@ import unittest, uuid
 from jasmin_portal.test.util import IntegrationTest
 from jasmin_portal.test.vcd_settings import endpoint, username, password
 
-from jasmin_portal.cloudservices import MachineStatus
+from jasmin_portal.cloudservices import MachineStatus, CloudServiceError
 from jasmin_portal.cloudservices.vcloud import VCloudProvider
 
 
@@ -43,7 +43,7 @@ class TestVcdProvider(unittest.TestCase, IntegrationTest):
         """
         p = VCloudProvider(endpoint)
         self.session = p.new_session(username, password)
-        self.assertTrue(self.session.is_active())
+        self.assertTrue(self.session.poll())
         
     def list_images(self, input):
         """
@@ -152,6 +152,6 @@ class TestVcdProvider(unittest.TestCase, IntegrationTest):
         Closes the session and checks that it is no longer active
         """
         self.session.close()
-        self.assertFalse(self.session.is_active())
+        self.assertRaises(CloudServiceError, self.session.poll)
         self.session = None
     
