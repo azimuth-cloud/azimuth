@@ -259,6 +259,11 @@ fi
             item_ids = [i.attrib['href'].rstrip('/').split('/').pop() for i in items]
             images.extend(self.get_image(id) for id in item_ids)
         return images
+    
+    def count_machines(self):
+        # We only need one API query to return this
+        results = ET.fromstring(self.api_request('GET', 'vApps/query').text)
+        return len(results.findall('vcd:VAppRecord', _NS))
         
     def list_machines(self):
         # This will return all the VMs available to the user

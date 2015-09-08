@@ -145,7 +145,29 @@ def logout(request):
 def dashboard(request):
     """
     Handler for /dashboard
+    
+    The user must be authenticated to reach here, which means that there should be
+    a session for each available org
+    
+    The dashboard will render a list of available orgs with number of machines
     """
+    # Pass the per-org counts to the template
+    try:
+        count_machines = lambda o: request.get_cloud_session(o).count_machines()
+        return {
+            'machine_counts' : {
+                o : count_machines(o) for o in request.available_orgs
+            }
+        }
+    # Convert some of the cloud service errors to appropriate HTTP errors
+    except cloudservices.AuthenticationError:
+        raise HTTPUnauthorized()
+    except cloudservices.PermissionsError:
+        raise HTTPForbidden()
+    except cloudservices.NoSuchResourceError:
+        raise HTTPNotFound()
+    except cloudservices.CloudServiceError as e:
+        request.session.flash(str(e), 'error')
     return {}
     
 
