@@ -5,7 +5,7 @@ Pyramid view callables for the JASMIN cloud portal
 __author__ = "Matt Pryor"
 __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
-import os, tempfile, subprocess, json
+import os, tempfile, subprocess, json, re
 
 from pyramid.view import view_config, forbidden_view_config, notfound_view_config
 from pyramid.security import remember, forget
@@ -19,31 +19,51 @@ from jasmin_portal import cloudservices
 from jasmin_portal.cloudservices.vcloud import VCloudProvider
 
 
-@forbidden_view_config(renderer = 'templates/login.jinja2')
+@forbidden_view_config()
 def forbidden(request):
     """
-    Handler for 403 errors
+    Handler for 403 forbidden errors
     
-    We should only get 403 errors for pages with an org
+    We want to show a suitable error on the most specific page we can
+    
+    If the user is logged in and are a member of the current org, show the error
+    on the machines page
+    If the user is logged in but NOT a member of the current org, show the error
+    on the dashboard
+    If the user is not logged in, show the error on the login page
     """
-    if request.active_cloud_session is not None:
-        request.session.flash(
-            'You have insufficient permissions to access this resource', 'error'
-        )
+    if request.current_userid:
+        request.session.flash('Insufficient permissions to access resource', 'error')
+        if request.current_org in request.available_orgs:
+            return HTTPSeeOther(location = request.route_path('machines'))
+        else:
+            return HTTPSeeOther(location = request.route_path('dashboard'))
     else:
-        request.session.flash('Please log in to access this resource', 'error')
-    return {}
+        request.session.flash('Log in to access this resource', 'error')
+        return HTTPSeeOther(location = request.route_path('login'))
 
 
-@notfound_view_config(renderer = 'templates/notfound.jinja2')
+@notfound_view_config()
 def notfound(request):
     """
-    Handler for 404 errors
+    Handler for 404 not found errors
+    
+    We want to show a suitable error on the most specific page we can
+    
+    If the user is logged in and are a member of the current org, show the error
+    on the machines page
+    If the user is logged in but NOT a member of the current org, show the error
+    on the dashboard
+    If the user is not logged in, show the error on the login page
     """
-    request.session.flash(
-        'The resource you requested could not be found', 'error'
-    )
-    return {}
+    request.session.flash('Resource not found', 'error')
+    if request.current_userid:
+        if request.current_org in request.available_orgs:
+            return HTTPSeeOther(location = request.route_path('machines'))
+        else:
+            return HTTPSeeOther(location = request.route_path('dashboard'))
+    else:
+        return HTTPSeeOther(location = request.route_path('login'))
 
 
 @view_config(route_name = 'home',
@@ -168,11 +188,11 @@ def catalogue(request):
         } for i in items)
     # Convert some of the cloud service errors to appropriate HTTP errors
     except cloudservices.AuthenticationError:
-        return HTTPUnauthorized()
+        raise HTTPUnauthorized()
     except cloudservices.PermissionsError:
-        return HTTPForbidden()
+        raise HTTPForbidden()
     except cloudservices.NoSuchResourceError:
-        return HTTPNotFound()
+        raise HTTPNotFound()
     except cloudservices.CloudServiceError as e:
         request.session.flash(str(e), 'error')
     if items:
@@ -199,11 +219,11 @@ def machines(request):
         machines = request.active_cloud_session.list_machines()
     # Convert some of the cloud service errors to appropriate HTTP errors
     except cloudservices.AuthenticationError:
-        return HTTPUnauthorized()
+        raise HTTPUnauthorized()
     except cloudservices.PermissionsError:
-        return HTTPForbidden()
+        raise HTTPForbidden()
     except cloudservices.NoSuchResourceError:
-        return HTTPNotFound()
+        raise HTTPNotFound()
     except cloudservices.CloudServiceError as e:
         request.session.flash(str(e), 'error')
     return { 'machines'  : machines }
@@ -248,13 +268,20 @@ def new_machine(request):
         if request.method == 'POST':
             # For a POST request, the request must pass a CSRF test
             check_csrf_token(request)
-            name = request.params.get('name', '')
-            description = request.params.get('description', '')
-            ssh_key = request.params.get('ssh-key', '')
+            machine_info = {
+                'image'       : image,
+                'name'        : request.params.get('name', ''),
+                'description' : request.params.get('description', ''),
+                'ssh_key'     : request.params.get('ssh-key', ''),
+            }
+            # Check that the name fulfills the regex
+            if not re.match('[a-zA-Z0-9_]+', machine_info['name']):
+                request.session.flash('Name is not valid', 'error')
+                return machine_info
             # Check that the SSH key is valid using ssh-keygen
             fd, temp = tempfile.mkstemp()
             with os.fdopen(fd, mode = 'w') as f:
-                f.write(ssh_key)
+                f.write(machine_info['ssh_key'])
             try:
                 # We don't really care about the content of stdout/err
                 # We just care if the command succeeded or not...
@@ -264,36 +291,29 @@ def new_machine(request):
                 )
             except subprocess.CalledProcessError:
                 request.session.flash('SSH Key is not valid', 'error')
-                return {
-                    'image'       : image,
-                    'name'        : name,
-                    'description' : description,
-                    'ssh_key'     : ssh_key,
-                }
+                return machine_info
             try:
                 machine = request.active_cloud_session.provision_machine(
-                    image_id, name, description, ssh_key
+                    image_id, machine_info['name'],
+                    machine_info['description'], machine_info['ssh_key']
                 )
                 request.session.flash('Machine provisioned successfully', 'success')
-            # Catch more specific provisioning errors here
-            except (cloudservices.DuplicateNameError, 
-                    cloudservices.BadRequestError,
+            # Catch specific provisioning errors here
+            except cloudservices.DuplicateNameError:
+                request.session.flash('Name already in use', 'error')
+                return machine_info
+            except (cloudservices.BadRequestError,
                     cloudservices.ProvisioningError) as e:
                 # If provisioning fails, we want to report an error and show the form again
-                request.session.flash('Provisioning error - {}'.format(str(e)), 'error')
-                return {
-                    'image'       : image,
-                    'name'        : name,
-                    'description' : description,
-                    'ssh_key'     : ssh_key,
-                }
+                request.session.flash('Provisioning error: {}'.format(str(e)), 'error')
+                return machine_info
             # Now see if we need to apply NAT and firewall rules
             if image['allow_inbound']:
                 try:
                     machine = request.active_cloud_session.expose(machine.id)
                     request.session.flash('Inbound access from internet enabled', 'success')
                 except cloudservices.NetworkingError as e:
-                    request.session.flash('Networking error - {}'.format(str(e)), 'error')
+                    request.session.flash('Networking error: {}'.format(str(e)), 'error')
             # Whatever happens, if we get this far we are redirecting to machines
             return HTTPSeeOther(location = request.route_url('machines'))
         # Only get requests should get this far
@@ -304,11 +324,11 @@ def new_machine(request):
             'ssh_key'     : '',
         }
     except cloudservices.AuthenticationError:
-        return HTTPUnauthorized()
+        raise HTTPUnauthorized()
     except cloudservices.PermissionsError:
-        return HTTPForbidden()
+        raise HTTPForbidden()
     except cloudservices.NoSuchResourceError:
-        return HTTPNotFound()
+        raise HTTPNotFound()
     except cloudservices.CloudServiceError as e:
         request.session.flash(str(e), 'error')
         return HTTPSeeOther(location = request.route_url('machines'))
@@ -331,16 +351,16 @@ def machine_action(request):
         action = getattr(request.active_cloud_session,
                          '{}_machine'.format(request.params['action']), None)
         if not callable(action):
-            return HTTPBadRequest()
+            raise HTTPBadRequest()
         action(request.matchdict['id'])
         request.session.flash('Action completed successfully', 'success')
     # Convert some of the cloud service errors to appropriate HTTP errors
     except cloudservices.AuthenticationError:
-        return HTTPUnauthorized()
+        raise HTTPUnauthorized()
     except cloudservices.PermissionsError:
-        return HTTPForbidden()
+        raise HTTPForbidden()
     except cloudservices.NoSuchResourceError:
-        return HTTPNotFound()
+        raise HTTPNotFound()
     except cloudservices.CloudServiceError as e:
         request.session.flash(str(e), 'error')
     return HTTPSeeOther(location = request.route_url('machines'))
