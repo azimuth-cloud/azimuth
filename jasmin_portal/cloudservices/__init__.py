@@ -136,9 +136,9 @@ class Session(metaclass = abc.ABCMeta):
         self.close()
         
     @abc.abstractmethod
-    def is_active(self):
+    def poll(self):
         """
-        Checks if the session is still active
+        Returns True if the session is authenticated and active
         """
     
     @abc.abstractmethod

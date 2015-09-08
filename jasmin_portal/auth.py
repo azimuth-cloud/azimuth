@@ -6,83 +6,30 @@ __author__ = "Matt Pryor"
 __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
 
-import pickle
+from pyramid.security import Allow, Authenticated, DENY_ALL
 
-from pyramid.request import Request
-from pyramid.security import Allow, DENY_ALL
-
-from jasmin_portal.cloudservices import CloudServiceError
+from jasmin_portal.identity import orgs_for_user
 
 
-class RequestFactory(Request):
+def check_cloud_sessions(userid, request):
     """
-    Custom request factory that:
+    Group finder for the authentication policy
     
-      1. Adds a vcd_session property representing the current vCD session, and
-         handles pickling and unpickling the vCD session from the session object
-      2. Overrides route_url and route_path to insert the org from the current
-         request, unless overridden
+    Checks that there is an active cloud session for every org that the user
+    belongs to and returns the list of org names
+    
+    If there is an org without an active session, the user is not authenticated at all
     """
-    
-    _SESSION_KEY = 'vcloud'
-    
-    def _get_vcd_session(self):
-        # Lazily reconstruct the vcd session from the session attribute
-        if not hasattr(self, '__vcd_session'):
-            if self._SESSION_KEY in self.session:
-                self.__vcd_session = pickle.loads(self.session[self._SESSION_KEY])
-            else:
-                self.__vcd_session = None
-        return self.__vcd_session
-    
-    def _set_vcd_session(self, session):
-        self.__vcd_session = session
-        # When the vcd session is set, we store its representation in the session
-        if session is not None:
-            self.session[self._SESSION_KEY] = pickle.dumps(session)
-        # If the vcd session is being set to None, remove any keys from the session
-        elif self._SESSION_KEY in self.session:
-            del self.session[self._SESSION_KEY]     
-    
-    vcd_session = property(_get_vcd_session, _set_vcd_session)
-    
-    def route_url(self, route_name, *elements, **kw):
-        if 'org' not in kw:
-            try:
-                kw['org'] = self.matchdict.get('org')
-            except (AttributeError, KeyError):
-                pass
-        return super().route_url(route_name, *elements, **kw)
-    
-    def route_path(self, route_name, *elements, **kw):
-        if 'org' not in kw:
-            try:
-                kw['org'] = self.matchdict.get('org')
-            except (AttributeError, KeyError):
-                pass
-        return super().route_path(route_name, *elements, **kw)
-
-
-def check_session(user_id, request):
-    """
-    Checks if there is a vCD session available and whether it is still active
-    
-    This is used as a group finder for an auth tkt policy, so returns None
-    if there is no vCD session or the vCD session has expired
-    If the vCD session is active, it returns a list containing the org from the
-    username
-    """
-    try:
-        if request.vcd_session is None:
+    orgs = orgs_for_user(userid, request)
+    for org in orgs:
+        try:
+            # This line could fail in two ways:
+            #   1. Session doesn't exist for org
+            #   2. Session has expired
+            request.get_cloud_session(org).poll()
+        except Exception:
             return None
-        if not request.vcd_session.is_active():
-            request.vcd_session = None
-            return None
-        else:
-            return [user_id.split('@').pop().lower()]
-    except CloudServiceError as e:
-        request.session.flash(str(e), 'error')
-        return None
+    return orgs
 
 
 class RootFactory:
@@ -94,16 +41,17 @@ class RootFactory:
     """
     
     def __init__(self, request):
-        try:
-            self.__org = request.matchdict.get('org').lower()
-        except (AttributeError, KeyError):
-            self.__org = None
+        self.__org = request.current_org
     
-    # Authenticated users are granted view and edit permissions on every route
     def __acl__(self):
+        # If there is an org in the URI, members of that org are granted the
+        # org_view and org_edit priveleges
         if self.__org:
-            acl = [(Allow, self.__org, 'view'), (Allow, self.__org, 'edit')]
+            acl = [(Allow, self.__org, 'org_view'), (Allow, self.__org, 'org_edit')]
         else:
             acl = []
-        acl.append(DENY_ALL)
+        # All authenticated users are granted the view and edit priveleges
+        acl.extend([
+            (Allow, Authenticated, 'view'), (Allow, Authenticated, 'edit'), DENY_ALL
+        ])
         return acl
