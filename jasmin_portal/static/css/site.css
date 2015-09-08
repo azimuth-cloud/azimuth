@@ -131,3 +131,17 @@ td > .progress {
 .modal .modal-dialog {
     margin-top : 70px;
 }
+
+h2.panel-heading {
+	margin-top : 0px;
+	margin-bottom : 0px;
+	font-size : 20px;
+}
+
+.dropdown-menu > li > a {
+	padding : 5px 15px;
+}
+
+.dropdown-menu a i {
+	margin-right : 5px;
+}

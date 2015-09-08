@@ -148,6 +148,12 @@ class Session(metaclass = abc.ABCMeta):
         """
         
     @abc.abstractmethod
+    def count_machines(self):
+        """
+        Returns the number of machines available to the current session
+        """
+        
+    @abc.abstractmethod
     def list_machines(self):
         """
         Returns a list of the machine available to the current session

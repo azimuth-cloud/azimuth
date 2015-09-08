@@ -3,7 +3,18 @@
 {% block pagetitle %}Dashboard{% endblock %}
 
 {% block content %}
-<div class="row">
-    <h2>Dashboard in progress</h2>
+<div class="col-md-6 col-md-offset-3">
+	<div class="panel panel-default">
+	    <h2 class="panel-heading">Available organisations</h2>
+	    
+	    <div class="list-group">
+	        {%- for org, count in machine_counts.items() %}
+	            <a href="{{ request.route_url('machines', org = org) }}" class="list-group-item">
+	                <span class="badge">{{ count }} machines</span>
+	                {{ org }}
+	            </a>
+	        {%- endfor %}
+	    </div>
+	</div>
 </div>
 {% endblock %}
