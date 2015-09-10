@@ -8,8 +8,6 @@ __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
 from pyramid.security import Allow, Authenticated, DENY_ALL
 
-from jasmin_portal.identity import orgs_for_user
-
 
 def check_cloud_sessions(userid, request):
     """
@@ -20,7 +18,9 @@ def check_cloud_sessions(userid, request):
     
     If there is an org without an active session, the user is not authenticated at all
     """
-    orgs = orgs_for_user(userid, request)
+    # Use the unauthenticated user, since this function is used in the calculation
+    # of authenticated_userid
+    orgs = request.unauthenticated_user.organisations
     for org in orgs:
         try:
             # This line could fail in two ways:
@@ -29,7 +29,7 @@ def check_cloud_sessions(userid, request):
             request.get_cloud_session(org).poll()
         except Exception:
             return None
-    return orgs
+    return [o.name for o in orgs]
 
 
 class RootFactory:
@@ -41,7 +41,10 @@ class RootFactory:
     """
     
     def __init__(self, request):
-        self.__org = request.current_org
+        try:
+            self.__org = request.current_org.name
+        except AttributeError:
+            self.__org = None
     
     def __acl__(self):
         # If there is an org in the URI, members of that org are granted the

@@ -8,12 +8,12 @@ __author__ = "Matt Pryor"
 __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
 
-import functools, re
+import functools, re, collections
 
-import ldap3
-from ldap3.utils.dn import parse_dn
 from pyramid import events
-from pyramid_ldap3 import get_ldap_connector
+
+from jasmin_portal import ldap as jldap
+from jasmin_portal.ldap import Filter as f
 
 
 def setup(config, settings):
@@ -21,58 +21,45 @@ def setup(config, settings):
     Given a pyramid configurator and a settings dictionary, configure the app
     for identity management
     """
-    # We want to use LDAP
-    config.include('pyramid_ldap3')
     
-    # Define our LDAP configuration
-    config.ldap_setup(
-        settings['ldap.server'], bind = settings['ldap.bind_dn'], passwd = settings['ldap.bind_pass']
-    )
-    config.ldap_set_login_query(
-        base_dn = settings['ldap.user_base'],
-        filter_tmpl = '(uid=%(login)s)',
-        scope = ldap3.SEARCH_SCOPE_SINGLE_LEVEL
-    )
-    config.ldap_set_groups_query(
-        base_dn = settings['ldap.group_base'],
-        filter_tmpl = '(&(objectClass=posixGroup)(memberUid=%(userdn)s))',
-        scope = ldap3.SEARCH_SCOPE_SINGLE_LEVEL
-    )
-    
+    # Set up the LDAP stuff
+    config = jldap.setup(config, settings)
+
     # Add a couple of useful properties to request
     
-    def current_userid(request):
-        # Just reifies the authenticated_userid, so that the check is only done once
-        return request.authenticated_userid
+    def authenticated_user(request):
+        # Returns a user object based on the authenticated_userid
+        if request.authenticated_userid:
+            return find_by_userid(request, request.authenticated_userid)
+        else:
+            return None
     
-    config.add_request_method(current_userid, reify = True)
+    def unauthenticated_user(request):
+        # Returns a user object based on the unauthenticated_userid
+        if request.unauthenticated_userid:
+            return find_by_userid(request, request.unauthenticated_userid)
+        else:
+            return None
     
     def current_org(request):
         # Gets the current organisation for the request
         try:
-            return request.matchdict['org'].lower()
+            return org_from_name(request, request.matchdict['org'].lower())
         except (AttributeError, KeyError):
             return None
     
+    config.add_request_method(authenticated_user, reify = True)
+    config.add_request_method(unauthenticated_user, reify = True)
     config.add_request_method(current_org, reify = True)
     
-    def available_orgs(request):
-        # Returns the orgs for the current user
-        if request.current_userid:
-            return orgs_for_user(request.current_userid, request)
-        return []
-    
-    config.add_request_method(available_orgs, reify = True)
-    
+
     # Inject the org from the current request into route_url and route_path if not overridden
     # Because we need access to the original versions of the functions to defer to, we inject
     # overwrite the functions at request creation time using events
     def overwrite_path_funcs(event):
         def inject_org(request, kw):
-            # If org is not present in kw, try to inject it from the request before
-            # returning kw
             if 'org' not in kw and request.current_org:
-                kw['org'] = request.current_org
+                kw['org'] = request.current_org.name
             return kw
         
         # Overwrite the route_url and route_path functions with versions that inject the org
@@ -89,23 +76,99 @@ def setup(config, settings):
     return config
 
 
+class User(collections.namedtuple(
+            'UserAttrs', ['userid', 'name', 'email', 'ssh_public_key', 'organisations'])):
+    """
+    Represents a user in the system
+    """
+    def belongs_to(self, org):
+        """
+        Returns True if the user belongs to the org, False otherwise
+        """
+        return any(o.name == org.name for o in self.organisations)
+    
+    
+Organisation = collections.namedtuple('Organisation', ['name', 'members'])
+Organisation.__doc__ = """Represents an organisation in the system"""
+
+
 def authenticate_user(request, userid, password):
     """
-    Attempt to authenticate the user, and return True if successful, False otherwise
+    Attempts to authenticate the user with the LDAP database
+    
+    Returns the user on success or None on failure
     """
-    conn = get_ldap_connector(request)
-    return ( conn.authenticate(userid, password) is not None )
+    # Build the DN
+    user_dn = 'CN={uid},{base}'.format(uid = userid,
+                                       base = request.registry.settings['ldap.user_base'])
+    if request.ldap_authenticate(user_dn, password):
+        return find_by_userid(request, userid)
+    else:
+        return None
 
 
 @functools.lru_cache(maxsize = 32)
-def orgs_for_user(userid, request):
+def find_by_userid(request, userid):
     """
-    Returns the organisations that the user with the given user id belongs to
+    Returns the user with the given userid, or None if the userid does not exist
+    """
+    def to_user(entry):
+        return User(
+            entry.cn.value,
+            entry.sn.value,
+            entry.mail.value,
+            entry.sshPublicKey.value,
+            orgs_for_userid(request, entry.uid.value)
+        )
     
-    The results are cached for the duration of the request
+    q = jldap.Query(request.ldap_connection,
+                    request.registry.settings['ldap.user_base'],
+                    f('cn={userid}', userid = userid),
+                    transform = to_user)
+    return next(iter(q), None)
+
+
+def _entry_to_org(request, entry):
     """
-    conn = get_ldap_connector(request)
-    pattern = re.compile(request.registry.settings['ldap.group_pattern'])
-    groups = ( parse_dn(dn).pop(0)[1].lower() for dn, _ in conn.user_groups(userid) )
-    matches = ( pattern.match(g) for g in groups )
-    return [ m.group('org') for m in matches if m ]
+    Converts an ldap3 entry object to an organisation object
+    """
+    suffix = request.registry.settings['ldap.group_suffix']
+    # Use a generator expression for the members so it is not evaluated until
+    # they are required
+    return Organisation(
+        entry.cn.value.lower().replace(suffix, ''),
+        ( find_by_userid(request, uid) for uid in entry.memberUid.values )
+    )
+
+
+@functools.lru_cache(maxsize = 32)
+def org_from_name(request, name):
+    """
+    Returns the organisation with the given name, or None if none exists
+    """
+    # Build the filter
+    suffix = request.registry.settings['ldap.group_suffix']
+    filter = f('objectClass=posixGroup') &                           \
+               f('cn={name}{suffix}', name = name, suffix = suffix)
+    q = jldap.Query(request.ldap_connection,
+                    request.registry.settings['ldap.group_base'],
+                    filter,
+                    transform = lambda e: _entry_to_org(request, e))
+    return next(iter(q), None)
+    
+
+@functools.lru_cache(maxsize = 32)
+def orgs_for_userid(request, userid):
+    """
+    Returns an iterable of the organisations for the userid
+    """
+    # Build the filter
+    suffix = request.registry.settings['ldap.group_suffix']
+    filter = f('objectClass=posixGroup') &           \
+               f('cn=*{suffix}', suffix = suffix) &  \
+               f('memberUid={uid}', uid = userid)
+    return jldap.Query(request.ldap_connection,
+                       request.registry.settings['ldap.group_base'],
+                       filter,
+                       transform = lambda e: _entry_to_org(request, e))
+    
