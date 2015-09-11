@@ -352,7 +352,8 @@ def new_machine(request):
             'image'       : image,
             'name'        : '',
             'description' : '',
-            'ssh_key'     : '',
+            # Use the current user's SSH key as the default
+            'ssh_key'     : request.authenticated_user.ssh_key or '',
         }
     except cloudservices.AuthenticationError:
         raise HTTPUnauthorized()
