@@ -129,6 +129,9 @@ def find_by_userid(request, userid):
         gn      = getattrs(entry, ['gn', 'value'], None)
         mail    = getattrs(entry, ['mail', 'value'], None)
         ssh_key = getattrs(entry, ['sshPublicKey', 'value'], None)
+        # Remove any funny trailing whitespace characters
+        if ssh_key:
+            ssh_key = ssh_key.strip()
         return User(cn, gn, sn, mail, ssh_key, orgs_for_userid(request, uid))
     
     q = jldap.Query(request.ldap_connection,
