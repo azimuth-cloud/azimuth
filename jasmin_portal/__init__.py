@@ -57,10 +57,11 @@ def main(global_config, **settings):
     config.add_route('login',  '/login')
     config.add_route('logout', '/logout')
     
-    # Dashboard route
+    # User-specific routes
     config.add_route('dashboard', '/dashboard')
+    config.add_route('profile', '/profile')
     
-    # All other routes are org-specific
+    # Org-specific routes
     config.add_route('org_home',       '/{org}')
     config.add_route('catalogue',      '/{org}/catalogue')
     config.add_route('machines',       '/{org}/machines')

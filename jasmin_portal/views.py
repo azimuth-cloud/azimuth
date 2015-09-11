@@ -140,6 +140,14 @@ def logout(request):
                         headers = forget(request))
     
     
+@view_config(route_name = 'profile',
+             request_method = 'GET',
+             renderer = 'templates/profile.jinja2', permission = 'view')
+def profile(request):
+    request.session.flash('Profile is currently read-only', 'info')
+    return { 'user' : request.authenticated_user }
+    
+    
 @view_config(route_name = 'dashboard',
              request_method = 'GET',
              renderer = 'templates/dashboard.jinja2', permission = 'view')

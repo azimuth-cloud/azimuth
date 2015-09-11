@@ -8,12 +8,13 @@ __author__ = "Matt Pryor"
 __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
 
-import functools, re, collections
+import functools, collections
 
 from pyramid import events
 
 from jasmin_portal import ldap as jldap
 from jasmin_portal.ldap import Filter as f
+from jasmin_portal.util import getattrs, DeferredIterable
 
 
 def setup(config, settings):
@@ -77,7 +78,7 @@ def setup(config, settings):
 
 
 class User(collections.namedtuple(
-            'UserAttrs', ['userid', 'name', 'email', 'ssh_public_key', 'organisations'])):
+            'User', ['userid', 'first_name', 'surname', 'email', 'ssh_key', 'organisations'])):
     """
     Represents a user in the system
     """
@@ -86,6 +87,13 @@ class User(collections.namedtuple(
         Returns True if the user belongs to the org, False otherwise
         """
         return any(o.name == org.name for o in self.organisations)
+    
+    @property
+    def full_name(self):
+        """
+        Returns the full name of the user
+        """
+        return '{} {}'.format(self.first_name or '', self.surname or '').strip()
     
     
 Organisation = collections.namedtuple('Organisation', ['name', 'members'])
@@ -113,13 +121,15 @@ def find_by_userid(request, userid):
     Returns the user with the given userid, or None if the userid does not exist
     """
     def to_user(entry):
-        return User(
-            entry.cn.value,
-            entry.sn.value,
-            entry.mail.value,
-            entry.sshPublicKey.value,
-            orgs_for_userid(request, entry.uid.value)
-        )
+        # Due to the object classes used for users, cn, sn and uid are guaranteed to exist
+        cn  = entry.cn.value
+        sn  = entry.sn.value
+        uid = entry.uid.value
+        # gn, mail and sshPublicKey may or may not exist
+        gn      = getattrs(entry, ['gn', 'value'], None)
+        mail    = getattrs(entry, ['mail', 'value'], None)
+        ssh_key = getattrs(entry, ['sshPublicKey', 'value'], None)
+        return User(cn, gn, sn, mail, ssh_key, orgs_for_userid(request, uid))
     
     q = jldap.Query(request.ldap_connection,
                     request.registry.settings['ldap.user_base'],
@@ -133,11 +143,13 @@ def _entry_to_org(request, entry):
     Converts an ldap3 entry object to an organisation object
     """
     suffix = request.registry.settings['ldap.group_suffix']
+    # memberUid is not guaranteed to exist by the posixGroup schema (cn is)
+    member_uids = getattrs(entry, ['memberUid', 'values'], [])
     # Use a generator expression for the members so it is not evaluated until
     # they are required
     return Organisation(
         entry.cn.value.lower().replace(suffix, ''),
-        ( find_by_userid(request, uid) for uid in entry.memberUid.values )
+        DeferredIterable(lambda: [find_by_userid(request, uid) for uid in member_uids])
     )
 
 

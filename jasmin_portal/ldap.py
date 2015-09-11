@@ -129,7 +129,7 @@ class Query(Iterable):
         """
         self._conn.search(self._base_dn, str(self._filter),
                           search_scope = self._scope, attributes = self._attrs)
-        self._results = self._conn.entries
+        self._results = self._conn.entries or []
         return self
     
     def __iter__(self):

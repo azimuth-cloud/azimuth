@@ -67,6 +67,7 @@
                                         {%- endfor %}
                                         <li role="separator" class="divider"></li>
                                         <li><a href="{{ request.route_url('dashboard') }}"><i class="fa fa-dashboard fa-fw"></i> Dashboard</a></li>
+                                        <li><a href="{{ request.route_url('profile') }}"><i class="fa fa-user fa-fw"></i> Profile</a></li>
                                         <li><a href="{{ request.route_url('logout') }}"><i class="fa fa-sign-out fa-fw"></i> Sign out</a></li>
                                     </ul>
                                 </li>
@@ -89,7 +90,7 @@
                     <h1 class="page-header">{{ self.pagetitle() }}</h1>
                 </div>
                 
-                {%- if request.session.peek_flash('success') or request.session.peek_flash('error') %}
+                {%- if request.session.peek_flash('info') or request.session.peek_flash('success') or request.session.peek_flash('error') %}
                     <div class="row">
                         <div class="col-md-6 col-md-offset-3">
                             {%- for message in request.session.pop_flash('success') %}
@@ -102,6 +103,12 @@
                                 <div class="alert alert-danger alert-dismissible" role="alert">
                                     <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                                     <i class="fa fa-exclamation-circle"></i> <span>{{ message }}</span>
+                                </div>
+                            {%- endfor %}
+                            {%- for message in request.session.pop_flash('info') %}
+                                <div class="alert alert-info alert-dismissible" role="alert">
+                                    <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                                    <i class="fa fa-info-circle"></i> <span>{{ message }}</span>
                                 </div>
                             {%- endfor %}
                         </div>
