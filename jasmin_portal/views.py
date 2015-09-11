@@ -14,7 +14,7 @@ from pyramid.httpexceptions import (
     HTTPSeeOther, HTTPNotFound, HTTPUnauthorized, HTTPForbidden, HTTPBadRequest
 )
 
-from jasmin_portal.identity import authenticate_user, orgs_for_user
+from jasmin_portal.identity import authenticate_user, find_by_userid
 from jasmin_portal import cloudservices
 from jasmin_portal.cloudservices.vcloud import VCloudProvider
 
@@ -32,9 +32,9 @@ def forbidden(request):
     on the dashboard
     If the user is not logged in, show the error on the login page
     """
-    if request.current_userid:
+    if request.authenticated_user:
         request.session.flash('Insufficient permissions to access resource', 'error')
-        if request.current_org in request.available_orgs:
+        if request.authenticated_user.belongs_to(request.current_org):
             return HTTPSeeOther(location = request.route_path('machines'))
         else:
             return HTTPSeeOther(location = request.route_path('dashboard'))
@@ -57,8 +57,8 @@ def notfound(request):
     If the user is not logged in, show the error on the login page
     """
     request.session.flash('Resource not found', 'error')
-    if request.current_userid:
-        if request.current_org in request.available_orgs:
+    if request.authenticated_user:
+        if request.authenticated_user.belongs_to(request.current_org):
             return HTTPSeeOther(location = request.route_path('machines'))
         else:
             return HTTPSeeOther(location = request.route_path('dashboard'))
@@ -76,7 +76,7 @@ def home(request):
     If the user is logged in, this redirects to /dashboard
     If the user is not logged in, this shows a splash page
     """
-    if request.current_userid:
+    if request.authenticated_user:
         return HTTPSeeOther(location = request.route_url('dashboard'))
     return {}
 
@@ -104,13 +104,14 @@ def login(request):
         # Try to authenticate the user
         username = request.params['username']
         password = request.params['password']
-        if authenticate_user(request, username, password):
+        user = authenticate_user(request, username, password)
+        if user:
             # Try to create a session for each of the user's orgs
             # If any of them fail, bail with the error message
             try:
                 provider = VCloudProvider(request.registry.settings['vcloud.endpoint'])
-                for org in orgs_for_user(username, request):
-                    session = provider.new_session('{}@{}'.format(username, org), password)
+                for org in user.organisations:
+                    session = provider.new_session('{}@{}'.format(user.userid, org.name), password)
                     request.add_cloud_session(org, session)
             except cloudservices.CloudServiceError as e:
                 request.clear_cloud_sessions()
@@ -139,6 +140,14 @@ def logout(request):
                         headers = forget(request))
     
     
+@view_config(route_name = 'profile',
+             request_method = 'GET',
+             renderer = 'templates/profile.jinja2', permission = 'view')
+def profile(request):
+    request.session.flash('Profile is currently read-only', 'info')
+    return { 'user' : request.authenticated_user }
+    
+    
 @view_config(route_name = 'dashboard',
              request_method = 'GET',
              renderer = 'templates/dashboard.jinja2', permission = 'view')
@@ -156,7 +165,7 @@ def dashboard(request):
         count_machines = lambda o: request.get_cloud_session(o).count_machines()
         return {
             'machine_counts' : {
-                o : count_machines(o) for o in request.available_orgs
+                o.name : count_machines(o) for o in request.authenticated_user.organisations
             }
         }
     # Convert some of the cloud service errors to appropriate HTTP errors
@@ -343,7 +352,8 @@ def new_machine(request):
             'image'       : image,
             'name'        : '',
             'description' : '',
-            'ssh_key'     : '',
+            # Use the current user's SSH key as the default
+            'ssh_key'     : request.authenticated_user.ssh_key or '',
         }
     except cloudservices.AuthenticationError:
         raise HTTPUnauthorized()

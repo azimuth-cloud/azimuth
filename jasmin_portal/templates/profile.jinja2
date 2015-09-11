@@ -1,0 +1,34 @@
+{% extends "templates/layout.jinja2" %}
+
+{% block pagetitle %}Profile information{% endblock %}
+
+{% block content %}
+<div class="col-md-8 col-md-offset-2 form-horizontal">
+    <div class="form-group">
+        <label class="col-sm-3 control-label">Username</label>
+        <div class="col-sm-9">
+            <p class="form-control-static"><code>{{ user.userid }}</code></p>
+        </div>
+    </div>
+    <div class="form-group">
+        <label class="col-sm-3 control-label">Email</label>
+        <div class="col-sm-9">
+            <p class="form-control-static"><code>{{ user.email }}</code></p>
+        </div>
+    </div>
+    <div class="form-group">
+        <label class="col-sm-3 control-label">Name</label>
+        <div class="col-sm-9">
+            <p class="form-control-static">{{ user.full_name }}</p>
+        </div>
+    </div>
+    <div class="form-group">
+        <label class="col-sm-3 control-label">SSH Public Key</label>
+        <div class="col-sm-9">
+            <!-- We use an inline style here since the behaviour we want really IS specific to this element -->
+            <p class="form-control-static" style="word-wrap: break-word;"><code>{{ user.ssh_key }}</code></p>
+            <span class="help-block">This will be the default SSH key for the <code>root</code> user of any machines you provision.</span>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -29,7 +29,7 @@ ldap.bind_dn = CN=someuser,OU=Users,DC=example,DC=com
 ldap.bind_pass = P@s5w0rd
 ldap.user_base = OU=Users,DC=example,DC=com
 ldap.group_base = OU=Groups,DC=example,DC=com
-ldap.group_pattern = (?P<org>.*)_vcloud-admins
+ldap.group_suffix = _vcloud-admins
 
 # Secrets
 session.secret = asecret

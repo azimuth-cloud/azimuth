@@ -25,11 +25,11 @@ def setup(config, settings):
     def add_cloud_session(request, org, session):
         # Adds the given cloud session to the Pyramid session, associated with
         # the given org
-        _store(request)[org] = session
+        _store(request)[org.name] = session
         
     def get_cloud_session(request, org):
         # Returns the cloud session associated with the org, or None if none exists
-        return _store(request).get(org, None)
+        return _store(request).get(org.name, None)
     
     def clear_cloud_sessions(request):
         # Closes and clears all cloud sessions associated with the current
