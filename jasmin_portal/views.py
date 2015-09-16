@@ -14,7 +14,8 @@ from pyramid.httpexceptions import (
     HTTPSeeOther, HTTPNotFound, HTTPUnauthorized, HTTPForbidden, HTTPBadRequest
 )
 
-from jasmin_portal.identity import authenticate_user, find_by_userid
+from jasmin_portal.identity import authenticate_user
+from jasmin_portal import catalogue as cat
 from jasmin_portal import cloudservices
 from jasmin_portal.cloudservices.vcloud import VCloudProvider
 
@@ -203,20 +204,10 @@ def catalogue(request):
     
     Shows the catalogue items available to the org
     """
-    # Get the catalogue items from cloud session, then overwrite with values from the
-    # config file where present
-    # Items from cloud catalogues have no NAT or firewall rules applied unless
-    # overridden in the catalogue file
+    # Get the available catalogue items
     items = []
     try:
-        items = request.active_cloud_session.list_images()
-        # Get items in the same format as the catalogue file
-        items = ({
-            'uuid'          : i.id,
-            'name'          : i.name,
-            'description'   : i.description,
-            'allow_inbound' : False
-        } for i in items)
+        items = cat.available_catalogue_items(request)
     # Convert some of the cloud service errors to appropriate HTTP errors
     except cloudservices.AuthenticationError:
         raise HTTPUnauthorized()
@@ -226,12 +217,7 @@ def catalogue(request):
         raise HTTPNotFound()
     except cloudservices.CloudServiceError as e:
         request.session.flash(str(e), 'error')
-    if items:
-        with open(request.registry.settings['catalogue.file']) as f:
-            overrides = json.load(f)
-    return {
-        'items' : [overrides[i['uuid']] if i['uuid'] in overrides else i for i in items]
-    }
+    return { 'items' : items }
 
 
 @view_config(route_name = 'machines',
@@ -281,20 +267,10 @@ def new_machine(request):
     """
     try:
         image_id = request.matchdict['id']
-        # Try to load the image data from the JSON file
-        with open(request.registry.settings['catalogue.file']) as f:
-            items = json.load(f)
-        if image_id in items:
-            image = items[image_id]
-        else:
-            # If that fails, get the image data from the cloud service in the same format
-            image = request.active_cloud_session.get_image(image_id)
-            image = {
-                'uuid'          : image.id,
-                'name'          : image.name,
-                'description'   : image.description,
-                'allow_inbound' : False,
-            }
+        # Try to load the catalogue item
+        image = cat.find_by_uuid(request, image_id)
+        if not image:
+            raise HTTPNotFound()
         # If we have a POST request, try and provision a machine with the info
         if request.method == 'POST':
             # For a POST request, the request must pass a CSRF test
@@ -339,7 +315,7 @@ def new_machine(request):
                 request.session.flash('Provisioning error: {}'.format(str(e)), 'error')
                 return machine_info
             # Now see if we need to apply NAT and firewall rules
-            if image['allow_inbound']:
+            if image.allow_inbound:
                 try:
                     machine = request.active_cloud_session.expose(machine.id)
                     request.session.flash('Inbound access from internet enabled', 'success')

@@ -18,8 +18,11 @@ requires = [
     'pyramid_debugtoolbar',
     'pyramid_jinja2',
     'jinja2',
-    'pyramid_ldap3',
     'ldap3',
+    'pyramid_sqlalchemy',
+    'sqlalchemy',
+    'psycopg2',
+    'transaction',
     'requests',
 ]
 
