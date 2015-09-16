@@ -4,13 +4,13 @@ Catalogue management functionality for the JASMIN cloud portal
 Uses a combination of cloud services and an SQL database for management of catalogue
 items and metadata
 """
-from sqlalchemy.orm.exc import NoResultFound
 
 __author__ = "Matt Pryor"
 __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
 
 from sqlalchemy import Column, String, Text, Boolean
+from sqlalchemy.orm.exc import NoResultFound
 from pyramid_sqlalchemy import BaseObject, Session, metadata
 
 
