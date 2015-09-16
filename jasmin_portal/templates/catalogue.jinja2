@@ -28,6 +28,8 @@
     {%- if ( loop.index0 % 4 ) == 3 or loop.last  %}
     </div>
     {%- endif %}
+{%- else %}
+    <div class="col-md-12">No catalogue items available.</div>
 {%- endfor %}
 </div>
 {% endblock %}

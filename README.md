@@ -5,7 +5,8 @@ Web portal for administration of organisations in the JASMIN Scientific Cloud.
 
 ## Requirements
 
-The reference platform is a fully patched CentOS 6.x installation with Python 3.3.
+The reference platform is a fully patched CentOS 6.x installation with Python 3.3
+and PostgreSQL.
 
 The reason we use Python 3.3 is that it is the latest version for which a `mod_wsgi`
 package currently exists in the IUS Community repository.
@@ -15,6 +16,15 @@ To install Python 3.3 in CentOS 6.x, the following can be used:
 ```sh
 sudo yum install https://dl.iuscommunity.org/pub/ius/stable/CentOS/6/x86_64/ius-release-1.0-14.ius.centos6.noarch.rpm
 sudo yum install python33 python33-devel
+```
+
+To install and configure PostgreSQL, use the following:
+
+```sh
+sudo yum install postgresql postgresql-devel postgresql-server
+sudo service postgresql initdb
+sudo chkconfig postgresql on
+sudo service postgresql start
 ```
     
 
@@ -68,15 +78,20 @@ git clone https://github.com/cedadev/eos-portal.git jasmin-portal
 $PYENV/bin/pip install -e jasmin-portal
 ```
 
-To run the portal, you first need to copy `application.ini.example` to `application.ini`
-and adjust the settings for your platform (see
-http://docs.pylonsproject.org/docs/pyramid/en/1.5-branch/narr/environment.html).
+Next, create a PostgreSQL database that is accessible by the user that you are
+doing your development with:
 
-You also need to copy `catalogue.json.example` to `catalogue.json` and populate it with
-information for the catalogue items in your vCloud Director instance. You should then point
-to this file in `application.ini`. If a catalogue item is in vCloud Director but not in
-`catalogue.json`, you can still deploy a VM from it, but the portal will never attempt
-to apply any NAT or firewall rules for the machine.
+```sh
+sudo -Hi -u postgres createuser -DRS -w $USER
+sudo -Hi -u postgres createdb -E UTF8 -O $USER -w jasminportal
+```
+
+This database should be populated with information for the catalogue items in your
+vCloud Director instance.
+
+Then copy `application.ini.example` to `application.ini` and adjust the settings
+for your platform (see
+http://docs.pylonsproject.org/docs/pyramid/en/1.5-branch/narr/environment.html).
 
 You can then launch the portal using a development server. The following two lines are
 equivalent, but the latter has the advantage that it can be used as a debug configuration

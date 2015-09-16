@@ -12,7 +12,7 @@ from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
 
 from jasmin_portal.auth import RootFactory, check_cloud_sessions
-from jasmin_portal import identity, cloud
+from jasmin_portal import identity, catalogue, cloud
 
 
 def main(global_config, **settings):
@@ -28,6 +28,9 @@ def main(global_config, **settings):
     # We want to use Jinja2 templates
     config.include('pyramid_jinja2')
     
+    # We want to use SQLAlchemy
+    config.include('pyramid_sqlalchemy')
+    
     ###############################################################################################
     ## Define the security configuration
     ###############################################################################################
@@ -40,9 +43,10 @@ def main(global_config, **settings):
     config.set_root_factory(RootFactory)
     
     
-    # Set up the identity management and cloud integration
+    # Set up the integration for the portal services
     config = identity.setup(config, settings)
     config = cloud.setup(config, settings)
+    config = catalogue.setup(config, settings)
     
     
     ###############################################################################################
