@@ -131,8 +131,7 @@ class VCloudProvider(Provider):
             # Get an auth token for the session
             res = check_response(requests.post(
                 '{}/sessions'.format(self.__endpoint),
-                auth = (username, password), headers = _REQUIRED_HEADERS,
-                verify = False
+                auth = (username, password), headers = _REQUIRED_HEADERS
             ))
         except requests.exceptions.RequestException:
             raise ProviderConnectionError('Could not connect to provider')
@@ -213,7 +212,7 @@ fi
         # Since we don't configure requests to throw HTTP exceptions (we deal
         # with status codes instead), if we see an exception it is a problem
         try:
-            return check_response(func(path, *args, verify = False, **kwargs))
+            return check_response(func(path, *args, **kwargs))
         except requests.exceptions.RequestException:
             raise ProviderConnectionError('Could not connect to provider')
     
