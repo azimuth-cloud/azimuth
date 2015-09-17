@@ -1,11 +1,11 @@
 """
-Pyramid view callables for the JASMIN cloud portal
+This module contains Pyramid view callables for the JASMIN cloud portal.
 """
 
 __author__ = "Matt Pryor"
 __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
-import os, tempfile, subprocess, json, re
+import os, tempfile, subprocess, re
 
 from pyramid.view import view_config, forbidden_view_config, notfound_view_config
 from pyramid.security import remember, forget
@@ -23,15 +23,15 @@ from jasmin_portal.cloudservices.vcloud import VCloudProvider
 @forbidden_view_config()
 def forbidden(request):
     """
-    Handler for 403 forbidden errors
+    Handler for 403 forbidden errors.
     
-    We want to show a suitable error on the most specific page we can
+    Show a suitable error on the most specific page possible:
     
-    If the user is logged in and are a member of the current org, show the error
-    on the machines page
-    If the user is logged in but NOT a member of the current org, show the error
-    on the dashboard
-    If the user is not logged in, show the error on the login page
+      * If the user is logged in and are a member of the current org, show the error
+        on the machines page
+      * If the user is logged in but *not* a member of the current org, show the
+        error on the dashboard
+      * If the user is not logged in, show the error on the login page
     """
     if request.authenticated_user:
         request.session.flash('Insufficient permissions to access resource', 'error')
@@ -47,15 +47,15 @@ def forbidden(request):
 @notfound_view_config()
 def notfound(request):
     """
-    Handler for 404 not found errors
+    Handler for 404 not found errors.
     
-    We want to show a suitable error on the most specific page we can
+    Show a suitable error on the most specific page possible:
     
-    If the user is logged in and are a member of the current org, show the error
-    on the machines page
-    If the user is logged in but NOT a member of the current org, show the error
-    on the dashboard
-    If the user is not logged in, show the error on the login page
+      * If the user is logged in and are a member of the current org, show the error
+        on the machines page
+      * If the user is logged in but *not* a member of the current org, show the
+        error on the dashboard
+      * If the user is not logged in, show the error on the login page
     """
     request.session.flash('Resource not found', 'error')
     if request.authenticated_user:
@@ -72,10 +72,9 @@ def notfound(request):
              renderer = 'templates/home.jinja2')
 def home(request):
     """
-    Handler for /
+    Handler for GET requests to ``/``.
     
-    If the user is logged in, this redirects to /dashboard
-    If the user is not logged in, this shows a splash page
+    If the user is logged in, redirect to the dashboard, otherwise show a splash page.
     """
     if request.authenticated_user:
         return HTTPSeeOther(location = request.route_url('dashboard'))
@@ -87,17 +86,20 @@ def home(request):
              renderer = 'templates/login.jinja2')
 def login(request):
     """
-    Handler for /login
+    Handler for ``/login``.
     
-    GET:
-        Show a login form
+    GET request
+        Show a login form.
         
-    POST:
-        Attempt to authenticate the user
-        If authentication is successful, try to start a vCD session for each org
-        Login is only considered successful if we can get a session for every org
-        Redirect to /dashboard on success
-        Show login form with error on failure
+    POST request
+        Attempt to authenticate the user.
+        
+        If authentication is successful, try to start a vCloud Director session
+        for each organisation that the user belongs to. Login is only considered
+        successful if we successfully obtain a session for every organisation.
+        
+        Redirect to the dashboard on success, otherwise show the login form with
+        errors.
     """
     if request.method == 'POST':
         # When we get a POST request, clear any existing cloud sessions
@@ -130,10 +132,9 @@ def login(request):
 @view_config(route_name = 'logout')
 def logout(request):
     """
-    Handler for /logout
+    Handler for ``/logout``.
     
-    If the user is logged in, forget them
-    Redirect to /
+    If the user is logged in, forget them and redirect to splash page.
     """
     request.clear_cloud_sessions()
     request.session.flash('Logged out successfully', 'success')
@@ -145,6 +146,13 @@ def logout(request):
              request_method = 'GET',
              renderer = 'templates/profile.jinja2', permission = 'view')
 def profile(request):
+    """
+    Handler for GET requests to ``/profile``.
+    
+    The user must be authenticated to reach here.
+    
+    Show the profile information for the authenticated user.
+    """
     request.session.flash('Profile is currently read-only', 'info')
     return { 'user' : request.authenticated_user }
     
@@ -154,12 +162,13 @@ def profile(request):
              renderer = 'templates/dashboard.jinja2', permission = 'view')
 def dashboard(request):
     """
-    Handler for /dashboard
+    Handler for GET requests to ``/dashboard``.
     
     The user must be authenticated to reach here, which means that there should be
-    a session for each available org
+    a cloud session for each organisation that the user belongs to.
     
-    The dashboard will render a list of available orgs with number of machines
+    Shows a list of organisations available to the user with the number of
+    machines in each.
     """
     # Pass the per-org counts to the template
     try:
@@ -184,11 +193,11 @@ def dashboard(request):
 @view_config(route_name = 'org_home', request_method = 'GET', permission = 'org_view')
 def org_home(request):
     """
-    Handler for /{org}
+    Handler for GET requests to ``/{org}``.
     
-    Users must be authenticated for the org to get to here
+    The user must be authenticated for the organisation in the URL to reach here.
     
-    Just redirect to /{org}/machines
+    Just redirect the user to ``/{org}/machines``.
     """
     return HTTPSeeOther(location = request.route_url('machines'))
 
@@ -198,11 +207,11 @@ def org_home(request):
              renderer = 'templates/catalogue.jinja2', permission = 'org_view')
 def catalogue(request):
     """
-    Handler for /{org}/catalogue
+    Handler for GET requests to ``/{org}/catalogue``.
     
-    User must be authenticated for org to reach here
+    The user must be authenticated for the organisation in the URL to reach here.
     
-    Shows the catalogue items available to the org
+    Show the catalogue items available to the organisation in the URL.
     """
     # Get the available catalogue items
     items = []
@@ -225,11 +234,11 @@ def catalogue(request):
              renderer = 'templates/machines.jinja2', permission = 'org_view')
 def machines(request):
     """
-    Handler for /{org}/machines
+    Handler for GET requests to ``/{org}/machines``.
     
-    User must be authenticated for org to reach here
+    The user must be authenticated for the organisation in the URL to reach here.
     
-    Shows the machines available to the org
+    Show the machines available to the organisation in the URL.
     """
     machines = []
     try:
@@ -251,19 +260,25 @@ def machines(request):
              renderer = 'templates/new_machine.jinja2', permission = 'org_edit')
 def new_machine(request):
     """
-    Handler for /{org}/machine/new/{id}
+    Handler for ``/{org}/machine/new/{id}``.
     
-    User must be authenticated for org to reach here
+    The user must be authenticated for the organisation in the URL to reach here.
     
-    {id} is the id of the template to use
+    ``{id}`` is the uuid of the catalogue item to use for the new machine.
     
-    GET: Shows a form to gather information required for provisioning
+    GET request
+        Show a form to gather information required for provisioning.
          
-    POST: Attempts to provision a machine with the given details
-          If the provisioning is successful, redirect to machines with a success message
-          If the provisioning is successful but NATing fails, redirect to machines
-          with an error message
-          If the provisioning fails, show form with error message
+    POST request
+        Attempt to provision a machine with the given details.
+        
+        If the provisioning is successful, redirect the user to ``/{org}/machines``
+        with a success message.
+        
+        If the provisioning is successful but NATing fails, redirect the user to
+        ``/{org}/machines`` with an error message.
+        
+        If the provisioning fails completely, show the form with an error message.
     """
     try:
         image_id = request.matchdict['id']
@@ -346,12 +361,12 @@ def new_machine(request):
              request_method = 'POST', permission = 'org_edit')
 def machine_action(request):
     """
-    Handler for /{org}/machine/{id}/action
+    Handler for POST requests to ``/{org}/machine/{id}/action``.
     
-    User must be authenticated for org to reach here
+    The user must be authenticated for the organisation in the URL to reach here.
     
-    Attempt to perform the specified action
-    Redirect to machines with a suitable success or failure message
+    Attempt to perform the specified action and redirect to ``/{org}/machines``
+    with a suitable success or failure message.
     """
     # Request must pass a CSRF test
     check_csrf_token(request)

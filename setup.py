@@ -1,16 +1,26 @@
 #!/usr/bin/env python3
 
-import os
+import os, re
 
 from setuptools import setup, find_packages
 
 here = os.path.abspath(os.path.dirname(__file__))
+
+try:
+    import jasmin_portal.__version__ as version
+except ImportError:
+    # If we get an import error, find the version string manually from
+    # jasmin_portal/__init__.py
+    version = "unknown"
+    with open(os.path.join(here, 'jasmin_portal', '__init__.py')) as f:
+        for line in f:
+            match = re.search('__version__ *= *[\'"](?P<version>.+)[\'"]', line)
+            if match:
+                version = match.group('version')
+                break
+
 with open(os.path.join(here, 'README.md')) as f:
     README = f.read()
-with open(os.path.join(here, 'CHANGES.md')) as f:
-    CHANGES = f.read()
-with open(os.path.join(here, 'VERSION')) as f:
-    VERSION = f.read().split()[0]
 
 requires = [
     'enum34',
@@ -24,15 +34,17 @@ requires = [
     'psycopg2',
     'transaction',
     'requests',
+    # Required for docs
+    'sphinx',
 ]
 
 if __name__ == "__main__":
 
     setup(
         name = 'jasmin_portal',
-        version = VERSION,
+        version = version,
         description = 'jasmin_portal',
-        long_description = README + '\n\n' + CHANGES,
+        long_description = README,
         classifiers = [
             "Programming Language :: Python",
             "Framework :: Pyramid",

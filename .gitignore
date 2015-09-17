@@ -15,6 +15,10 @@ dist/
 *.swp
 .coverage
 htmlcov
+.project
+.pydevproject
+.settings
+doc/_build
 application.ini
 development.ini
 production.ini
