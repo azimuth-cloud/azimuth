@@ -109,6 +109,18 @@ anything other than development. However, because it is single-threaded, it can 
 debugger.
 
 
+## Generating the API documentation
+
+Once you have successfully installed the JASMIN portal code, you can generate and
+view the API documentation:
+
+```sh
+cd doc
+make clean html SPHINXBUILD=$PYENV/bin/sphinx-build
+firefox _build/html/index.html
+```
+
+
 ## Running the tests
 
 To run the integration tests for the vCloud Director client, first copy `jasmin_portal/test/vcd_settings.py.example`

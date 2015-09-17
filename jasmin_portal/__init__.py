@@ -1,23 +1,28 @@
 """
-WSGI app definition for the JASMIN cloud portal
+This is the main module for the JASMIN cloud portal. It contains a single function
+that creates a WSGI app for the portal.
+
+It is also possible to launch the portal using a development server by running
+this file and passing an ``application.ini`` file. This can be useful for creating
+an Eclipse Debug configuration.
 """
 
 __author__ = "Matt Pryor"
 __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
+__version__ = "0.1"
+
 
 from pyramid.config import Configurator
 from pyramid.session import SignedCookieSessionFactory
-from pyramid.authentication import AuthTktAuthenticationPolicy
-from pyramid.authorization import ACLAuthorizationPolicy
 
-from jasmin_portal.auth import RootFactory, check_cloud_sessions
-from jasmin_portal import identity, catalogue, cloud
+from jasmin_portal import auth, identity, catalogue, cloud
 
 
 def main(global_config, **settings):
     """
-    Builds and returns the portal WSGI application
+    `PasteDeploy app factory <http://pythonpaste.org/deploy/#paste-app-factory>`_
+    for the JASMIN portal.
     """
 
     config = Configurator(
@@ -31,27 +36,16 @@ def main(global_config, **settings):
     # We want to use SQLAlchemy
     config.include('pyramid_sqlalchemy')
     
-    ###############################################################################################
-    ## Define the security configuration
-    ###############################################################################################
-    # We want to use token based authentication, with a check on the cloud sessions
-    config.set_authentication_policy(AuthTktAuthenticationPolicy(
-        settings['auth.secret'], hashalg = 'sha512', callback = check_cloud_sessions
-    ))
-    # We use a basic ACL policy for authorisation
-    config.set_authorization_policy(ACLAuthorizationPolicy())
-    config.set_root_factory(RootFactory)
-    
-    
     # Set up the integration for the portal services
+    config = auth.setup(config, settings)
     config = identity.setup(config, settings)
     config = cloud.setup(config, settings)
     config = catalogue.setup(config, settings)
     
     
-    ###############################################################################################
+    ############################################################################
     ## Define routes
-    ###############################################################################################
+    ############################################################################
     # Define a pass-through route for static content with caching
     config.add_static_view(name = 'static', path = 'static', cache_max_age = 3600)
     

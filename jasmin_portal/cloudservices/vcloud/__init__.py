@@ -1,6 +1,6 @@
 """
 This module defines an implementation of the cloud services interfaces for the
-VMWare vCloud Director API vn5.5
+`VMWare vCloud Director 5.5 <http://pubs.vmware.com/vcd-55/index.jsp>`_ API.
 """
 
 __author__ = "Matt Pryor"
@@ -63,7 +63,7 @@ _escape_script = lambda s: s.replace(os.linesep, '&#13;').\
 ###############################################################################
 
 
-def check_response(res):
+def _check_response(res):
     """
     Checks a response from the vCD API, and throws a relevant exception if the
     status code is not 20x
@@ -118,20 +118,29 @@ def check_response(res):
 
 class VCloudProvider(Provider):
     """
-    Provider implementation for vCloud Director API vn5.5
+    :py:class:`jasmin_portal.cloudservices.Provider` implementation for the vCloud
+    Director 5.5 API.
+    
+    :param endpoint: The API endpoint
     """
     def __init__(self, endpoint):
         self.__endpoint = endpoint.rstrip('/')
         
     def new_session(self, username, password):
+        """
+        See :py:meth:`jasmin_portal.cloudservices.Provider.new_session`.
+        
+        Returns a :py:class:`VCloudSession`.
+        """
         # Convert exceptions from requests into cloud service connection errors
         # Since we don't configure requests to throw HTTP exceptions (we deal
         # with status codes instead), if we see an exception it is a problem
         try:
             # Get an auth token for the session
-            res = check_response(requests.post(
+            res = _check_response(requests.post(
                 '{}/sessions'.format(self.__endpoint),
-                auth = (username, password), headers = _REQUIRED_HEADERS
+                auth = (username, password), headers = _REQUIRED_HEADERS,
+                verify = False
             ))
         except requests.exceptions.RequestException:
             raise ProviderConnectionError('Could not connect to provider')
@@ -145,7 +154,10 @@ class VCloudProvider(Provider):
 
 class VCloudSession(Session):
     """
-    Session implementation using the vCloud Director API vn5.5
+    Session implementation for the vCloud Director 5.5 API.
+    
+    :param endpoint: The API endpoint
+    :param auth_token: An API authorisation token for the session
     """
     
     _GUEST_CUSTOMISATION = """#!/bin/sh
@@ -190,14 +202,17 @@ fi
                 
     def api_request(self, method, path, *args, **kwargs):
         """
-        Makes a request to the vCD API at the stored endpoint, injecting auth headers etc.,
-        and returns the response if it has a 20x status code
+        Makes a request to the vCloud Director API, injecting auth headers etc.,
+        and returns the response if it has a 20x status code.
         
-        If the status code is not 20x, a relevant exception is thrown
+        If the status code is not 20x, a relevant exception is thrown.
         
-        method is the HTTP method to use, and is case-insensitive
-        
-        path can be relative, in which case the endpoint is prepended, or fully-qualified
+        :param method: HTTP method to use (case-insensitive)
+        :param path: Path to request
+                     Can be relative (endpoint is prepended) or fully-qualified
+        :param \*args: Other positional arguments to be passed to ``requests``
+        :param \*\*kwargs: Other keyword arguments to be passed to ``requests``
+        :returns: The ``requests.Response``
         """
         # Deduce the path to use
         if not re.match(r'https?://', path):
@@ -212,17 +227,21 @@ fi
         # Since we don't configure requests to throw HTTP exceptions (we deal
         # with status codes instead), if we see an exception it is a problem
         try:
-            return check_response(func(path, *args, **kwargs))
+            return _check_response(func(path, *args, verify = False, **kwargs))
         except requests.exceptions.RequestException:
             raise ProviderConnectionError('Could not connect to provider')
     
     def wait_for_task(self, task_href, exception_cls = CloudServiceError):
-        """
-        Takes a response that contains a task and waits for it to complete
+        """wait_for_task(self, task_href, exception_cls = CloudServiceError)
+        
+        Takes the href of a task and waits for it to complete before returning.
         
         If the task fails to complete successfully, it throws an exception with
-        a suitable message
-        The exception constructor can be specified using the exception_cls argument
+        a suitable message. The exception constructor can be specified using the
+        ``exception_cls`` argument.
+        
+        :param task_href: The href of the task to wait for
+        :param exception_cls: The exception constructor to use when raising errors
         """
         # Loop until we have success or failure
         while True:
@@ -242,11 +261,17 @@ fi
             sleep(_POLL_INTERVAL)
             
     def poll(self):
+        """
+        See :py:meth:`jasmin_portal.cloudservices.Session.poll`.
+        """
         # Just hit an API endpoint that does nothing but report session info
         self.api_request('GET', 'session')
         return True
             
     def list_images(self):
+        """
+        See :py:meth:`jasmin_portal.cloudservices.Session.list_images`.
+        """
         # Get a list of uris of catalogs available to the user
         results = ET.fromstring(self.api_request('GET', 'catalogs/query').text)
         cat_refs = [result.attrib['href'] for result in results.findall('vcd:CatalogRecord', _NS)]
@@ -261,11 +286,17 @@ fi
         return images
     
     def count_machines(self):
+        """
+        See :py:meth:`jasmin_portal.cloudservices.Session.count_machines`.
+        """
         # We only need one API query to return this
         results = ET.fromstring(self.api_request('GET', 'vApps/query').text)
         return len(results.findall('vcd:VAppRecord', _NS))
         
     def list_machines(self):
+        """
+        See :py:meth:`jasmin_portal.cloudservices.Session.list_machines`.
+        """
         # This will return all the VMs available to the user
         results = ET.fromstring(self.api_request('GET', 'vApps/query').text)
         apps = results.findall('vcd:VAppRecord', _NS)
@@ -273,6 +304,9 @@ fi
         return [self.get_machine(id) for id in machine_ids]
         
     def get_image(self, image_id):
+        """
+        See :py:meth:`jasmin_portal.cloudservices.Session.get_image`.
+        """
         # Image IDs are catalog item ids
         item = ET.fromstring(self.api_request('GET', 'catalogItem/{}'.format(image_id)).text)
         name = item.attrib['name']
@@ -326,6 +360,9 @@ fi
             return None
         
     def get_machine(self, machine_id):
+        """
+        See :py:meth:`jasmin_portal.cloudservices.Session.get_machine`.
+        """
         app = ET.fromstring(self.api_request('GET', 'vApp/{}'.format(machine_id)).text)
         name = app.attrib['name']
         # Convert the integer status to one of the statuses in MachineStatus
@@ -351,29 +388,25 @@ fi
         external_ip = None
         # If there is no internal IP, don't even bother trying to find an external one...
         if internal_ip is not None:
-            # Try the primary NIC first, since it potentially avoids extra API calls
+            # Try to find a corresponding DNAT rule for an external IP
             try:
-                nic = self.__primary_nic_from_app(app)
-                external_ip = IPv4Address(nic.find('vcd:ExternalIpAddress', _NS).text)
+                gateway = self.__gateway_from_app(app)
+                nat_rules = gateway.findall('.//vcd:NatRule', _NS)
             except AttributeError:
-                pass
-            # If no external IP is set in the NIC, try to find a corresponding DNAT rule
-            if not external_ip:
-                try:
-                    gateway = self.__gateway_from_app(app)
-                    nat_rules = gateway.findall('.//vcd:NatRule', _NS)
-                except AttributeError:
-                    nat_rules = []
-                for rule in nat_rules:
-                    if rule.find('vcd:RuleType', _NS).text.upper() == 'DNAT':
-                        # Check if this rule applies to our IP
-                        translated = IPv4Address(rule.find('.//vcd:TranslatedIp', _NS).text)
-                        if translated == internal_ip:
-                            external_ip = IPv4Address(rule.find('.//vcd:OriginalIp', _NS).text)
-                            break
+                nat_rules = []
+            for rule in nat_rules:
+                if rule.find('vcd:RuleType', _NS).text.upper() == 'DNAT':
+                    # Check if this rule applies to our IP
+                    translated = IPv4Address(rule.find('.//vcd:TranslatedIp', _NS).text)
+                    if translated == internal_ip:
+                        external_ip = IPv4Address(rule.find('.//vcd:OriginalIp', _NS).text)
+                        break
         return Machine(machine_id, name, status, description, created, os, internal_ip, external_ip)
         
     def provision_machine(self, image_id, name, description, ssh_key):
+        """
+        See :py:meth:`jasmin_portal.cloudservices.Session.provision_machine`.
+        """
         # Image id is the id of a catalog item, so we need to get the vAppTemplate from there
         item = ET.fromstring(self.api_request('GET', 'catalogItem/{}'.format(image_id)).text)
         entity = item.find('.//vcd:Entity[@type="application/vnd.vmware.vcloud.vAppTemplate+xml"]', _NS)
@@ -455,6 +488,9 @@ fi
         return self.get_machine(app.attrib['href'].rstrip('/').split('/').pop())
             
     def expose(self, machine_id):
+        """
+        See :py:meth:`jasmin_portal.cloudservices.Session.expose`.
+        """
         # We need to access the edge device that the machine is connected to the internet via
         # To do this, we first get the machine details, then the vdc details
         app = ET.fromstring(self.api_request('GET', 'vApp/{}'.format(machine_id)).text)
@@ -543,6 +579,9 @@ fi
         return self.get_machine(machine_id)
     
     def unexpose(self, machine_id):
+        """
+        See :py:meth:`jasmin_portal.cloudservices.Session.unexpose`.
+        """
         # We need to access the edge device that the machine is connected to the internet via
         # To do this, we first get the machine details, then the vdc details
         app = ET.fromstring(self.api_request('GET', 'vApp/{}'.format(machine_id)).text)
@@ -622,24 +661,36 @@ fi
         return self.get_machine(machine_id)
         
     def start_machine(self, machine_id):
+        """
+        See :py:meth:`jasmin_portal.cloudservices.Session.start_machine`.
+        """
         task = ET.fromstring(self.api_request(
             'POST', 'vApp/{}/power/action/powerOn'.format(machine_id)
         ).text)
         self.wait_for_task(task.attrib['href'], PowerActionError)
         
     def stop_machine(self, machine_id):
+        """
+        See :py:meth:`jasmin_portal.cloudservices.Session.stop_machine`.
+        """
         task = ET.fromstring(self.api_request(
             'POST', 'vApp/{}/power/action/powerOff'.format(machine_id)
         ).text)
         self.wait_for_task(task.attrib['href'], PowerActionError)
         
     def restart_machine(self, machine_id):
+        """
+        See :py:meth:`jasmin_portal.cloudservices.Session.restart_machine`.
+        """
         task = ET.fromstring(self.api_request(
             'POST', 'vApp/{}/power/action/reset'.format(machine_id)
         ).text)
         self.wait_for_task(task.attrib['href'], PowerActionError)
         
     def destroy_machine(self, machine_id):
+        """
+        See :py:meth:`jasmin_portal.cloudservices.Session.destroy_machine`.
+        """
         payload = _ENV.get_template('UndeployVAppParams.xml').render()
         task = ET.fromstring(self.api_request(
             'POST', 'vApp/{}/action/undeploy'.format(machine_id), payload
@@ -647,6 +698,9 @@ fi
         self.wait_for_task(task.attrib['href'], PowerActionError)
         
     def delete_machine(self, machine_id):
+        """
+        See :py:meth:`jasmin_portal.cloudservices.Session.delete_machine`.
+        """
         # Before deleting a machine, we want to remove any exposure to the internet
         # If we don't, we risk exposing to the internet the next machine that picks
         # up the IP address from the pool
@@ -658,6 +712,9 @@ fi
         self.wait_for_task(task.attrib['href'], PowerActionError)
             
     def close(self):
+        """
+        See :py:meth:`jasmin_portal.cloudservices.Session.close`.
+        """
         if self.__session is None:
             # Already closed, so nothing to do
             return

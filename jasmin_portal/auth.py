@@ -1,22 +1,49 @@
 """
-Authentication and authorisation helpers for authenticating with vCloud Director
+This module contains helpers for the Pyramid authentication and authorisation systems.
 """
 
 __author__ = "Matt Pryor"
 __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
 
+from pyramid.authentication import AuthTktAuthenticationPolicy
+from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.security import Allow, Authenticated, DENY_ALL
+
+
+def setup(config, settings):
+    """
+    Configures the Pyramid application for authentication and authorization.
+    
+    :param config: Pyramid configurator
+    :param settings: Settings array passed to Pyramid main function
+    :returns: The updated configurator
+    """
+    # We want to use token based authentication, with a check on the cloud sessions
+    config.set_authentication_policy(AuthTktAuthenticationPolicy(
+        settings['auth.secret'], hashalg = 'sha512', callback = check_cloud_sessions
+    ))
+    # We use a basic ACL policy for authorisation
+    config.set_authorization_policy(ACLAuthorizationPolicy())
+    config.set_root_factory(RootFactory)
+    return config
 
 
 def check_cloud_sessions(userid, request):
     """
-    Group finder for the authentication policy
+    Group finder for use with the Pyramid ``AuthTktAuthenticationPolicy``.
     
-    Checks that there is an active cloud session for every org that the user
-    belongs to and returns the list of org names
+    Checks that there is an active cloud session for every organisation that the
+    logged-in user belongs to and returns the list of organisation names.
     
-    If there is an org without an active session, the user is not authenticated at all
+    If there is an organisation without an active session, the user is not
+    authenticated at all (i.e. if the cloud session for one organisation times out,
+    it is assumed that they have all timed out).
+    
+    :param userid: The user ID to authenticate for
+    :param request: The Pyramid request
+    :returns: A list of organisation names for which the user has access, or
+              ``None`` if the user is not authenticated
     """
     # Use the unauthenticated user, since this function is used in the calculation
     # of authenticated_userid
@@ -34,10 +61,11 @@ def check_cloud_sessions(userid, request):
 
 class RootFactory:
     """
-    Provides ACL for use with ACLAuthorizationPolicy
+    Provides the ACL for use with the Pyramid ``ACLAuthorizationPolicy``
     
-    ACL is dynamically generated to only allow access to members of the org in
-    the URI
+    The ACL is dynamically generated based on the current request only members
+    of the organisation in the URI are granted access to organisation-specific
+    pages.
     """
     
     def __init__(self, request):
