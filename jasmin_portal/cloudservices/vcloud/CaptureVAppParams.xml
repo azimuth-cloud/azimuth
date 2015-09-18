@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CaptureVAppParams xmlns="http://www.vmware.com/vcloud/v1.5"
+                   xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1"
+                   name="{{ image.name|e }}">
+    <Description>{{ image.description|e }}</Description>
+    <Source href="{{ image.source_href }}" 
+            type="application/vnd.vmware.vcloud.vApp+xml" />
+    <CustomizationSection>
+        <ovf:Info />
+        <CustomizeOnInstantiate>true</CustomizeOnInstantiate>
+    </CustomizationSection>
+</CaptureVAppParams>

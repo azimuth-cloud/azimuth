@@ -316,6 +316,48 @@ fi
         except AttributeError:
             pass
         return Image(image_id, name, description)
+        
+    def image_from_machine(self, machine_id, name, description):
+        """
+        See :py:meth:`jasmin_portal.cloudservices.Session.image_from_machine`.
+        """
+        # First, find the catalogue we will create the image in
+        # This is done by selecting the first catalogue from the org we are using
+        # First, we have to retrieve the org from the session
+        session = ET.fromstring(self.api_request('GET', 'session').text)
+        org_ref = session.find('.//vcd:Link[@type="application/vnd.vmware.vcloud.org+xml"]', _NS)
+        if org_ref is None:
+            raise ImageCreateError('Unable to find organisation for user')
+        org = ET.fromstring(self.api_request('GET', org_ref.attrib['href']).text)
+        # Then get the catalogue from the org
+        cat_ref = org.find('.//vcd:Link[@type="application/vnd.vmware.vcloud.catalog+xml"]', _NS)
+        if cat_ref is None:
+            raise ImageCreateError('Organisation has no catalogues with write access')
+        # Before we create the catalogue item, we must power down the machine
+        try:
+            self.destroy_machine(machine_id)
+        except InvalidActionError:
+            # If it is already powered down, great!
+            pass
+        # Send the request to create the catalogue item and wait for it to complete
+        source_href = '{}/vApp/{}'.format(self.__endpoint, machine_id)
+        payload = _ENV.get_template('CaptureVAppParams.xml').render({
+            'image': {
+                'name'        : name,
+                'description' : description,
+                'source_href' : source_href,
+            },
+        })
+        try:
+            task = ET.fromstring(self.api_request(
+                'POST', '{}/action/captureVApp'.format(cat_ref.attrib['href']), payload
+            ).text)
+        except ProviderUnavailableError:
+            # For some reason, vCD throws a 500 error when a template with the given
+            # name already exists
+            # So we have no choice but to assume it is a duplicate name error
+            raise DuplicateNameError('Name is already in use')
+        self.wait_for_task(task.attrib['href'], ImageCreateError)
     
     def __gateway_from_app(self, app):
         """

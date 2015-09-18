@@ -233,6 +233,17 @@ class Session(metaclass = abc.ABCMeta):
         """
         
     @abc.abstractmethod
+    def image_from_machine(self, machine_id, name, description):
+        """
+        Creates a redeployable image using the given machine as a template.
+        
+        :param machine_id: The id of the machine to use as a template
+        :param name: The name of the new image
+        :param description: An extended description for the new image
+        :returns: The new ``Image``
+        """
+        
+    @abc.abstractmethod
     def get_machine(self, machine_id):
         """
         Gets machine details for an id.
