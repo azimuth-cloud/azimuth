@@ -379,6 +379,13 @@ fi
             # So we have no choice but to assume it is a duplicate name error
             raise DuplicateNameError('Name is already in use')
         self.wait_for_task(task.attrib['href'], ImageCreateError)
+        # Get the vAppTemplate id from the task and return an image object based
+        # on it
+        template_ref = task.find(
+            './/*[@type="application/vnd.vmware.vcloud.vAppTemplate+xml"]', _NS
+        )
+        template_id = template_ref.attrib['href'].rstrip('/').split('/').pop()
+        return self.get_image(template_id)
     
     def __gateway_from_app(self, app):
         """
