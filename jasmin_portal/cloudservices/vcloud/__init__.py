@@ -271,19 +271,32 @@ fi
     def list_images(self):
         """
         See :py:meth:`jasmin_portal.cloudservices.Session.list_images`.
+        
+        .. note::
+        
+            This implementation uses `vAppTemplate` uuids as the image ids
         """
         # Get a list of uris of catalogs available to the user
         results = ET.fromstring(self.api_request('GET', 'catalogs/query').text)
         cat_refs = [result.attrib['href'] for result in results.findall('vcd:CatalogRecord', _NS)]
         # Now we know the catalogs we have access to, we can get the items
-        images = []
+        image_ids = []
         for cat_ref in cat_refs:
             # Query the catalog to find its items
             catalog = ET.fromstring(self.api_request('GET', cat_ref).text)
-            items = catalog.findall('.//vcd:CatalogItem', _NS)
-            item_ids = [i.attrib['href'].rstrip('/').split('/').pop() for i in items]
-            images.extend(self.get_image(id) for id in item_ids)
-        return images
+            # Query each item to find out if it is a vAppTemplate or some other
+            # type of media (e.g. an ISO, which we want to ignore)
+            for item_ref in catalog.findall('.//vcd:CatalogItem', _NS):
+                item = ET.fromstring(self.api_request('GET', item_ref.attrib['href']).text)
+                entity = item.find(
+                    './/vcd:Entity[@type="application/vnd.vmware.vcloud.vAppTemplate+xml"]', _NS
+                )
+                # If there is no vAppTemplate, ignore the catalogue item
+                if entity is None:
+                    continue
+                # Otherwise, accumulate the template ID
+                image_ids.append(entity.attrib['href'].rstrip('/').split('/').pop())
+        return [self.get_image(id) for id in image_ids]
     
     def count_machines(self):
         """
@@ -306,20 +319,28 @@ fi
     def get_image(self, image_id):
         """
         See :py:meth:`jasmin_portal.cloudservices.Session.get_image`.
+        
+        .. note::
+        
+            This implementation uses `vAppTemplate` uuids as the image ids
         """
-        # Image IDs are catalog item ids
-        item = ET.fromstring(self.api_request('GET', 'catalogItem/{}'.format(image_id)).text)
-        name = item.attrib['name']
-        description = ''
+        template = ET.fromstring(
+            self.api_request('GET', 'vAppTemplate/{}'.format(image_id)).text
+        )
+        name = template.attrib['name']
         try:
-            description = item.find('vcd:Description', _NS).text or ''
+            description = template.find('vcd:Description', _NS).text or ''
         except AttributeError:
-            pass
+            description = ''
         return Image(image_id, name, description)
         
     def image_from_machine(self, machine_id, name, description):
         """
         See :py:meth:`jasmin_portal.cloudservices.Session.image_from_machine`.
+        
+        .. note::
+        
+            This implementation uses `vAppTemplate` uuids as the image ids
         """
         # First, find the catalogue we will create the image in
         # This is done by selecting the first catalogue from the org we are using
@@ -448,13 +469,14 @@ fi
     def provision_machine(self, image_id, name, description, ssh_key):
         """
         See :py:meth:`jasmin_portal.cloudservices.Session.provision_machine`.
+        
+        .. note::
+        
+            This implementation uses `vAppTemplate` uuids as the image ids
         """
-        # Image id is the id of a catalog item, so we need to get the vAppTemplate from there
-        item = ET.fromstring(self.api_request('GET', 'catalogItem/{}'.format(image_id)).text)
-        entity = item.find('.//vcd:Entity[@type="application/vnd.vmware.vcloud.vAppTemplate+xml"]', _NS)
-        if entity is None:
-            raise ProvisioningError('No vAppTemplate associated with catalogue item')
-        template = ET.fromstring(self.api_request('GET', entity.attrib['href']).text)
+        template = ET.fromstring(
+            self.api_request('GET', 'vAppTemplate/{}'.format(image_id)).text
+        )
         # Format the guest customisation script
         # We escape the SSH key before inserting it, in case it has any dodgy characters
         ssh_key = _escape_script(ssh_key.strip())
