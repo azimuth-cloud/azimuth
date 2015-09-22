@@ -13,6 +13,7 @@ __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 from sqlalchemy import Column, String, Text, Boolean
 from sqlalchemy.orm.exc import NoResultFound
 from pyramid_sqlalchemy import BaseObject, Session, metadata
+import transaction
 
 
 def setup(config, settings):
@@ -43,6 +44,29 @@ class CatalogueItem(BaseObject):
     #: Flag indicating whether machines provisioned using the catalogue item should
     #: have NAT and firewall rules applied to allow inbound traffic from the internet.
     allow_inbound = Column('allow_inbound', Boolean(), nullable = False)
+    
+    
+def catalogue_item_from_machine(request, machine, name, description, allow_inbound):
+    """
+    Adds a catalogue item using the given machine as a template.
+    
+    :param request: Pyramid request
+    :param machine: The machine to use as a template
+    :param name: The name of the new catalogue item
+    :param description: Extended description of the new template
+    :param allow_inbound: True if the template should allow inbound traffic from
+                          the internet, False otherwise
+    :returns: The created ``CatalogueItem``
+    """ 
+    # First, create the catalogue item in the cloud provider
+    image = request.active_cloud_session.image_from_machine(machine.id, name, description)
+    # Then create and save a the catalogue item in the database
+    item = CatalogueItem(uuid = image.id, name = name,
+                         description = description, allow_inbound = allow_inbound)
+    with transaction.manager as tx:
+        sess = Session()
+        sess.add(item)
+    return item
 
 
 def available_catalogue_items(request):
