@@ -89,7 +89,7 @@ class TestVcdProvider(unittest.TestCase, IntegrationTest):
         # Input is the machine
         # First check it has no external IP
         self.assertIsNone(input.external_ip)
-        machine = self.session.expose(input.id)
+        machine = self.session.expose_machine(input.id)
         self.assertIsNotNone(machine.external_ip)
         return machine
     
@@ -100,7 +100,7 @@ class TestVcdProvider(unittest.TestCase, IntegrationTest):
         # Input is the machine
         # First check it has no external IP
         self.assertIsNotNone(input.external_ip)
-        machine = self.session.unexpose(input.id)
+        machine = self.session.unexpose_machine(input.id)
         self.assertIsNone(machine.external_ip)
         return machine
     

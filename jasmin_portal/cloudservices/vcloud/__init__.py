@@ -298,24 +298,6 @@ fi
                 image_ids.append(entity.attrib['href'].rstrip('/').split('/').pop())
         return [self.get_image(id) for id in image_ids]
     
-    def count_machines(self):
-        """
-        See :py:meth:`jasmin_portal.cloudservices.Session.count_machines`.
-        """
-        # We only need one API query to return this
-        results = ET.fromstring(self.api_request('GET', 'vApps/query').text)
-        return len(results.findall('vcd:VAppRecord', _NS))
-        
-    def list_machines(self):
-        """
-        See :py:meth:`jasmin_portal.cloudservices.Session.list_machines`.
-        """
-        # This will return all the VMs available to the user
-        results = ET.fromstring(self.api_request('GET', 'vApps/query').text)
-        apps = results.findall('vcd:VAppRecord', _NS)
-        machine_ids = [app.attrib['href'].rstrip('/').split('/').pop() for app in apps]
-        return [self.get_machine(id) for id in machine_ids]
-        
     def get_image(self, image_id):
         """
         See :py:meth:`jasmin_portal.cloudservices.Session.get_image`.
@@ -387,6 +369,24 @@ fi
         template_id = template_ref.attrib['href'].rstrip('/').split('/').pop()
         return self.get_image(template_id)
     
+    def count_machines(self):
+        """
+        See :py:meth:`jasmin_portal.cloudservices.Session.count_machines`.
+        """
+        # We only need one API query to return this
+        results = ET.fromstring(self.api_request('GET', 'vApps/query').text)
+        return len(results.findall('vcd:VAppRecord', _NS))
+        
+    def list_machines(self):
+        """
+        See :py:meth:`jasmin_portal.cloudservices.Session.list_machines`.
+        """
+        # This will return all the VMs available to the user
+        results = ET.fromstring(self.api_request('GET', 'vApps/query').text)
+        apps = results.findall('vcd:VAppRecord', _NS)
+        machine_ids = [app.attrib['href'].rstrip('/').split('/').pop() for app in apps]
+        return [self.get_machine(id) for id in machine_ids]
+        
     def __gateway_from_app(self, app):
         """
         Given an ET element representing a vApp, returns an ET element representing the
@@ -558,9 +558,9 @@ fi
             app = ET.fromstring(self.api_request('GET', app.attrib['href']).text)
         return self.get_machine(app.attrib['href'].rstrip('/').split('/').pop())
             
-    def expose(self, machine_id):
+    def expose_machine(self, machine_id):
         """
-        See :py:meth:`jasmin_portal.cloudservices.Session.expose`.
+        See :py:meth:`jasmin_portal.cloudservices.Session.expose_machine`.
         """
         # We need to access the edge device that the machine is connected to the internet via
         # To do this, we first get the machine details, then the vdc details
@@ -649,9 +649,9 @@ fi
         self.wait_for_task(task.attrib['href'], NetworkingError)
         return self.get_machine(machine_id)
     
-    def unexpose(self, machine_id):
+    def unexpose_machine(self, machine_id):
         """
-        See :py:meth:`jasmin_portal.cloudservices.Session.unexpose`.
+        See :py:meth:`jasmin_portal.cloudservices.Session.unexpose_machine`.
         """
         # We need to access the edge device that the machine is connected to the internet via
         # To do this, we first get the machine details, then the vdc details
@@ -776,7 +776,7 @@ fi
         # If we don't, we risk exposing to the internet the next machine that picks
         # up the IP address from the pool
         # We don't care too much about the return value
-        self.unexpose(machine_id)
+        self.unexpose_machine(machine_id)
         task = ET.fromstring(self.api_request(
             'DELETE', 'vApp/{}'.format(machine_id)
         ).text)

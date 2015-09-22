@@ -379,7 +379,7 @@ def new_machine(request):
         # Now see if we need to apply NAT and firewall rules
         if image.allow_inbound:
             try:
-                machine = request.active_cloud_session.expose(machine.id)
+                machine = request.active_cloud_session.expose_machine(machine.id)
                 request.session.flash('Inbound access from internet enabled', 'success')
             except cloudservices.NetworkingError as e:
                 request.session.flash('Networking error: {}'.format(str(e)), 'error')

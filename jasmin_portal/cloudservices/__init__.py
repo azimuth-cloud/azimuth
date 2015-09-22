@@ -208,22 +208,6 @@ class Session(metaclass = abc.ABCMeta):
         """
         
     @abc.abstractmethod
-    def count_machines(self):
-        """
-        Get the number of machines available to this session.
-        
-        :returns: The number of machines
-        """
-        
-    @abc.abstractmethod
-    def list_machines(self):
-        """
-        Get the machines available to this session.
-        
-        :returns: A list of ``Machine`` objects
-        """
-        
-    @abc.abstractmethod
     def get_image(self, image_id):
         """
         Get image details for an id.
@@ -241,6 +225,22 @@ class Session(metaclass = abc.ABCMeta):
         :param name: The name of the new image
         :param description: An extended description for the new image
         :returns: The new ``Image``
+        """
+        
+    @abc.abstractmethod
+    def count_machines(self):
+        """
+        Get the number of machines available to this session.
+        
+        :returns: The number of machines
+        """
+        
+    @abc.abstractmethod
+    def list_machines(self):
+        """
+        Get the machines available to this session.
+        
+        :returns: A list of ``Machine`` objects
         """
         
     @abc.abstractmethod
@@ -268,7 +268,7 @@ class Session(metaclass = abc.ABCMeta):
         """
         
     @abc.abstractmethod
-    def expose(self, machine_id):
+    def expose_machine(self, machine_id):
         """
         Sets NAT and firewall rules as appropriate to expose the virtual machine
         externally for all protocols with a specific IP address.
@@ -280,7 +280,7 @@ class Session(metaclass = abc.ABCMeta):
         """
         
     @abc.abstractmethod
-    def unexpose(self, machine_id):
+    def unexpose_machine(self, machine_id):
         """
         Removes all NAT and firewall rules associated specifically with the 
         virtual machine.
