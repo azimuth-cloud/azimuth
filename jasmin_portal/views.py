@@ -5,14 +5,14 @@ This module contains Pyramid view callables for the JASMIN cloud portal.
 __author__ = "Matt Pryor"
 __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
-import os, tempfile, subprocess, re
+import os, tempfile, subprocess
+
+import bleach, markdown
 
 from pyramid.view import view_config, forbidden_view_config, notfound_view_config
 from pyramid.security import remember, forget
 from pyramid.session import check_csrf_token
-from pyramid.httpexceptions import (
-    HTTPSeeOther, HTTPNotFound, HTTPUnauthorized, HTTPForbidden, HTTPBadRequest
-)
+from pyramid.httpexceptions import HTTPSeeOther, HTTPNotFound, HTTPBadRequest
 
 from jasmin_portal.identity import authenticate_user
 from jasmin_portal import catalogue as cat
@@ -267,10 +267,17 @@ def catalogue_new(request):
             'description'   : request.params.get('description', ''),
             'allow_inbound' : request.params.get('allow_inbound', 'false'),
         }
+        # Convert markdown in the description and sanitize the result using the
+        # default, conservative set of allowed tags and attributes
+        description = bleach.clean(
+            markdown.markdown(item_info['description']), strip = True,
+            tags = bleach.ALLOWED_TAGS + ['p', 'span', 'div'],
+            attributes = dict(bleach.ALLOWED_ATTRIBUTES, **{ '*' : 'class' }),
+        )
         try:
             cat.catalogue_item_from_machine(
                 request, machine, item_info['name'],
-                item_info['description'], item_info['allow_inbound'] == "true"
+                description, item_info['allow_inbound'] == "true"
             )
             request.session.flash('Catalogue item created successfully', 'success')
             return HTTPSeeOther(location = request.route_url('catalogue'))

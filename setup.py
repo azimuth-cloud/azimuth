@@ -34,6 +34,8 @@ requires = [
     'psycopg2',
     'transaction',
     'requests',
+    'bleach',
+    'markdown',
     # Required for docs
     'sphinx',
 ]
