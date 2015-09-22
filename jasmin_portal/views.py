@@ -77,12 +77,11 @@ def cloud_service_error(context, request):
     Shows a suitable error on the most specific page possible.
     """
     # Convert some cloud service errors into their HTTP equivalents
-    if isinstance(context, cloudservices.AuthenticationError):
-        raise HTTPUnauthorized()
-    if isinstance(context, cloudservices.PermissionsError):
-        raise HTTPForbidden()
+    if isinstance(context, (cloudservices.AuthenticationError,
+                            cloudservices.PermissionsError)):
+        return forbidden(request)
     if isinstance(context, cloudservices.NoSuchResourceError):
-        raise HTTPNotFound()
+        return notfound(request)
     # For other cloud service errors, just add their text to the error flash
     # and redirect
     request.session.flash(str(context), 'error')
