@@ -200,7 +200,7 @@ class Session(metaclass = abc.ABCMeta):
         """
         Tests whether the session is authenticated and active.
         
-        :returns: True or False
+        :returns: True on success
         """
     
     @abc.abstractmethod

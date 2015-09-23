@@ -5,7 +5,13 @@ This module provides settings for the vcd provider integration tests
 __author__ = "Matt Pryor"
 __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
-
+# The vCloud Director API endpoint
 endpoint = 'https://my-vcd.example.com/api'
+
+# Username and password to use with vCD
 username = 'user@organisation'
 password = 'Password123'
+
+# The uuid of a known image from a public catalog to use for provisioning an
+# initial machine
+image_uuid = '<vAppTemplate uuid>'
