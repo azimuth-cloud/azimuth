@@ -52,7 +52,7 @@ def forbidden(request):
     Shows a suitable error on the most specific page possible.
     """
     if request.authenticated_user:
-        request.session.flash('Insufficient permissions to access resource', 'error')
+        request.session.flash('Insufficient permissions', 'error')
     else:
         request.session.flash('Log in to access this resource', 'error')
     return _exception_redirect(request)
@@ -291,6 +291,26 @@ def catalogue_new(request):
         'description'   : '',
         'allow_inbound' : 'false'
     }
+    
+    
+@view_config(route_name = 'catalogue_delete',
+             request_method = 'POST', permission = 'org_edit')
+def catalogue_delete(request):
+    """
+    Handler for ``/{org}/catalogue/delete/{id}``
+    
+    The user must be authenticated for the organisation in the URL to reach here.
+    
+    Attempts to delete a catalogue item and redirects to the catalogue page with
+    a success message.
+    
+    ``{id}`` is the uuid of the catalogue item to delete.    
+    """
+    # Request must pass a CSRF test
+    check_csrf_token(request)
+    cat.delete_catalogue_item(request, request.matchdict['id'])
+    request.session.flash('Catalogue item deleted', 'success')
+    return HTTPSeeOther(location = request.route_url('catalogue'))
 
 
 @view_config(route_name = 'machines',
@@ -404,7 +424,7 @@ def machine_action(request):
     The user must be authenticated for the organisation in the URL to reach here.
     
     Attempt to perform the specified action and redirect to ``/{org}/machines``
-    with a suitable success or failure message.
+    with a success message.
     """
     # Request must pass a CSRF test
     check_csrf_token(request)

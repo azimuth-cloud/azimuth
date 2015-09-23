@@ -314,7 +314,9 @@ fi
             description = template.find('vcd:Description', _NS).text or ''
         except AttributeError:
             description = ''
-        return Image(image_id, name, description)
+        # If the template has a link to delete it, then it is private
+        link = template.find('./vcd:Link[@rel="remove"]', _NS)
+        return Image(image_id, name, description, link is None)
         
     def image_from_machine(self, machine_id, name, description):
         """
@@ -368,6 +370,19 @@ fi
         )
         template_id = template_ref.attrib['href'].rstrip('/').split('/').pop()
         return self.get_image(template_id)
+        
+    def delete_image(self, image_id):
+        """
+        See :py:meth:`jasmin_portal.cloudservices.Session.delete_image`.
+        
+        .. note::
+        
+            This implementation uses `vAppTemplate` uuids as the image ids
+        """
+        task = ET.fromstring(self.api_request(
+            'DELETE', 'vAppTemplate/{}'.format(image_id)
+        ).text)
+        self.wait_for_task(task.attrib['href'], ImageDeleteError)
     
     def count_machines(self):
         """

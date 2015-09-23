@@ -40,6 +40,9 @@ class InvalidActionError(CloudServiceError):
 class ImageCreateError(CloudServiceError):
     """Thrown when an error occurs while creating a new image."""
     
+class ImageDeleteError(CloudServiceError):
+    """Thrown when an error occurs while deleting an image."""
+    
 class ProvisioningError(CloudServiceError):
     """Thrown when an error occurs during provisioning."""
     

@@ -35,7 +35,7 @@
             <div class="col-sm-9 col-sm-offset-3">
                 <div class="checkbox">
                     <label>
-                        <input type="checkbox" name="allow_inbound" value="true" />
+                        <input type="checkbox" name="allow_inbound" value="true" {% if allow_inbound == "true" %}checked{% endif %} />
                         Allow inbound traffic from the internet
                     </label>
                 </div>

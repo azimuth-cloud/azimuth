@@ -10,7 +10,20 @@
     {%- endif %}
         <div class="col-md-3">
             <div class="panel panel-default">
-                <div class="panel-heading"><code>{{ item.name }}</code></div>
+                <div class="panel-heading">
+                    <code>{{ item.name }}</code>
+                    {%- if not item.is_public %}
+                        <form class="disable-on-submit confirm pull-right" autocomplete="off" method="POST"
+                              action="{{ request.route_url('catalogue_delete', id = item.uuid) }}"
+                              data-confirm-message="Are you sure? Once deleted, a catalogue item cannot be restored!">
+                            <input name="csrf_token" type="hidden" value="{{ request.session.get_csrf_token() }}" />
+                            <button title="Delete" type="submit" class="btn btn-danger btn-xs">
+                                <i class="fa fa-fw fa-remove"></i>
+                                <span class="sr-only">Delete</span>
+                            </button>
+                        </form>
+                    {%- endif %}
+                </div>
                 <div class="panel-body">
                     {%- if item.allow_inbound %}
                         <div class="alert alert-info">Allows inbound traffic from the internet</div>

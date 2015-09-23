@@ -81,7 +81,7 @@ class MachineStatus(enum.Enum):
                         MachineStatus.ERROR]
 
 
-class Image(namedtuple('ImageProps', ['id', 'name', 'description'])):
+class Image(namedtuple('ImageProps', ['id', 'name', 'description', 'is_public'])):
     """
     Represents an image that can be used to provision a machine.
     
@@ -96,6 +96,10 @@ class Image(namedtuple('ImageProps', ['id', 'name', 'description'])):
     .. py:attribute:: description
     
         An extended description of the image. This could contain rich formatting.
+        
+    .. py:attribute:: is_public
+    
+        Indicates if the image is public or private.
     """
 
 
@@ -225,6 +229,15 @@ class Session(metaclass = abc.ABCMeta):
         :param name: The name of the new image
         :param description: An extended description for the new image
         :returns: The new ``Image``
+        """
+        
+    @abc.abstractmethod
+    def delete_image(self, image_id):
+        """
+        Deletes the image with the given id.
+        
+        :param image_id: The id of the image to delete
+        :returns: True on success (raises on failure)
         """
         
     @abc.abstractmethod
