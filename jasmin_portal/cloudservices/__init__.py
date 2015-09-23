@@ -81,7 +81,7 @@ class MachineStatus(enum.Enum):
                         MachineStatus.ERROR]
 
 
-class Image(namedtuple('ImageProps', ['id', 'name', 'description'])):
+class Image(namedtuple('ImageProps', ['id', 'name', 'description', 'is_public'])):
     """
     Represents an image that can be used to provision a machine.
     
@@ -96,6 +96,10 @@ class Image(namedtuple('ImageProps', ['id', 'name', 'description'])):
     .. py:attribute:: description
     
         An extended description of the image. This could contain rich formatting.
+        
+    .. py:attribute:: is_public
+    
+        Indicates if the image is public or private.
     """
 
 
@@ -196,7 +200,7 @@ class Session(metaclass = abc.ABCMeta):
         """
         Tests whether the session is authenticated and active.
         
-        :returns: True or False
+        :returns: True on success
         """
     
     @abc.abstractmethod
@@ -205,6 +209,35 @@ class Session(metaclass = abc.ABCMeta):
         Get the images available to this session.
         
         :returns: A list of ``Image`` objects
+        """
+        
+    @abc.abstractmethod
+    def get_image(self, image_id):
+        """
+        Get image details for an id.
+        
+        :param image_id: The id of the image
+        :returns: An ``Image`` or ``None``
+        """
+        
+    @abc.abstractmethod
+    def image_from_machine(self, machine_id, name, description):
+        """
+        Creates a redeployable image using the given machine as a template.
+        
+        :param machine_id: The id of the machine to use as a template
+        :param name: The name of the new image
+        :param description: An extended description for the new image
+        :returns: The new ``Image``
+        """
+        
+    @abc.abstractmethod
+    def delete_image(self, image_id):
+        """
+        Deletes the image with the given id.
+        
+        :param image_id: The id of the image to delete
+        :returns: True on success (raises on failure)
         """
         
     @abc.abstractmethod
@@ -221,15 +254,6 @@ class Session(metaclass = abc.ABCMeta):
         Get the machines available to this session.
         
         :returns: A list of ``Machine`` objects
-        """
-        
-    @abc.abstractmethod
-    def get_image(self, image_id):
-        """
-        Get image details for an id.
-        
-        :param image_id: The id of the image
-        :returns: An ``Image`` or ``None``
         """
         
     @abc.abstractmethod
@@ -257,7 +281,7 @@ class Session(metaclass = abc.ABCMeta):
         """
         
     @abc.abstractmethod
-    def expose(self, machine_id):
+    def expose_machine(self, machine_id):
         """
         Sets NAT and firewall rules as appropriate to expose the virtual machine
         externally for all protocols with a specific IP address.
@@ -269,7 +293,7 @@ class Session(metaclass = abc.ABCMeta):
         """
         
     @abc.abstractmethod
-    def unexpose(self, machine_id):
+    def unexpose_machine(self, machine_id):
         """
         Removes all NAT and firewall rules associated specifically with the 
         virtual machine.

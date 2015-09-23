@@ -51,13 +51,22 @@
                     <td><code>{{ machine.internal_ip|default('-', true) }}</code></td>
                     <td><code>{{ machine.external_ip|default('-', true) }}</code></td>
                     <td>{{ machine.created.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                    <td>
+                    <td style="white-space : nowrap;">
+                        <a class="btn btn-default btn-xs confirm" title="Add to catalogue"
+                           data-confirm-message="<p>Ensure you have run <code>/root/vappclean.sh</code>
+                                                 to prepare the machine for the catalogue before proceeding.</p>
+                                                 <p>This will render the machine unusable for anything other
+                                                 than adding to the catalogue.</p>"
+                           href="{{ request.route_url('catalogue_new', id = machine.id) }}">
+                            <i class="fa fa-fw fa-book"></i>
+                            <span class="sr-only">Add to catalogue</span>
+                        </a>
                         <form class="disable-on-submit power-action" autocomplete="off" method="POST"
                               action="{{ request.route_url('machine_action', id = machine.id) }}">
                             <input name="action" type="hidden" value="start" />
                             <input name="csrf_token" type="hidden" value="{{ request.session.get_csrf_token() }}" />
                             <button title="Power On" type="submit" class="btn btn-success btn-xs">
-                                <i class="fa fa-play"></i>
+                                <i class="fa fa-fw fa-play"></i>
                                 <span class="sr-only">Power On</span>
                             </button>
                         </form>
@@ -66,7 +75,7 @@
                             <input name="action" type="hidden" value="destroy" />
                             <input name="csrf_token" type="hidden" value="{{ request.session.get_csrf_token() }}" />
                             <button title="Power Off" type="submit" class="btn btn-warning btn-xs">
-                                <i class="fa fa-power-off"></i>
+                                <i class="fa fa-fw fa-power-off"></i>
                                 <span class="sr-only">Power Off</span>
                             </button>
                         </form>
@@ -75,7 +84,7 @@
                             <input name="action" type="hidden" value="restart" />
                             <input name="csrf_token" type="hidden" value="{{ request.session.get_csrf_token() }}" />
                             <button title="Restart" type="submit" class="btn btn-info btn-xs">
-                                <i class="fa fa-repeat"></i>
+                                <i class="fa fa-fw fa-repeat"></i>
                                 <span class="sr-only">Restart</span>
                             </button>
                         </form>
@@ -85,7 +94,7 @@
                             <input name="action" type="hidden" value="delete" />
                             <input name="csrf_token" type="hidden" value="{{ request.session.get_csrf_token() }}" />
                             <button title="Delete" type="submit" class="btn btn-danger btn-xs">
-                                <i class="fa fa-ban"></i>
+                                <i class="fa fa-fw fa-ban"></i>
                                 <span class="sr-only">Delete</span>
                             </button>
                         </form>

@@ -37,6 +37,12 @@ class DuplicateNameError(CloudServiceError):
 class InvalidActionError(CloudServiceError):
     """Thrown when an action is invalid given the current state of an entity."""
     
+class ImageCreateError(CloudServiceError):
+    """Thrown when an error occurs while creating a new image."""
+    
+class ImageDeleteError(CloudServiceError):
+    """Thrown when an error occurs while deleting an image."""
+    
 class ProvisioningError(CloudServiceError):
     """Thrown when an error occurs during provisioning."""
     

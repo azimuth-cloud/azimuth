@@ -1,0 +1,56 @@
+{% extends "templates/layout.jinja2" %}
+
+{% block pagetitle %}Add to catalogue{% endblock %}
+
+{% block content %}
+<div class="col-md-8 col-md-offset-2">
+    <form class="form-horizontal confirm disable-on-submit working" method="POST"
+          data-confirm-message="Adding to the catalogue will destroy the source machine. Continue?"
+          action="{{ request.route_url('catalogue_new', id = machine.id) }}">
+        <input name="csrf_token" type="hidden" value="{{ request.session.get_csrf_token() }}" />
+        <div class="form-group">
+            <label for="name" class="col-sm-3 control-label">Catalogue item name</label>
+            <div class="col-sm-9">
+                <input name="name" type="text" class="form-control" value="{{ name }}" required
+                       pattern="[a-zA-Z0-9_]+" title="Name must use only alphanumeric and _ characters" placeholder="Required" />
+                <span class="help-block">Name must use only alphanumeric and _ characters</span>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="image_id" class="col-sm-3 control-label">Source machine</label>
+            <div class="col-sm-9">
+                <p class="form-control-static"><code>{{ machine.name }}</code></p>
+                <span class="help-block">Ensure <code>/root/vappclean.sh</code> has been run on the source machine before adding to the catalogue.</span>
+                <span class="help-block">The source machine will be destroyed after it has been added to the catalogue.</span>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="description" class="col-sm-3 control-label">Description</label>
+            <div class="col-sm-9">
+                <textarea name="description" class="form-control" rows="5" placeholder="Optional...">{{ description }}</textarea>
+                <span class="help-block">Description may use <a href="http://daringfireball.net/projects/markdown/">Markdown</a> formatting.</span>
+            </div>
+        </div>
+        <div class="form-group">
+            <div class="col-sm-9 col-sm-offset-3">
+                <div class="checkbox">
+                    <label>
+                        <input type="checkbox" name="allow_inbound" value="true" {% if allow_inbound == "true" %}checked{% endif %} />
+                        Allow inbound traffic from the internet
+                    </label>
+                </div>
+                <span class="help-block">
+                    If checked, machines provisioned using the catalogue item will have NAT and firewall rules
+                    applied to allow inbound traffic from the internet.
+                </span>
+            </div>
+        </div>
+        <div class="form-group">
+            <div class="col-sm-offset-3 col-sm-9">
+                <button name="submitted" type="submit" class="btn btn-primary" autocomplete="off">Add to catalogue</button>
+                <span class="working-message text-muted hidden">Working...</span>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

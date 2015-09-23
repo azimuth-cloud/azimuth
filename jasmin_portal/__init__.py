@@ -60,11 +60,13 @@ def main(global_config, **settings):
     config.add_route('profile', '/profile')
     
     # Org-specific routes
-    config.add_route('org_home',       '/{org}')
-    config.add_route('catalogue',      '/{org}/catalogue')
-    config.add_route('machines',       '/{org}/machines')
-    config.add_route('new_machine',    '/{org}/machine/new/{id}')
-    config.add_route('machine_action', '/{org}/machine/{id}/action')
+    config.add_route('org_home',         '/{org}')
+    config.add_route('catalogue',        '/{org}/catalogue')
+    config.add_route('catalogue_new',    '/{org}/catalogue/new/{id}')
+    config.add_route('catalogue_delete', '/{org}/catalogue/delete/{id}')
+    config.add_route('machines',         '/{org}/machines')
+    config.add_route('new_machine',      '/{org}/machine/new/{id}')
+    config.add_route('machine_action',   '/{org}/machine/{id}/action')
 
     config.scan(ignore = ['.test'])
     return config.make_wsgi_app()

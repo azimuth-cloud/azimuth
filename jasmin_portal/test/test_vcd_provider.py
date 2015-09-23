@@ -11,7 +11,7 @@ __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 import unittest, uuid
 
 from jasmin_portal.test.util import IntegrationTest
-from jasmin_portal.test.vcd_settings import endpoint, username, password
+import jasmin_portal.test.vcd_settings as settings
 
 from jasmin_portal.cloudservices import MachineStatus, CloudServiceError
 from jasmin_portal.cloudservices.vcloud import VCloudProvider
@@ -25,9 +25,13 @@ class TestVcdProvider(unittest.TestCase, IntegrationTest):
     def steps(self):
         return (
             'create_session',
-            'list_images',
-            'provision_machine',
-            'list_machines',
+            'get_known_image',
+            'provision_machine_from_image',
+            'check_machine_in_list',
+            'create_image_from_machine',
+            'check_image_in_list',
+            'provision_machine_from_image',
+            'check_machine_in_list',
             'expose_machine',
             'unexpose_machine',
             'start_machine',
@@ -37,117 +41,144 @@ class TestVcdProvider(unittest.TestCase, IntegrationTest):
             'close_session',
         )
         
-    def create_session(self, input):
+    def create_session(self, notused):
         """
         Creates a session and tests that it is active
         """
-        p = VCloudProvider(endpoint)
-        self.session = p.new_session(username, password)
+        self.session = VCloudProvider(settings.endpoint).\
+                         new_session(settings.username, settings.password)
         self.assertTrue(self.session.poll())
         
-    def list_images(self, input):
+    def get_known_image(self, notused):
         """
-        Uses the current session to list images, and returns the list
+        Uses the current session to get a known image and returns it
         """
-        images = self.session.list_images()
-        self.assertGreater(len(images), 0)
-        # Assert that the image we want to use is in the list
-        self.assertTrue(any(i.name == "ssh_bastion" for i in images))
-        return images
-    
-    def provision_machine(self, input):
+        image = self.session.get_image(settings.image_uuid)
+        # The known image should be public
+        self.assertTrue(image.is_public)
+        return image
+        
+    def provision_machine_from_image(self, image):
         """
-        Uses the current session to provision a machine from a template
+        Uses the current session to provision a machine from the given image
         and returns the provisioned machine
+        
+        If the image is not the known image, it is deleted
         """
-        # The input should be the list of images
-        bastion_image = next(i for i in input if i.name == "ssh_bastion")
         machine = self.session.provision_machine(
-            bastion_image.id, uuid.uuid4().hex, 'A description', ''
+            image.id, uuid.uuid4().hex, 'A description', ''
         )
         # Machines should be created in an off state
         self.assertIs(machine.status, MachineStatus.POWERED_OFF)
         # Check the provisioned machine has an internal IP
         self.assertIsNotNone(machine.internal_ip)
+        # Delete the image if it is not the known image
+        if image.id != settings.image_uuid:
+            self.session.delete_image(image.id)
         return machine
         
-    def list_machines(self, input):
+    def check_machine_in_list(self, machine):
         """
-        Uses the session to list the available machines and checks that the
-        provisioned machine is present in the list, before returning the
-        machine
+        Uses the session to check that the given machine is in the list of
+        available machines before returning the machine
         """
         # Input is the provisioned machine
         machines = self.session.list_machines()
-        self.assertTrue(any(m.name == input.name for m in machines))
-        return input
+        self.assertTrue(any(m.id == machine.id for m in machines))
+        return machine
     
-    def expose_machine(self, input):
+    def create_image_from_machine(self, machine):
+        """
+        Uses the session to create an image from the given machine and returns
+        the created image
+        
+        The source machine is deleted
+        """
+        image = self.session.image_from_machine(
+            machine.id, uuid.uuid4().hex, 'A description'
+        )
+        # This image should be private
+        self.assertFalse(image.is_public)
+        # Delete the source machine
+        self.session.delete_machine(machine.id)
+        return image
+    
+    def check_image_in_list(self, image):
+        """
+        Uses the session to check that the given image is in the list of available
+        images before returning the image
+        """
+        images = self.session.list_images()
+        self.assertGreater(len(images), 0)
+        self.assertTrue(any(i.id == image.id for i in images))
+        return image
+    
+    def expose_machine(self, machine):
         """
         Uses the session to expose the machine before returning it
         """
         # Input is the machine
         # First check it has no external IP
-        self.assertIsNone(input.external_ip)
-        machine = self.session.expose(input.id)
+        self.assertIsNone(machine.external_ip)
+        machine = self.session.expose_machine(machine.id)
         self.assertIsNotNone(machine.external_ip)
         return machine
     
-    def unexpose_machine(self, input):
+    def unexpose_machine(self, machine):
         """
         Uses the session to unexpose the machine before returning it
         """
         # Input is the machine
         # First check it has no external IP
-        self.assertIsNotNone(input.external_ip)
-        machine = self.session.unexpose(input.id)
+        self.assertIsNotNone(machine.external_ip)
+        machine = self.session.unexpose_machine(machine.id)
         self.assertIsNone(machine.external_ip)
         return machine
     
-    def start_machine(self, input):
+    def start_machine(self, machine):
         """
-        Uses the session to start the machine that it should recieve as input
+        Uses the session to start the machine that it should receive as input
         and returns the machine
         """
         # Input is the machine
-        self.session.start_machine(input.id)
+        self.session.start_machine(machine.id)
         # Fetch the machine and check it is on
-        machine = self.session.get_machine(input.id)
+        machine = self.session.get_machine(machine.id)
         self.assertIs(machine.status, MachineStatus.POWERED_ON)
         return machine
     
-    def restart_machine(self, input):
+    def restart_machine(self, machine):
         """
         Uses the session to restart the machine that it should recieve as input
         and returns the machine
         """
         # Input is the machine
-        self.session.restart_machine(input.id)
+        self.session.restart_machine(machine.id)
         # Fetch the machine and check it is on
-        machine = self.session.get_machine(input.id)
+        machine = self.session.get_machine(machine.id)
         self.assertIs(machine.status, MachineStatus.POWERED_ON)
         return machine
     
-    def stop_machine(self, input):
+    def stop_machine(self, machine):
         """
         Uses the session to stop the machine that it should recieve as input
         and returns the machine
         """
         # Input is the machine
-        self.session.destroy_machine(input.id)
+        self.session.destroy_machine(machine.id)
         # Fetch the machine and check it is off
-        machine = self.session.get_machine(input.id)
+        machine = self.session.get_machine(machine.id)
         self.assertIs(machine.status, MachineStatus.POWERED_OFF)
         return machine
         
-    def delete_machine(self, input):
+    def delete_machine(self, machine):
         """
         Uses the session to delete the machine that it should recieve as input
         """
         # Input is the machine to delete
-        self.session.delete_machine(input.id)
+        self.session.delete_machine(machine.id)
         
-    def close_session(self, input):
+    def close_session(self, notused):
         """
         Closes the session and checks that it is no longer active
         """

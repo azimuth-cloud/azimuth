@@ -271,19 +271,118 @@ fi
     def list_images(self):
         """
         See :py:meth:`jasmin_portal.cloudservices.Session.list_images`.
+        
+        .. note::
+        
+            This implementation uses `vAppTemplate` uuids as the image ids
         """
         # Get a list of uris of catalogs available to the user
         results = ET.fromstring(self.api_request('GET', 'catalogs/query').text)
         cat_refs = [result.attrib['href'] for result in results.findall('vcd:CatalogRecord', _NS)]
         # Now we know the catalogs we have access to, we can get the items
-        images = []
+        image_ids = []
         for cat_ref in cat_refs:
             # Query the catalog to find its items
             catalog = ET.fromstring(self.api_request('GET', cat_ref).text)
-            items = catalog.findall('.//vcd:CatalogItem', _NS)
-            item_ids = [i.attrib['href'].rstrip('/').split('/').pop() for i in items]
-            images.extend(self.get_image(id) for id in item_ids)
-        return images
+            # Query each item to find out if it is a vAppTemplate or some other
+            # type of media (e.g. an ISO, which we want to ignore)
+            for item_ref in catalog.findall('.//vcd:CatalogItem', _NS):
+                item = ET.fromstring(self.api_request('GET', item_ref.attrib['href']).text)
+                entity = item.find(
+                    './/vcd:Entity[@type="application/vnd.vmware.vcloud.vAppTemplate+xml"]', _NS
+                )
+                # If there is no vAppTemplate, ignore the catalogue item
+                if entity is None:
+                    continue
+                # Otherwise, accumulate the template ID
+                image_ids.append(entity.attrib['href'].rstrip('/').split('/').pop())
+        return [self.get_image(id) for id in image_ids]
+    
+    def get_image(self, image_id):
+        """
+        See :py:meth:`jasmin_portal.cloudservices.Session.get_image`.
+        
+        .. note::
+        
+            This implementation uses `vAppTemplate` uuids as the image ids
+        """
+        template = ET.fromstring(
+            self.api_request('GET', 'vAppTemplate/{}'.format(image_id)).text
+        )
+        name = template.attrib['name']
+        try:
+            description = template.find('vcd:Description', _NS).text or ''
+        except AttributeError:
+            description = ''
+        # If the template has a link to delete it, then it is private
+        link = template.find('./vcd:Link[@rel="remove"]', _NS)
+        return Image(image_id, name, description, link is None)
+        
+    def image_from_machine(self, machine_id, name, description):
+        """
+        See :py:meth:`jasmin_portal.cloudservices.Session.image_from_machine`.
+        
+        .. note::
+        
+            This implementation uses `vAppTemplate` uuids as the image ids
+        """
+        # First, find the catalogue we will create the image in
+        # This is done by selecting the first catalogue from the org we are using
+        # First, we have to retrieve the org from the session
+        session = ET.fromstring(self.api_request('GET', 'session').text)
+        org_ref = session.find('.//vcd:Link[@type="application/vnd.vmware.vcloud.org+xml"]', _NS)
+        if org_ref is None:
+            raise ImageCreateError('Unable to find organisation for user')
+        org = ET.fromstring(self.api_request('GET', org_ref.attrib['href']).text)
+        # Then get the catalogue from the org
+        cat_ref = org.find('.//vcd:Link[@type="application/vnd.vmware.vcloud.catalog+xml"]', _NS)
+        if cat_ref is None:
+            raise ImageCreateError('Organisation has no catalogues with write access')
+        # Before we create the catalogue item, we must power down the machine
+        try:
+            self.destroy_machine(machine_id)
+        except InvalidActionError:
+            # If it is already powered down, great!
+            pass
+        # Send the request to create the catalogue item and wait for it to complete
+        source_href = '{}/vApp/{}'.format(self.__endpoint, machine_id)
+        payload = _ENV.get_template('CaptureVAppParams.xml').render({
+            'image': {
+                'name'        : name,
+                'description' : description,
+                'source_href' : source_href,
+            },
+        })
+        try:
+            task = ET.fromstring(self.api_request(
+                'POST', '{}/action/captureVApp'.format(cat_ref.attrib['href']), payload
+            ).text)
+        except ProviderUnavailableError:
+            # For some reason, vCD throws a 500 error when a template with the given
+            # name already exists
+            # So we have no choice but to assume it is a duplicate name error
+            raise DuplicateNameError('Name is already in use')
+        self.wait_for_task(task.attrib['href'], ImageCreateError)
+        # Get the vAppTemplate id from the task and return an image object based
+        # on it
+        template_ref = task.find(
+            './/*[@type="application/vnd.vmware.vcloud.vAppTemplate+xml"]', _NS
+        )
+        template_id = template_ref.attrib['href'].rstrip('/').split('/').pop()
+        return self.get_image(template_id)
+        
+    def delete_image(self, image_id):
+        """
+        See :py:meth:`jasmin_portal.cloudservices.Session.delete_image`.
+        
+        .. note::
+        
+            This implementation uses `vAppTemplate` uuids as the image ids
+        """
+        task = ET.fromstring(self.api_request(
+            'DELETE', 'vAppTemplate/{}'.format(image_id)
+        ).text)
+        self.wait_for_task(task.attrib['href'], ImageDeleteError)
     
     def count_machines(self):
         """
@@ -303,20 +402,6 @@ fi
         machine_ids = [app.attrib['href'].rstrip('/').split('/').pop() for app in apps]
         return [self.get_machine(id) for id in machine_ids]
         
-    def get_image(self, image_id):
-        """
-        See :py:meth:`jasmin_portal.cloudservices.Session.get_image`.
-        """
-        # Image IDs are catalog item ids
-        item = ET.fromstring(self.api_request('GET', 'catalogItem/{}'.format(image_id)).text)
-        name = item.attrib['name']
-        description = ''
-        try:
-            description = item.find('vcd:Description', _NS).text or ''
-        except AttributeError:
-            pass
-        return Image(image_id, name, description)
-    
     def __gateway_from_app(self, app):
         """
         Given an ET element representing a vApp, returns an ET element representing the
@@ -406,13 +491,14 @@ fi
     def provision_machine(self, image_id, name, description, ssh_key):
         """
         See :py:meth:`jasmin_portal.cloudservices.Session.provision_machine`.
+        
+        .. note::
+        
+            This implementation uses `vAppTemplate` uuids as the image ids
         """
-        # Image id is the id of a catalog item, so we need to get the vAppTemplate from there
-        item = ET.fromstring(self.api_request('GET', 'catalogItem/{}'.format(image_id)).text)
-        entity = item.find('.//vcd:Entity[@type="application/vnd.vmware.vcloud.vAppTemplate+xml"]', _NS)
-        if entity is None:
-            raise ProvisioningError('No vAppTemplate associated with catalogue item')
-        template = ET.fromstring(self.api_request('GET', entity.attrib['href']).text)
+        template = ET.fromstring(
+            self.api_request('GET', 'vAppTemplate/{}'.format(image_id)).text
+        )
         # Format the guest customisation script
         # We escape the SSH key before inserting it, in case it has any dodgy characters
         ssh_key = _escape_script(ssh_key.strip())
@@ -487,9 +573,9 @@ fi
             app = ET.fromstring(self.api_request('GET', app.attrib['href']).text)
         return self.get_machine(app.attrib['href'].rstrip('/').split('/').pop())
             
-    def expose(self, machine_id):
+    def expose_machine(self, machine_id):
         """
-        See :py:meth:`jasmin_portal.cloudservices.Session.expose`.
+        See :py:meth:`jasmin_portal.cloudservices.Session.expose_machine`.
         """
         # We need to access the edge device that the machine is connected to the internet via
         # To do this, we first get the machine details, then the vdc details
@@ -578,9 +664,9 @@ fi
         self.wait_for_task(task.attrib['href'], NetworkingError)
         return self.get_machine(machine_id)
     
-    def unexpose(self, machine_id):
+    def unexpose_machine(self, machine_id):
         """
-        See :py:meth:`jasmin_portal.cloudservices.Session.unexpose`.
+        See :py:meth:`jasmin_portal.cloudservices.Session.unexpose_machine`.
         """
         # We need to access the edge device that the machine is connected to the internet via
         # To do this, we first get the machine details, then the vdc details
@@ -705,7 +791,7 @@ fi
         # If we don't, we risk exposing to the internet the next machine that picks
         # up the IP address from the pool
         # We don't care too much about the return value
-        self.unexpose(machine_id)
+        self.unexpose_machine(machine_id)
         task = ET.fromstring(self.api_request(
             'DELETE', 'vApp/{}'.format(machine_id)
         ).text)
