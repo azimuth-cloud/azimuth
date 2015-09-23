@@ -17,7 +17,7 @@
                               action="{{ request.route_url('catalogue_delete', id = item.uuid) }}"
                               data-confirm-message="Are you sure? Once deleted, a catalogue item cannot be restored!">
                             <input name="csrf_token" type="hidden" value="{{ request.session.get_csrf_token() }}" />
-                            <button title="Delete" type="submit" class="btn btn-danger btn-xs">
+                            <button title="Delete" type="submit" class="btn btn-default btn-xs">
                                 <i class="fa fa-fw fa-remove"></i>
                                 <span class="sr-only">Delete</span>
                             </button>

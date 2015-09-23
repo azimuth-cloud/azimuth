@@ -275,15 +275,21 @@ def catalogue_new(request):
             attributes = dict(bleach.ALLOWED_ATTRIBUTES, **{ '*' : 'class' }),
         )
         try:
+            # Create the catalogue item
             cat.catalogue_item_from_machine(
                 request, machine, item_info['name'],
                 description, item_info['allow_inbound'] == "true"
             )
             request.session.flash('Catalogue item created successfully', 'success')
-            return HTTPSeeOther(location = request.route_url('catalogue'))
         except cloudservices.DuplicateNameError:
             request.session.flash('Name already in use', 'error')
             return item_info
+        # If creating the catalogue item is successful, try to delete the machine
+        try:
+            request.active_cloud_session.delete_machine(machine_id)
+        except cloudservices.CloudServiceError as e:
+            request.session.flash('Error deleting machine: {}'.format(e), 'error')
+        return HTTPSeeOther(location = request.route_url('catalogue'))
     # Only a get request should get this far
     return {
         'machine'       : machine,
