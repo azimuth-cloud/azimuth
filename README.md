@@ -153,14 +153,28 @@ git add requirements.txt
 git commit -m "Freezing dependencies"
 git push -u origin  # If you want to push the changes to Github
 
-# Create a release tarball
-#   This will create a tarball in the dist folder
-$PYENV/bin/python setup.py sdist
+# Create a release tarball containing wheels for all the dependencies
+$PYENV/bin/pip wheel --no-deps -r requirements.txt
+$PYENV/bin/pip wheel --no-deps .
+tar -czf jasmin-portal-bundle.tar.gz wheelhouse
+rm -rf wheelhouse
 ```
 
-Then copy `requirements.txt` and `dist/jasmin_portal-*.tar.gz` to the server.
+Then move `jasmin-portal-bundle.tar.gz` to the server.
 
-On the server, create the required directories under `/var/www/jasmin-portal` and install the portal:
+On the server, first create a new user to run the portal and own the PostgreSQL
+database:
+
+```sh
+# Create the user with no home directory but with a group of their own
+useradd -U -s /bin/bash jasminportal
+
+# Add the user to PostgreSQL and create a database
+sudo -Hi -u postgres createuser -DRS -w jasminportal
+sudo -Hi -u postgres createdb -E UTF8 -O jasminportal -w jasminportal
+```
+
+Then create the required directories under `/var/www/jasmin-portal` and install the portal:
 
 ```sh
 # Create a basic directory structure
@@ -170,15 +184,12 @@ sudo mkdir -p /var/www/jasmin-portal/conf /var/www/jasmin-portal/wsgi
 sudo python3.3 -m venv --clear /var/www/jasmin-portal/venv
 wget https://bootstrap.pypa.io/get-pip.py -O - | sudo /var/www/jasmin-portal/venv/bin/python
 
-# Install the requirements from requirements.txt
-sudo /var/www/jasmin-portal/venv/bin/pip install --no-deps -r /path/to/requirements.txt
-
-# Install the jasmin portal code
-sudo /var/www/jasmin-portal/venv/bin/pip install --no-deps /path/to/jasmin_portal-*.tar.gz
+# Install the jasmin portal code and dependencies
+tar -xzf jasmin-portal-bundle.tar.gz
+sudo /var/www/jasmin-portal/venv/bin/pip install --force-reinstall --ignore-installed --upgrade --no-index --no-deps wheelhouse/*
 ```
 
-Create `/var/www/jasmin-portal/conf/application.ini` and `/var/www/jasmin-portal/conf/catalogue.json`
-and adjust the settings for your environment (see
+Create `/var/www/jasmin-portal/conf/application.ini` and adjust the settings for your environment (see
 http://docs.pylonsproject.org/docs/pyramid/en/1.5-branch/narr/environment.html and above).
 
 Next, create the WSGI entry point at `/var/www/jasmin-portal/wsgi/portal.wsgi` containing the following:
@@ -210,7 +221,7 @@ WSGIApplicationGroup %{GLOBAL}
 WSGIProcessGroup jasmin
 
 # Since we are using long-polling to connect to vCD, we need to specify a long timeout
-WSGIDaemonProcess jasmin processes=2 threads=15 display-name=%{GROUP} shutdown-timeout=60 python-path=/var/www/jasmin-portal/venv/lib/python3.3/site-packages:/var/www/jasmin-portal/venv/lib64/python3.3/site-packages
+WSGIDaemonProcess jasmin user=jasminportal group=jasminportal processes=2 threads=15 display-name=%{GROUP} shutdown-timeout=60 python-path=/var/www/jasmin-portal/venv/lib/python3.3/site-packages:/var/www/jasmin-portal/venv/lib64/python3.3/site-packages
 
 WSGIScriptAlias / /var/www/jasmin-portal/wsgi/portal.wsgi
 ```
