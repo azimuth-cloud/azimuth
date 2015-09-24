@@ -12,13 +12,11 @@ __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
 from collections import namedtuple
 
-from sqlalchemy import Column, String, Text, Boolean
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import Column, String, Text, Boolean, Integer
 from sqlalchemy.orm.exc import NoResultFound
 from pyramid_sqlalchemy import BaseObject, Session, metadata
-import transaction as tx
 
-from jasmin_portal.cloudservices import PermissionsError, NoSuchResourceError
+from jasmin_portal.cloudservices import CloudServiceError, PermissionsError, NoSuchResourceError
 
 
 def setup(config, settings):
@@ -40,17 +38,21 @@ class CatalogueMeta(BaseObject):
     """
     __tablename__ = "catalogue_meta"
     
-    #: Uuid of catalogue item with the cloud provider.
-    uuid          = Column('uuid', String(50), primary_key = True)
+    #: The id of the catalogue item in the system
+    id            = Column(Integer, primary_key = True)
+    #: Uuid of the associated cloud provider image.
+    cloud_id      = Column(String(50), nullable = False)
+    #: Name of the catalogue item.
+    name          = Column(String(200), nullable = False)
     #: Extended description of the catalogue item. Can contain HTML, or be empty.
-    description   = Column('description', Text())
+    description   = Column(Text())
     #: Flag indicating whether machines provisioned using the catalogue item should
     #: have NAT and firewall rules applied to allow inbound traffic from the internet.
-    allow_inbound = Column('allow_inbound', Boolean(), nullable = False)
+    allow_inbound = Column(Boolean(), nullable = False)
 
 
 class CatalogueItem(namedtuple('CatalogueItemProps',
-                      ['uuid', 'name', 'description', 'allow_inbound', 'is_public'])):
+        ['id', 'cloud_id', 'name', 'description', 'allow_inbound', 'is_public'])):
     """
     Class representing a catalogue item.
     
@@ -58,9 +60,19 @@ class CatalogueItem(namedtuple('CatalogueItemProps',
     and :py:class`CatalogueMeta` instances to form a complete view of a catalogue
     item.
     
-    .. py:attribute:: uuid
+    .. note::
     
-        Uuid of catalogue item with the cloud provider.
+        The system allows multiple catalogue items to be associated with each cloud
+        provider image. This allows, for instance, for NATed and non-NATed catalogue
+        items derived from the same cloud image.
+    
+    .. py:attribute:: id
+    
+        The id of the catalogue item in the system.
+    
+    .. py:attribute:: cloud_id
+    
+        Uuid of the associated cloud provider image.
         
     .. py:attribute:: name
     
@@ -97,34 +109,45 @@ def catalogue_item_from_machine(request, machine, name, description, allow_inbou
     # First, create the catalogue item in the cloud provider
     image = request.active_cloud_session.image_from_machine(machine.id, name, description)
     # Then create and save a metadata item in the database
-    meta = CatalogueMeta(uuid = image.id,
+    meta = CatalogueMeta(cloud_id = image.id, name = name,
                          description = description, allow_inbound = allow_inbound)
     sess = Session()
     sess.add(meta)
-    tx.commit()
+    sess.flush()
     # Construct the item to return
-    return CatalogueItem(image.id, name, description, allow_inbound, image.is_public)
+    return CatalogueItem(meta.id, image.id, meta.name,
+                         meta.description, meta.allow_inbound, image.is_public)
 
 
-def delete_catalogue_item(request, uuid):
+def delete_catalogue_item(request, id):
     """
-    Deletes the catalogue item with the given uuid.
+    Deletes the catalogue item with the given id.
     
     :param request: Pyramid request
-    :param uuid: The uuid of the catalogue item to delete
+    :param id: The id of the catalogue item to delete
     :returns: True on success (raises on failure)
     """
-    # First, delete the image in the cloud provider
-    request.active_cloud_session.delete_image(uuid)
-    # If that is successful, the image will no longer be available to the portal,
-    # even if the metadata is still in the database
-    # Hence we consider the operation as successful even if removal from the DB
-    # fails
+    sess = Session()
+    # Because we need to retrieve the cloud_id, we load the item first
     try:
-        Session().query(CatalogueMeta).filter(CatalogueMeta.uuid == uuid).\
-            delete()
-        tx.commit()
-    except SQLAlchemyError:
+        meta = sess.query(CatalogueMeta).filter(CatalogueMeta.id == id).one()
+    except NoResultFound:
+        # If there is no item with that id, we are done
+        return True
+    # Delete the metadata entry
+    sess.delete(meta)
+    sess.flush()
+    # If that is successful, check if we need to delete the image in the cloud
+    q = sess.query(CatalogueMeta).filter(CatalogueMeta.cloud_id == meta.cloud_id)
+    if q.count() > 0:
+        # If there are still items using the image, we are done
+        return True
+    # Otherwise, try and delete the image in the cloud provider
+    # Even if this fails, the operation is still successful from a user's perspective,
+    # so we swallow the errors
+    try:
+        request.active_cloud_session.delete_image(meta.cloud_id)
+    except CloudServiceError:
         pass
     return True
 
@@ -143,43 +166,41 @@ def available_catalogue_items(request):
     """
     # Get the images from the cloud session (let errors bubble)
     images = request.active_cloud_session.list_images()
-    # Get the corresponding metadata records (note that these might not be in
-    # the same order as the images...!)
+    # Get the corresponding metadata records
+    #   * They might not be in the same order as the images
+    #   * There might be more than one for each image
     # Use an IN query so we get them all with one database call
     metas = set(Session().query(CatalogueMeta).\
-                  filter(CatalogueMeta.uuid.in_([im.id for im in images])).\
+                  filter(CatalogueMeta.cloud_id.in_([im.id for im in images])).\
                   all())
     items = []
-    for image in images:
-        meta = next((m for m in metas if m.uuid == image.id), None)
-        # Skip items in the cloud but not in our database
-        if not meta:
-            continue
-        metas.discard(meta)
-        items.append(CatalogueItem(
-            image.id, image.name, meta.description, meta.allow_inbound, image.is_public
-        ))
+    for meta in metas:
+        image = next((i for i in images if i.id == meta.cloud_id))
+        items.append(
+            CatalogueItem(meta.id, image.id, meta.name,
+                          meta.description, meta.allow_inbound, image.is_public)
+        )
     return items
 
 
-def find_by_uuid(request, uuid):
+def find_by_id(request, id):
     """
-    Finds a catalogue item by uuid, assuming that the active organisation for the
+    Finds a catalogue item by id, assuming that the active organisation for the
     given request has access.
     
     If no item can be found or the active organisation does not have access,
     ``None`` is returned.
     
     :param request: Pyramid request
-    :param uuid: Uuid of the catalogue item to find
+    :param id: Id of the catalogue item to find
     :returns: Catalogue item or ``None``
     """
     try:
-        image = request.active_cloud_session.get_image(uuid)
-        meta = Session().query(CatalogueMeta).\
-                 filter(CatalogueMeta.uuid == uuid).one()
+        meta = Session().query(CatalogueMeta).filter(CatalogueMeta.id == id).one()
+        image = request.active_cloud_session.get_image(meta.cloud_id)
         return CatalogueItem(
-            image.id, image.name, meta.description, meta.allow_inbound, image.is_public
+            meta.id, image.id, meta.name,
+            meta.description, meta.allow_inbound, image.is_public
         )
     except (NoResultFound, PermissionsError, NoSuchResourceError):
         return None
