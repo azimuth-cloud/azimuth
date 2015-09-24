@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="col-md-8 col-md-offset-2">
-    <form method="POST" action="{{ request.route_url('new_machine', id = image.uuid) }}" class="form-horizontal disable-on-submit working">
+    <form method="POST" action="{{ request.route_url('new_machine', id = item.id) }}" class="form-horizontal disable-on-submit working">
         <input name="csrf_token" type="hidden" value="{{ request.session.get_csrf_token() }}" />
         <div class="form-group">
             <label for="name" class="col-sm-3 control-label">Machine name</label>
@@ -15,10 +15,10 @@
             </div>
         </div>
         <div class="form-group">
-            <label for="image_id" class="col-sm-3 control-label">Template</label>
+            <label for="item_id" class="col-sm-3 control-label">Template</label>
             <div class="col-sm-9">
-                <p class="form-control-static"><code>{{ image.name }}</code></p>
-                {%- if image.allow_inbound %}
+                <p class="form-control-static"><code>{{ item.name }}</code></p>
+                {%- if item.allow_inbound %}
                     <span class="help-block">This template <strong>allows</strong> inbound traffic from the internet.</span>
                 {%- else %}
                     <span class="help-block">This template does <strong>not</strong> allow inbound traffic from the internet.</span>

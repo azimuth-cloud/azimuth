@@ -310,7 +310,7 @@ def catalogue_delete(request):
     Attempts to delete a catalogue item and redirects to the catalogue page with
     a success message.
     
-    ``{id}`` is the uuid of the catalogue item to delete.    
+    ``{id}`` is the id of the catalogue item to delete.    
     """
     # Request must pass a CSRF test
     check_csrf_token(request)
@@ -342,7 +342,7 @@ def new_machine(request):
     
     The user must be authenticated for the organisation in the URL to reach here.
     
-    ``{id}`` is the uuid of the catalogue item to use for the new machine.
+    ``{id}`` is the id of the catalogue item to use for the new machine.
     
     GET request
         Show a form to gather information required for provisioning.
@@ -358,17 +358,17 @@ def new_machine(request):
         
         If the provisioning fails completely, show the form with an error message.
     """
-    image_id = request.matchdict['id']
+    item_id = request.matchdict['id']
     # Try to load the catalogue item
-    image = cat.find_by_uuid(request, image_id)
-    if not image:
+    item = cat.find_by_id(request, item_id)
+    if not item:
         raise HTTPNotFound()
     # If we have a POST request, try and provision a machine with the info
     if request.method == 'POST':
         # For a POST request, the request must pass a CSRF test
         check_csrf_token(request)
         machine_info = {
-            'image'       : image,
+            'item'        : item,
             'name'        : request.params.get('name', ''),
             'description' : request.params.get('description', ''),
             'ssh_key'     : request.params.get('ssh-key', ''),
@@ -389,7 +389,7 @@ def new_machine(request):
             return machine_info
         try:
             machine = request.active_cloud_session.provision_machine(
-                image_id, machine_info['name'],
+                item.cloud_id, machine_info['name'],
                 machine_info['description'], machine_info['ssh_key']
             )
             request.session.flash('Machine provisioned successfully', 'success')
@@ -403,7 +403,7 @@ def new_machine(request):
             request.session.flash('Provisioning error: {}'.format(str(e)), 'error')
             return machine_info
         # Now see if we need to apply NAT and firewall rules
-        if image.allow_inbound:
+        if item.allow_inbound:
             try:
                 machine = request.active_cloud_session.expose_machine(machine.id)
                 request.session.flash('Inbound access from internet enabled', 'success')
@@ -413,7 +413,7 @@ def new_machine(request):
         return HTTPSeeOther(location = request.route_url('machines'))
     # Only get requests should get this far
     return {
-        'image'       : image,
+        'item'        : item,
         'name'        : '',
         'description' : '',
         # Use the current user's SSH key as the default
