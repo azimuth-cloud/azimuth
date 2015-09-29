@@ -1,5 +1,5 @@
 alabaster==0.7.6
-Babel==2.0
+Babel==2.1.1
 bleach==1.4.2
 docutils==0.12
 enum34==1.0.4
@@ -11,13 +11,14 @@ Markdown==2.6.2
 MarkupSafe==0.23
 PasteDeploy==1.5.2
 psycopg2==2.6.1
-pyasn1==0.1.8
+pyasn1==0.1.9
 Pygments==2.0.2
 pyramid==1.5.7
 pyramid-debugtoolbar==2.4.1
 pyramid-jinja2==2.5
 pyramid-mako==1.0.2
 pyramid-sqlalchemy==1.2.2
+pyramid-tm==0.12
 pytz==2015.6
 repoze.lru==0.6
 requests==2.7.0
