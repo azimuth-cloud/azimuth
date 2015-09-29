@@ -170,9 +170,10 @@ def available_catalogue_items(request):
     #   * They might not be in the same order as the images
     #   * There might be more than one for each image
     # Use an IN query so we get them all with one database call
-    metas = set(Session().query(CatalogueMeta).\
-                  filter(CatalogueMeta.cloud_id.in_([im.id for im in images])).\
-                  all())
+    metas = Session().query(CatalogueMeta).\
+                filter(CatalogueMeta.cloud_id.in_([im.id for im in images])).\
+                order_by(CatalogueMeta.id).\
+                all()
     items = []
     for meta in metas:
         image = next((i for i in images if i.id == meta.cloud_id))
