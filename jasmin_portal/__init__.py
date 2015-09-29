@@ -33,7 +33,8 @@ def main(global_config, **settings):
     # We want to use Jinja2 templates
     config.include('pyramid_jinja2')
     
-    # We want to use SQLAlchemy
+    # We want to use SQLAlchemy with transaction management
+    config.include('pyramid_tm')
     config.include('pyramid_sqlalchemy')
     
     # Set up the integration for the portal services
