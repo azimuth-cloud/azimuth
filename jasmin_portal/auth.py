@@ -47,6 +47,8 @@ def check_cloud_sessions(userid, request):
     """
     # Use the unauthenticated user, since this function is used in the calculation
     # of authenticated_userid
+    if not request.unauthenticated_user:
+        return None
     orgs = request.unauthenticated_user.organisations
     for org in orgs:
         try:
