@@ -185,7 +185,7 @@ def current_org(request):
     
 class IdentityService:
     """
-    Service class providing access to ``User`` and ``Organisation`` objects.
+    Service class providing functionality related to ``User``\ s and ``Organisation``\ s.
     
     This implementation uses an LDAP database.
     

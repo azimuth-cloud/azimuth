@@ -14,7 +14,6 @@ from pyramid.security import remember, forget
 from pyramid.session import check_csrf_token
 from pyramid.httpexceptions import HTTPSeeOther, HTTPNotFound, HTTPBadRequest
 
-from jasmin_portal import catalogue as cat
 from jasmin_portal import cloudservices
 from jasmin_portal.cloudservices.vcloud import VCloudProvider
 
@@ -229,7 +228,7 @@ def catalogue(request):
     Show the catalogue items available to the organisation in the URL.
     """
     # Get the available catalogue items
-    return { 'items' : cat.available_catalogue_items(request) }
+    return { 'items' : request.catalogue_service.available_items() }
 
 
 @view_config(route_name = 'catalogue_new',
@@ -275,8 +274,8 @@ def catalogue_new(request):
         )
         try:
             # Create the catalogue item
-            cat.catalogue_item_from_machine(
-                request, machine, item_info['name'],
+            request.catalogue_service.item_from_machine(
+                machine, item_info['name'],
                 description, item_info['allow_inbound'] == "true"
             )
             request.session.flash('Catalogue item created successfully', 'success')
@@ -313,7 +312,7 @@ def catalogue_delete(request):
     """
     # Request must pass a CSRF test
     check_csrf_token(request)
-    cat.delete_catalogue_item(request, request.matchdict['id'])
+    request.catalogue_service.delete_item_with_id(request.matchdict['id'])
     request.session.flash('Catalogue item deleted', 'success')
     return HTTPSeeOther(location = request.route_url('catalogue'))
 
@@ -357,9 +356,8 @@ def new_machine(request):
         
         If the provisioning fails completely, show the form with an error message.
     """
-    item_id = request.matchdict['id']
     # Try to load the catalogue item
-    item = cat.find_by_id(request, item_id)
+    item = request.catalogue_service.find_item_by_id(request.matchdict['id'])
     if not item:
         raise HTTPNotFound()
     # If we have a POST request, try and provision a machine with the info
