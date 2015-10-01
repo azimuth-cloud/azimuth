@@ -11,14 +11,13 @@ from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.security import Allow, Authenticated, DENY_ALL
 
 
-def setup(config, settings):
+def includeme(config):
     """
     Configures the Pyramid application for authentication and authorization.
     
     :param config: Pyramid configurator
-    :param settings: Settings array passed to Pyramid main function
-    :returns: The updated configurator
     """
+    settings = config.get_settings()
     # We want to use token based authentication, with a check on the cloud sessions
     config.set_authentication_policy(AuthTktAuthenticationPolicy(
         settings['auth.secret'], hashalg = 'sha512', callback = check_cloud_sessions
@@ -26,7 +25,6 @@ def setup(config, settings):
     # We use a basic ACL policy for authorisation
     config.set_authorization_policy(ACLAuthorizationPolicy())
     config.set_root_factory(RootFactory)
-    return config
 
 
 def check_cloud_sessions(userid, request):

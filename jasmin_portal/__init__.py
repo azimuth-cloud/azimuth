@@ -16,8 +16,6 @@ __version__ = "0.1"
 from pyramid.config import Configurator
 from pyramid.session import SignedCookieSessionFactory
 
-from jasmin_portal import auth, identity, catalogue, cloud
-
 
 def main(global_config, **settings):
     """
@@ -38,10 +36,10 @@ def main(global_config, **settings):
     config.include('pyramid_sqlalchemy')
     
     # Set up the integration for the portal services
-    config = auth.setup(config, settings)
-    config = identity.setup(config, settings)
-    config = cloud.setup(config, settings)
-    config = catalogue.setup(config, settings)
+    config.include('jasmin_portal.auth')
+    config.include('jasmin_portal.identity')
+    config.include('jasmin_portal.cloud')
+    config.include('jasmin_portal.catalogue')
     
     
     ############################################################################

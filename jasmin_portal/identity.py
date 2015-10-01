@@ -11,22 +11,18 @@ from collections import namedtuple
 
 from pyramid import events
 
-from jasmin_portal import ldap
-from jasmin_portal.ldap import ldap_authenticate, Filter as f
+from jasmin_portal.ldap import ldap_authenticate, Query, Filter as f
 from jasmin_portal.util import getattrs, DeferredIterable
 
 
-def setup(config, settings):
+def includeme(config):
     """
     Configures the Pyramid application for identity management.
     
     :param config: Pyramid configurator
-    :param settings: Settings array passed to Pyramid main function
-    :returns: The updated configurator
     """
-    
     # Set up the LDAP stuff
-    config = ldap.setup(config, settings)
+    config.include('jasmin_portal.ldap')
 
     # Add properties to request
     config.add_request_method(IdentityService, name = 'id_service', reify = True)
@@ -56,8 +52,6 @@ def setup(config, settings):
             route_path(route, *args, **inject_org(request, kw))
     
     config.add_subscriber(overwrite_path_funcs, events.NewRequest)
-    
-    return config
 
 
 class User(namedtuple(
@@ -242,10 +236,10 @@ class IdentityService:
         filter = f('objectClass=posixGroup') &           \
                    f('cn=*{suffix}', suffix = suffix) &  \
                    f('memberUid={uid}', uid = uid)
-        orgs = ldap.Query(self._request.ldap_connection,
-                          self._request.registry.settings['ldap.group_base'],
-                          filter,
-                          transform = self.__ldap_to_org)
+        orgs = Query(self._request.ldap_connection,
+                     self._request.registry.settings['ldap.group_base'],
+                     filter,
+                     transform = self.__ldap_to_org)
         return User(cn, gn, sn, mail, ssh_key, orgs)
     
     def find_user_by_uid(self, uid):
@@ -256,10 +250,10 @@ class IdentityService:
         :param userid: The user ID to find
         :returns: A user object or ``None``
         """
-        q = ldap.Query(self._request.ldap_connection,
-                        self._request.registry.settings['ldap.user_base'],
-                        f('cn={uid}', uid = uid),
-                        transform = self.__ldap_to_user)
+        q = Query(self._request.ldap_connection,
+                  self._request.registry.settings['ldap.user_base'],
+                  f('cn={uid}', uid = uid),
+                  transform = self.__ldap_to_user)
         return next(iter(q), None)
     
     def authenticate_user(self, uid, passwd):
@@ -287,9 +281,9 @@ class IdentityService:
         suffix = self._request.registry.settings['ldap.group_suffix']
         filter = f('objectClass=posixGroup') &                           \
                    f('cn={name}{suffix}', name = name, suffix = suffix)
-        q = ldap.Query(self._request.ldap_connection,
-                       self._request.registry.settings['ldap.group_base'],
-                       filter,
-                       transform = self.__ldap_to_org)
+        q = Query(self._request.ldap_connection,
+                  self._request.registry.settings['ldap.group_base'],
+                  filter,
+                  transform = self.__ldap_to_org)
         return next(iter(q), None)
     

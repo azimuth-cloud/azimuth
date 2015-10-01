@@ -19,17 +19,14 @@ from pyramid_sqlalchemy import BaseObject, Session, metadata
 from jasmin_portal.cloudservices import CloudServiceError, PermissionsError, NoSuchResourceError
 
 
-def setup(config, settings):
+def includeme(config):
     """
     Configures the Pyramid application for catalogue management.
     
     :param config: Pyramid configurator
-    :param settings: Settings array passed to Pyramid main function
-    :returns: The updated configurator
     """
     # Make sure the database tables exist if not already present
     metadata.create_all()
-    return config
 
 
 class CatalogueMeta(BaseObject):

@@ -12,16 +12,13 @@ import ldap3
 import ldap3.utils
 
 
-def setup(config, settings):
+def includeme(config):
     """
     Configures the Pyramid application for LDAP access.
     
     :param config: Pyramid configurator
-    :param settings: Settings array passed to Pyramid main function
-    :returns: The updated configurator
     """
     config.add_request_method(ldap_connection, reify = True)
-    return config
 
 
 def ldap_authenticate(request, user_dn, password):
