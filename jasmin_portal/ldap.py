@@ -32,7 +32,7 @@ def ldap_authenticate(request, user_dn, password):
     :param request: The Pyramid request
     :param user_dn: The DN of the user to authenticate
     :param password: The password to use for authentication
-    :returns: ``True`` on success, ``False`` otherwise
+    :returns: ``True`` on success, ``False`` on failure
     """
     try:
         ldap3.Connection(request.registry.settings['ldap.server'],
@@ -137,17 +137,17 @@ class Filter:
         """
         return self._filter_str
         
-    def __and__(self, filter):
+    def __and__(self, other):
         """
         Combines this filter and the given filter using AND
         """
-        return Filter('&{0}{1}'.format(self, filter))
+        return Filter('&{0}{1}'.format(self, other))
     
-    def __or__(self, filter):
+    def __or__(self, other):
         """
         Combines this filter and the given filter using OR
         """
-        return Filter('|{0}{1}'.format(self, filter))
+        return Filter('|{0}{1}'.format(self, other))
     
     def __invert__(self):
         """

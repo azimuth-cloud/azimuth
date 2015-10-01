@@ -14,7 +14,6 @@ from pyramid.security import remember, forget
 from pyramid.session import check_csrf_token
 from pyramid.httpexceptions import HTTPSeeOther, HTTPNotFound, HTTPBadRequest
 
-from jasmin_portal.identity import authenticate_user
 from jasmin_portal import catalogue as cat
 from jasmin_portal import cloudservices
 from jasmin_portal.cloudservices.vcloud import VCloudProvider
@@ -134,8 +133,8 @@ def login(request):
         # Try to authenticate the user
         username = request.params['username']
         password = request.params['password']
-        user = authenticate_user(request, username, password)
-        if user:
+        if request.id_service.authenticate_user(username, password):
+            user = request.id_service.find_user_by_uid(username)
             # Try to create a session for each of the user's orgs
             # If any of them fail, bail with the error message
             try:

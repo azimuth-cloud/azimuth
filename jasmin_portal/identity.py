@@ -7,18 +7,18 @@ __author__ = "Matt Pryor"
 __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
 
-import functools, collections
+from collections import namedtuple
 
 from pyramid import events
 
-from jasmin_portal import ldap as jldap
+from jasmin_portal import ldap
 from jasmin_portal.ldap import ldap_authenticate, Filter as f
 from jasmin_portal.util import getattrs, DeferredIterable
 
 
 def setup(config, settings):
     """
-    Configures the Pyramid application for catalogue management.
+    Configures the Pyramid application for identity management.
     
     :param config: Pyramid configurator
     :param settings: Settings array passed to Pyramid main function
@@ -26,9 +26,10 @@ def setup(config, settings):
     """
     
     # Set up the LDAP stuff
-    config = jldap.setup(config, settings)
+    config = ldap.setup(config, settings)
 
-    # Add properties to request    
+    # Add properties to request
+    config.add_request_method(IdentityService, name = 'id_service', reify = True)
     config.add_request_method(authenticated_user, reify = True)
     config.add_request_method(unauthenticated_user, reify = True)
     config.add_request_method(current_org, reify = True)
@@ -59,7 +60,7 @@ def setup(config, settings):
     return config
 
 
-class User(collections.namedtuple(
+class User(namedtuple(
             'User', ['userid', 'first_name', 'surname', 'email', 'ssh_key', 'organisations'])):
     """
     Represents a user in the system. Properties are *read-only*.
@@ -108,7 +109,7 @@ class User(collections.namedtuple(
         return any(o.name == org.name for o in self.organisations)
     
     
-class Organisation(collections.namedtuple('Organisation', ['name', 'members'])):
+class Organisation(namedtuple('Organisation', ['name', 'members'])):
     """
     Represents an organisation in the system. Properties are *read-only*.
     
@@ -141,7 +142,7 @@ def authenticated_user(request):
     :returns: A user object or ``None``
     """
     if request.authenticated_userid:
-        return find_by_userid(request, request.authenticated_userid)
+        return request.id_service.find_user_by_uid(request.authenticated_userid)
     else:
         return None
 
@@ -162,7 +163,7 @@ def unauthenticated_user(request):
     :returns: A user object or ``None``
     """
     if request.unauthenticated_userid:
-        return find_by_userid(request, request.unauthenticated_userid)
+        return request.id_service.find_user_by_uid(request.unauthenticated_userid)
     else:
         return None
 
@@ -183,44 +184,47 @@ def current_org(request):
     :returns: An organisation object or ``None``
     """
     try:
-        return org_from_name(request, request.matchdict['org'].lower())
+        return request.id_service.find_org_by_name(request.matchdict['org'].lower())
     except (AttributeError, KeyError, TypeError):
         return None
-
-
-def authenticate_user(request, userid, password):
+    
+    
+class IdentityService:
     """
-    Attempts to authenticate a user with the given user ID and password.
+    Service class providing access to ``User`` and ``Organisation`` objects.
     
-    Returns the user on success or ``None`` on failure.
+    This implementation uses an LDAP database.
     
+    .. note::
+    
+        An instance of this class can be accessed as a property of the Pyramid
+        request object, i.e. ``r = request.id_service``.
+       
+        This property is reified, so it is only evaluated once per request.
+       
     :param request: The Pyramid request
-    :param userid: The user ID to authenticate
-    :param password: The password to authenticate using
-    :returns: A user object or ``None``
     """
-    # Build the DN
-    user_dn = 'CN={uid},{base}'.format(uid = userid,
-                                       base = request.registry.settings['ldap.user_base'])
-    if ldap_authenticate(request, user_dn, password):
-        return find_by_userid(request, userid)
-    else:
-        return None
+    def __init__(self, request):
+        self._request = request
 
-
-@functools.lru_cache(maxsize = 32)
-def find_by_userid(request, userid):
-    """
-    Returns the user with the given ID if one exists, or ``None`` otherwise.
-    
-    Results from this function are cached for a given request/ID combination, so
-    any queries should only be evaluated once per request for a given user ID.
-    
-    :param request: The Pyramid request
-    :param userid: The user ID to find
-    :returns: A user object or ``None``
-    """
-    def to_user(entry):
+    def __ldap_to_org(self, entry):
+        """
+        Converts an ldap3 entry object to an Organisation object
+        """
+        suffix = self._request.registry.settings['ldap.group_suffix']
+        # memberUid is not guaranteed to exist by the posixGroup schema (cn is)
+        member_uids = getattrs(entry, ['memberUid', 'values'], [])
+        # Use a deferred iteable for the members so it is not evaluated until
+        # they are used
+        return Organisation(
+            entry.cn.value.lower().replace(suffix, ''),
+            DeferredIterable(lambda: [self.find_user_by_uid(uid) for uid in member_uids])
+        )
+        
+    def __ldap_to_user(self, entry):
+        """
+        Converts an ldap3 entry object to a User object
+        """
         # Due to the object classes used for users, cn, sn and uid are guaranteed to exist
         cn  = entry.cn.value
         sn  = entry.sn.value
@@ -232,72 +236,60 @@ def find_by_userid(request, userid):
         # Remove any funny trailing whitespace characters
         if ssh_key:
             ssh_key = ssh_key.strip()
-        return User(cn, gn, sn, mail, ssh_key, orgs_for_userid(request, uid))
+        # Get an iterable for the user's orgs
+        # Since we only guarantee iterable, we can just use the Query directly
+        suffix = self._request.registry.settings['ldap.group_suffix']
+        filter = f('objectClass=posixGroup') &           \
+                   f('cn=*{suffix}', suffix = suffix) &  \
+                   f('memberUid={uid}', uid = uid)
+        orgs = ldap.Query(self._request.ldap_connection,
+                          self._request.registry.settings['ldap.group_base'],
+                          filter,
+                          transform = self.__ldap_to_org)
+        return User(cn, gn, sn, mail, ssh_key, orgs)
     
-    q = jldap.Query(request.ldap_connection,
-                    request.registry.settings['ldap.user_base'],
-                    f('cn={userid}', userid = userid),
-                    transform = to_user)
-    return next(iter(q), None)
+    def find_user_by_uid(self, uid):
+        """
+        Returns the user with the given ID if one exists, or ``None`` otherwise.
+        
+        :param request: The Pyramid request
+        :param userid: The user ID to find
+        :returns: A user object or ``None``
+        """
+        q = ldap.Query(self._request.ldap_connection,
+                        self._request.registry.settings['ldap.user_base'],
+                        f('cn={uid}', uid = uid),
+                        transform = self.__ldap_to_user)
+        return next(iter(q), None)
+    
+    def authenticate_user(self, uid, passwd):
+        """
+        Attempts to authenticate a user with the given user ID and password.
+        
+        :param uid: The user ID to authenticate
+        :param passwd: The password to authenticate
+        :returns: ``True`` on success, ``False`` on failure
+        """
+        # Build the DN
+        user_dn = 'CN={uid},{base}'.format(
+            uid = uid, base = self._request.registry.settings['ldap.user_base']
+        )
+        return ldap_authenticate(self._request, user_dn, passwd)
 
-
-def _entry_to_org(request, entry):
-    """
-    Converts an ldap3 entry object to an organisation object
-    """
-    suffix = request.registry.settings['ldap.group_suffix']
-    # memberUid is not guaranteed to exist by the posixGroup schema (cn is)
-    member_uids = getattrs(entry, ['memberUid', 'values'], [])
-    # Use a generator expression for the members so it is not evaluated until
-    # they are required
-    return Organisation(
-        entry.cn.value.lower().replace(suffix, ''),
-        DeferredIterable(lambda: [find_by_userid(request, uid) for uid in member_uids])
-    )
-
-
-@functools.lru_cache(maxsize = 32)
-def org_from_name(request, name):
-    """
-    Returns the organisation with the given name if one exists, or ``None`` otherwise.
-    
-    Results from this function are cached for a given request/name combination, so
-    any queries should only be evaluated once per request for a given name.
-    
-    :param request: The Pyramid request
-    :param name: The name of the organisation to find
-    :returns: An organisation object or ``None``
-    """
-    # Build the filter
-    suffix = request.registry.settings['ldap.group_suffix']
-    filter = f('objectClass=posixGroup') &                           \
-               f('cn={name}{suffix}', name = name, suffix = suffix)
-    q = jldap.Query(request.ldap_connection,
-                    request.registry.settings['ldap.group_base'],
-                    filter,
-                    transform = lambda e: _entry_to_org(request, e))
-    return next(iter(q), None)
-    
-
-@functools.lru_cache(maxsize = 32)
-def orgs_for_userid(request, userid):
-    """
-    Returns an iterable of the organisations for the userid.
-    
-    Results from this function are cached for a given request/ID combination, so
-    any queries should only be evaluated once per request for a given user ID.
-    
-    :param request: The Pyramid request
-    :param userid: The ID of the user to find organisations for
-    :returns: An iterable of organisations
-    """
-    # Build the filter
-    suffix = request.registry.settings['ldap.group_suffix']
-    filter = f('objectClass=posixGroup') &           \
-               f('cn=*{suffix}', suffix = suffix) &  \
-               f('memberUid={uid}', uid = userid)
-    return jldap.Query(request.ldap_connection,
-                       request.registry.settings['ldap.group_base'],
+    def find_org_by_name(self, name):
+        """
+        Returns the organisation with the given name if one exists, or ``None`` otherwise.
+        
+        :param name: The name of the organisation to find
+        :returns: An ``Organisation`` object or ``None``
+        """
+        # Build the filter
+        suffix = self._request.registry.settings['ldap.group_suffix']
+        filter = f('objectClass=posixGroup') &                           \
+                   f('cn={name}{suffix}', name = name, suffix = suffix)
+        q = ldap.Query(self._request.ldap_connection,
+                       self._request.registry.settings['ldap.group_base'],
                        filter,
-                       transform = lambda e: _entry_to_org(request, e))
+                       transform = self.__ldap_to_org)
+        return next(iter(q), None)
     
