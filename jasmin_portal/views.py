@@ -5,8 +5,6 @@ This module contains Pyramid view callables for the JASMIN cloud portal.
 __author__ = "Matt Pryor"
 __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
-import os, tempfile, subprocess
-
 import bleach, markdown
 
 from pyramid.view import view_config, forbidden_view_config, notfound_view_config
@@ -16,6 +14,7 @@ from pyramid.httpexceptions import HTTPSeeOther, HTTPNotFound, HTTPBadRequest
 
 from jasmin_portal import cloudservices
 from jasmin_portal.cloudservices.vcloud import VCloudProvider
+from jasmin_portal.util import validate_ssh_key
 
 
 ################################################################################
@@ -133,7 +132,7 @@ def login(request):
         username = request.params['username']
         password = request.params['password']
         if request.id_service.authenticate_user(username, password):
-            user = request.id_service.find_user_by_uid(username)
+            user = request.id_service.find_user_by_userid(username)
             # Try to create a session for each of the user's orgs
             # If any of them fail, bail with the error message
             try:
@@ -370,18 +369,10 @@ def new_machine(request):
             'description' : request.params.get('description', ''),
             'ssh_key'     : request.params.get('ssh-key', ''),
         }
-        # Check that the SSH key is valid using ssh-keygen
-        fd, temp = tempfile.mkstemp()
-        with os.fdopen(fd, mode = 'w') as f:
-            f.write(machine_info['ssh_key'])
+        # Check that the SSH key is valid
         try:
-            # We don't really care about the content of stdout/err
-            # We just care if the command succeeded or not...
-            subprocess.check_call(
-                'ssh-keygen -l -f {}'.format(temp), shell = True,
-                stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL
-            )
-        except subprocess.CalledProcessError:
+            machine_info['ssh_key'] = validate_ssh_key(machine_info['ssh_key'])
+        except ValueError:
             request.session.flash('SSH Key is not valid', 'error')
             return machine_info
         try:

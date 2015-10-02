@@ -1,6 +1,6 @@
 """
-This module provides some generic LDAP functionality and LDAP integration with
-Pyramid used by the JASMIN portal.
+This module provides some generic LDAP utilities and LDAP integration with Pyramid
+used by the JASMIN portal.
 """
 
 __author__ = "Matt Pryor"
