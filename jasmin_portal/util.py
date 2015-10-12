@@ -6,7 +6,7 @@ __author__ = "Matt Pryor"
 __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
 
-import os, tempfile, subprocess
+import os, tempfile, subprocess, re
 from functools import reduce
 from collections import Iterable
 
@@ -29,6 +29,30 @@ def getattrs(obj, attrs, default):
         return reduce(getattr, attrs, obj)
     except (KeyError, AttributeError):
         return default
+    
+
+# Lifted from formencode via validino
+_usernameRE = re.compile(r"^[^ \t\n\r@<>()]+$", re.I)
+_domainRE = re.compile(r"^[a-z0-9][a-z0-9\.\-_]*\.[a-z]+$", re.I)
+
+def validate_email(email):
+    """
+    Verifies that the given value is a valid email address.
+    
+    Returns the value on success, raises ``ValueError`` on failure.
+    
+    :param email: The value to test
+    :returns: The value on success
+    """
+    try:
+        username, domain = email.split('@', 1)
+    except ValueError:
+        raise ValueError('Value is not a valid email address')
+    if not _usernameRE.match(username):
+        raise ValueError('Value is not a valid email address')
+    if not _domainRE.match(domain):
+        raise ValueError('Value is not a valid email address')
+    return email
     
     
 def validate_ssh_key(ssh_key):

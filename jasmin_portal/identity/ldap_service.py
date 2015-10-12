@@ -10,7 +10,10 @@ __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 from jasmin_portal.ldap import ldap_authenticate, Query, Filter as f
 from jasmin_portal.util import getattrs, DeferredIterable
 
+import ldap3
+
 from .dto import User, Organisation
+from .validation import validate_user_fields
 
 
 def includeme(config):
@@ -51,7 +54,7 @@ class IdentityService:
         suffix = self._request.registry.settings['ldap.group_suffix']
         # memberUid is not guaranteed to exist by the posixGroup schema (cn is)
         member_uids = getattrs(entry, ['memberUid', 'values'], [])
-        # Use a deferred iteable for the members so it is not evaluated until
+        # Use a deferred iterable for the members so it is not evaluated until
         # they are used
         return Organisation(
             entry.cn.value.lower().replace(suffix, ''),
@@ -128,6 +131,74 @@ class IdentityService:
             userid = userid, base = self._request.registry.settings['ldap.user_base']
         )
         return ldap_authenticate(self._request, user_dn, passwd)
+    
+    def create_user(self, userid, passwd, first_name, surname, email, ssh_key):
+        """
+        Creates a new user with the given properties.
+        
+        Returns the created user on success. Any failures should result in an
+        exception being raised.
+        
+        The given properties are validated first, which could result in a
+        ``voluptuous.Invalid`` exception being raised containing details of the
+        errors.
+        
+        :param userid: The user ID for the new user
+        :param passwd: The password for the new user
+        :param first_name: The given name of the new user
+        :param surname: The surname of the new user
+        :param email: The email address of the new user
+        :param ssh_key: The SSH public key of the new user
+        :returns: The created user
+        """
+        raise NotImplementedError
+        
+    def update_user(self, user, first_name, surname, email, ssh_key):
+        """
+        Updates an existing user with the given properties.
+        
+        ``user`` can be the user ID of the user to update or a ``User`` object
+        representing the user to update.
+        
+        Returns ``True`` on success. Any failures should result in an exception
+        being raised.
+        
+        The given properties are validated first, which could result in a
+        ``voluptuous.Invalid`` exception being raised containing details of the
+        errors.
+        """
+        # If we haven't got a user object, get one
+        if not isinstance(user, User):
+            user = self.find_user_by_userid(user)
+        if not user:
+            raise ValueError('Given user does not exist')
+        # Remove leading and trailing whitespace from the SSH key first
+        ssh_key = ssh_key.strip()
+        # We only validate dirty fields
+        dirty = {}
+        if user.first_name != first_name:
+            dirty['first_name'] = first_name
+        if user.surname != surname:
+            dirty['surname'] = surname
+        if user.email != email:
+            dirty['email'] = email
+        if user.ssh_key != ssh_key:
+            dirty['ssh_key'] = ssh_key
+        # Validation raises an exception on failure
+        validated = validate_user_fields(self, dirty)
+        # Get the dn of the entry to modify
+        dn = 'CN={},{}'.format(user.userid, self._request.registry.settings['ldap.user_base'])
+        # Build the actual LDAP changes from the user data
+        changes = {}
+        first_name = validated.get('first_name', first_name)
+        changes['gn'] = (ldap3.MODIFY_REPLACE, (first_name, ))
+        surname = validated.get('surname', surname)
+        changes['sn'] = (ldap3.MODIFY_REPLACE, (surname, ))
+        changes['gecos'] = "{} {}".format(first_name, surname)
+        changes['mail'] = (ldap3.MODIFY_REPLACE, (validated.get('email', email), ))
+        changes['sshPublicKey'] = (ldap3.MODIFY_REPLACE, (validated.get('ssh_key', ssh_key), ))
+        # Apply the changes
+        return self._request.ldap_connection.modify(dn, changes)
 
     def find_org_by_name(self, name):
         """
