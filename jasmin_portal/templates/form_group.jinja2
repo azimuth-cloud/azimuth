@@ -1,0 +1,14 @@
+{% macro form_group(field_name, display_name, show_errors = True) %}
+    {%- set has_errors = field_name in errors %}
+    <div class="form-group{% if has_errors %} has-error{% endif %}">
+        <label for="{{ field_name }}" class="col-sm-3 control-label">{{ display_name }}</label>
+        <div class="col-sm-9">
+            {{ caller() }}
+            {%- if show_errors %}
+                {%- for err in errors.get(field_name, []) %}
+                    <span class="help-block">{{ err }}</span>
+                {%- endfor %}
+            {%- endif %}
+        </div>
+    </div>
+{% endmacro %}
