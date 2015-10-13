@@ -241,6 +241,21 @@ def org_home(request):
     """
     return HTTPSeeOther(location = request.route_url('machines'))
 
+
+@view_config(route_name = 'users',
+             request_method = 'GET',
+             renderer = 'templates/users.jinja2', permission = 'org_view')
+def users(request):
+    """
+    Handler for GET requests to ``/{org}/users``.
+    
+    The user must be authenticated for the organisation in the URL to reach here.
+    
+    Show the users belonging to the organisation in the URL.
+    """
+    # Get the users for the org
+    return { 'users' : request.current_org.members }
+
    
 @view_config(route_name = 'catalogue',
              request_method = 'GET',

@@ -60,6 +60,7 @@ def main(global_config, **settings):
     
     # Org-specific routes
     config.add_route('org_home',         '/{org}')
+    config.add_route('users',            '/{org}/users')
     config.add_route('catalogue',        '/{org}/catalogue')
     config.add_route('catalogue_new',    '/{org}/catalogue/new/{id}')
     config.add_route('catalogue_delete', '/{org}/catalogue/delete/{id}')
