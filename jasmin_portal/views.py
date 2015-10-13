@@ -15,6 +15,7 @@ from pyramid.httpexceptions import HTTPSeeOther, HTTPNotFound, HTTPBadRequest
 from jasmin_portal import cloudservices
 from jasmin_portal.cloudservices.vcloud import VCloudProvider
 from jasmin_portal.util import validate_ssh_key
+from jasmin_portal.identity.validation import ValidationError
 
 
 ################################################################################
@@ -167,18 +168,41 @@ def logout(request):
     
     
 @view_config(route_name = 'profile',
-             request_method = 'GET',
-             renderer = 'templates/profile.jinja2', permission = 'view')
+             request_method = ('GET', 'POST'),
+             renderer = 'templates/profile.jinja2', permission = 'edit')
 def profile(request):
     """
     Handler for GET requests to ``/profile``.
     
     The user must be authenticated to reach here.
     
-    Show the profile information for the authenticated user.
+    GET request
+        Show a form populated with user's current profile data.
+        
+    POST request
+        Attempt to update the profile information. On success or failure, show the
+        form again with a suitable message(s).
     """
-    request.session.flash('Profile is currently read-only', 'info')
-    return { 'user' : request.authenticated_user }
+    if request.method == 'POST':
+        # All POST requests need a csrf token
+        check_csrf_token(request)
+        # Get the user info from the post data
+        user_info = {
+            'first_name' : request.params.get('first_name', ''),
+            'surname'    : request.params.get('surname', ''),
+            'email'      : request.params.get('email', ''),
+            'ssh_key'    : request.params.get('ssh_key', ''),
+        }
+        try:
+            # Try to update the authenticated user
+            user = request.id_service.update_user(request.authenticated_user, **user_info)
+            request.session.flash('Profile updated successfully', 'success')
+            return { 'user' : user, 'errors' : {} }
+        except ValidationError as e:
+            return { 'user' : user_info, 'errors' : e.errors }
+    else:
+        # On a GET request, use the authenticated user
+        return { 'user'   : request.authenticated_user, 'errors' : {} }
     
     
 @view_config(route_name = 'dashboard',

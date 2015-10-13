@@ -69,8 +69,9 @@ class IdentityService:
         cn  = entry.cn.value
         sn  = entry.sn.value
         uid = entry.uid.value
-        # gn, mail and sshPublicKey may or may not exist
-        gn      = getattrs(entry, ['gn', 'value'], None)
+        # First name could be available as gn or givenName, or not at all
+        gn = getattrs(entry, ['gn', 'value'], getattrs(entry, ['givenName', 'value'], None))
+        # mail and sshPublicKey may or may not exist
         mail    = getattrs(entry, ['mail', 'value'], None)
         ssh_key = getattrs(entry, ['sshPublicKey', 'value'], None)
         # Remove any funny trailing whitespace characters
@@ -160,7 +161,7 @@ class IdentityService:
         ``user`` can be the user ID of the user to update or a ``User`` object
         representing the user to update.
         
-        Returns ``True`` on success. Any failures should result in an exception
+        Returns the updated user on success. Any failures should result in an exception
         being raised.
         
         The given properties are validated first, which could result in a
@@ -194,11 +195,12 @@ class IdentityService:
         changes['gn'] = (ldap3.MODIFY_REPLACE, (first_name, ))
         surname = validated.get('surname', surname)
         changes['sn'] = (ldap3.MODIFY_REPLACE, (surname, ))
-        changes['gecos'] = "{} {}".format(first_name, surname)
+        changes['gecos'] = (ldap3.MODIFY_REPLACE, ("{} {}".format(first_name, surname), ))
         changes['mail'] = (ldap3.MODIFY_REPLACE, (validated.get('email', email), ))
         changes['sshPublicKey'] = (ldap3.MODIFY_REPLACE, (validated.get('ssh_key', ssh_key), ))
         # Apply the changes
-        return self._request.ldap_connection.modify(dn, changes)
+        self._request.ldap_connection.modify(dn, changes)
+        return self.find_user_by_userid(user.userid)
 
     def find_org_by_name(self, name):
         """
