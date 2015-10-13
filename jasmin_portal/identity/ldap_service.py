@@ -141,8 +141,8 @@ class IdentityService:
         exception being raised.
         
         The given properties are validated first, which could result in a
-        ``voluptuous.Invalid`` exception being raised containing details of the
-        errors.
+        :py:class:`.validation.ValidationError` being raised containing details
+        of the errors.
         
         :param userid: The user ID for the new user
         :param passwd: The password for the new user
@@ -165,8 +165,15 @@ class IdentityService:
         being raised.
         
         The given properties are validated first, which could result in a
-        ``voluptuous.Invalid`` exception being raised containing details of the
-        errors.
+        :py:class:`.validation.ValidationError` being raised containing details
+        of the errors.
+        
+        :param user: A user object or the user ID for the user to update
+        :param first_name: The updated given name
+        :param surname: The updated surname
+        :param email: The updated email address
+        :param ssh_key: The updated SSH public key
+        :returns: The updated user
         """
         # If we haven't got a user object, get one
         if not isinstance(user, User):

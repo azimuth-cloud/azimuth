@@ -16,7 +16,7 @@ from jasmin_portal.util import validate_email, validate_ssh_key
 
 class ValidationError(Exception):
     """
-    Exception that is raised when an exception occurs during validation.
+    Exception that is raised when an error occurs during validation.
     
     :param errors: A dictionary mapping field names to a list of errors for that
                     field.
@@ -79,7 +79,7 @@ def validate_user_fields(id_service, fields):
     an error.
     
     Returns the converted and validated fields on success, raises
-    ``voluptuous.Invalid`` on failure.
+    :py:class:`ValidationError` on failure.
     
     :param id_service: The id service to use for uniqueness checks
     :param fields: Dictionary of fields to validate

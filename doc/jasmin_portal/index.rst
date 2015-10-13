@@ -7,7 +7,7 @@
     catalogue
     cloud
     cloudservices/index
-    identity
+    identity/index
     ldap
     util
     views
