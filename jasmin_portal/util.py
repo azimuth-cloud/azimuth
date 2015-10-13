@@ -5,6 +5,8 @@ This module contains generic utilities and helpers used by the JASMIN portal.
 __author__ = "Matt Pryor"
 __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
+
+import os, tempfile, subprocess, re
 from functools import reduce
 from collections import Iterable
 
@@ -27,6 +29,59 @@ def getattrs(obj, attrs, default):
         return reduce(getattr, attrs, obj)
     except (KeyError, AttributeError):
         return default
+    
+
+# Lifted from formencode via validino
+_usernameRE = re.compile(r"^[^ \t\n\r@<>()]+$", re.I)
+_domainRE = re.compile(r"^[a-z0-9][a-z0-9\.\-_]*\.[a-z]+$", re.I)
+
+def validate_email(email):
+    """
+    Verifies that the given value is a valid email address.
+    
+    Returns the value on success, raises ``ValueError`` on failure.
+    
+    :param email: The value to test
+    :returns: The value on success
+    """
+    try:
+        username, domain = email.split('@', 1)
+    except ValueError:
+        raise ValueError('Not a valid email address')
+    if not _usernameRE.match(username):
+        raise ValueError('Not a valid email address')
+    if not _domainRE.match(domain):
+        raise ValueError('Not a valid email address')
+    return email
+    
+    
+def validate_ssh_key(ssh_key):
+    """
+    Verifies that the given value is a valid SSH key.
+    
+    Returns the key on success, raises ``ValueError`` on failure.
+    
+    :param ssh_key: The value to test
+    :returns: The key on success
+    """
+    # Strip whitespace and raise an error if that results in an empty value
+    ssh_key = ssh_key.strip()
+    if not ssh_key:
+        raise ValueError('Not a valid SSH key')
+    # Check that the SSH key is valid using ssh-keygen
+    fd, temp = tempfile.mkstemp()
+    with os.fdopen(fd, mode = 'w') as f:
+        f.write(ssh_key)
+    try:
+        # We don't really care about the content of stdout/err
+        # We just care if the command succeeded or not...
+        subprocess.check_call(
+            'ssh-keygen -l -f {}'.format(temp), shell = True,
+            stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL
+        )
+    except subprocess.CalledProcessError:
+        raise ValueError('Not a valid SSH key')
+    return ssh_key
     
     
 class DeferredIterable(Iterable):

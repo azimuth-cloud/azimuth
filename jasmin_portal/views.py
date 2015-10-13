@@ -5,8 +5,6 @@ This module contains Pyramid view callables for the JASMIN cloud portal.
 __author__ = "Matt Pryor"
 __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
-import os, tempfile, subprocess
-
 import bleach, markdown
 
 from pyramid.view import view_config, forbidden_view_config, notfound_view_config
@@ -14,10 +12,10 @@ from pyramid.security import remember, forget
 from pyramid.session import check_csrf_token
 from pyramid.httpexceptions import HTTPSeeOther, HTTPNotFound, HTTPBadRequest
 
-from jasmin_portal.identity import authenticate_user
-from jasmin_portal import catalogue as cat
 from jasmin_portal import cloudservices
 from jasmin_portal.cloudservices.vcloud import VCloudProvider
+from jasmin_portal.util import validate_ssh_key
+from jasmin_portal.identity.validation import ValidationError
 
 
 ################################################################################
@@ -134,8 +132,8 @@ def login(request):
         # Try to authenticate the user
         username = request.params['username']
         password = request.params['password']
-        user = authenticate_user(request, username, password)
-        if user:
+        if request.id_service.authenticate_user(username, password):
+            user = request.id_service.find_user_by_userid(username)
             # Try to create a session for each of the user's orgs
             # If any of them fail, bail with the error message
             try:
@@ -170,18 +168,44 @@ def logout(request):
     
     
 @view_config(route_name = 'profile',
-             request_method = 'GET',
-             renderer = 'templates/profile.jinja2', permission = 'view')
+             request_method = ('GET', 'POST'),
+             renderer = 'templates/profile.jinja2', permission = 'edit')
 def profile(request):
     """
     Handler for GET requests to ``/profile``.
     
     The user must be authenticated to reach here.
     
-    Show the profile information for the authenticated user.
+    GET request
+        Show a form populated with user's current profile data.
+        
+    POST request
+        Attempt to update the profile information. On success or failure, show the
+        form again with a suitable message(s).
     """
-    request.session.flash('Profile is currently read-only', 'info')
-    return { 'user' : request.authenticated_user }
+    if request.method == 'POST':
+        # All POST requests need a csrf token
+        check_csrf_token(request)
+        # Get the user info from the post data
+        user_info = {
+            'first_name' : request.params.get('first_name', ''),
+            'surname'    : request.params.get('surname', ''),
+            'email'      : request.params.get('email', ''),
+            'ssh_key'    : request.params.get('ssh_key', ''),
+        }
+        try:
+            # Try to update the authenticated user
+            user = request.id_service.update_user(request.authenticated_user, **user_info)
+            request.session.flash('Profile updated successfully', 'success')
+            return { 'user' : user, 'errors' : {} }
+        except ValidationError as e:
+            request.session.flash('There are errors with one or more fields', 'error')
+            # Add the userid to the form info before returning
+            user_info['userid'] = request.authenticated_user.userid
+            return { 'user' : user_info, 'errors' : e.errors }
+    else:
+        # On a GET request, use the authenticated user
+        return { 'user' : request.authenticated_user, 'errors' : {} }
     
     
 @view_config(route_name = 'dashboard',
@@ -230,7 +254,7 @@ def catalogue(request):
     Show the catalogue items available to the organisation in the URL.
     """
     # Get the available catalogue items
-    return { 'items' : cat.available_catalogue_items(request) }
+    return { 'items' : request.catalogue_service.available_items() }
 
 
 @view_config(route_name = 'catalogue_new',
@@ -262,7 +286,6 @@ def catalogue_new(request):
         # All POST requests need a csrf token
         check_csrf_token(request)
         item_info = {
-            'machine'       : machine,
             'name'          : request.params.get('name', ''),
             'description'   : request.params.get('description', ''),
             'allow_inbound' : request.params.get('allow_inbound', 'false'),
@@ -276,14 +299,18 @@ def catalogue_new(request):
         )
         try:
             # Create the catalogue item
-            cat.catalogue_item_from_machine(
-                request, machine, item_info['name'],
+            request.catalogue_service.item_from_machine(
+                machine, item_info['name'],
                 description, item_info['allow_inbound'] == "true"
             )
             request.session.flash('Catalogue item created successfully', 'success')
         except cloudservices.DuplicateNameError:
-            request.session.flash('Name already in use', 'error')
-            return item_info
+            request.session.flash('There are errors with one or more fields', 'error')
+            return {
+                'machine' : machine,
+                'item'    : item_info,
+                'errors'  : { 'name' : ['Catalogue item name is already in use'] }
+            }
         # If creating the catalogue item is successful, try to delete the machine
         try:
             request.active_cloud_session.delete_machine(machine_id)
@@ -293,9 +320,12 @@ def catalogue_new(request):
     # Only a get request should get this far
     return {
         'machine'       : machine,
-        'name'          : '',
-        'description'   : '',
-        'allow_inbound' : 'false'
+        'item' : {
+            'name'          : '',
+            'description'   : '',
+            'allow_inbound' : 'false'
+        },
+        'errors' : {}
     }
     
     
@@ -314,7 +344,7 @@ def catalogue_delete(request):
     """
     # Request must pass a CSRF test
     check_csrf_token(request)
-    cat.delete_catalogue_item(request, request.matchdict['id'])
+    request.catalogue_service.delete_item_with_id(request.matchdict['id'])
     request.session.flash('Catalogue item deleted', 'success')
     return HTTPSeeOther(location = request.route_url('catalogue'))
 
@@ -358,50 +388,44 @@ def new_machine(request):
         
         If the provisioning fails completely, show the form with an error message.
     """
-    item_id = request.matchdict['id']
     # Try to load the catalogue item
-    item = cat.find_by_id(request, item_id)
+    item = request.catalogue_service.find_item_by_id(request.matchdict['id'])
     if not item:
         raise HTTPNotFound()
     # If we have a POST request, try and provision a machine with the info
     if request.method == 'POST':
         # For a POST request, the request must pass a CSRF test
         check_csrf_token(request)
-        machine_info = {
-            'item'        : item,
+        template_info = {
+            'template'    : item,
             'name'        : request.params.get('name', ''),
             'description' : request.params.get('description', ''),
-            'ssh_key'     : request.params.get('ssh-key', ''),
+            'ssh_key'     : request.params.get('ssh_key', ''),
+            'errors'      : {}
         }
-        # Check that the SSH key is valid using ssh-keygen
-        fd, temp = tempfile.mkstemp()
-        with os.fdopen(fd, mode = 'w') as f:
-            f.write(machine_info['ssh_key'])
+        # Check that the SSH key is valid
         try:
-            # We don't really care about the content of stdout/err
-            # We just care if the command succeeded or not...
-            subprocess.check_call(
-                'ssh-keygen -l -f {}'.format(temp), shell = True,
-                stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL
-            )
-        except subprocess.CalledProcessError:
-            request.session.flash('SSH Key is not valid', 'error')
-            return machine_info
+            template_info['ssh_key'] = validate_ssh_key(template_info['ssh_key'])
+        except ValueError as e:
+            request.session.flash('There are errors with one or more fields', 'error')
+            template_info['errors']['ssh_key'] = [str(e)]
+            return template_info
         try:
             machine = request.active_cloud_session.provision_machine(
-                item.cloud_id, machine_info['name'],
-                machine_info['description'], machine_info['ssh_key']
+                item.cloud_id, template_info['name'],
+                template_info['description'], template_info['ssh_key']
             )
             request.session.flash('Machine provisioned successfully', 'success')
         # Catch specific provisioning errors here
         except cloudservices.DuplicateNameError:
-            request.session.flash('Name already in use', 'error')
-            return machine_info
+            request.session.flash('There are errors with one or more fields', 'error')
+            template_info['errors']['name'] = ['Machine name is already in use']
+            return template_info
         except (cloudservices.BadRequestError,
                 cloudservices.ProvisioningError) as e:
             # If provisioning fails, we want to report an error and show the form again
             request.session.flash('Provisioning error: {}'.format(str(e)), 'error')
-            return machine_info
+            return template_info
         # Now see if we need to apply NAT and firewall rules
         if item.allow_inbound:
             try:
@@ -413,11 +437,12 @@ def new_machine(request):
         return HTTPSeeOther(location = request.route_url('machines'))
     # Only get requests should get this far
     return {
-        'item'        : item,
+        'template'    : item,
         'name'        : '',
         'description' : '',
         # Use the current user's SSH key as the default
         'ssh_key'     : request.authenticated_user.ssh_key or '',
+        'errors'      : {}
     }
 
 

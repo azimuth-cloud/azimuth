@@ -1,6 +1,6 @@
 """
-This module provides some generic LDAP functionality and LDAP integration with
-Pyramid used by the JASMIN portal.
+This module provides some generic LDAP utilities and LDAP integration with Pyramid
+used by the JASMIN portal.
 """
 
 __author__ = "Matt Pryor"
@@ -12,16 +12,13 @@ import ldap3
 import ldap3.utils
 
 
-def setup(config, settings):
+def includeme(config):
     """
     Configures the Pyramid application for LDAP access.
     
     :param config: Pyramid configurator
-    :param settings: Settings array passed to Pyramid main function
-    :returns: The updated configurator
     """
     config.add_request_method(ldap_connection, reify = True)
-    return config
 
 
 def ldap_authenticate(request, user_dn, password):
@@ -32,7 +29,7 @@ def ldap_authenticate(request, user_dn, password):
     :param request: The Pyramid request
     :param user_dn: The DN of the user to authenticate
     :param password: The password to use for authentication
-    :returns: ``True`` on success, ``False`` otherwise
+    :returns: ``True`` on success, ``False`` on failure
     """
     try:
         ldap3.Connection(request.registry.settings['ldap.server'],
@@ -137,17 +134,17 @@ class Filter:
         """
         return self._filter_str
         
-    def __and__(self, filter):
+    def __and__(self, other):
         """
         Combines this filter and the given filter using AND
         """
-        return Filter('&{0}{1}'.format(self, filter))
+        return Filter('&{0}{1}'.format(self, other))
     
-    def __or__(self, filter):
+    def __or__(self, other):
         """
         Combines this filter and the given filter using OR
         """
-        return Filter('|{0}{1}'.format(self, filter))
+        return Filter('|{0}{1}'.format(self, other))
     
     def __invert__(self):
         """

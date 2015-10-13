@@ -7,20 +7,17 @@ __author__ = "Matt Pryor"
 __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
 
-def setup(config, settings):
+def includeme(config):
     """
     Configures the Pyramid application for persisting and retrieving cloud sessions.
     
     :param config: Pyramid configurator
-    :param settings: Settings array passed to Pyramid main function
-    :returns: The updated configurator
     """
     # Add additional methods and properties to request
     config.add_request_method(add_cloud_session)
     config.add_request_method(get_cloud_session)
     config.add_request_method(clear_cloud_sessions)
     config.add_request_method(active_cloud_session, reify = True)
-    return config
     
 
 _SESSION_KEY = 'cloud'

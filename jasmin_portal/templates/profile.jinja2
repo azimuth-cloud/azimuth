@@ -2,33 +2,43 @@
 
 {% block pagetitle %}Profile information{% endblock %}
 
+{% from 'templates/form_group.jinja2' import form_group_with_errors with context %}
+
 {% block content %}
 <div class="col-md-8 col-md-offset-2 form-horizontal">
-    <div class="form-group">
-        <label class="col-sm-3 control-label">Username</label>
-        <div class="col-sm-9">
+    <form method="POST" action="{{ request.route_url('profile') }}" class="form-horizontal disable-on-submit">
+        <input name="csrf_token" type="hidden" value="{{ request.session.get_csrf_token() }}" />
+        
+        {%- call form_group_with_errors("userid", "Username") %}
             <p class="form-control-static"><code>{{ user.userid }}</code></p>
-        </div>
-    </div>
-    <div class="form-group">
-        <label class="col-sm-3 control-label">Email</label>
-        <div class="col-sm-9">
-            <p class="form-control-static"><code>{{ user.email }}</code></p>
-        </div>
-    </div>
-    <div class="form-group">
-        <label class="col-sm-3 control-label">Name</label>
-        <div class="col-sm-9">
-            <p class="form-control-static">{{ user.full_name }}</p>
-        </div>
-    </div>
-    <div class="form-group">
-        <label class="col-sm-3 control-label">SSH Public Key</label>
-        <div class="col-sm-9">
-            <!-- We use an inline style here since the behaviour we want really IS specific to this element -->
-            <p class="form-control-static" style="word-wrap: break-word;"><code>{{ user.ssh_key }}</code></p>
+        {%- endcall %}
+        
+        {%- call form_group_with_errors("email", "Email address") %}
+            <input name="email" type="email" class="form-control"
+                   value="{{ user.email|default('', true) }}" required placeholder="Required" />
+        {%- endcall %}
+        
+        {%- call form_group_with_errors("first_name", "First name") %}
+            <input name="first_name" type="text" class="form-control"
+                   value="{{ user.first_name|default('', true) }}" required placeholder="Required" />
+        {%- endcall %}
+        
+        {%- call form_group_with_errors("surname", "Surname") %}
+            <input name="surname" type="text" class="form-control"
+                   value="{{ user.surname|default('', true) }}" required placeholder="Required" />
+        {%- endcall %}
+        
+        {%- call form_group_with_errors("ssh_key", "SSH Public Key", False) %}
+            <textarea name="ssh_key" class="form-control" rows="5" placeholder="Required" required>{{ user.ssh_key|default('', true) }}</textarea>
             <span class="help-block">This will be the default SSH key for the <code>root</code> user of any machines you provision.</span>
+            <span class="help-block">For help generating SSH keys, see <a href="http://jasmin.ac.uk/workflow/ssh-keys/">the main JASMIN site</a>.</span>
+        {%- endcall %}
+        
+        <div class="form-group">
+            <div class="col-sm-offset-3 col-sm-9">
+                <button name="submitted" type="submit" class="btn btn-primary" autocomplete="off">Update profile</button>
+            </div>
         </div>
-    </div>
+    </form>
 </div>
 {% endblock %}
