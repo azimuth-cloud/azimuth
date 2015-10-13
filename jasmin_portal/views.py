@@ -286,7 +286,6 @@ def catalogue_new(request):
         # All POST requests need a csrf token
         check_csrf_token(request)
         item_info = {
-            'machine'       : machine,
             'name'          : request.params.get('name', ''),
             'description'   : request.params.get('description', ''),
             'allow_inbound' : request.params.get('allow_inbound', 'false'),
@@ -306,8 +305,12 @@ def catalogue_new(request):
             )
             request.session.flash('Catalogue item created successfully', 'success')
         except cloudservices.DuplicateNameError:
-            request.session.flash('Name already in use', 'error')
-            return item_info
+            request.session.flash('There are errors with one or more fields', 'error')
+            return {
+                'machine' : machine,
+                'item'    : item_info,
+                'errors'  : { 'name' : ['Catalogue item name is already in use'] }
+            }
         # If creating the catalogue item is successful, try to delete the machine
         try:
             request.active_cloud_session.delete_machine(machine_id)
@@ -317,9 +320,12 @@ def catalogue_new(request):
     # Only a get request should get this far
     return {
         'machine'       : machine,
-        'name'          : '',
-        'description'   : '',
-        'allow_inbound' : 'false'
+        'item' : {
+            'name'          : '',
+            'description'   : '',
+            'allow_inbound' : 'false'
+        },
+        'errors' : {}
     }
     
     
@@ -390,33 +396,36 @@ def new_machine(request):
     if request.method == 'POST':
         # For a POST request, the request must pass a CSRF test
         check_csrf_token(request)
-        machine_info = {
-            'item'        : item,
+        template_info = {
+            'template'    : item,
             'name'        : request.params.get('name', ''),
             'description' : request.params.get('description', ''),
-            'ssh_key'     : request.params.get('ssh-key', ''),
+            'ssh_key'     : request.params.get('ssh_key', ''),
+            'errors'      : {}
         }
         # Check that the SSH key is valid
         try:
-            machine_info['ssh_key'] = validate_ssh_key(machine_info['ssh_key'])
-        except ValueError:
-            request.session.flash('SSH Key is not valid', 'error')
-            return machine_info
+            template_info['ssh_key'] = validate_ssh_key(template_info['ssh_key'])
+        except ValueError as e:
+            request.session.flash('There are errors with one or more fields', 'error')
+            template_info['errors']['ssh_key'] = [str(e)]
+            return template_info
         try:
             machine = request.active_cloud_session.provision_machine(
-                item.cloud_id, machine_info['name'],
-                machine_info['description'], machine_info['ssh_key']
+                item.cloud_id, template_info['name'],
+                template_info['description'], template_info['ssh_key']
             )
             request.session.flash('Machine provisioned successfully', 'success')
         # Catch specific provisioning errors here
         except cloudservices.DuplicateNameError:
-            request.session.flash('Name already in use', 'error')
-            return machine_info
+            request.session.flash('There are errors with one or more fields', 'error')
+            template_info['errors']['name'] = ['Machine name is already in use']
+            return template_info
         except (cloudservices.BadRequestError,
                 cloudservices.ProvisioningError) as e:
             # If provisioning fails, we want to report an error and show the form again
             request.session.flash('Provisioning error: {}'.format(str(e)), 'error')
-            return machine_info
+            return template_info
         # Now see if we need to apply NAT and firewall rules
         if item.allow_inbound:
             try:
@@ -428,11 +437,12 @@ def new_machine(request):
         return HTTPSeeOther(location = request.route_url('machines'))
     # Only get requests should get this far
     return {
-        'item'        : item,
+        'template'    : item,
         'name'        : '',
         'description' : '',
         # Use the current user's SSH key as the default
         'ssh_key'     : request.authenticated_user.ssh_key or '',
+        'errors'      : {}
     }
 
 

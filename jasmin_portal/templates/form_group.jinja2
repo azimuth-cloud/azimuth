@@ -1,4 +1,4 @@
-{% macro form_group(field_name, display_name, show_errors = True) %}
+{% macro form_group_with_errors(field_name, display_name, show_errors = True) %}
     {%- set has_errors = field_name in errors %}
     <div class="form-group{% if has_errors %} has-error{% endif %}">
         <label for="{{ field_name }}" class="col-sm-3 control-label">{{ display_name }}</label>
