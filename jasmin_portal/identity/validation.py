@@ -57,6 +57,20 @@ def __unique_email(id_service):
     return f
 
 
+def __with_msg(f, msg = None):
+    """
+    Returns a validation functions that converts ``ValueError``s to
+    ``voluptuous.Invalid`` while either overriding the message if given or retaining
+    the error message from the value error.
+    """
+    def g(value):
+        try:
+            return f(value)
+        except ValueError as e:
+            raise v.Invalid(msg or str(e))
+    return g
+        
+
 def validate_user_fields(id_service, fields):
     """
     Validates and converts the given fields against what is expected for a user.
@@ -74,11 +88,19 @@ def validate_user_fields(id_service, fields):
     # Build the voluptuous schema we will use to validate
     # IsTrue is used in combination with str to rule out empty strings
     schema = v.Schema({
-        'userid'     : v.All(str, v.Match('^[a-zA-Z_]+$'), __unique_userid(id_service)),
-        'first_name' : v.All(str, v.IsTrue()),
-        'surname'    : v.All(str, v.IsTrue()),
-        'email'      : v.All(str, validate_email, __unique_email(id_service)),
-        'ssh_key'    : v.All(str, v.IsTrue(), validate_ssh_key),
+        'userid' : v.All(
+            __with_msg(str),
+            v.Match('^[a-zA-Z0-9_]+$', 'Username must use only alphanumeric and _ characters'),
+            __unique_userid(id_service)
+        ),
+        'first_name' : v.All(__with_msg(str), v.IsTrue('First name is required')),
+        'surname' : v.All(__with_msg(str), v.IsTrue('Surname is required')),
+        'email' : v.All(
+            __with_msg(str), __with_msg(validate_email), __unique_email(id_service)
+        ),
+        'ssh_key' : v.All(
+            __with_msg(str), v.IsTrue('SSH key is required'), __with_msg(validate_ssh_key)
+        ),
     }, required = False, extra = v.PREVENT_EXTRA)
     # Convert the voluptuous error into our own error class
     try:

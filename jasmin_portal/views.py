@@ -199,10 +199,13 @@ def profile(request):
             request.session.flash('Profile updated successfully', 'success')
             return { 'user' : user, 'errors' : {} }
         except ValidationError as e:
+            request.session.flash('There are errors with one or more fields', 'error')
+            # Add the userid to the form info before returning
+            user_info['userid'] = request.authenticated_user.userid
             return { 'user' : user_info, 'errors' : e.errors }
     else:
         # On a GET request, use the authenticated user
-        return { 'user'   : request.authenticated_user, 'errors' : {} }
+        return { 'user' : request.authenticated_user, 'errors' : {} }
     
     
 @view_config(route_name = 'dashboard',

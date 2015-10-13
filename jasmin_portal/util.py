@@ -47,11 +47,11 @@ def validate_email(email):
     try:
         username, domain = email.split('@', 1)
     except ValueError:
-        raise ValueError('Value is not a valid email address')
+        raise ValueError('Not a valid email address')
     if not _usernameRE.match(username):
-        raise ValueError('Value is not a valid email address')
+        raise ValueError('Not a valid email address')
     if not _domainRE.match(domain):
-        raise ValueError('Value is not a valid email address')
+        raise ValueError('Not a valid email address')
     return email
     
     
@@ -67,7 +67,7 @@ def validate_ssh_key(ssh_key):
     # Strip whitespace and raise an error if that results in an empty value
     ssh_key = ssh_key.strip()
     if not ssh_key:
-        raise ValueError('SSH key cannot be empty')
+        raise ValueError('Not a valid SSH key')
     # Check that the SSH key is valid using ssh-keygen
     fd, temp = tempfile.mkstemp()
     with os.fdopen(fd, mode = 'w') as f:
@@ -80,7 +80,7 @@ def validate_ssh_key(ssh_key):
             stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL
         )
     except subprocess.CalledProcessError:
-        raise ValueError('Value is not a valid SSH key')
+        raise ValueError('Not a valid SSH key')
     return ssh_key
     
     
