@@ -1,0 +1,29 @@
+{% extends "templates/layout.jinja2" %}
+
+{% block pagetitle %}Organisation Users{% endblock %}
+
+{% block content %}
+<div class="row">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Name</th>
+                <th>Email Address</th>
+                <th>SSH Public Key</th>
+            </tr>
+        </thead>
+        <tbody>
+            {%- for user in users %}
+                <tr>
+                    <td><code>{{ user.userid }}</code></td>
+                    <td>{{ user.full_name }}</td>
+                    <td>{{ user.email }}</td>
+                    {#- We use an inline style here since it really is per-element #}
+                    <td style="word-break: break-all;"><code>{{ user.ssh_key }}</code></td>
+                </tr>
+            {%- endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -44,6 +44,9 @@
                                 <li {% if request.matched_route.name == 'catalogue' %}class="active"{% endif %}>
                                     <a href="{{ request.route_url('catalogue') }}">Catalogue</a>
                                 </li>
+                                <li {% if request.matched_route.name == 'users' %}class="active"{% endif %}>
+                                    <a href="{{ request.route_url('users') }}">Users</a>
+                                </li>
                             </ul>
                         {%- endif %}
                         
