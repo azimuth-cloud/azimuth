@@ -7,10 +7,8 @@ __author__ = "Matt Pryor"
 __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
 
-from jasmin_portal.ldap import ldap_authenticate, Query, Filter as f
-from jasmin_portal.util import getattrs, DeferredIterable
-
-import ldap3
+from jasmin_portal.ldap import ldap_authenticate, update_entry, Query, Filter as f
+from jasmin_portal.util import first, DeferredIterable
 
 from .dto import User, Organisation
 from .validation import validate_user_fields
@@ -49,31 +47,32 @@ class IdentityService:
 
     def __ldap_to_org(self, entry):
         """
-        Converts an ldap3 entry object to an Organisation object
+        Converts an ldap entry object to an Organisation object
         """
         suffix = self._request.registry.settings['ldap.group_suffix']
-        # memberUid is not guaranteed to exist by the posixGroup schema (cn is)
-        member_uids = getattrs(entry, ['memberUid', 'values'], [])
+        # memberUid is not guaranteed to exist by the posixGroup schema
+        member_uids = entry.get('memberUid', [])
         # Use a deferred iterable for the members so it is not evaluated until
         # they are used
         return Organisation(
-            entry.cn.value.lower().replace(suffix, ''),
+            # cn is guaranteed to exist
+            entry['cn'][0].lower().replace(suffix, ''),
             DeferredIterable(lambda: [self.find_user_by_userid(uid) for uid in member_uids])
         )
         
     def __ldap_to_user(self, entry):
         """
-        Converts an ldap3 entry object to a User object
+        Converts an ldap entry object to a User object
         """
         # Due to the object classes used for users, cn, sn and uid are guaranteed to exist
-        cn  = entry.cn.value
-        sn  = entry.sn.value
-        uid = entry.uid.value
+        cn  = entry['cn'][0]
+        sn  = entry['sn'][0]
+        uid = entry['uid'][0]
         # First name could be available as gn or givenName, or not at all
-        gn = getattrs(entry, ['gn', 'value'], getattrs(entry, ['givenName', 'value'], None))
+        gn = first(entry.get('gn', entry.get('givenName', [])), None)
         # mail and sshPublicKey may or may not exist
-        mail    = getattrs(entry, ['mail', 'value'], None)
-        ssh_key = getattrs(entry, ['sshPublicKey', 'value'], None)
+        mail    = first(entry.get('mail', []), None)
+        ssh_key = first(entry.get('sshPublicKey', []), None)
         # Remove any funny trailing whitespace characters
         if ssh_key:
             ssh_key = ssh_key.strip()
@@ -198,16 +197,14 @@ class IdentityService:
         dn = 'CN={},{}'.format(user.userid, self._request.registry.settings['ldap.user_base'])
         # Build the actual LDAP changes from the user data
         changes = {}
-        first_name = validated.get('first_name', first_name)
-        changes['gn'] = (ldap3.MODIFY_REPLACE, (first_name, ))
-        surname = validated.get('surname', surname)
-        changes['sn'] = (ldap3.MODIFY_REPLACE, (surname, ))
-        changes['gecos'] = (ldap3.MODIFY_REPLACE, ("{} {}".format(first_name, surname), ))
-        changes['mail'] = (ldap3.MODIFY_REPLACE, (validated.get('email', email), ))
-        changes['sshPublicKey'] = (ldap3.MODIFY_REPLACE, (validated.get('ssh_key', ssh_key), ))
+        changes['gn'] = (validated.get('first_name', first_name), )
+        changes['sn'] = (validated.get('surname', surname), )
+        changes['gecos'] = ("{} {}".format(changes['gn'], changes['sn']), )
+        changes['mail'] = (validated.get('email', email), )
+        changes['sshPublicKey'] = (validated.get('ssh_key', ssh_key), )
         # Apply the changes
-        self._request.ldap_connection.modify(dn, changes)
-        return self.find_user_by_userid(user.userid)
+        update_entry(self._request.ldap_connection, dn, changes)
+        return user._replace(**validated)
 
     def find_org_by_name(self, name):
         """
