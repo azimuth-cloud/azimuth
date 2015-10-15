@@ -33,6 +33,8 @@ class LDAPConnection:
         request object, i.e. ``r = request.ldap_connection``.
        
         This property is reified, so it is only evaluated once per request.
+        
+    :param settings: The settings dictionary
     """
     def __init__(self, settings):
         self._settings = settings
@@ -101,7 +103,7 @@ class LDAPConnection:
         """
         # Make sure the correct operation is applied
         return self.__connection().modify(
-            dn, { k : (ldap3.MODIFY_REPLACE, v) for k, v in attributes }
+            dn, { k : (ldap3.MODIFY_REPLACE, v) for k, v in attributes.items() }
         )
 
 

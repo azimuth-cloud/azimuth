@@ -24,7 +24,9 @@ def includeme(config):
     config.include('jasmin_portal.ldap')
 
     # Add properties to request
-    config.add_request_method(IdentityService, name = 'id_service', reify = True)
+    def id_service(request):
+        return IdentityService(request.ldap_connection, request.registry.settings)
+    config.add_request_method(id_service, reify = True)
 
 
 class IdentityService:
@@ -40,16 +42,18 @@ class IdentityService:
        
         This property is reified, so it is only evaluated once per request.
        
-    :param request: The Pyramid request
+    :param connection: The :py:class:`jasmin_portal.ldap.LDAPConnection` to use
+    :param settings: The settings dictionary
     """
-    def __init__(self, request):
-        self._request = request
+    def __init__(self, connection, settings):
+        self._conn = connection
+        self._settings = settings
 
     def __ldap_to_org(self, entry):
         """
         Converts an ldap entry object to an Organisation object
         """
-        suffix = self._request.registry.settings['ldap.group_suffix']
+        suffix = self._settings['ldap.group_suffix']
         # memberUid is not guaranteed to exist by the posixGroup schema
         member_uids = entry.get('memberUid', [])
         # Use a deferred iterable for the members so it is not evaluated until
@@ -78,12 +82,12 @@ class IdentityService:
             ssh_key = ssh_key.strip()
         # Get an iterable for the user's orgs
         # Since we only guarantee iterable, we can just use the Query directly
-        suffix = self._request.registry.settings['ldap.group_suffix']
+        suffix = self._settings['ldap.group_suffix']
         filter = f('objectClass=posixGroup') &           \
                    f('cn=*{suffix}', suffix = suffix) &  \
                    f('memberUid={uid}', uid = uid)
-        orgs = self._request.ldap_connection.create_query(
-            self._request.registry.settings['ldap.group_base'],
+        orgs = self._conn.create_query(
+            self._settings['ldap.group_base'],
             filter, transform = self.__ldap_to_org
         )
         return User(cn, gn, sn, mail, ssh_key, orgs)
@@ -93,8 +97,8 @@ class IdentityService:
         Returns the first user that fulfills the given filter, or ``None`` if one
         does not exist.
         """
-        q = self._request.ldap_connection.create_query(
-            self._request.registry.settings['ldap.user_base'],
+        q = self._conn.create_query(
+            self._settings['ldap.user_base'],
             filter, transform = self.__ldap_to_user
         )
         return next(iter(q), None)
@@ -128,9 +132,9 @@ class IdentityService:
         """
         # Build the DN
         user_dn = 'CN={userid},{base}'.format(
-            userid = userid, base = self._request.registry.settings['ldap.user_base']
+            userid = userid, base = self._settings['ldap.user_base']
         )
-        return self._request.ldap_connection.authenticate(user_dn, passwd)
+        return self._conn.authenticate(user_dn, passwd)
     
     def create_user(self, userid, passwd, first_name, surname, email, ssh_key):
         """
@@ -191,19 +195,24 @@ class IdentityService:
             dirty['email'] = email
         if user.ssh_key != ssh_key:
             dirty['ssh_key'] = ssh_key
+        # If there are no dirty fields, there is nothing to do
+        if not dirty:
+            return user
         # Validation raises an exception on failure
         validated = validate_user_fields(self, dirty)
         # Get the dn of the entry to modify
-        dn = 'CN={},{}'.format(user.userid, self._request.registry.settings['ldap.user_base'])
+        dn = 'CN={},{}'.format(user.userid, self._settings['ldap.user_base'])
         # Build the actual LDAP changes from the user data
         changes = {}
-        changes['gn'] = (validated.get('first_name', first_name), )
-        changes['sn'] = (validated.get('surname', surname), )
-        changes['gecos'] = ("{} {}".format(changes['gn'], changes['sn']), )
+        first_name = validated.get('first_name', first_name)
+        surname = validated.get('surname', surname)
+        changes['gn'] = (first_name, )
+        changes['sn'] = (surname, )
+        changes['gecos'] = ("{} {}".format(first_name, surname), )
         changes['mail'] = (validated.get('email', email), )
         changes['sshPublicKey'] = (validated.get('ssh_key', ssh_key), )
         # Apply the changes
-        self._request.ldap_connection.update_entry(dn, changes)
+        self._conn.update_entry(dn, changes)
         return user._replace(**validated)
 
     def find_org_by_name(self, name):
@@ -214,11 +223,11 @@ class IdentityService:
         :returns: An ``Organisation`` object or ``None``
         """
         # Build the filter
-        suffix = self._request.registry.settings['ldap.group_suffix']
+        suffix = self._settings['ldap.group_suffix']
         filter = f('objectClass=posixGroup') &                           \
                    f('cn={name}{suffix}', name = name, suffix = suffix)
-        q = self._request.ldap_connection.create_query(
-            self._request.registry.settings['ldap.group_base'],
+        q = self._conn.create_query(
+            self._settings['ldap.group_base'],
             filter, transform = self.__ldap_to_org
         )
         return next(iter(q), None)
