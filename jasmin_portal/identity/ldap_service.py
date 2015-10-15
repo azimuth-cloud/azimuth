@@ -7,7 +7,7 @@ __author__ = "Matt Pryor"
 __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
 
-from jasmin_portal.ldap import ldap_authenticate, update_entry, Query, Filter as f
+from jasmin_portal.ldap import Filter as f
 from jasmin_portal.util import first, DeferredIterable
 
 from .dto import User, Organisation
@@ -82,10 +82,10 @@ class IdentityService:
         filter = f('objectClass=posixGroup') &           \
                    f('cn=*{suffix}', suffix = suffix) &  \
                    f('memberUid={uid}', uid = uid)
-        orgs = Query(self._request.ldap_connection,
-                     self._request.registry.settings['ldap.group_base'],
-                     filter,
-                     transform = self.__ldap_to_org)
+        orgs = self._request.ldap_connection.create_query(
+            self._request.registry.settings['ldap.group_base'],
+            filter, transform = self.__ldap_to_org
+        )
         return User(cn, gn, sn, mail, ssh_key, orgs)
     
     def _find_user_by_filter(self, filter):
@@ -93,10 +93,10 @@ class IdentityService:
         Returns the first user that fulfills the given filter, or ``None`` if one
         does not exist.
         """
-        q = Query(self._request.ldap_connection,
-                  self._request.registry.settings['ldap.user_base'],
-                  filter,
-                  transform = self.__ldap_to_user)
+        q = self._request.ldap_connection.create_query(
+            self._request.registry.settings['ldap.user_base'],
+            filter, transform = self.__ldap_to_user
+        )
         return next(iter(q), None)
     
     def find_user_by_userid(self, userid):
@@ -130,7 +130,7 @@ class IdentityService:
         user_dn = 'CN={userid},{base}'.format(
             userid = userid, base = self._request.registry.settings['ldap.user_base']
         )
-        return ldap_authenticate(self._request, user_dn, passwd)
+        return self._request.ldap_connection.authenticate(user_dn, passwd)
     
     def create_user(self, userid, passwd, first_name, surname, email, ssh_key):
         """
@@ -203,7 +203,7 @@ class IdentityService:
         changes['mail'] = (validated.get('email', email), )
         changes['sshPublicKey'] = (validated.get('ssh_key', ssh_key), )
         # Apply the changes
-        update_entry(self._request.ldap_connection, dn, changes)
+        self._request.ldap_connection.update_entry(dn, changes)
         return user._replace(**validated)
 
     def find_org_by_name(self, name):
@@ -217,8 +217,8 @@ class IdentityService:
         suffix = self._request.registry.settings['ldap.group_suffix']
         filter = f('objectClass=posixGroup') &                           \
                    f('cn={name}{suffix}', name = name, suffix = suffix)
-        q = Query(self._request.ldap_connection,
-                  self._request.registry.settings['ldap.group_base'],
-                  filter,
-                  transform = self.__ldap_to_org)
+        q = self._request.ldap_connection.create_query(
+            self._request.registry.settings['ldap.group_base'],
+            filter, transform = self.__ldap_to_org
+        )
         return next(iter(q), None)

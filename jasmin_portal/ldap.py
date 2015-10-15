@@ -18,67 +18,91 @@ def includeme(config):
     
     :param config: Pyramid configurator
     """
+    def ldap_connection(request):
+        return LDAPConnection(request.registry.settings)
     config.add_request_method(ldap_connection, reify = True)
-
-
-def ldap_authenticate(request, user_dn, password):
-    """
-    Attempts to authenticate the user with the given DN and password with the
-    LDAP database specified by the request settings.
     
-    :param request: The Pyramid request
-    :param user_dn: The DN of the user to authenticate
-    :param password: The password to use for authentication
-    :returns: ``True`` on success, ``False`` on failure
+    
+class LDAPConnection:
     """
-    try:
-        ldap3.Connection(request.registry.settings['ldap.server'],
-                         user = user_dn, password = password,
-                         auto_bind = ldap3.AUTO_BIND_TLS_BEFORE_BIND,
-                         raise_exceptions = True).unbind()
-        return True
-    except ldap3.LDAPOperationResult:
-        # If the operation fails, treat that as an auth failure
-        return False
-
-
-def ldap_connection(request):
-    """
-    Opens a connection to the LDAP database specified by the request settings.
+    Class representing an LDAP connection and the operations that can be performed.
     
     .. note::
     
-        This function should be accessed as a property of the Pyramid request object,
-        i.e. ``conn = request.ldap_connection``.
+        An instance of this class can be accessed as a property of the Pyramid
+        request object, i.e. ``r = request.ldap_connection``.
        
-        This property is reified, so there is only one LDAP connection per request.
-       
-    :param request: The Pyramid request
-    :returns: An LDAP connection
-    :rtype: ``ldap3.Connection``
+        This property is reified, so it is only evaluated once per request.
     """
-    return ldap3.Connection(request.registry.settings['ldap.server'],
-                            user = request.registry.settings['ldap.bind_dn'],
-                            password = request.registry.settings['ldap.bind_pass'],
-                            auto_bind = ldap3.AUTO_BIND_TLS_BEFORE_BIND,
-                            raise_exceptions = True)
+    def __init__(self, settings):
+        self._settings = settings
+        # The underlying ldap3 connection is opened the first time it is requested
+        self._conn = None
+
+    def authenticate(self, user_dn, password):
+        """
+        Attempts to authenticate the user with the given DN and password with the
+        LDAP database specified by the settings given in the constructor.
+        
+        :param user_dn: The DN of the user to authenticate
+        :param password: The password to use for authentication
+        :returns: ``True`` on success, ``False`` on failure
+        """
+        try:
+            ldap3.Connection(
+                self._settings['ldap.server'],
+                user = user_dn, password = password,
+                auto_bind = ldap3.AUTO_BIND_TLS_BEFORE_BIND,
+                raise_exceptions = True
+            ).unbind()
+            return True
+        except ldap3.LDAPOperationResult:
+            # If the operation fails, treat that as an auth failure
+            return False
+
+    def __connection(self):
+        """
+        Returns an open connection to the LDAP database, creating it if it is
+        not already open.
+        """
+        if self._conn is None:
+            self._conn = ldap3.Connection(
+                self._settings['ldap.server'],
+                user = self._settings['ldap.bind_dn'],
+                password = self._settings['ldap.bind_pass'],
+                auto_bind = ldap3.AUTO_BIND_TLS_BEFORE_BIND,
+                raise_exceptions = True
+            )
+        return self._conn
     
+    def create_query(self, base_dn, filter, transform = lambda x: x):
+        """create_query(base_dn, filter, transform = lambda x: x)
     
-def update_entry(conn, dn, attributes):
-    """
-    Uses the given connection to update the entry with the given DN with the given
-    attributes.
+        Creates a new :py:class:`Query` using this connection.
+        
+        :param base_dn: DN to use as the base for the LDAP search
+        :param filter: :py:class:`Filter` to use for the search
+        :param transform: Transform function to use
+        :returns: A :py:class:`Query` object
+        """
+        return Query(self.__connection(), base_dn, filter, transform)
     
-    Attributes should be a mapping of field name to an iterable (usually a list)
-    of values.
-    
-    :param conn: The LDAP connection to use
-    :param dn: The DN of the entry to update
-    :param attributes: The new values of the attributes
-    :returns: ``True`` on success
-    """
-    # Make sure the correct operation is applied
-    return conn.modify(dn, { k : (ldap3.MODIFY_REPLACE, v) for k, v in attributes })
+    def update_entry(self, dn, attributes):
+        """
+        Uses this connection to update the entry with the given DN with the given
+        attributes.
+        
+        Attributes should be a mapping of field name to an iterable (usually a list)
+        of values.
+        
+        :param dn: The DN of the entry to update
+        :param attributes: The new values of the attributes
+        :returns: ``True`` on success
+        """
+        # Make sure the correct operation is applied
+        return self.__connection().modify(
+            dn, { k : (ldap3.MODIFY_REPLACE, v) for k, v in attributes }
+        )
 
 
 class Filter:
@@ -171,7 +195,7 @@ class Filter:
 
 
 class Query(Iterable):
-    """Query(conn, base_dn, filter, scope = ldap3.SEARCH_SCOPE_SINGLE_LEVEL, attrs = ldap3.ALL_ATTRIBUTES, transform = lambda x: x)
+    """Query(conn, base_dn, filter, transform = lambda x: x)
     
     Represents an LDAP search query.
     
@@ -187,23 +211,12 @@ class Query(Iterable):
     :param conn: ``ldap3.Connection`` to use
     :param base_dn: DN to use as the base for the LDAP search
     :param filter: Filter to use for the search
-    :param scope: Scope for the search (see
-                  `the ldap3 docs <https://ldap3.readthedocs.org/searches.html>`_
-                  for allowed values)
-    :param attrs: Attributes to return during the search (see
-                  `the ldap3 docs <https://ldap3.readthedocs.org/searches.html>`_
-                  for allowed values)
     :param transform: Transform function to use
     """
-    def __init__(self, conn, base_dn, filter, 
-                       scope = ldap3.SEARCH_SCOPE_SINGLE_LEVEL,
-                       attrs = ldap3.ALL_ATTRIBUTES,
-                       transform = lambda x: x):
+    def __init__(self, conn, base_dn, filter, transform = lambda x: x):
         self._conn = conn
         self._base_dn = base_dn
         self._filter = filter
-        self._scope = scope
-        self._attrs = attrs
         self._transform = transform
         self._results = None
         
@@ -220,7 +233,8 @@ class Query(Iterable):
         :returns: ``self``
         """
         self._conn.search(self._base_dn, str(self._filter),
-                          search_scope = self._scope, attributes = self._attrs)
+                          search_scope = ldap3.SEARCH_SCOPE_SINGLE_LEVEL,
+                          attributes = ldap3.ALL_ATTRIBUTES)
         self._results = list(map(self.__map, self._conn.response or []))
         return self
     
