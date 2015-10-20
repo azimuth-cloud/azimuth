@@ -17,7 +17,7 @@ def includeme(config):
     :param config: Pyramid configurator
     """
     # Include the identity service
-    config.include('jasmin_portal.identity.ldap_service')
+    config.include('jasmin_cloud.identity.ldap_service')
 
     # Add properties to request
     config.add_request_method(authenticated_user, reify = True)

@@ -23,4 +23,4 @@ application.ini
 development.ini
 production.ini
 catalogue.json
-jasmin_portal/test/vcd_settings.py
+jasmin_cloud/test/vcd_settings.py

@@ -1,5 +1,5 @@
 """
-Integration tests for jasmin_portal.cloudservices.vcloud
+Integration tests for jasmin_cloud.cloudservices.vcloud
 
 This runs against a real vCloud Director instance
 """
@@ -11,7 +11,7 @@ __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 import unittest, uuid
 
 from jasmin_portal.test.util import IntegrationTest
-import jasmin_portal.test.vcd_settings as settings
+import jasmin_cloud.test.vcd_settings as settings
 
 from jasmin_portal.cloudservices import MachineStatus, CloudServiceError
 from jasmin_portal.cloudservices.vcloud import VCloudProvider

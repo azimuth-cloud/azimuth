@@ -125,7 +125,7 @@ class Filter:
     ::
     
         # Import Filter with a shorter name to facilitate query construction
-        from jasmin_portal.ldap import Filter as f
+        from jasmin_cloud.ldap import Filter as f
        
         # Exact match
         f('uid={}', 'bob')

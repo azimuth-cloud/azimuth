@@ -21,7 +21,7 @@ def includeme(config):
     :param config: Pyramid configurator
     """
     # Include LDAP utilities
-    config.include('jasmin_portal.ldap')
+    config.include('jasmin_cloud.ldap')
 
     # Add properties to request
     def id_service(request):
@@ -42,7 +42,7 @@ class IdentityService:
        
         This property is reified, so it is only evaluated once per request.
        
-    :param connection: The :py:class:`jasmin_portal.ldap.LDAPConnection` to use
+    :param connection: The :py:class:`jasmin_cloud.ldap.LDAPConnection` to use
     :param settings: The settings dictionary
     """
     def __init__(self, connection, settings):

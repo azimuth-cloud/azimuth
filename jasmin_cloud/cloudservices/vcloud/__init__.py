@@ -118,7 +118,7 @@ def _check_response(res):
 
 class VCloudProvider(Provider):
     """
-    :py:class:`jasmin_portal.cloudservices.Provider` implementation for the vCloud
+    :py:class:`jasmin_cloud.cloudservices.Provider` implementation for the vCloud
     Director 5.5 API.
     
     :param endpoint: The API endpoint
@@ -128,7 +128,7 @@ class VCloudProvider(Provider):
         
     def new_session(self, username, password):
         """
-        See :py:meth:`jasmin_portal.cloudservices.Provider.new_session`.
+        See :py:meth:`jasmin_cloud.cloudservices.Provider.new_session`.
         
         Returns a :py:class:`VCloudSession`.
         """
@@ -262,7 +262,7 @@ fi
             
     def poll(self):
         """
-        See :py:meth:`jasmin_portal.cloudservices.Session.poll`.
+        See :py:meth:`jasmin_cloud.cloudservices.Session.poll`.
         """
         # Just hit an API endpoint that does nothing but report session info
         self.api_request('GET', 'session')
@@ -270,7 +270,7 @@ fi
             
     def list_images(self):
         """
-        See :py:meth:`jasmin_portal.cloudservices.Session.list_images`.
+        See :py:meth:`jasmin_cloud.cloudservices.Session.list_images`.
         
         .. note::
         
@@ -300,7 +300,7 @@ fi
     
     def get_image(self, image_id):
         """
-        See :py:meth:`jasmin_portal.cloudservices.Session.get_image`.
+        See :py:meth:`jasmin_cloud.cloudservices.Session.get_image`.
         
         .. note::
         
@@ -320,7 +320,7 @@ fi
         
     def image_from_machine(self, machine_id, name, description):
         """
-        See :py:meth:`jasmin_portal.cloudservices.Session.image_from_machine`.
+        See :py:meth:`jasmin_cloud.cloudservices.Session.image_from_machine`.
         
         .. note::
         
@@ -373,7 +373,7 @@ fi
         
     def delete_image(self, image_id):
         """
-        See :py:meth:`jasmin_portal.cloudservices.Session.delete_image`.
+        See :py:meth:`jasmin_cloud.cloudservices.Session.delete_image`.
         
         .. note::
         
@@ -386,7 +386,7 @@ fi
     
     def count_machines(self):
         """
-        See :py:meth:`jasmin_portal.cloudservices.Session.count_machines`.
+        See :py:meth:`jasmin_cloud.cloudservices.Session.count_machines`.
         """
         # We only need one API query to return this
         results = ET.fromstring(self.api_request('GET', 'vApps/query').text)
@@ -394,7 +394,7 @@ fi
         
     def list_machines(self):
         """
-        See :py:meth:`jasmin_portal.cloudservices.Session.list_machines`.
+        See :py:meth:`jasmin_cloud.cloudservices.Session.list_machines`.
         """
         # This will return all the VMs available to the user
         results = ET.fromstring(self.api_request('GET', 'vApps/query').text)
@@ -446,7 +446,7 @@ fi
         
     def get_machine(self, machine_id):
         """
-        See :py:meth:`jasmin_portal.cloudservices.Session.get_machine`.
+        See :py:meth:`jasmin_cloud.cloudservices.Session.get_machine`.
         """
         app = ET.fromstring(self.api_request('GET', 'vApp/{}'.format(machine_id)).text)
         name = app.attrib['name']
@@ -490,7 +490,7 @@ fi
         
     def provision_machine(self, image_id, name, description, ssh_key):
         """
-        See :py:meth:`jasmin_portal.cloudservices.Session.provision_machine`.
+        See :py:meth:`jasmin_cloud.cloudservices.Session.provision_machine`.
         
         .. note::
         
@@ -575,7 +575,7 @@ fi
             
     def expose_machine(self, machine_id):
         """
-        See :py:meth:`jasmin_portal.cloudservices.Session.expose_machine`.
+        See :py:meth:`jasmin_cloud.cloudservices.Session.expose_machine`.
         """
         # We need to access the edge device that the machine is connected to the internet via
         # To do this, we first get the machine details, then the vdc details
@@ -666,7 +666,7 @@ fi
     
     def unexpose_machine(self, machine_id):
         """
-        See :py:meth:`jasmin_portal.cloudservices.Session.unexpose_machine`.
+        See :py:meth:`jasmin_cloud.cloudservices.Session.unexpose_machine`.
         """
         # We need to access the edge device that the machine is connected to the internet via
         # To do this, we first get the machine details, then the vdc details
@@ -748,7 +748,7 @@ fi
         
     def start_machine(self, machine_id):
         """
-        See :py:meth:`jasmin_portal.cloudservices.Session.start_machine`.
+        See :py:meth:`jasmin_cloud.cloudservices.Session.start_machine`.
         """
         task = ET.fromstring(self.api_request(
             'POST', 'vApp/{}/power/action/powerOn'.format(machine_id)
@@ -757,7 +757,7 @@ fi
         
     def stop_machine(self, machine_id):
         """
-        See :py:meth:`jasmin_portal.cloudservices.Session.stop_machine`.
+        See :py:meth:`jasmin_cloud.cloudservices.Session.stop_machine`.
         """
         task = ET.fromstring(self.api_request(
             'POST', 'vApp/{}/power/action/powerOff'.format(machine_id)
@@ -766,7 +766,7 @@ fi
         
     def restart_machine(self, machine_id):
         """
-        See :py:meth:`jasmin_portal.cloudservices.Session.restart_machine`.
+        See :py:meth:`jasmin_cloud.cloudservices.Session.restart_machine`.
         """
         task = ET.fromstring(self.api_request(
             'POST', 'vApp/{}/power/action/reset'.format(machine_id)
@@ -775,7 +775,7 @@ fi
         
     def destroy_machine(self, machine_id):
         """
-        See :py:meth:`jasmin_portal.cloudservices.Session.destroy_machine`.
+        See :py:meth:`jasmin_cloud.cloudservices.Session.destroy_machine`.
         """
         payload = _ENV.get_template('UndeployVAppParams.xml').render()
         task = ET.fromstring(self.api_request(
@@ -785,7 +785,7 @@ fi
         
     def delete_machine(self, machine_id):
         """
-        See :py:meth:`jasmin_portal.cloudservices.Session.delete_machine`.
+        See :py:meth:`jasmin_cloud.cloudservices.Session.delete_machine`.
         """
         # Before deleting a machine, we want to remove any exposure to the internet
         # If we don't, we risk exposing to the internet the next machine that picks
@@ -799,7 +799,7 @@ fi
             
     def close(self):
         """
-        See :py:meth:`jasmin_portal.cloudservices.Session.close`.
+        See :py:meth:`jasmin_cloud.cloudservices.Session.close`.
         """
         if self.__session is None:
             # Already closed, so nothing to do

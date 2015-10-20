@@ -55,7 +55,7 @@ class CatalogueItem(namedtuple('CatalogueItemProps',
     """
     Class representing a catalogue item.
     
-    Information is aggregated from :py:class:`jasmin_portal.cloudservices.Image`
+    Information is aggregated from :py:class:`jasmin_cloud.cloudservices.Image`
     and :py:class`CatalogueMeta` instances to form a complete view of a catalogue
     item.
     
