@@ -11,6 +11,18 @@ from functools import reduce
 from collections import Iterable
 
 
+def first(iterable, default):
+    """
+    Returns the first element of the iterable if it is non-empty, or the given
+    default if it is empty.
+    
+    :param iterable: The iterable to get the first element of
+    :param default: The default value to return if the iterable is empty
+    :returns: The first element of iterable or default
+    """
+    return next(iter(iterable), default)
+    
+
 def getattrs(obj, attrs, default):
     """
     Similar to ``getattr``, but allows a list of attribute names to be resolved
