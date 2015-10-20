@@ -12,10 +12,10 @@ from pyramid.security import remember, forget
 from pyramid.session import check_csrf_token
 from pyramid.httpexceptions import HTTPSeeOther, HTTPNotFound, HTTPBadRequest
 
-from jasmin_portal import cloudservices
-from jasmin_portal.cloudservices.vcloud import VCloudProvider
-from jasmin_portal.util import validate_ssh_key
-from jasmin_portal.identity.validation import ValidationError
+from . import cloudservices
+from .cloudservices.vcloud import VCloudProvider
+from .util import validate_ssh_key
+from .identity.validation import ValidationError
 
 
 ################################################################################

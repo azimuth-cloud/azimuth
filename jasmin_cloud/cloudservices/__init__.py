@@ -13,7 +13,7 @@ __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 import abc, enum
 from collections import namedtuple
 
-from jasmin_portal.cloudservices.exceptions import *
+from .exceptions import *
 
 
 @enum.unique

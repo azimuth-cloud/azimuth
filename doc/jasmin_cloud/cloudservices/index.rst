@@ -1,4 +1,4 @@
-``jasmin_portal.cloudservices`` module
+``jasmin_cloud.cloudservices`` module
 ======================================
 
 .. toctree::
@@ -7,7 +7,7 @@
     vcloud
 
 
-.. automodule:: jasmin_portal.cloudservices
+.. automodule:: jasmin_cloud.cloudservices
     :members:
     :undoc-members:
     :show-inheritance:

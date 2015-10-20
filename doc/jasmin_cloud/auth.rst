@@ -1,7 +1,7 @@
-``jasmin_portal.auth`` module
+``jasmin_cloud.auth`` module
 =============================
 
-.. automodule:: jasmin_portal.auth
+.. automodule:: jasmin_cloud.auth
     :members:
     :undoc-members:
     

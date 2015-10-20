@@ -11,7 +11,7 @@ Contents:
 .. toctree::
    :maxdepth: 4
 
-   jasmin_portal/index
+   jasmin_cloud/index
 
 
 Indices and tables

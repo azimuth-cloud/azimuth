@@ -1,4 +1,4 @@
-``jasmin_portal.identity`` module
+``jasmin_cloud.identity`` module
 =================================
 
 .. toctree::
@@ -8,7 +8,7 @@
     validation
 
 
-.. automodule:: jasmin_portal.identity
+.. automodule:: jasmin_cloud.identity
     :members:
     :undoc-members:
     

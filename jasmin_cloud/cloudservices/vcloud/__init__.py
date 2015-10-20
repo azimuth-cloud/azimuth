@@ -16,7 +16,8 @@ import xml.etree.ElementTree as ET
 import requests
 from jinja2 import Environment, FileSystemLoader
 
-from jasmin_portal.cloudservices import *
+from .. import MachineStatus, Provider, Session, Image, Machine
+from ..exceptions import *
 
 
 # Prefixes for vCD namespaces

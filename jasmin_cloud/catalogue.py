@@ -16,7 +16,7 @@ from sqlalchemy import Column, String, Text, Boolean, Integer
 from sqlalchemy.orm.exc import NoResultFound
 from pyramid_sqlalchemy import BaseObject, Session, metadata
 
-from jasmin_portal.cloudservices import CloudServiceError, PermissionsError, NoSuchResourceError
+from .cloudservices import CloudServiceError, PermissionsError, NoSuchResourceError
 
 
 def includeme(config):

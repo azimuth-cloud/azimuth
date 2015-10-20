@@ -11,7 +11,7 @@ from types import MappingProxyType
 
 import voluptuous as v
 
-from jasmin_portal.util import validate_email, validate_ssh_key
+from ..util import validate_email, validate_ssh_key
 
 
 class ValidationError(Exception):

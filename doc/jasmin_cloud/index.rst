@@ -1,4 +1,4 @@
-``jasmin_portal`` module
+``jasmin_cloud`` module
 ========================
 
 .. toctree::
@@ -13,7 +13,7 @@
     views
     
 
-.. automodule:: jasmin_portal
+.. automodule:: jasmin_cloud
     :members:
     :undoc-members:
     :show-inheritance:

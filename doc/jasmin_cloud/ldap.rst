@@ -1,7 +1,7 @@
-``jasmin_portal.ldap`` module
+``jasmin_cloud.ldap`` module
 =============================
 
-.. automodule:: jasmin_portal.ldap
+.. automodule:: jasmin_cloud.ldap
     :members:
     :undoc-members:
     :show-inheritance:

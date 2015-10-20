@@ -1,7 +1,7 @@
-``jasmin_portal.catalogue`` module
+``jasmin_cloud.catalogue`` module
 ==================================
 
-.. automodule:: jasmin_portal.catalogue
+.. automodule:: jasmin_cloud.catalogue
     :members:
     :undoc-members:
     :show-inheritance:

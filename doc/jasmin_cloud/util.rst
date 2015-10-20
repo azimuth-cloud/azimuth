@@ -1,7 +1,7 @@
-``jasmin_portal.util`` module
+``jasmin_cloud.util`` module
 =============================
 
-.. automodule:: jasmin_portal.util
+.. automodule:: jasmin_cloud.util
     :members:
     :undoc-members:
     :show-inheritance:

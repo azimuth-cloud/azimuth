@@ -7,8 +7,8 @@ __author__ = "Matt Pryor"
 __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
 
-from jasmin_portal.ldap import Filter as f
-from jasmin_portal.util import first, DeferredIterable
+from ..ldap import Filter as f
+from ..util import first, DeferredIterable
 
 from .dto import User, Organisation
 from .validation import validate_user_fields

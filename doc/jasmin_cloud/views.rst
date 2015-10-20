@@ -1,7 +1,7 @@
-``jasmin_portal.views`` module
+``jasmin_cloud.views`` module
 ==============================
 
-.. automodule:: jasmin_portal.views
+.. automodule:: jasmin_cloud.views
     :members:
     :undoc-members:
     :show-inheritance:

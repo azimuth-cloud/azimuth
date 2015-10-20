@@ -1,7 +1,7 @@
-``jasmin_portal.cloudservices.vcloud`` module
+``jasmin_cloud.cloudservices.vcloud`` module
 =============================================
 
-.. automodule:: jasmin_portal.cloudservices.vcloud
+.. automodule:: jasmin_cloud.cloudservices.vcloud
     :members:
     :undoc-members:
     :show-inheritance:

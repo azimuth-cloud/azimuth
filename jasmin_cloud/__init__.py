@@ -36,10 +36,10 @@ def main(global_config, **settings):
     config.include('pyramid_sqlalchemy')
     
     # Set up the integration for the portal services
-    config.include('jasmin_portal.auth')
-    config.include('jasmin_portal.identity')
-    config.include('jasmin_portal.cloud')
-    config.include('jasmin_portal.catalogue')
+    config.include('jasmin_cloud.auth')
+    config.include('jasmin_cloud.identity')
+    config.include('jasmin_cloud.cloud')
+    config.include('jasmin_cloud.catalogue')
     
     
     ############################################################################

@@ -17,7 +17,7 @@ import sys
 import os
 import shlex
 
-import jasmin_portal
+import jasmin_cloud
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -53,7 +53,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = 'JASMIN Portal'
+project = 'JASMIN Cloud Portal'
 copyright = '2015 STFC'
 author = 'Matt Pryor'
 
@@ -62,7 +62,7 @@ author = 'Matt Pryor'
 # built documents.
 #
 # The short X.Y version.
-version = jasmin_portal.__version__
+version = jasmin_cloud.__version__
 # The full version, including alpha/beta/rc tags.
 release = version
 
@@ -210,7 +210,7 @@ html_static_path = ['_static']
 #html_search_scorer = 'scorer.js'
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'JasminPortaldoc'
+htmlhelp_basename = 'JasminCloudPortaldoc'
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -232,7 +232,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  (master_doc, 'JasminPortal.tex', 'Jasmin Portal Documentation',
+  (master_doc, 'JasminCloudPortal.tex', 'JASMIN Cloud Portal Documentation',
    'Matt Pryor', 'manual'),
 ]
 
@@ -262,7 +262,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'jasminportal', 'Jasmin Portal Documentation',
+    (master_doc, 'jasmincloud', 'JASMIN Cloud Portal Documentation',
      [author], 1)
 ]
 
@@ -276,8 +276,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  (master_doc, 'JasminPortal', 'Jasmin Portal Documentation',
-   author, 'JasminPortal', 'One line description of project.',
+  (master_doc, 'JasminCloudPortal', 'JASMIN Cloud Portal Documentation',
+   author, 'JasminCloudPortal', 'One line description of project.',
    'Miscellaneous'),
 ]
 

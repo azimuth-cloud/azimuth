@@ -1,7 +1,7 @@
-``jasmin_portal.cloudservices.exceptions`` module
+``jasmin_cloud.cloudservices.exceptions`` module
 =================================================
 
-.. automodule:: jasmin_portal.cloudservices.exceptions
+.. automodule:: jasmin_cloud.cloudservices.exceptions
     :members:
     :undoc-members:
     :show-inheritance:
