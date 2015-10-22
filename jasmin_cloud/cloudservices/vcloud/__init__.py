@@ -119,8 +119,7 @@ def _check_response(res):
 
 class VCloudProvider(Provider):
     """
-    :py:class:`jasmin_cloud.cloudservices.Provider` implementation for the vCloud
-    Director 5.5 API.
+    Provider implementation for the vCloud Director 5.5 API.
     
     :param endpoint: The API endpoint
     """

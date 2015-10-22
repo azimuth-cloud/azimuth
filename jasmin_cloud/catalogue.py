@@ -102,7 +102,7 @@ class CatalogueManager:
     Class that is responsible for managing :py:class:`CatalogueItem`\ s.
     
     This implementation uses a combination of vCloud Director API calls and
-    metadata stored in an SQL database to build ``CatalogueItem``\ s.
+    metadata stored in an SQL database to build :py:class:`CatalogueItem`\ s.
     
     .. note::
     
@@ -125,7 +125,7 @@ class CatalogueManager:
         :param description: Extended description of the new template
         :param allow_inbound: True if the template should allow inbound traffic from
                               the internet, False otherwise
-        :returns: The created ``CatalogueItem``
+        :returns: The created :py:class:`CatalogueItem`
         """ 
         # First, create the catalogue item in the cloud provider
         image = self._session.image_from_machine(machine.id, name, description)
@@ -178,7 +178,7 @@ class CatalogueManager:
         cloud service is queried for the available items), but only catalogue items
         with an entry in the database are returned.
         
-        :returns: List of catalogue items
+        :returns: List of :py:class:`CatalogueItem`\ s
         """
         # Get the images from the cloud session (let errors bubble)
         images = self._session.list_images()
@@ -207,7 +207,7 @@ class CatalogueManager:
         is returned.
         
         :param id: Id of the catalogue item to find
-        :returns: Catalogue item or ``None``
+        :returns: :py:class:`CatalogueItem` or ``None``
         """
         try:
             meta = Session().query(_CatalogueMeta).filter(_CatalogueMeta.id == id).one()

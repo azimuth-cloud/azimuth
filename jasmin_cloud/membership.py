@@ -76,10 +76,10 @@ class MembershipManager:
     :param group_base: The DN of the part of the tree to search for groups
     :param group_suffix: The suffix used in LDAP group names
     :param bind_dn: The DN to use when authenticating with the LDAP server
-        (optional - if omitted, an anonymous connection is used, but some
-         functionality may be unavailable)
+                    (optional - if omitted, an anonymous connection is used, but
+                    some functionality may be unavailable)
     :param bind_pass: The password to use when authenticating with the LDAP server
-        (optional - if ``bind_dn`` is not given, this is ignored)
+                      (optional - if ``bind_dn`` is not given, this is ignored)
     """
     def __init__(self, server, group_base, group_suffix, bind_dn = None, bind_pass = None):
         self.__group_base = group_base

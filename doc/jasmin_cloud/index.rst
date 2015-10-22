@@ -1,5 +1,5 @@
 ``jasmin_cloud`` module
-========================
+=======================
 
 .. toctree::
 
@@ -7,8 +7,7 @@
     catalogue
     cloud
     cloudservices/index
-    identity/index
-    ldap
+    membership
     util
     views
     

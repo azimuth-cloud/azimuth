@@ -22,34 +22,34 @@ class MachineStatus(enum.Enum):
     Defines the states that a machine may be in.
     """
     
-    """Machine is known to be in an inconsistent state."""
+    #: Machine is known to be in an inconsistent state.
     INCONSISTENT = 'Inconsistent'
     
-    """Provisioning of the machine failed."""
+    #: Provisioning of the machine failed.
     PROVISIONING_FAILED = 'Provisioning Failed'
     
-    """Machine is in an unspecified error state."""
+    #: Machine is in an unspecified error state.
     ERROR = 'Error'
     
-    """Machine is in the process of being provisioned."""
+    #: Machine is in the process of being provisioned.
     PROVISIONING = 'Provisioning...'
     
-    """Machine is powered on."""
+    #: Machine is powered on.
     POWERED_ON = 'Powered On'
     
-    """Machine is waiting for user input."""
+    #: Machine is waiting for user input.
     WAITING_FOR_INPUT = 'Waiting for input...'
     
-    """Machine is powered off."""
+    #: Machine is powered off.
     POWERED_OFF = 'Powered Off'
     
-    """Machine is suspended."""
+    #: Machine is suspended.
     SUSPENDED = 'Suspended'
 
-    """Machine is in an unknown state."""
+    #: Machine is in an unknown state.
     UNKNOWN = 'Unknown'
     
-    """Machine is in an unrecognised state."""
+    #: Machine is in an unrecognised state.
     UNRECOGNISED = 'Unrecognised'
     
     def is_on(self):
@@ -162,7 +162,7 @@ class Provider(metaclass = abc.ABCMeta):
         
         :param username: The cloud service username
         :param password: The cloud service password
-        :returns: The authenticated cloud session
+        :returns: The authenticated :py:class:`Session`
         """
         
 
@@ -216,7 +216,7 @@ class Session(metaclass = abc.ABCMeta):
         """
         Get the images available to this session.
         
-        :returns: A list of ``Image`` objects
+        :returns: A list of :py:class:`Image` objects
         """
         
     @abc.abstractmethod
@@ -225,7 +225,7 @@ class Session(metaclass = abc.ABCMeta):
         Get image details for an id.
         
         :param image_id: The id of the image
-        :returns: An ``Image`` or ``None``
+        :returns: An :py:class:`Image` or ``None``
         """
         
     @abc.abstractmethod
@@ -236,7 +236,7 @@ class Session(metaclass = abc.ABCMeta):
         :param machine_id: The id of the machine to use as a template
         :param name: The name of the new image
         :param description: An extended description for the new image
-        :returns: The new ``Image``
+        :returns: The new :py:class:`Image`
         """
         
     @abc.abstractmethod
@@ -261,7 +261,7 @@ class Session(metaclass = abc.ABCMeta):
         """
         Get the machines available to this session.
         
-        :returns: A list of ``Machine`` objects
+        :returns: A list of :py:class:`Machine` objects
         """
         
     @abc.abstractmethod
@@ -270,7 +270,7 @@ class Session(metaclass = abc.ABCMeta):
         Gets machine details for an id.
         
         :param machine_id: The id of the machine
-        :returns: A ``Machine`` or ``None``
+        :returns: A :py:class:`Machine` or ``None``
         """
         
     @abc.abstractmethod
@@ -285,7 +285,7 @@ class Session(metaclass = abc.ABCMeta):
         :param name: The name for the provisioned machine
         :param description: An extended description of the machine
         :param ssh_key: The SSH public key for root access
-        :returns: A ``Machine`` for the provisioned machine
+        :returns: The provisioned :py:class:`Machine`
         """
         
     @abc.abstractmethod
@@ -297,7 +297,7 @@ class Session(metaclass = abc.ABCMeta):
         Returns the machine on success.
         
         :param machine_id: The id of the machine to expose
-        :returns: The updated ``Machine``
+        :returns: The updated :py:class:`Machine`
         """
         
     @abc.abstractmethod
@@ -309,7 +309,7 @@ class Session(metaclass = abc.ABCMeta):
         Returns the machine on success.
         
         :param machine_id: The id of the machine to unexpose
-        :returns: The updated ``Machine``
+        :returns: The updated :py:class:`Machine`
         """
         
     @abc.abstractmethod
