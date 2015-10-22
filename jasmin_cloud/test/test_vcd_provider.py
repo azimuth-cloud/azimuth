@@ -11,7 +11,7 @@ __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 import unittest, uuid
 
 from .util import IntegrationTest
-import jasmin_cloud.test.vcd_settings as settings
+from . import vcd_settings as settings
 
 from ..cloudservices import MachineStatus, CloudServiceError
 from ..cloudservices.vcloud import VCloudProvider

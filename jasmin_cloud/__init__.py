@@ -20,7 +20,7 @@ from pyramid.session import SignedCookieSessionFactory
 def main(global_config, **settings):
     """
     `PasteDeploy app factory <http://pythonpaste.org/deploy/#paste-app-factory>`_
-    for the JASMIN portal.
+    for the JASMIN cloud portal.
     """
 
     config = Configurator(
@@ -37,7 +37,7 @@ def main(global_config, **settings):
     
     # Set up the integration for the portal services
     config.include('jasmin_cloud.auth')
-    config.include('jasmin_cloud.identity')
+    config.include('jasmin_cloud.membership')
     config.include('jasmin_cloud.cloud')
     config.include('jasmin_cloud.catalogue')
     
@@ -56,7 +56,6 @@ def main(global_config, **settings):
     
     # User-specific routes
     config.add_route('dashboard', '/dashboard')
-    config.add_route('profile', '/profile')
     
     # Org-specific routes
     config.add_route('org_home',         '/{org}')

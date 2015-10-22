@@ -15,7 +15,6 @@ from pyramid.httpexceptions import HTTPSeeOther, HTTPNotFound, HTTPBadRequest
 from . import cloudservices
 from .cloudservices.vcloud import VCloudProvider
 from .util import validate_ssh_key
-from .identity.validation import ValidationError
 
 
 ################################################################################
@@ -33,8 +32,8 @@ def _exception_redirect(request):
       * Login page if user is not logged in
     """
     if request.authenticated_user:
-        if request.current_org and \
-           request.authenticated_user.belongs_to(request.current_org):
+        user_orgs = request.memberships.orgs_for_user(request.authenticated_user.username)
+        if request.current_org and (request.current_org in user_orgs):
             return HTTPSeeOther(location = request.route_path('machines'))
         else:
             return HTTPSeeOther(location = request.route_path('dashboard'))
@@ -128,21 +127,20 @@ def login(request):
     """
     if request.method == 'POST':
         # When we get a POST request, clear any existing cloud sessions
-        request.clear_cloud_sessions()
+        request.cloud_sessions.clear()
         # Try to authenticate the user
         username = request.params['username']
         password = request.params['password']
-        if request.id_service.authenticate_user(username, password):
-            user = request.id_service.find_user_by_userid(username)
+        if request.users.authenticate(username, password):
             # Try to create a session for each of the user's orgs
             # If any of them fail, bail with the error message
             try:
                 provider = VCloudProvider(request.registry.settings['vcloud.endpoint'])
-                for org in user.organisations:
-                    session = provider.new_session('{}@{}'.format(user.userid, org.name), password)
-                    request.add_cloud_session(org, session)
+                for org in request.memberships.orgs_for_user(username):
+                    session = provider.new_session('{}@{}'.format(username, org), password)
+                    request.cloud_sessions[org] = session
             except cloudservices.CloudServiceError as e:
-                request.clear_cloud_sessions()
+                request.cloud_sessions.clear()
                 request.session.flash(str(e), 'error')
                 return {}
             # When a user logs in successfully, force a refresh of the CSRF token
@@ -161,51 +159,10 @@ def logout(request):
     
     If the user is logged in, forget them and redirect to splash page.
     """
-    request.clear_cloud_sessions()
+    request.cloud_sessions.clear()
     request.session.flash('Logged out successfully', 'success')
     return HTTPSeeOther(location = request.route_url('home'),
                         headers = forget(request))
-    
-    
-@view_config(route_name = 'profile',
-             request_method = ('GET', 'POST'),
-             renderer = 'templates/profile.jinja2', permission = 'edit')
-def profile(request):
-    """
-    Handler for GET requests to ``/profile``.
-    
-    The user must be authenticated to reach here.
-    
-    GET request
-        Show a form populated with user's current profile data.
-        
-    POST request
-        Attempt to update the profile information. On success or failure, show the
-        form again with a suitable message(s).
-    """
-    if request.method == 'POST':
-        # All POST requests need a csrf token
-        check_csrf_token(request)
-        # Get the user info from the post data
-        user_info = {
-            'first_name' : request.params.get('first_name', ''),
-            'surname'    : request.params.get('surname', ''),
-            'email'      : request.params.get('email', ''),
-            'ssh_key'    : request.params.get('ssh_key', ''),
-        }
-        try:
-            # Try to update the authenticated user
-            user = request.id_service.update_user(request.authenticated_user, **user_info)
-            request.session.flash('Profile updated successfully', 'success')
-            return { 'user' : user, 'errors' : {} }
-        except ValidationError as e:
-            request.session.flash('There are errors with one or more fields', 'error')
-            # Add the userid to the form info before returning
-            user_info['userid'] = request.authenticated_user.userid
-            return { 'user' : user_info, 'errors' : e.errors }
-    else:
-        # On a GET request, use the authenticated user
-        return { 'user' : request.authenticated_user, 'errors' : {} }
     
     
 @view_config(route_name = 'dashboard',
@@ -222,10 +179,9 @@ def dashboard(request):
     machines in each.
     """
     # Pass the per-org counts to the template
-    count_machines = lambda o: request.get_cloud_session(o).count_machines()
     return {
         'machine_counts' : {
-            o.name : count_machines(o) for o in request.authenticated_user.organisations
+            org : sess.count_machines() for org, sess in request.cloud_sessions.items()
         }
     }
     
@@ -254,7 +210,9 @@ def users(request):
     Show the users belonging to the organisation in the URL.
     """
     # Get the users for the org
-    return { 'users' : request.current_org.members }
+    member_ids = request.memberships.members_for_org(request.current_org)
+    # Convert the usernames to user objects
+    return { 'users' : [request.users.find_by_username(uid) for uid in member_ids] }
 
    
 @view_config(route_name = 'catalogue',
@@ -269,7 +227,7 @@ def catalogue(request):
     Show the catalogue items available to the organisation in the URL.
     """
     # Get the available catalogue items
-    return { 'items' : request.catalogue_service.available_items() }
+    return { 'items' : request.catalogue.available_items() }
 
 
 @view_config(route_name = 'catalogue_new',
@@ -293,9 +251,10 @@ def catalogue_new(request):
         
         On a duplicate name error, show the form with an error message.        
     """
+    # Get the cloud session for the current org
+    cloud_session = request.cloud_sessions[request.current_org]
     # Get the machine details from the id
-    machine_id = request.matchdict['id']
-    machine = request.active_cloud_session.get_machine(machine_id)
+    machine = cloud_session.get_machine(request.matchdict['id'])
     # On a POST request, we must try to create the catalogue item
     if request.method == 'POST':
         # All POST requests need a csrf token
@@ -314,7 +273,7 @@ def catalogue_new(request):
         )
         try:
             # Create the catalogue item
-            request.catalogue_service.item_from_machine(
+            request.catalogue.item_from_machine(
                 machine, item_info['name'],
                 description, item_info['allow_inbound'] == "true"
             )
@@ -328,7 +287,7 @@ def catalogue_new(request):
             }
         # If creating the catalogue item is successful, try to delete the machine
         try:
-            request.active_cloud_session.delete_machine(machine_id)
+            cloud_session.delete_machine(machine.id)
         except cloudservices.CloudServiceError as e:
             request.session.flash('Error deleting machine: {}'.format(e), 'error')
         return HTTPSeeOther(location = request.route_url('catalogue'))
@@ -359,7 +318,7 @@ def catalogue_delete(request):
     """
     # Request must pass a CSRF test
     check_csrf_token(request)
-    request.catalogue_service.delete_item_with_id(request.matchdict['id'])
+    request.catalogue.delete_item_with_id(request.matchdict['id'])
     request.session.flash('Catalogue item deleted', 'success')
     return HTTPSeeOther(location = request.route_url('catalogue'))
 
@@ -375,7 +334,8 @@ def machines(request):
     
     Show the machines available to the organisation in the URL.
     """
-    return { 'machines'  : request.active_cloud_session.list_machines() }
+    cloud_session = request.cloud_sessions[request.current_org]
+    return { 'machines'  : cloud_session.list_machines() }
 
 
 @view_config(route_name = 'new_machine',
@@ -404,7 +364,7 @@ def new_machine(request):
         If the provisioning fails completely, show the form with an error message.
     """
     # Try to load the catalogue item
-    item = request.catalogue_service.find_item_by_id(request.matchdict['id'])
+    item = request.catalogue.find_item_by_id(request.matchdict['id'])
     if not item:
         raise HTTPNotFound()
     # If we have a POST request, try and provision a machine with the info
@@ -425,8 +385,10 @@ def new_machine(request):
             request.session.flash('There are errors with one or more fields', 'error')
             template_info['errors']['ssh_key'] = [str(e)]
             return template_info
+        # Get the cloud session for the current org
+        cloud_session = request.cloud_sessions[request.current_org]
         try:
-            machine = request.active_cloud_session.provision_machine(
+            machine = cloud_session.provision_machine(
                 item.cloud_id, template_info['name'],
                 template_info['description'], template_info['ssh_key']
             )
@@ -444,7 +406,7 @@ def new_machine(request):
         # Now see if we need to apply NAT and firewall rules
         if item.allow_inbound:
             try:
-                machine = request.active_cloud_session.expose_machine(machine.id)
+                machine = cloud_session.expose_machine(machine.id)
                 request.session.flash('Inbound access from internet enabled', 'success')
             except cloudservices.NetworkingError as e:
                 request.session.flash('Networking error: {}'.format(str(e)), 'error')
@@ -474,7 +436,7 @@ def machine_action(request):
     """
     # Request must pass a CSRF test
     check_csrf_token(request)
-    action = getattr(request.active_cloud_session,
+    action = getattr(request.cloud_sessions[request.current_org],
                      '{}_machine'.format(request.params['action']), None)
     if not callable(action):
         raise HTTPBadRequest()

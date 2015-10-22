@@ -27,8 +27,13 @@ def includeme(config):
     """
     # Make sure the database tables exist if not already present
     metadata.create_all()
-    # Add the service property to the request
-    config.add_request_method(CatalogueService, name = 'catalogue_service', reify = True)
+    # Add the manager property to the request
+    def catalogue(request):
+        if request.current_org:
+            return CatalogueManager(request.cloud_sessions[request.current_org])
+        else:
+            return None
+    config.add_request_method(catalogue, reify = True)
 
 
 class _CatalogueMeta(BaseObject):
@@ -53,11 +58,10 @@ class _CatalogueMeta(BaseObject):
 class CatalogueItem(namedtuple('CatalogueItemProps',
         ['id', 'cloud_id', 'name', 'description', 'allow_inbound', 'is_public'])):
     """
-    Class representing a catalogue item.
+    Class representing a catalogue item. Properties are *read-only*.
     
-    Information is aggregated from :py:class:`jasmin_cloud.cloudservices.Image`
-    and :py:class`CatalogueMeta` instances to form a complete view of a catalogue
-    item.
+    Information is aggregated from :py:class:`.cloudservices.Image` and associated
+    metadata to form a complete view of a catalogue item.
     
     .. note::
     
@@ -93,9 +97,9 @@ class CatalogueItem(namedtuple('CatalogueItemProps',
     """
     
     
-class CatalogueService:
+class CatalogueManager:
     """
-    Service class providing functionality related to ``CatalogueItem``\ s.
+    Class that is responsible for managing :py:class:`CatalogueItem`\ s.
     
     This implementation uses a combination of vCloud Director API calls and
     metadata stored in an SQL database to build ``CatalogueItem``\ s.
@@ -103,14 +107,14 @@ class CatalogueService:
     .. note::
     
         An instance of this class can be accessed as a property of the Pyramid
-        request object, i.e. ``r = request.catalogue_service``.
+        request object, i.e. ``r = request.catalogue``.
        
         This property is reified, so it is only evaluated once per request.
        
-    :param request: The Pyramid request
+    :param session: The :py:class:`.cloudservices.Session` to use
     """
-    def __init__(self, request):
-        self._request = request
+    def __init__(self, session):
+        self._session = session
 
     def item_from_machine(self, machine, name, description, allow_inbound):
         """
@@ -124,7 +128,7 @@ class CatalogueService:
         :returns: The created ``CatalogueItem``
         """ 
         # First, create the catalogue item in the cloud provider
-        image = self._request.active_cloud_session.image_from_machine(machine.id, name, description)
+        image = self._session.image_from_machine(machine.id, name, description)
         # Then create and save a metadata item in the database
         meta = _CatalogueMeta(cloud_id = image.id, name = name,
                               description = description, allow_inbound = allow_inbound)
@@ -161,24 +165,23 @@ class CatalogueService:
         # Even if this fails, the operation is still successful from a user's perspective,
         # so we swallow the errors
         try:
-            self._request.active_cloud_session.delete_image(meta.cloud_id)
+            self._session.delete_image(meta.cloud_id)
         except CloudServiceError:
             pass
         return True
 
     def available_items(self):
         """
-        Retrieves the catalogue items available to the active organisation for the
-        given request.
+        Retrieves the catalogue items available to the given session.
         
         Access to the catalogue items is controlled by the cloud service (i.e. the
-        cloud service is queried for the items available to the active organisation),
-        but only catalogue items with an entry in the database are returned.
+        cloud service is queried for the available items), but only catalogue items
+        with an entry in the database are returned.
         
         :returns: List of catalogue items
         """
         # Get the images from the cloud session (let errors bubble)
-        images = self._request.active_cloud_session.list_images()
+        images = self._session.list_images()
         # Get the corresponding metadata records
         #   * They might not be in the same order as the images
         #   * There might be more than one for each image
@@ -200,15 +203,15 @@ class CatalogueService:
         """
         Finds a catalogue item by id.
         
-        If no item can be found or the active organisation for the request does
-        not have access, ``None`` is returned.
+        If no item can be found or the given session doesn't have access, ``None``
+        is returned.
         
         :param id: Id of the catalogue item to find
         :returns: Catalogue item or ``None``
         """
         try:
             meta = Session().query(_CatalogueMeta).filter(_CatalogueMeta.id == id).one()
-            image = self._request.active_cloud_session.get_image(meta.cloud_id)
+            image = self._session.get_image(meta.cloud_id)
             return CatalogueItem(
                 meta.id, image.id, meta.name,
                 meta.description, meta.allow_inbound, image.is_public

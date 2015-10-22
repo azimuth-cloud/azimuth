@@ -56,21 +56,20 @@
                                     <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
                                         <i class="fa fa-user"></i>&nbsp;
                                         {%- if request.current_org %}
-                                            {{ request.authenticated_user.userid }}@<strong>{{ request.current_org.name }}</strong>
+                                            {{ request.authenticated_user.username }}@<strong>{{ request.current_org }}</strong>
                                         {%- else %}
-                                            {{ request.authenticated_user.userid }}
+                                            {{ request.authenticated_user.username }}
                                         {%- endif %}
                                         <span class="caret"></span>
                                     </a>
                                     <ul class="dropdown-menu">
-                                        {%- for org in request.authenticated_user.organisations %}
-                                            <li><a href="{{ request.route_url('machines', org = org.name) }}">
-                                                <i class="fa fa-group fa-fw"></i> {{ org.name }}
+                                        {%- for org in request.memberships.orgs_for_user(request.authenticated_user.username) %}
+                                            <li><a href="{{ request.route_url('machines', org = org) }}">
+                                                <i class="fa fa-group fa-fw"></i> {{ org }}
                                             </a></li>
                                         {%- endfor %}
                                         <li role="separator" class="divider"></li>
                                         <li><a href="{{ request.route_url('dashboard') }}"><i class="fa fa-dashboard fa-fw"></i> Dashboard</a></li>
-                                        <li><a href="{{ request.route_url('profile') }}"><i class="fa fa-user fa-fw"></i> Profile</a></li>
                                         <li><a href="{{ request.route_url('logout') }}"><i class="fa fa-sign-out fa-fw"></i> Sign out</a></li>
                                     </ul>
                                 </li>
