@@ -7,12 +7,12 @@ from setuptools import setup, find_packages
 here = os.path.abspath(os.path.dirname(__file__))
 
 try:
-    import jasmin_portal.__version__ as version
+    import jasmin_cloud.__version__ as version
 except ImportError:
     # If we get an import error, find the version string manually from
-    # jasmin_portal/__init__.py
+    # jasmin_cloud/__init__.py
     version = "unknown"
-    with open(os.path.join(here, 'jasmin_portal', '__init__.py')) as f:
+    with open(os.path.join(here, 'jasmin_cloud', '__init__.py')) as f:
         for line in f:
             match = re.search('__version__ *= *[\'"](?P<version>.+)[\'"]', line)
             if match:
@@ -28,6 +28,7 @@ requires = [
     'pyramid_debugtoolbar',
     'pyramid_jinja2',
     'jinja2',
+    'jasmin-auth',
     'ldap3',
     'pyramid_sqlalchemy',
     'pyramid_tm',
@@ -36,7 +37,6 @@ requires = [
     'requests',
     'bleach',
     'markdown',
-    'voluptuous',
     # Required for docs
     'sphinx',
 ]
@@ -44,9 +44,9 @@ requires = [
 if __name__ == "__main__":
 
     setup(
-        name = 'jasmin_portal',
+        name = 'jasmin-cloud',
         version = version,
-        description = 'jasmin_portal',
+        description = 'Portal for management of machines in the JASMIN cloud',
         long_description = README,
         classifiers = [
             "Programming Language :: Python",
@@ -63,9 +63,9 @@ if __name__ == "__main__":
         zip_safe = False,
         install_requires = requires,
         tests_require = requires,
-        test_suite = "jasmin_portal.test",
+        test_suite = "jasmin_cloud.test",
         entry_points = """\
         [paste.app_factory]
-        main = jasmin_portal:main
+        main = jasmin_cloud:main
         """,
     )

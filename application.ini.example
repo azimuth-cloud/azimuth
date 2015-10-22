@@ -4,7 +4,7 @@
 ###
 
 [app:main]
-use = egg:jasmin_portal
+use = egg:jasmin-cloud
 
 pyramid.reload_templates = true
 pyramid.debug_authorization = false
@@ -52,7 +52,7 @@ port = 6543
 ###
 
 [loggers]
-keys = root, jasmin_portal
+keys = root, jasmin_cloud
 
 [handlers]
 keys = console
@@ -64,10 +64,10 @@ keys = generic
 level = INFO
 handlers = console
 
-[logger_jasmin_portal]
+[logger_jasmin_cloud]
 level = DEBUG
 handlers =
-qualname = jasmin_portal
+qualname = jasmin_cloud
 
 [handler_console]
 class = StreamHandler
