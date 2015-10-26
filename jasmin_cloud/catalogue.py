@@ -14,7 +14,7 @@ from collections import namedtuple
 
 from sqlalchemy import Column, String, Text, Boolean, Integer
 from sqlalchemy.orm.exc import NoResultFound
-from pyramid_sqlalchemy import BaseObject, Session, metadata
+from pyramid_sqlalchemy import BaseObject, Session
 
 from .cloudservices import CloudServiceError, PermissionsError, NoSuchResourceError
 
@@ -25,8 +25,6 @@ def includeme(config):
     
     :param config: Pyramid configurator
     """
-    # Make sure the database tables exist if not already present
-    metadata.create_all()
     # Add the manager property to the request
     def catalogue(request):
         if request.current_org:
