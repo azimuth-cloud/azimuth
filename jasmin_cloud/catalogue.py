@@ -12,7 +12,7 @@ __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 import uuid
 from collections import namedtuple
 
-from sqlalchemy import Column, String, Text, Boolean, Integer
+from sqlalchemy import Column, String, Text, Boolean, Enum
 from sqlalchemy.orm.exc import NoResultFound
 from pyramid_sqlalchemy import BaseObject, Session
 
@@ -47,6 +47,12 @@ class _CatalogueMeta(BaseObject):
     cloud_id      = Column(String(50), nullable = False)
     #: Name of the catalogue item.
     name          = Column(String(200), nullable = False)
+    #: The type of the template
+    host_type     = Column(Enum('bastion-host',
+                                'httpd-host',
+                                'analysis-host',
+                                'unmanaged', name = 'host_type'),
+                                nullable = False, default = 'unmanaged')
     #: Extended description of the catalogue item. Can contain HTML, or be empty.
     description   = Column(Text())
     #: Flag indicating whether machines provisioned using the catalogue item should
@@ -55,7 +61,8 @@ class _CatalogueMeta(BaseObject):
 
 
 class CatalogueItem(namedtuple('CatalogueItemProps',
-        ['id', 'cloud_id', 'name', 'description', 'allow_inbound', 'is_public'])):
+                               ['id', 'cloud_id', 'name', 'host_type',
+                                'description', 'allow_inbound', 'is_public'])):
     """
     Class representing a catalogue item. Properties are *read-only*.
     
@@ -79,6 +86,10 @@ class CatalogueItem(namedtuple('CatalogueItemProps',
     .. py:attribute:: name
     
         Name of the catalogue item.
+
+    .. py:attribute:: host_type
+    
+        The type of machine that the template provisions.
 
     .. py:attribute:: description
     
@@ -135,7 +146,7 @@ class CatalogueManager:
         sess.add(meta)
         sess.flush()
         # Construct the item to return
-        return CatalogueItem(meta.id, image.id, meta.name,
+        return CatalogueItem(meta.id, image.id, meta.name, meta.host_type,
                              meta.description, meta.allow_inbound, image.is_public)
 
     def delete_item_with_id(self, id):
@@ -193,7 +204,7 @@ class CatalogueManager:
         for meta in metas:
             image = next((i for i in images if i.id == meta.cloud_id))
             items.append(
-                CatalogueItem(meta.id, image.id, meta.name,
+                CatalogueItem(meta.id, image.id, meta.name, meta.host_type,
                               meta.description, meta.allow_inbound, image.is_public)
             )
         return items
@@ -212,7 +223,7 @@ class CatalogueManager:
             meta = Session().query(_CatalogueMeta).filter(_CatalogueMeta.id == id).one()
             image = self._session.get_image(meta.cloud_id)
             return CatalogueItem(
-                meta.id, image.id, meta.name,
+                meta.id, image.id, meta.name, meta.host_type,
                 meta.description, meta.allow_inbound, image.is_public
             )
         except (NoResultFound, PermissionsError, NoSuchResourceError):
