@@ -274,7 +274,7 @@ class Session(metaclass = abc.ABCMeta):
         """
         
     @abc.abstractmethod
-    def provision_machine(self, image_id, name, description, ssh_key):
+    def provision_machine(self, image_id, name, description, ssh_key, vm_type):
         """
         Provisions a new machine using the specified image and returns it.
         
@@ -285,6 +285,9 @@ class Session(metaclass = abc.ABCMeta):
         :param name: The name for the provisioned machine
         :param description: An extended description of the machine
         :param ssh_key: The SSH public key for root access
+                        **NOTE:** The provisioned machine may choose to ignore this
+        :param vm_type: The type of the VM
+                        **NOTE:** The provisioned machine may choose to ignore this
         :returns: The provisioned :py:class:`Machine`
         """
         

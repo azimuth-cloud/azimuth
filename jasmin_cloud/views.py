@@ -390,7 +390,8 @@ def new_machine(request):
         try:
             machine = cloud_session.provision_machine(
                 item.cloud_id, template_info['name'],
-                template_info['description'], template_info['ssh_key']
+                template_info['description'], template_info['ssh_key'],
+                'unmanaged'
             )
             request.session.flash('Machine provisioned successfully', 'success')
         # Catch specific provisioning errors here

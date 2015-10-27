@@ -66,7 +66,7 @@ class TestVcdProvider(unittest.TestCase, IntegrationTest):
         If the image is not the known image, it is deleted
         """
         machine = self.session.provision_machine(
-            image.id, uuid.uuid4().hex, 'A description', ''
+            image.id, uuid.uuid4().hex, 'A description', '', ''
         )
         # Machines should be created in an off state
         self.assertIs(machine.status, MachineStatus.POWERED_OFF)

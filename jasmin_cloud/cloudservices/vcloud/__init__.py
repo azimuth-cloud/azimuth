@@ -160,12 +160,15 @@ class VCloudSession(Session):
     :param auth_token: An API authorisation token for the session
     """
     
+    # Guest customisation script expects a script to be baked into each template
+    # at /usr/local/bin/activator.sh
+    # The script should have the following interface on all machines:
+    #   activator.sh <ssh_key> <org_name> <vm_type> <vm_id>
+    # However, the script itself may differ from machine to machine, and is free
+    # to use or ignore the arguments as it sees fit
     _GUEST_CUSTOMISATION = """#!/bin/sh
-if [ x$1 == x"precustomization" ]; then
-  echo "Pre-customisation tasks..."
-elif [ x$1 == x"postcustomization" ]; then
-  echo "Post-customisation tasks..."
-  echo "{}" >> /root/.ssh/authorized_keys
+if [ x$1 == x"postcustomization" ]; then
+  /usr/local/bin/activator.sh "{ssh_key}" "{org_name}" "{vm_type}" "{vm_id}"
 fi
 """
     
@@ -488,7 +491,7 @@ fi
                         break
         return Machine(machine_id, name, status, description, created, os, internal_ip, external_ip)
         
-    def provision_machine(self, image_id, name, description, ssh_key):
+    def provision_machine(self, image_id, name, description, ssh_key, vm_type):
         """
         See :py:meth:`jasmin_cloud.cloudservices.Session.provision_machine`.
         
@@ -496,16 +499,16 @@ fi
         
             This implementation uses `vAppTemplate` uuids as the image ids
         """
+        # Get the template, plus a couple of other useful things
         template = ET.fromstring(
             self.api_request('GET', 'vAppTemplate/{}'.format(image_id)).text
         )
-        # Format the guest customisation script
-        # We escape the SSH key before inserting it, in case it has any dodgy characters
-        ssh_key = _escape_script(ssh_key.strip())
-        # We then escape the whole script again
-        # Since the escape function doesn't insert any characters that it escapes, there
-        # is no chance of double-escaping things
-        script = _escape_script(self._GUEST_CUSTOMISATION.format(ssh_key))
+        # Get the current org from the session
+        session = ET.fromstring(self.api_request('GET', 'session').text)
+        org_ref = session.find('.//vcd:Link[@type="application/vnd.vmware.vcloud.org+xml"]', _NS)
+        if org_ref is None:
+            raise ProvisioningError('Unable to find organisation for user')
+        org = ET.fromstring(self.api_request('GET', org_ref.attrib['href']).text)
         # Configure each VM contained in the vApp
         vm_configs = []
         # Track the maximum number of NICs for a VM
@@ -518,21 +521,23 @@ fi
                 raise ProvisioningError('No network connection section for VM')
             n_nics = len(nics)
             n_networks_required = max(n_networks_required, n_nics)
+            # Get a unique name for the VM
+            vm_name = uuid.uuid4().hex
+            # Make sure the guest customisation script is escaped after formatting
+            script = _escape_script(self._GUEST_CUSTOMISATION.format(
+                ssh_key  = ssh_key.strip(),
+                org_name = org.attrib['name'],
+                vm_type  = vm_type,
+                vm_id    = vm_name,
+            ))
             vm_configs.append({
                 'href'          : vm.attrib['href'],
-                'name'          : uuid.uuid4().hex,
+                'name'          : vm_name,
                 'n_nics'        : n_nics,
                 'customisation' : script,
             })
         # Get the VDC to deploy the VM into
         # This is done by selecting the first VCD from the org we are using
-        # First, we have to retrieve the org from the session
-        session = ET.fromstring(self.api_request('GET', 'session').text)
-        org_ref = session.find('.//vcd:Link[@type="application/vnd.vmware.vcloud.org+xml"]', _NS)
-        if org_ref is None:
-            raise ProvisioningError('Unable to find organisation for user')
-        org = ET.fromstring(self.api_request('GET', org_ref.attrib['href']).text)
-        # Then get the VDC from the org
         vdc_ref = org.find('.//vcd:Link[@type="application/vnd.vmware.vcloud.vdc+xml"]', _NS)
         if vdc_ref is None:
             raise ProvisioningError('Organisation has no VDCs')
