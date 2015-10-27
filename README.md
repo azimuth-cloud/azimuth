@@ -84,6 +84,15 @@ sudo -Hi -u postgres createuser -DRS -w $USER
 sudo -Hi -u postgres createdb -E UTF8 -O $USER -w jasmincloud
 ```
 
+Then we need to generate the required tables in the database. To do this,
+`jasmin-cloud` uses a migrations library called [alembic](https://alembic.readthedocs.org).
+First, copy `alembic.ini.example` to `alembic.ini` and edit the file to target the
+database created above, then run the following command:
+
+```sh
+$PYENV/bin/alembic --config=/path/to/alembic.ini upgrade head
+```
+
 This database should be populated with information for the catalogue items in your
 vCloud Director instance.
 
@@ -99,7 +108,7 @@ in PyDev, allowing breakpoints etc.
 $PYENV/bin/pserve application.ini
 $PYENV/bin/python jasmin_cloud/__init__.py application.ini
 ```
-    
+
 The portal will then be available in a web browser at `127.0.0.1:6543`.
 
 **NOTE:** The example configuration uses `wsgiref.simple_server`, which is not suitable for

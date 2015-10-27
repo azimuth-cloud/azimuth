@@ -34,6 +34,7 @@ requires = [
     'pyramid_tm',
     'sqlalchemy',
     'psycopg2',
+    'alembic',
     'requests',
     'bleach',
     'markdown',

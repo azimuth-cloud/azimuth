@@ -5,6 +5,8 @@ This module contains Pyramid view callables for the JASMIN cloud portal.
 __author__ = "Matt Pryor"
 __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
+from operator import attrgetter
+
 import bleach, markdown
 
 from pyramid.view import view_config, forbidden_view_config, notfound_view_config
@@ -227,7 +229,9 @@ def catalogue(request):
     Show the catalogue items available to the organisation in the URL.
     """
     # Get the available catalogue items
-    return { 'items' : request.catalogue.available_items() }
+    # Sort the items so that the public items appear first, and then by name
+    return { 'items' : sorted(request.catalogue.available_items(),
+                              key = lambda i: (not i.is_public, i.name)) }
 
 
 @view_config(route_name = 'catalogue_new',
@@ -390,7 +394,8 @@ def new_machine(request):
         try:
             machine = cloud_session.provision_machine(
                 item.cloud_id, template_info['name'],
-                template_info['description'], template_info['ssh_key']
+                template_info['description'], template_info['ssh_key'],
+                item.host_type
             )
             request.session.flash('Machine provisioned successfully', 'success')
         # Catch specific provisioning errors here
