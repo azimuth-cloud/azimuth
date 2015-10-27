@@ -9,7 +9,7 @@ for database access.
 __author__ = "Matt Pryor"
 __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
-
+import uuid
 from collections import namedtuple
 
 from sqlalchemy import Column, String, Text, Boolean, Integer
@@ -17,6 +17,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from pyramid_sqlalchemy import BaseObject, Session
 
 from .cloudservices import CloudServiceError, PermissionsError, NoSuchResourceError
+from .util import UUIDType
 
 
 def includeme(config):
@@ -41,7 +42,7 @@ class _CatalogueMeta(BaseObject):
     __tablename__ = "catalogue_meta"
     
     #: The id of the catalogue item in the system
-    id            = Column(Integer, primary_key = True)
+    id            = Column(UUIDType(), primary_key = True, default = uuid.uuid4)
     #: Uuid of the associated cloud provider image.
     cloud_id      = Column(String(50), nullable = False)
     #: Name of the catalogue item.
