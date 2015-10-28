@@ -543,14 +543,33 @@ fi
             raise ProvisioningError('Organisation has no VDCs')
         vdc = ET.fromstring(self.api_request('GET', vdc_ref.attrib['href']).text)
         # Find the available networks from the VDC
-        network_refs = vdc.findall(
-            './/vcd:AvailableNetworks/vcd:Network[@type="application/vnd.vmware.vcloud.network+xml"]', _NS
-        )
+        network_refs = vdc.findall('.//vcd:AvailableNetworks/vcd:Network', _NS)
         if not network_refs:
             raise ProvisioningError('No networks available in vdc')
-        # Check that there are enough networks to satisfy the VMs
-        if len(network_refs) < n_networks_required:
-            raise ProvisioningError('Not enough networks for number of NICs')
+        # Get the mapping of NIC => network from the network metadata
+        networks = {}
+        for network_ref in network_refs:
+            try:
+                # Get the NIC_ID metadata
+                net_meta = ET.fromstring(self.api_request(
+                    'GET', '{}/metadata/SYSTEM/NIC_ID'.format(network_ref.attrib['href'])
+                ).text)
+            except PermissionsError:
+                # Permissions error is thrown when metadata is not set
+                # Ignore the network in this case
+                continue
+            # Get the NIC_ID as an integer
+            try:
+                nic_id = int(net_meta.find('.//vcd:Value', _NS).text)
+            except (ValueError, AttributeError):
+                raise ProvisioningError('NIC_ID must be an integer')
+            # Store the network config against the NIC
+            networks[nic_id] = { 'name' : network_ref.attrib['name'],
+                                 'href' : network_ref.attrib['href'] }
+        # Check that there is a network for each NIC
+        for n in range(n_networks_required):
+            if n not in networks:
+                raise ProvisioningError('No network for NIC {}'.format(n))
         # Build the XML payload for the request
         payload = _ENV.get_template('ComposeVAppParams.xml').render({
             'appliance': {
@@ -558,7 +577,7 @@ fi
                 'description' : description,
                 'vms'         : vm_configs,
             },
-            'networks': [n.attrib for n in network_refs],
+            'networks': networks,
         })
         # Send the request to vCD
         # The response is a vapp object
@@ -577,7 +596,7 @@ fi
             # Refresh our view of the app
             app = ET.fromstring(self.api_request('GET', app.attrib['href']).text)
         return self.get_machine(app.attrib['href'].rstrip('/').split('/').pop())
-            
+    
     def expose_machine(self, machine_id):
         """
         See :py:meth:`jasmin_cloud.cloudservices.Session.expose_machine`.
@@ -650,7 +669,7 @@ fi
         # Prepend a new SNAT rule to the service
         # The first element is always IsEnabled, so we insert at index 1
         # NOTE: It is important that this is PREPENDED - to ensure that machine appears to
-        #       that outside world with a specific IP it must appear before any generic
+        #       the outside world with a specific IP it must appear before any generic
         #       SNAT rules
         nat_service.insert(1, ET.fromstring(_ENV.get_template('SNATRule.xml').render(details)))
         # Append a new DNAT rule to the service

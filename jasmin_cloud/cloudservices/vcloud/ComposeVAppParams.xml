@@ -6,7 +6,7 @@
     <InstantiationParams>
         <NetworkConfigSection>
             <ovf:Info>Configuration parameters for logical networks</ovf:Info>
-            {%- for network in networks %}
+            {%- for network in networks.values() %}
             <NetworkConfig networkName="{{ network.name }}">
                 <Configuration>
                     <ParentNetwork name="{{ network.name }}" href="{{ network.href }}" />
@@ -27,7 +27,6 @@
                 <ovf:Info />
                 <PrimaryNetworkConnectionIndex>0</PrimaryNetworkConnectionIndex>
                 
-                {#- Connect to available networks in order #}
                 {%- for n in range(vm.n_nics) %}
                 <NetworkConnection network="{{ networks[n].name }}">
                     <NetworkConnectionIndex>{{ n }}</NetworkConnectionIndex>
