@@ -551,8 +551,8 @@ fi
         for network_ref in network_refs:
             try:
                 # Get the NIC_ID metadata
-                net_meta = ET.fromstring(self.api_request(
-                    'GET', '{}/metadata/SYSTEM/NIC_ID'.format(network_ref.attrib['href'])
+                net_meta = ET.fromstring(self.api_request('GET',
+                    '{}/metadata/SYSTEM/JASMIN.NIC_ID'.format(network_ref.attrib['href'])
                 ).text)
             except PermissionsError:
                 # Permissions error is thrown when metadata is not set
