@@ -23,8 +23,8 @@ class IntegrationTest(metaclass= abc.ABCMeta):
     @abc.abstractmethod
     def steps(self):
         """
-        Returns a list of method names for the steps of the integration test
-        in the order that they must be executed
+        Returns an ordered dictionary mapping step name to a callable for the step
+        for each step of the integration test in the order that they must be executed
         """
     
     def test_integration(self):
@@ -33,9 +33,7 @@ class IntegrationTest(metaclass= abc.ABCMeta):
         """
         result = None
         print()  # Print an empty line first for formatting
-        for step in self.steps():
-            print("    Running step: {} ...".format(step), end = " ", flush = True)
-            method = getattr(self, step)
-            result = method(result)
+        for name, step in self.steps().items():
+            print("    Running step: {} ...".format(name), end = " ", flush = True)
+            result = step(result)
             print("ok")
-

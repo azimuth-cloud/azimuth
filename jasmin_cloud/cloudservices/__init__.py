@@ -79,9 +79,27 @@ class MachineStatus(enum.Enum):
         return self in [MachineStatus.INCONSISTENT,
                         MachineStatus.PROVISIONING_FAILED,
                         MachineStatus.ERROR]
+        
+
+@enum.unique
+class NATPolicy(enum.Enum):
+    """
+    Defines the possible policies for applying NAT and firewall rules to machines
+    deployed from an image.
+    """
+    
+    #: Never apply NAT and firewall rules
+    NEVER  = 'NEVER'
+    
+    #: Always apply NAT and firewall rules
+    ALWAYS = 'ALWAYS'
+    
+    #: Optionally apply NAT and firewall rules based on a user decision
+    USER   = 'USER'
 
 
-class Image(namedtuple('ImageProps', ['id', 'name', 'description', 'is_public'])):
+class Image(namedtuple('ImageProps', ['id', 'name', 'host_type',
+                                      'description', 'nat_policy', 'is_public'])):
     """
     Represents an image that can be used to provision a machine.
     
@@ -93,9 +111,17 @@ class Image(namedtuple('ImageProps', ['id', 'name', 'description', 'is_public'])
     
         The name of the image.
         
+    .. py:attribute:: host_type
+    
+        The type of host that the image represents.
+        
     .. py:attribute:: description
     
         An extended description of the image. This could contain rich formatting.
+        
+    .. py:attribute:: nat_policy
+    
+        The :py:class:`NATPolicy` for the image.
         
     .. py:attribute:: is_public
     
@@ -233,6 +259,12 @@ class Session(metaclass = abc.ABCMeta):
         """
         Creates a redeployable image using the given machine as a template.
         
+        Images created via this method will always have a `nat_policy` of `USER`
+        and a `host_type` of `other`.
+        
+        This should delete the source machine when the image has been created
+        successfully.
+        
         :param machine_id: The id of the machine to use as a template
         :param name: The name of the new image
         :param description: An extended description for the new image
@@ -274,45 +306,26 @@ class Session(metaclass = abc.ABCMeta):
         """
         
     @abc.abstractmethod
-    def provision_machine(self, image_id, name, description, ssh_key, vm_type):
+    def provision_machine(self, image_id, name, description, ssh_key, expose):
         """
-        Provisions a new machine using the specified image and returns it.
+        Provisions a new machine using the specified image, sets NAT and firewall
+        rules appropriately and returns a :py:class:`Machine`.
         
-        Root (or admin) access will be granted to the holder of the private key
-        corresponding to the given SSH public key.
+        Whether to set NAT and firewall rules for the machine is determined by the
+        :py:class:`NATPolicy` of the image. If the policy is `USER`, then the
+        value of ``expose`` is used.
+        
+        If supported by the image, root (or admin) access will be granted to the
+        holder of the private key corresponding to the given SSH public key.        
         
         :param image_id: The id of the image to use
         :param name: The name for the provisioned machine
         :param description: An extended description of the machine
         :param ssh_key: The SSH public key for root access
                         **NOTE:** The provisioned machine may choose to ignore this
-        :param vm_type: The type of the VM
-                        **NOTE:** The provisioned machine may choose to ignore this
+        :param expose: Indicates whether to apply NAT/firewall rules if NAT policy
+                       is ``USER``
         :returns: The provisioned :py:class:`Machine`
-        """
-        
-    @abc.abstractmethod
-    def expose_machine(self, machine_id):
-        """
-        Sets NAT and firewall rules as appropriate to expose the virtual machine
-        externally for all protocols with a specific IP address.
-        
-        Returns the machine on success.
-        
-        :param machine_id: The id of the machine to expose
-        :returns: The updated :py:class:`Machine`
-        """
-        
-    @abc.abstractmethod
-    def unexpose_machine(self, machine_id):
-        """
-        Removes all NAT and firewall rules associated specifically with the 
-        virtual machine.
-        
-        Returns the machine on success.
-        
-        :param machine_id: The id of the machine to unexpose
-        :returns: The updated :py:class:`Machine`
         """
         
     @abc.abstractmethod
@@ -326,7 +339,8 @@ class Session(metaclass = abc.ABCMeta):
     @abc.abstractmethod
     def stop_machine(self, machine_id):
         """
-        Stops the specified virtual machine.
+        Completely powers down the specified virtual machine and ensures all
+        resources associated with the machine are freed.
         
         :param machine_id: The id of the machine to power down
         """
@@ -340,18 +354,12 @@ class Session(metaclass = abc.ABCMeta):
         """
         
     @abc.abstractmethod
-    def destroy_machine(self, machine_id):
-        """
-        Completely powers down the specified virtual machine and ensures all
-        resources associated with the machine are freed.
-        
-        :param machine_id: The id of the machine to destroy
-        """
-        
-    @abc.abstractmethod
     def delete_machine(self, machine_id):
         """
         Deletes the specified virtual machine completely.
+        
+        If the machine has associated NAT/firewall rules, these should also be
+        removed.
         
         :param machine_id: The id of the machine to delete
         """
