@@ -25,9 +25,6 @@
                     {%- endif %}
                 </div>
                 <div class="panel-body">
-                    {%- if item.allow_inbound %}
-                        <div class="alert alert-info">Allows inbound traffic from the internet</div>
-                    {%- endif %}
                     {{ item.description|default('No description', true)|safe }}
                 </div>
                 <div class="panel-footer">

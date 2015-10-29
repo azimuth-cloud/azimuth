@@ -28,21 +28,6 @@
         {%- endcall %}
         
         <div class="form-group">
-            <div class="col-sm-9 col-sm-offset-3">
-                <div class="checkbox">
-                    <label>
-                        <input type="checkbox" name="allow_inbound" value="true" {% if item.allow_inbound == "true" %}checked{% endif %} />
-                        Allow inbound traffic from the internet
-                    </label>
-                </div>
-                <span class="help-block">
-                    If checked, machines provisioned using the catalogue item will have NAT and firewall rules
-                    applied to allow inbound traffic from the internet.
-                </span>
-            </div>
-        </div>
-        
-        <div class="form-group">
             <div class="col-sm-offset-3 col-sm-9">
                 <button name="submitted" type="submit" class="btn btn-primary" autocomplete="off">Add to catalogue</button>
                 <span class="working-message text-muted hidden">Working...</span>

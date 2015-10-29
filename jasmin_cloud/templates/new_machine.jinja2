@@ -16,12 +16,26 @@
         
         {%- call form_group_with_errors("template", "Template") %}
             <p class="form-control-static"><code>{{ template.name }}</code></p>
-            {%- if template.allow_inbound %}
+            {%- if template.nat_policy.name == 'ALWAYS' %}
                 <span class="help-block">This template <strong>allows</strong> inbound traffic from the internet.</span>
-            {%- else %}
-                <span class="help-block">This template does <strong>not</strong> allow inbound traffic from the internet.</span>
+            {%- elif template.nat_policy.name == 'NEVER' %}
+                <span class="help-block">This template <strong>does not allow</strong> inbound traffic from the internet.</span>
             {%- endif %}
         {%- endcall %}
+        
+        {%- if template.nat_policy.name == 'USER' %}
+            {%- call form_group_with_errors("networking", "Networking") %}
+                <div class="checkbox">
+                    <label>
+                        <input type="checkbox" name="expose" value="true" {% if expose == "true" %}checked{% endif %} />
+                        Allow inbound traffic from the internet
+                    </label>
+                </div>
+                <span class="help-block">
+                    If checked, the provisioned machine will have NAT and firewall rules applied to allow inbound traffic from the internet.
+                </span>
+            {%- endcall %}
+        {%- endif %}
         
         {%- call form_group_with_errors("description", "Description") %}
             <textarea name="description" class="form-control" rows="5" placeholder="Optional...">{{ description }}</textarea>
@@ -32,7 +46,7 @@
             <span class="help-block">Root access to the provisioned machine will be granted to the holder of the corresponding private key.</span>
             <span class="help-block">For help generating SSH keys, see <a href="http://jasmin.ac.uk/workflow/ssh-keys/">the main JASMIN site</a>.</span>
         {%- endcall %}
-        
+               
         <div class="form-group">
             <div class="col-sm-offset-3 col-sm-9">
                 <button name="submitted" type="submit" class="btn btn-primary" autocomplete="off">Provision machine</button>

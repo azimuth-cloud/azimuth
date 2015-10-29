@@ -854,7 +854,10 @@ fi
         task = ET.fromstring(self.api_request(
             'POST', 'vApp/{}/power/action/powerOn'.format(machine_id)
         ).text)
-        self.wait_for_task(task.attrib['href'], PowerActionError)
+        try:
+            self.wait_for_task(task.attrib['href'], PowerActionError)
+        except PowerActionError as e:
+            raise PowerActionError('Error starting machine') from e
         
     def stop_machine(self, machine_id):
         """
@@ -864,7 +867,10 @@ fi
         task = ET.fromstring(self.api_request(
             'POST', 'vApp/{}/action/undeploy'.format(machine_id), payload
         ).text)
-        self.wait_for_task(task.attrib['href'], PowerActionError)
+        try:
+            self.wait_for_task(task.attrib['href'], PowerActionError)
+        except PowerActionError as e:
+            raise PowerActionError('Error stopping machine') from e
         
     def restart_machine(self, machine_id):
         """
@@ -873,7 +879,10 @@ fi
         task = ET.fromstring(self.api_request(
             'POST', 'vApp/{}/power/action/reset'.format(machine_id)
         ).text)
-        self.wait_for_task(task.attrib['href'], PowerActionError)
+        try:
+            self.wait_for_task(task.attrib['href'], PowerActionError)
+        except PowerActionError as e:
+            raise PowerActionError('Error restarting machine') from e
         
     def delete_machine(self, machine_id):
         """
@@ -887,7 +896,10 @@ fi
         task = ET.fromstring(self.api_request(
             'DELETE', 'vApp/{}'.format(machine_id)
         ).text)
-        self.wait_for_task(task.attrib['href'], PowerActionError)
+        try:
+            self.wait_for_task(task.attrib['href'], PowerActionError)
+        except PowerActionError as e:
+            raise PowerActionError('Error deleting machine') from e
             
     def close(self):
         """

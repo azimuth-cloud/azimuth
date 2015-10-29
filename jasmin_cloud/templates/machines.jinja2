@@ -72,7 +72,7 @@
                         </form>
                         <form class="disable-on-submit power-action" autocomplete="off" method="POST"
                               action="{{ request.route_url('machine_action', id = machine.id) }}">
-                            <input name="action" type="hidden" value="destroy" />
+                            <input name="action" type="hidden" value="stop" />
                             <input name="csrf_token" type="hidden" value="{{ request.session.get_csrf_token() }}" />
                             <button title="Power Off" type="submit" class="btn btn-warning btn-xs">
                                 <i class="fa fa-fw fa-power-off"></i>

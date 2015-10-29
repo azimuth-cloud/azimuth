@@ -31,15 +31,10 @@ def main(global_config, **settings):
     # We want to use Jinja2 templates
     config.include('pyramid_jinja2')
     
-    # We want to use SQLAlchemy with transaction management
-    config.include('pyramid_tm')
-    config.include('pyramid_sqlalchemy')
-    
     # Set up the integration for the portal services
     config.include('jasmin_cloud.auth')
     config.include('jasmin_cloud.membership')
     config.include('jasmin_cloud.cloud')
-    config.include('jasmin_cloud.catalogue')
     
     
     ############################################################################
