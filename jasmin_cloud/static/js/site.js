@@ -1,14 +1,44 @@
 // Make sure the has-error class gets applied to the parent form-group of any invalid controls
 $('.form-control:invalid').closest('.form-group').each(function() { $(this).addClass('has-error'); });
 $('.form-control').on('input', function() {
-    action = this.checkValidity() ? 'removeClass' : 'addClass';
+    var action = this.checkValidity() ? 'removeClass' : 'addClass';
     $(this).closest('.form-group').each(function() { $(this)[action]('has-error'); });
+});
+
+// Enable preview for markdown editors
+//  In order to ensure we use the same rendering algorithm, we use an Ajax callback
+//  We throttle ajax calls using a timeout
+$('.markdown-editor').each(function() {
+    var $input = $(this);
+    var $preview = $('<div class="markdown-preview"><header>Live preview</header><div class="content"></div></div>');
+    $preview.hide();
+    $input.parent().append($preview);
+    var timeout;
+    function updatePreview() {
+        if( $input.val() === "" ) {
+            // If there is no content, hide the preview
+            $preview.hide();
+        } else {
+            // Otherwise, get a preview to show
+            $preview.find('.content').load(
+                '/markdown_preview',
+                { 'markdown' : $input.val() },
+                function() { $preview.show(); }
+            );
+        }
+    }
+    $input.on('input', function() {
+        // Clear any existing timeout and set a new one
+        clearTimeout(timeout);
+        timeout = setTimeout(updatePreview, 1000);
+    });
+    updatePreview();
 });
 
 // Confirmation dialog for links
 $(document).on('click', 'a.confirm', function(e) {
     // Show a confirm dialog that redirects to the href of the link on confirm
-    $link = $(this);
+    var $link = $(this);
     bootbox.confirm($link.data('confirm-message'), function(result) {
         if( result ) window.location.href = $link.attr('href');
     });
@@ -24,7 +54,7 @@ $(document).on('click', 'a.confirm', function(e) {
  */
 
 $(document).on('submit', 'form', function(e) {
-    $form = $(this);
+    var $form = $(this);
     if( $form.hasClass('confirm') ) {
         bootbox.confirm($(this).data('confirm-message'), function(result) {
             if( result ) {

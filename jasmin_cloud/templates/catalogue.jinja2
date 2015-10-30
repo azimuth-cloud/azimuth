@@ -25,7 +25,7 @@
                     {%- endif %}
                 </div>
                 <div class="panel-body">
-                    {{ item.description|default('No description', true)|safe }}
+                    {{ item.description|default('No description', true)|markdown }}
                 </div>
                 <div class="panel-footer">
                     <a href="{{ request.route_url('new_machine', id = item.id) }}"

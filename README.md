@@ -73,13 +73,10 @@ Then copy `application.ini.example` to `application.ini` and adjust the settings
 for your platform (see
 http://docs.pylonsproject.org/docs/pyramid/en/1.5-branch/narr/environment.html).
 
-You can then launch the portal using a development server. The following two lines are
-equivalent, but the latter has the advantage that it can be used as a debug configuration
-in PyDev, allowing breakpoints etc.
+You can then launch the portal using a development server:
 
 ```sh
 $PYENV/bin/pserve application.ini
-$PYENV/bin/python jasmin_cloud/__init__.py application.ini
 ```
 
 The portal will then be available in a web browser at `127.0.0.1:6543`.

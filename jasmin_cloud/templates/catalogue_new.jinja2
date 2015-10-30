@@ -23,7 +23,7 @@
         {%- endcall %}
         
         {%- call form_group_with_errors("description", "Description") %}
-            <textarea name="description" class="form-control" rows="5" placeholder="Optional...">{{ item.description }}</textarea>
+            <textarea name="description" class="form-control markdown-editor" rows="5" placeholder="Optional...">{{ item.description }}</textarea>
             <span class="help-block">Description may use <a href="http://daringfireball.net/projects/markdown/">Markdown</a> formatting.</span>
         {%- endcall %}
         

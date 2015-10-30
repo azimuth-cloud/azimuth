@@ -16,6 +16,8 @@ __version__ = "0.1"
 from pyramid.config import Configurator
 from pyramid.session import SignedCookieSessionFactory
 
+from . import jinja2_ext
+
 
 def main(global_config, **settings):
     """
@@ -30,6 +32,12 @@ def main(global_config, **settings):
 
     # We want to use Jinja2 templates
     config.include('pyramid_jinja2')
+    # Force the creation of the environment
+    config.commit()
+    # Add our custom filters
+    config.get_jinja2_environment().filters.update({
+        'markdown' : jinja2_ext.markdown_filter,
+    })
     
     # Set up the integration for the portal services
     config.include('jasmin_cloud.auth')
@@ -44,6 +52,9 @@ def main(global_config, **settings):
     config.add_static_view(name = 'static', path = 'static', cache_max_age = 3600)
     
     config.add_route('home',   '/')
+    
+    # Route for XMLHttpRequest calls to get markdown preview
+    config.add_route('markdown_preview', '/markdown_preview')
     
     # Single login and logout for all orgs
     config.add_route('login',  '/login')
@@ -64,13 +75,3 @@ def main(global_config, **settings):
 
     config.scan(ignore = ['.test'])
     return config.make_wsgi_app()
-
-
-# For debugging, you can just run this script instead of pserve
-if __name__ == "__main__":
-    import sys
-    from pkg_resources import load_entry_point
-
-    sys.exit(
-        load_entry_point('pyramid', 'console_scripts', 'pserve')()
-    )

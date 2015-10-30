@@ -5,8 +5,6 @@ This module contains Pyramid view callables for the JASMIN cloud portal.
 __author__ = "Matt Pryor"
 __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
-import bleach, markdown
-
 from pyramid.view import view_config, forbidden_view_config, notfound_view_config
 from pyramid.security import remember, forget
 from pyramid.session import check_csrf_token
@@ -266,16 +264,11 @@ def catalogue_new(request):
             'name'          : request.params.get('name', ''),
             'description'   : request.params.get('description', ''),
         }
-        # Convert markdown in the description and sanitize the result using the
-        # default, conservative set of allowed tags and attributes
-        description = bleach.clean(
-            markdown.markdown(item_info['description']), strip = True,
-            tags = bleach.ALLOWED_TAGS + ['p', 'span', 'div'],
-            attributes = dict(bleach.ALLOWED_ATTRIBUTES, **{ '*' : 'class' }),
-        )
         try:
             # Create the catalogue item
-            cloud_session.image_from_machine(machine.id, item_info['name'], description)
+            cloud_session.image_from_machine(
+                machine.id, item_info['name'], item_info['description']
+            )
             request.session.flash('Catalogue item created successfully', 'success')
         except cloudservices.DuplicateNameError:
             request.session.flash('There are errors with one or more fields', 'error')
@@ -436,3 +429,17 @@ def machine_action(request):
     action(request.matchdict['id'])
     request.session.flash('Action completed successfully', 'success')
     return HTTPSeeOther(location = request.route_url('machines'))
+
+
+@view_config(route_name = 'markdown_preview',
+             request_method = 'POST', xhr = True, permission = 'view',
+             renderer = 'templates/markdown_preview.jinja2')
+def markdown_preview(request):
+    """
+    Handler for POST requests via XMLHttpRequest to ``/markdown_preview``.
+    
+    The user must be authenticated to reach here.
+    
+    Renders the specified markdown to HTML using the same filter used in templates.
+    """
+    return { 'value' : request.params['markdown'] }
