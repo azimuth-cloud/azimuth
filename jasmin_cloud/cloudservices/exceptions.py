@@ -31,6 +31,9 @@ class NoSuchResourceError(CloudServiceError):
 class BadRequestError(CloudServiceError):
     """Thrown when a badly formatted request is made to the cloud service."""
     
+class BadConfigurationError(CloudServiceError):
+    """Thrown when the cloud service is configured in a way that the portal cannot use."""
+    
 class DuplicateNameError(CloudServiceError):
     """Thrown when a name conflicts with a resource that already exists."""
     

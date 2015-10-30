@@ -269,21 +269,23 @@ class VCloudSession(Session):
             key = entry.find('./vcd:Key', _NS).text
             value = entry.find('.//vcd:Value', _NS).text
             type_ = entry.find('./vcd:TypedValue', _NS).attrib[self._TYPE_KEY]
-            if type_ == 'MetadataNumberValue':
-                # Number actually means int
-                try:
-                    meta[key] = int(value)
-                    continue
-                except ValueError:
-                    pass
-            elif type_ == "MetadataBooleanValue":
-                meta[key] = (value.lower() == 'true')
-                continue
-            elif type_ == "MetadataDateTimeValue":
-                # Don't attempt to parse the timezone
-                meta[key] = datetime.strptime(value[:19], '%Y-%m-%dT%H:%M:%S')
-                continue
-            meta[key] = value 
+            # Try to convert the value
+            try:
+                if type_ == 'MetadataNumberValue':
+                    # Number actually means int, but the number can be in the format 10.0
+                    try:
+                        meta[key] = int(value)
+                    except ValueError:
+                        meta[key] = int(float(value))
+                elif type_ == "MetadataBooleanValue":
+                    meta[key] = (value.lower() == 'true')
+                elif type_ == "MetadataDateTimeValue":
+                    # Don't attempt to parse the timezone
+                    meta[key] = datetime.strptime(value[:19], '%Y-%m-%dT%H:%M:%S')
+                else:
+                    meta[key] = value
+            except (ValueError, TypeError):
+                raise BadConfigurationError('Invalid metadata value')
         return meta
             
     def poll(self):
@@ -624,20 +626,13 @@ fi
         # Get the mapping of NIC => network from the network metadata
         networks = {}
         for network_ref in network_refs:
+            # Get the NIC_ID metadata
+            # Ignore any networks without it
+            metadata = self.get_metadata(network_ref.attrib['href'])
             try:
-                # Get the NIC_ID metadata
-                net_meta = ET.fromstring(self.api_request('GET',
-                    '{}/metadata/SYSTEM/JASMIN.NIC_ID'.format(network_ref.attrib['href'])
-                ).text)
-            except PermissionsError:
-                # Permissions error is thrown when metadata is not set
-                # Ignore the network in this case
+                nic_id = metadata['JASMIN.NIC_ID']
+            except KeyError:
                 continue
-            # Get the NIC_ID as an integer
-            try:
-                nic_id = int(net_meta.find('.//vcd:Value', _NS).text)
-            except (ValueError, AttributeError):
-                raise ProvisioningError('NIC_ID must be an integer')
             # Store the network config against the NIC
             networks[nic_id] = { 'name' : network_ref.attrib['name'],
                                  'href' : network_ref.attrib['href'] }
