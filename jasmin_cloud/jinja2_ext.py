@@ -21,7 +21,8 @@ def markdown_filter(value):
     # Convert markdown in the description and sanitize the result using the
     # default, conservative set of allowed tags and attributes
     return jinja2.Markup(bleach.clean(
-        markdown.markdown(value),
+        # We enable the sane list extension
+        markdown.markdown(value, extensions = ['markdown.extensions.sane_lists']),
         strip = True,
         tags = bleach.ALLOWED_TAGS + ['p', 'span', 'div'],
         attributes = dict(bleach.ALLOWED_ATTRIBUTES, **{ '*' : 'class' }),
