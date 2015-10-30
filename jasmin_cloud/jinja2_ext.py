@@ -20,7 +20,6 @@ def markdown_filter(value):
     """
     # Convert markdown in the description and sanitize the result using the
     # default, conservative set of allowed tags and attributes
-    print(markdown.markdown(value))
     return jinja2.Markup(bleach.clean(
         markdown.markdown(value),
         strip = True,

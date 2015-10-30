@@ -4,9 +4,9 @@
 .. toctree::
 
     auth
-    catalogue
     cloud
     cloudservices/index
+    jinja2_ext
     membership
     util
     views
