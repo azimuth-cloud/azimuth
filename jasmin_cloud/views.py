@@ -379,7 +379,8 @@ def new_machine(request):
                 machine_info['expose'] == 'true'
             )
             request.session.flash('Machine provisioned successfully', 'success')
-            request.session.flash('Inbound access from internet enabled', 'success')
+            if machine.external_ip:
+                request.session.flash('Inbound access from internet enabled', 'success')
         except cloudservices.DuplicateNameError:
             # If there is an error with a duplicate name, the user can correct that
             request.session.flash('There are errors with one or more fields', 'error')
@@ -389,7 +390,7 @@ def new_machine(request):
                 cloudservices.ProvisioningError) as e:
             # If provisioning fails, we want to report an error
             request.session.flash('Provisioning error: {}'.format(str(e)), 'error')
-        except cloudservices.NetworkingError:
+        except cloudservices.NetworkingError as e:
             # Networking doesn't happen until the machine has been provisioned
             # So we report that provisioning was successful but networking failed
             request.session.flash('Machine provisioned successfully', 'success')
