@@ -259,8 +259,8 @@ class Session(metaclass = abc.ABCMeta):
         """
         Creates a redeployable image using the given machine as a template.
         
-        Images created via this method will always have a `nat_policy` of `USER`
-        and a `host_type` of `other`.
+        Images created via this method will always have a ``nat_policy`` of ``USER``
+        and a ``host_type`` of ``other``.
         
         This should delete the source machine when the image has been created
         successfully.
@@ -312,7 +312,7 @@ class Session(metaclass = abc.ABCMeta):
         rules appropriately and returns a :py:class:`Machine`.
         
         Whether to set NAT and firewall rules for the machine is determined by the
-        :py:class:`NATPolicy` of the image. If the policy is `USER`, then the
+        :py:class:`NATPolicy` of the image. If the policy is ``USER``, then the
         value of ``expose`` is used.
         
         If supported by the image, root (or admin) access will be granted to the
