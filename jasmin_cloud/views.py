@@ -5,16 +5,13 @@ This module contains Pyramid view callables for the JASMIN cloud portal.
 __author__ = "Matt Pryor"
 __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
-from operator import attrgetter
-
-import bleach, markdown
-
 from pyramid.view import view_config, forbidden_view_config, notfound_view_config
 from pyramid.security import remember, forget
 from pyramid.session import check_csrf_token
-from pyramid.httpexceptions import HTTPSeeOther, HTTPNotFound, HTTPBadRequest
+from pyramid.httpexceptions import HTTPSeeOther, HTTPBadRequest
 
 from . import cloudservices
+from .cloudservices import NATPolicy
 from .cloudservices.vcloud import VCloudProvider
 from .util import validate_ssh_key
 
@@ -230,8 +227,8 @@ def catalogue(request):
     """
     # Get the available catalogue items
     # Sort the items so that the public items appear first, and then by name
-    return { 'items' : sorted(request.catalogue.available_items(),
-                              key = lambda i: (not i.is_public, i.name)) }
+    items = request.cloud_sessions[request.current_org].list_images()
+    return { 'items' : sorted(items, key = lambda i: (not i.is_public, i.name)) }
 
 
 @view_config(route_name = 'catalogue_new',
@@ -266,20 +263,11 @@ def catalogue_new(request):
         item_info = {
             'name'          : request.params.get('name', ''),
             'description'   : request.params.get('description', ''),
-            'allow_inbound' : request.params.get('allow_inbound', 'false'),
         }
-        # Convert markdown in the description and sanitize the result using the
-        # default, conservative set of allowed tags and attributes
-        description = bleach.clean(
-            markdown.markdown(item_info['description']), strip = True,
-            tags = bleach.ALLOWED_TAGS + ['p', 'span', 'div'],
-            attributes = dict(bleach.ALLOWED_ATTRIBUTES, **{ '*' : 'class' }),
-        )
         try:
             # Create the catalogue item
-            request.catalogue.item_from_machine(
-                machine, item_info['name'],
-                description, item_info['allow_inbound'] == "true"
+            cloud_session.image_from_machine(
+                machine.id, item_info['name'], item_info['description']
             )
             request.session.flash('Catalogue item created successfully', 'success')
         except cloudservices.DuplicateNameError:
@@ -289,11 +277,6 @@ def catalogue_new(request):
                 'item'    : item_info,
                 'errors'  : { 'name' : ['Catalogue item name is already in use'] }
             }
-        # If creating the catalogue item is successful, try to delete the machine
-        try:
-            cloud_session.delete_machine(machine.id)
-        except cloudservices.CloudServiceError as e:
-            request.session.flash('Error deleting machine: {}'.format(e), 'error')
         return HTTPSeeOther(location = request.route_url('catalogue'))
     # Only a get request should get this far
     return {
@@ -301,7 +284,6 @@ def catalogue_new(request):
         'item' : {
             'name'          : '',
             'description'   : '',
-            'allow_inbound' : 'false'
         },
         'errors' : {}
     }
@@ -322,7 +304,7 @@ def catalogue_delete(request):
     """
     # Request must pass a CSRF test
     check_csrf_token(request)
-    request.catalogue.delete_item_with_id(request.matchdict['id'])
+    request.cloud_sessions[request.current_org].delete_image(request.matchdict['id'])
     request.session.flash('Catalogue item deleted', 'success')
     return HTTPSeeOther(location = request.route_url('catalogue'))
 
@@ -362,66 +344,66 @@ def new_machine(request):
         If the provisioning is successful, redirect the user to ``/{org}/machines``
         with a success message.
         
-        If the provisioning is successful but NATing fails, redirect the user to
-        ``/{org}/machines`` with an error message.
+        If the provisioning fails with an error that the user can correct, show
+        the form with an error message.
         
-        If the provisioning fails completely, show the form with an error message.
+        If the provisioning fails with a cloud error, show an error on ``/{org}/machines``.
     """
     # Try to load the catalogue item
-    item = request.catalogue.find_item_by_id(request.matchdict['id'])
-    if not item:
-        raise HTTPNotFound()
+    item = request.cloud_sessions[request.current_org].get_image(request.matchdict['id'])
     # If we have a POST request, try and provision a machine with the info
     if request.method == 'POST':
         # For a POST request, the request must pass a CSRF test
         check_csrf_token(request)
-        template_info = {
+        machine_info = {
             'template'    : item,
             'name'        : request.params.get('name', ''),
             'description' : request.params.get('description', ''),
+            'expose'      : request.params.get('expose', 'false'),
             'ssh_key'     : request.params.get('ssh_key', ''),
             'errors'      : {}
         }
         # Check that the SSH key is valid
         try:
-            template_info['ssh_key'] = validate_ssh_key(template_info['ssh_key'])
+            machine_info['ssh_key'] = validate_ssh_key(machine_info['ssh_key'])
         except ValueError as e:
             request.session.flash('There are errors with one or more fields', 'error')
-            template_info['errors']['ssh_key'] = [str(e)]
-            return template_info
+            machine_info['errors']['ssh_key'] = [str(e)]
+            return machine_info
         # Get the cloud session for the current org
         cloud_session = request.cloud_sessions[request.current_org]
         try:
             machine = cloud_session.provision_machine(
-                item.cloud_id, template_info['name'],
-                template_info['description'], template_info['ssh_key'],
-                item.host_type
+                item.id, machine_info['name'],
+                machine_info['description'], machine_info['ssh_key'],
+                machine_info['expose'] == 'true'
             )
             request.session.flash('Machine provisioned successfully', 'success')
-        # Catch specific provisioning errors here
+            if machine.external_ip:
+                request.session.flash('Inbound access from internet enabled', 'success')
         except cloudservices.DuplicateNameError:
+            # If there is an error with a duplicate name, the user can correct that
             request.session.flash('There are errors with one or more fields', 'error')
-            template_info['errors']['name'] = ['Machine name is already in use']
-            return template_info
+            machine_info['errors']['name'] = ['Machine name is already in use']
+            return machine_info
         except (cloudservices.BadRequestError,
                 cloudservices.ProvisioningError) as e:
-            # If provisioning fails, we want to report an error and show the form again
+            # If provisioning fails, we want to report an error
             request.session.flash('Provisioning error: {}'.format(str(e)), 'error')
-            return template_info
-        # Now see if we need to apply NAT and firewall rules
-        if item.allow_inbound:
-            try:
-                machine = cloud_session.expose_machine(machine.id)
-                request.session.flash('Inbound access from internet enabled', 'success')
-            except cloudservices.NetworkingError as e:
-                request.session.flash('Networking error: {}'.format(str(e)), 'error')
-        # Whatever happens, if we get this far we are redirecting to machines
+        except cloudservices.NetworkingError as e:
+            # Networking doesn't happen until the machine has been provisioned
+            # So we report that provisioning was successful but networking failed
+            request.session.flash('Machine provisioned successfully', 'success')
+            request.session.flash('Networking error: {}'.format(str(e)), 'error')
+        # If we get this far, redirect to machines
         return HTTPSeeOther(location = request.route_url('machines'))
     # Only get requests should get this far
     return {
         'template'    : item,
         'name'        : '',
         'description' : '',
+        # The default value for expose is based on the NAT policy
+        'expose'      : 'true' if item.nat_policy == NATPolicy.ALWAYS else 'false',
         # Use the current user's SSH key as the default
         'ssh_key'     : request.authenticated_user.ssh_key or '',
         'errors'      : {}
@@ -448,3 +430,17 @@ def machine_action(request):
     action(request.matchdict['id'])
     request.session.flash('Action completed successfully', 'success')
     return HTTPSeeOther(location = request.route_url('machines'))
+
+
+@view_config(route_name = 'markdown_preview',
+             request_method = 'POST', xhr = True, permission = 'view',
+             renderer = 'templates/markdown_preview.jinja2')
+def markdown_preview(request):
+    """
+    Handler for POST requests via XMLHttpRequest to ``/markdown_preview``.
+    
+    The user must be authenticated to reach here.
+    
+    Renders the specified markdown to HTML using the same filter used in templates.
+    """
+    return { 'value' : request.params['markdown'] }

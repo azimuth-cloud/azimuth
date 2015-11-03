@@ -12,6 +12,7 @@ endpoint = 'https://my-vcd.example.com/api'
 username = 'user@organisation'
 password = 'Password123'
 
-# The uuid of a known image from a public catalog to use for provisioning an
-# initial machine
-image_uuid = '<vAppTemplate uuid>'
+# The name of a known image, without version suffix, from a public catalog to use
+# for provisioning an initial machine
+# This image should have JASMIN.NAT_POLICY set to ALWAYS
+known_image = '<template_name>'

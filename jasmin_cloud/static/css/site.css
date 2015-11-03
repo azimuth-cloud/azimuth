@@ -56,10 +56,9 @@ footer {
 	flex : 1 1 auto;
 }
 
-.panel-grid-row .alert {
-	margin-bottom : 10px;
-	padding : 5px 10px;
-	text-align : center;
+.panel-body :last-child, .help-block:last-child {
+    margin-bottom : 0;
+    padding-bottom : 0;
 }
 
 .page-header {
@@ -79,24 +78,21 @@ ul.actions > li {
     display : inline-block;
 }
 
+/* NOTE: These rules are not combined on purpose
+         This is because if a browser finds a rule with an unrecognised selector,
+         it is free to ignore the entire rule
+*/
 .has-error .form-control::-webkit-input-placeholder {
     color : #d4a2a0 !important;
-}
-    
+}  
 .has-error .form-control:-moz-placeholder {
     color : #d4a2a0 !important;
-}
-    
+}   
 .has-error .form-control::-moz-placeholder {
     color : #d4a2a0 !important;
-}
-    
+}   
 .has-error .form-control:-ms-input-placeholder {
     color : #d4a2a0 !important;
-}
-
-.help-block:last-child {
-    margin-bottom : 0;
 }
 
 td > form {
@@ -144,4 +140,27 @@ h2.panel-heading {
 
 .dropdown-menu a i {
 	margin-right : 5px;
+}
+
+.markdown-preview {
+    background-color : #FEFFD4;
+    border : 1px solid #E6E8A9;
+    padding : 10px;
+}
+
+.markdown-preview header {
+    display : block;
+    font-weight : bold;
+    border-bottom : 1px solid #333333;
+    margin-bottom : 10px;
+    padding : 3px 5px;
+}
+
+.markdown-preview .content {
+    padding : 0 5px;
+}
+
+.markdown-preview .content :last-child {
+    margin-bottom : 0;
+    padding-bottom : 0;
 }

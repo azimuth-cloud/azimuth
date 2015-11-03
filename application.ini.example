@@ -28,9 +28,6 @@ ldap.user_base = OU=Users,DC=example,DC=com
 ldap.group_base = OU=Groups,DC=example,DC=com
 ldap.group_suffix = _vcloud-admins
 
-# DB configuration
-sqlalchemy.url = postgresql://@/jasminportal
-
 # Secrets
 session.secret = asecret
 auth.secret = anothersecret

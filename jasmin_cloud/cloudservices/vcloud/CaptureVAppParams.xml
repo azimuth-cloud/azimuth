@@ -5,7 +5,7 @@
     <Description>{{ image.description|e }}</Description>
     <Source href="{{ image.source_href }}" 
             type="application/vnd.vmware.vcloud.vApp+xml" />
-    <CustomizationSection>
+    <CustomizationSection goldMaster="true">
         <ovf:Info />
         <CustomizeOnInstantiate>true</CustomizeOnInstantiate>
     </CustomizationSection>

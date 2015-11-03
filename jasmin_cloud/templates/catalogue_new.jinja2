@@ -13,7 +13,7 @@
         
         {%- call form_group_with_errors("name", "Catalogue item name") %}
             <input name="name" type="text" class="form-control" value="{{ item.name }}" required
-                   pattern="[a-zA-Z0-9_]+" title="Must use alphanumeric and _ characters only" placeholder="Required" />
+                   pattern="[a-zA-Z0-9._-]+" title="Must use alphanumeric, ., _ and - characters only" placeholder="Required" />
         {%- endcall %}
         
         {%- call form_group_with_errors("source", "Source machine") %}
@@ -23,24 +23,9 @@
         {%- endcall %}
         
         {%- call form_group_with_errors("description", "Description") %}
-            <textarea name="description" class="form-control" rows="5" placeholder="Optional...">{{ item.description }}</textarea>
+            <textarea name="description" class="form-control markdown-editor" rows="5" placeholder="Optional...">{{ item.description }}</textarea>
             <span class="help-block">Description may use <a href="http://daringfireball.net/projects/markdown/">Markdown</a> formatting.</span>
         {%- endcall %}
-        
-        <div class="form-group">
-            <div class="col-sm-9 col-sm-offset-3">
-                <div class="checkbox">
-                    <label>
-                        <input type="checkbox" name="allow_inbound" value="true" {% if item.allow_inbound == "true" %}checked{% endif %} />
-                        Allow inbound traffic from the internet
-                    </label>
-                </div>
-                <span class="help-block">
-                    If checked, machines provisioned using the catalogue item will have NAT and firewall rules
-                    applied to allow inbound traffic from the internet.
-                </span>
-            </div>
-        </div>
         
         <div class="form-group">
             <div class="col-sm-offset-3 col-sm-9">

@@ -5,11 +5,10 @@ Web portal for administration of virtual organisations in the JASMIN Scientific 
 
 ## Requirements
 
-The reference platform is a fully patched CentOS 6.x installation with Python 3.3
-and PostgreSQL.
+The reference platform is a fully patched CentOS 6.x installation with Python 3.3.
 
 The reason we use Python 3.3 is that it is the latest version for which a `mod_wsgi`
-package currently exists in the IUS Community repository.
+package currently exists in the IUS Community repository (at the time of writing).
 
 To install Python 3.3 in CentOS 6.x, the following can be used:
 
@@ -18,14 +17,8 @@ sudo yum install https://dl.iuscommunity.org/pub/ius/stable/CentOS/6/x86_64/ius-
 sudo yum install python33 python33-devel
 ```
 
-To install and configure PostgreSQL, use the following:
-
-```sh
-sudo yum install postgresql postgresql-devel postgresql-server
-sudo service postgresql initdb
-sudo chkconfig postgresql on
-sudo service postgresql start
-```
+The JASMIN Cloud Portal uses metadata attached to items in vCloud Director to determine
+the allowed operations. More information on this will follow in due course...
 
 
 ## Creating a venv
@@ -53,7 +46,7 @@ Installing `jasmin-cloud` in development mode, via pip, ensures that dependencie
 and entry points are set up properly in the venv, but changes we make to the source code are
 instantly picked up by the venv.
 
-`jasmin-cloud` uses another JASMIN library - [jasmin-auth](https://github.com/cedadev/jasmin-auth)
+`jasmin-cloud` uses another JASMIN library - [jasmin-auth](https://github.com/cedadev/jasmin-auth) -
 for authentication, so we must install that first:
 
 ```sh
@@ -76,37 +69,14 @@ git clone https://github.com/cedadev/jasmin-cloud.git
 $PYENV/bin/pip install -e jasmin-cloud
 ```
 
-Next, create a PostgreSQL database that is accessible by the user that you are
-doing your development with:
-
-```sh
-sudo -Hi -u postgres createuser -DRS -w $USER
-sudo -Hi -u postgres createdb -E UTF8 -O $USER -w jasmincloud
-```
-
-Then we need to generate the required tables in the database. To do this,
-`jasmin-cloud` uses a migrations library called [alembic](https://alembic.readthedocs.org).
-First, copy `alembic.ini.example` to `alembic.ini` and edit the file to target the
-database created above, then run the following command:
-
-```sh
-$PYENV/bin/alembic --config=/path/to/alembic.ini upgrade head
-```
-
-This database should be populated with information for the catalogue items in your
-vCloud Director instance.
-
 Then copy `application.ini.example` to `application.ini` and adjust the settings
 for your platform (see
 http://docs.pylonsproject.org/docs/pyramid/en/1.5-branch/narr/environment.html).
 
-You can then launch the portal using a development server. The following two lines are
-equivalent, but the latter has the advantage that it can be used as a debug configuration
-in PyDev, allowing breakpoints etc.
+You can then launch the portal using a development server:
 
 ```sh
 $PYENV/bin/pserve application.ini
-$PYENV/bin/python jasmin_cloud/__init__.py application.ini
 ```
 
 The portal will then be available in a web browser at `127.0.0.1:6543`.
@@ -173,16 +143,11 @@ rm -rf wheelhouse
 
 Then move `jasmin-cloud-bundle.tar.gz` to the server.
 
-On the server, first create a new user to run the portal and own the PostgreSQL
-database:
+On the server, first create a new user to run the portal:
 
 ```sh
 # Create the user with no home directory but with a group of their own
 useradd -U -s /bin/bash jasmincloud
-
-# Add the user to PostgreSQL and create a database
-sudo -Hi -u postgres createuser -DRS -w jasmincloud
-sudo -Hi -u postgres createdb -E UTF8 -O jasmincloud -w jasmincloud
 ```
 
 Then create the required directories under `/var/www/jasmin-cloud` and install the portal:

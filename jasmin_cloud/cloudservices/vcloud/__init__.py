@@ -16,13 +16,14 @@ import xml.etree.ElementTree as ET
 import requests
 from jinja2 import Environment, FileSystemLoader
 
-from .. import MachineStatus, Provider, Session, Image, Machine
+from .. import NATPolicy, MachineStatus, Image, Machine, Provider, Session
 from ..exceptions import *
 
 
 # Prefixes for vCD namespaces
 _NS = {
     'vcd' : 'http://www.vmware.com/vcloud/v1.5',
+    'xsi' : 'http://www.w3.org/2001/XMLSchema-instance',
     'ovf' : 'http://schemas.dmtf.org/ovf/envelope/1',
 }
 
@@ -159,19 +160,6 @@ class VCloudSession(Session):
     :param endpoint: The API endpoint
     :param auth_token: An API authorisation token for the session
     """
-    
-    # Guest customisation script expects a script to be baked into each template
-    # at /usr/local/bin/activator.sh
-    # The script should have the following interface on all machines:
-    #   activator.sh <ssh_key> <org_name> <vm_type> <vm_id>
-    # However, the script itself may differ from machine to machine, and is free
-    # to use or ignore the arguments as it sees fit
-    _GUEST_CUSTOMISATION = """#!/bin/sh
-if [ x$1 == x"postcustomization" ]; then
-  /usr/local/bin/activator.sh "{ssh_key}" "{org_name}" "{vm_type}" "{vm_id}"
-fi
-"""
-    
     def __init__(self, endpoint, auth_token):
         self.__endpoint = endpoint.rstrip('/')
         
@@ -262,6 +250,43 @@ fi
                 raise exception_cls('Action was aborted by an administrator')
             # Any other statuses, we sleep before fetching the task again
             sleep(_POLL_INTERVAL)
+    
+    _TYPE_KEY = '{{{}}}type'.format(_NS['xsi'])
+    def get_metadata(self, base):
+        """
+        Finds all the metadata associated with the given base and returns it as
+        a dictionary.
+        
+        :param base: The object to find metadata for
+        :returns: A dictionary of metadata entries
+        """
+        try:
+            xml = ET.fromstring(self.api_request('GET', '{}/metadata'.format(base)).text)
+        except NoSuchResourceError:
+            return {}
+        meta = {}
+        for entry in xml.findall('.//vcd:MetadataEntry', _NS):
+            key = entry.find('./vcd:Key', _NS).text
+            value = entry.find('.//vcd:Value', _NS).text
+            type_ = entry.find('./vcd:TypedValue', _NS).attrib[self._TYPE_KEY]
+            # Try to convert the value
+            try:
+                if type_ == 'MetadataNumberValue':
+                    # Number actually means int, but the number can be in the format 10.0
+                    try:
+                        meta[key] = int(value)
+                    except ValueError:
+                        meta[key] = int(float(value))
+                elif type_ == "MetadataBooleanValue":
+                    meta[key] = (value.lower() == 'true')
+                elif type_ == "MetadataDateTimeValue":
+                    # Don't attempt to parse the timezone
+                    meta[key] = datetime.strptime(value[:19], '%Y-%m-%dT%H:%M:%S')
+                else:
+                    meta[key] = value
+            except (ValueError, TypeError):
+                raise BadConfigurationError('Invalid metadata value')
+        return meta
             
     def poll(self):
         """
@@ -283,7 +308,7 @@ fi
         results = ET.fromstring(self.api_request('GET', 'catalogs/query').text)
         cat_refs = [result.attrib['href'] for result in results.findall('vcd:CatalogRecord', _NS)]
         # Now we know the catalogs we have access to, we can get the items
-        image_ids = []
+        images = []
         for cat_ref in cat_refs:
             # Query the catalog to find its items
             catalog = ET.fromstring(self.api_request('GET', cat_ref).text)
@@ -297,9 +322,15 @@ fi
                 # If there is no vAppTemplate, ignore the catalogue item
                 if entity is None:
                     continue
-                # Otherwise, accumulate the template ID
-                image_ids.append(entity.attrib['href'].rstrip('/').split('/').pop())
-        return [self.get_image(id) for id in image_ids]
+                # get_image might still decide that the vAppTemplate is not one
+                # we recognise, maybe because it is incorrectly configured
+                try:
+                    images.append(self.get_image(
+                        entity.attrib['href'].rstrip('/').split('/').pop()
+                    ))
+                except NoSuchResourceError:
+                    continue
+        return images
     
     def get_image(self, image_id):
         """
@@ -312,14 +343,27 @@ fi
         template = ET.fromstring(
             self.api_request('GET', 'vAppTemplate/{}'.format(image_id)).text
         )
-        name = template.attrib['name']
+        # If the template is not a gold master, reject it
+        if template.attrib['goldMaster'].lower() != 'true':
+            raise NoSuchResourceError('Image is not a gold master')
+        # Strip the version string from the name
+        name = '-'.join(template.attrib['name'].split('-')[:-1])
         try:
             description = template.find('vcd:Description', _NS).text or ''
         except AttributeError:
             description = ''
         # If the template has a link to delete it, then it is private
-        link = template.find('./vcd:Link[@rel="remove"]', _NS)
-        return Image(image_id, name, description, link is None)
+        is_public = template.find('./vcd:Link[@rel="remove"]', _NS) is None
+        # Fetch the metadata associated with the vAppTemplate
+        meta = self.get_metadata(template.attrib['href'])
+        # If a template has no NAT policy set, reject it
+        try:
+            nat_policy = NATPolicy[meta['JASMIN.NAT_POLICY'].upper()]
+        except KeyError:
+            raise NoSuchResourceError('Image has no NAT policy')
+        # Use a default for host type if not available
+        host_type = meta.get('JASMIN.HOST_TYPE', 'other')
+        return Image(image_id, name, host_type, description, nat_policy, is_public)
         
     def image_from_machine(self, machine_id, name, description):
         """
@@ -343,7 +387,7 @@ fi
             raise ImageCreateError('Organisation has no catalogues with write access')
         # Before we create the catalogue item, we must power down the machine
         try:
-            self.destroy_machine(machine_id)
+            self.stop_machine(machine_id)
         except InvalidActionError:
             # If it is already powered down, great!
             pass
@@ -351,7 +395,8 @@ fi
         source_href = '{}/vApp/{}'.format(self.__endpoint, machine_id)
         payload = _ENV.get_template('CaptureVAppParams.xml').render({
             'image': {
-                'name'        : name,
+                # Append todays date to the template name as a version string
+                'name'        : '{}-{:%Y%m%d}'.format(name, datetime.now()),
                 'description' : description,
                 'source_href' : source_href,
             },
@@ -366,13 +411,26 @@ fi
             # So we have no choice but to assume it is a duplicate name error
             raise DuplicateNameError('Name is already in use')
         self.wait_for_task(task.attrib['href'], ImageCreateError)
-        # Get the vAppTemplate id from the task and return an image object based
-        # on it
+        # Get the id of the create vAppTemplate from the task
         template_ref = task.find(
             './/*[@type="application/vnd.vmware.vcloud.vAppTemplate+xml"]', _NS
         )
         template_id = template_ref.attrib['href'].rstrip('/').split('/').pop()
-        return self.get_image(template_id)
+        # Write the associated metadata
+        host_type = 'other'
+        nat_policy = NATPolicy.USER
+        payload = _ENV.get_template('VAppTemplateMetadata.xml').render({
+            'host_type'  : host_type,
+            'nat_policy' : nat_policy.name,
+        })
+        task = ET.fromstring(self.api_request(
+            'POST', '{}/metadata'.format(template_ref.attrib['href']), payload
+        ).text)
+        self.wait_for_task(task.attrib['href'], ImageCreateError)
+        # Delete the source machine
+        self.delete_machine(machine_id)
+        # Newly created templates are never public
+        return Image(template_id, name, host_type, description, nat_policy, False)
         
     def delete_image(self, image_id):
         """
@@ -402,8 +460,9 @@ fi
         # This will return all the VMs available to the user
         results = ET.fromstring(self.api_request('GET', 'vApps/query').text)
         apps = results.findall('vcd:VAppRecord', _NS)
-        machine_ids = [app.attrib['href'].rstrip('/').split('/').pop() for app in apps]
-        return [self.get_machine(id) for id in machine_ids]
+        return [
+            self.get_machine(app.attrib['href'].rstrip('/').split('/').pop()) for app in apps
+        ]
         
     def __gateway_from_app(self, app):
         """
@@ -490,8 +549,19 @@ fi
                         external_ip = IPv4Address(rule.find('.//vcd:OriginalIp', _NS).text)
                         break
         return Machine(machine_id, name, status, description, created, os, internal_ip, external_ip)
-        
-    def provision_machine(self, image_id, name, description, ssh_key, vm_type):
+    
+    # Guest customisation script expects a script to be baked into each template
+    # at /usr/local/bin/activator.sh
+    # The script should have the following interface on all machines:
+    #   activator.sh <ssh_key> <org_name> <vm_type> <vm_id>
+    # However, the script itself may differ from machine to machine, and is free
+    # to use or ignore the arguments as it sees fit
+    _GUEST_CUSTOMISATION = """#!/bin/sh
+if [ x$1 == x"postcustomization" ]; then
+  /usr/local/bin/activator.sh "{ssh_key}" "{org_name}" "{vm_type}" "{vm_id}"
+fi
+"""
+    def provision_machine(self, image_id, name, description, ssh_key, expose):
         """
         See :py:meth:`jasmin_cloud.cloudservices.Session.provision_machine`.
         
@@ -499,7 +569,14 @@ fi
         
             This implementation uses `vAppTemplate` uuids as the image ids
         """
-        # Get the template, plus a couple of other useful things
+        # Get the image info
+        image = self.get_image(image_id)
+        # Override expose based on the NAT policy
+        if image.nat_policy == NATPolicy.ALWAYS:
+            expose = True
+        elif image.nat_policy == NATPolicy.NEVER:
+            expose = False
+        # Get the actual vAppTemplate XML
         template = ET.fromstring(
             self.api_request('GET', 'vAppTemplate/{}'.format(image_id)).text
         )
@@ -527,7 +604,7 @@ fi
             script = _escape_script(self._GUEST_CUSTOMISATION.format(
                 ssh_key  = ssh_key.strip(),
                 org_name = org.attrib['name'],
-                vm_type  = vm_type,
+                vm_type  = image.host_type,
                 vm_id    = vm_name,
             ))
             vm_configs.append({
@@ -549,20 +626,13 @@ fi
         # Get the mapping of NIC => network from the network metadata
         networks = {}
         for network_ref in network_refs:
+            # Get the NIC_ID metadata
+            # Ignore any networks without it
+            metadata = self.get_metadata(network_ref.attrib['href'])
             try:
-                # Get the NIC_ID metadata
-                net_meta = ET.fromstring(self.api_request('GET',
-                    '{}/metadata/SYSTEM/JASMIN.NIC_ID'.format(network_ref.attrib['href'])
-                ).text)
-            except PermissionsError:
-                # Permissions error is thrown when metadata is not set
-                # Ignore the network in this case
+                nic_id = metadata['JASMIN.NIC_ID']
+            except KeyError:
                 continue
-            # Get the NIC_ID as an integer
-            try:
-                nic_id = int(net_meta.find('.//vcd:Value', _NS).text)
-            except (ValueError, AttributeError):
-                raise ProvisioningError('NIC_ID must be an integer')
             # Store the network config against the NIC
             networks[nic_id] = { 'name' : network_ref.attrib['name'],
                                  'href' : network_ref.attrib['href'] }
@@ -595,11 +665,15 @@ fi
                 self.wait_for_task(task.attrib['href'], ProvisioningError)
             # Refresh our view of the app
             app = ET.fromstring(self.api_request('GET', app.attrib['href']).text)
-        return self.get_machine(app.attrib['href'].rstrip('/').split('/').pop())
+        machine_id = app.attrib['href'].rstrip('/').split('/').pop()
+        # Expose the machine if required
+        if expose:
+            self.__expose_machine(machine_id)
+        return self.get_machine(machine_id)
     
-    def expose_machine(self, machine_id):
+    def __expose_machine(self, machine_id):
         """
-        See :py:meth:`jasmin_cloud.cloudservices.Session.expose_machine`.
+        Applies NAT and firewall rules to expose the given machine to the internet.
         """
         # We need to access the edge device that the machine is connected to the internet via
         # To do this, we first get the machine details, then the vdc details
@@ -638,8 +712,8 @@ fi
                 # Check if this rule applies to our IP
                 translated = IPv4Address(rule.find('.//vcd:TranslatedIp', _NS).text)
                 if translated == internal_ip:
-                    # Machine is already exposed, so just return
-                    return self.get_machine(machine_id)
+                    # Machine is already exposed, so nothing to do
+                    return
                 # For DNAT rules, we rule out the original IP
                 ip_pool.discard(IPv4Address(rule.find('.//vcd:OriginalIp', _NS).text))
         try:
@@ -686,11 +760,10 @@ fi
             headers = { 'Content-Type' : 'application/vnd.vmware.admin.edgeGatewayServiceConfiguration+xml' }
         ).text)
         self.wait_for_task(task.attrib['href'], NetworkingError)
-        return self.get_machine(machine_id)
     
-    def unexpose_machine(self, machine_id):
+    def __unexpose_machine(self, machine_id):
         """
-        See :py:meth:`jasmin_cloud.cloudservices.Session.unexpose_machine`.
+        Removes any NAT and firewall rules applied to the given machine.
         """
         # We need to access the edge device that the machine is connected to the internet via
         # To do this, we first get the machine details, then the vdc details
@@ -701,17 +774,17 @@ fi
         # Find our internal IP address
         internal_ip = self.__internal_ip_from_app(app)
         if internal_ip is None:
-            return self.get_machine(machine_id)
+            return
         # Get the current edge gateway configuration
         # If none exists, there aren't any NAT rules
         gateway_config = gateway.find('.//vcd:EdgeGatewayServiceConfiguration', _NS)
         if gateway_config is None:
-            return self.get_machine(machine_id)
+            return
         # Get the NAT service section
         # If there is no NAT service section, there aren't any NAT rules
         nat_service = gateway_config.find('vcd:NatService', _NS)
         if nat_service is None:
-            return self.get_machine(machine_id)
+            return
         # Remove any NAT rules from the service that apply specifically to our internal IP
         # As we go, we save the mapped external ip in order to remove firewall rules after
         nat_rules = nat_service.findall('vcd:NatRule', _NS)
@@ -739,7 +812,7 @@ fi
                     external_ip = IPv4Address(rule.find('.//vcd:OriginalIp', _NS).text)
         # If we didn't find an external ip, the machine must not be exposed
         if external_ip is None:
-            return self.get_machine(machine_id)
+            return
         # Remove any firewall rules (inbound or outbound) that apply specifically to the ip
         firewall = gateway_config.find('vcd:FirewallService', _NS)
         if firewall is None:
@@ -768,7 +841,6 @@ fi
             headers = { 'Content-Type' : 'application/vnd.vmware.admin.edgeGatewayServiceConfiguration+xml' }
         ).text)
         self.wait_for_task(task.attrib['href'], NetworkingError)
-        return self.get_machine(machine_id)
         
     def start_machine(self, machine_id):
         """
@@ -777,16 +849,23 @@ fi
         task = ET.fromstring(self.api_request(
             'POST', 'vApp/{}/power/action/powerOn'.format(machine_id)
         ).text)
-        self.wait_for_task(task.attrib['href'], PowerActionError)
+        try:
+            self.wait_for_task(task.attrib['href'], PowerActionError)
+        except PowerActionError as e:
+            raise PowerActionError('Error starting machine') from e
         
     def stop_machine(self, machine_id):
         """
         See :py:meth:`jasmin_cloud.cloudservices.Session.stop_machine`.
         """
+        payload = _ENV.get_template('UndeployVAppParams.xml').render()
         task = ET.fromstring(self.api_request(
-            'POST', 'vApp/{}/power/action/powerOff'.format(machine_id)
+            'POST', 'vApp/{}/action/undeploy'.format(machine_id), payload
         ).text)
-        self.wait_for_task(task.attrib['href'], PowerActionError)
+        try:
+            self.wait_for_task(task.attrib['href'], PowerActionError)
+        except PowerActionError as e:
+            raise PowerActionError('Error stopping machine') from e
         
     def restart_machine(self, machine_id):
         """
@@ -795,17 +874,10 @@ fi
         task = ET.fromstring(self.api_request(
             'POST', 'vApp/{}/power/action/reset'.format(machine_id)
         ).text)
-        self.wait_for_task(task.attrib['href'], PowerActionError)
-        
-    def destroy_machine(self, machine_id):
-        """
-        See :py:meth:`jasmin_cloud.cloudservices.Session.destroy_machine`.
-        """
-        payload = _ENV.get_template('UndeployVAppParams.xml').render()
-        task = ET.fromstring(self.api_request(
-            'POST', 'vApp/{}/action/undeploy'.format(machine_id), payload
-        ).text)
-        self.wait_for_task(task.attrib['href'], PowerActionError)
+        try:
+            self.wait_for_task(task.attrib['href'], PowerActionError)
+        except PowerActionError as e:
+            raise PowerActionError('Error restarting machine') from e
         
     def delete_machine(self, machine_id):
         """
@@ -815,11 +887,14 @@ fi
         # If we don't, we risk exposing to the internet the next machine that picks
         # up the IP address from the pool
         # We don't care too much about the return value
-        self.unexpose_machine(machine_id)
+        self.__unexpose_machine(machine_id)
         task = ET.fromstring(self.api_request(
             'DELETE', 'vApp/{}'.format(machine_id)
         ).text)
-        self.wait_for_task(task.attrib['href'], PowerActionError)
+        try:
+            self.wait_for_task(task.attrib['href'], PowerActionError)
+        except PowerActionError as e:
+            raise PowerActionError('Error deleting machine') from e
             
     def close(self):
         """
