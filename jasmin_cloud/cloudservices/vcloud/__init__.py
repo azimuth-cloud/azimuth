@@ -82,59 +82,6 @@ class VCloudError(ProviderSpecificError):
 ###############################################################################
 
 
-def _check_response(res):
-    """
-    Checks a response from the vCD API, and throws a relevant exception if the
-    status code is not 20x
-
-    For the status codes returned by the vCD API, see
-    http://pubs.vmware.com/vcd-55/topic/com.vmware.vcloud.api.doc_55/GUID-D2B2E6D4-7A92-4D1B-80C0-F32AE0CA3D11.html
-    """
-    
-    # Check the status code
-    if res.status_code == 503:
-        # requests reports a 503 if it can't reach the server at all
-        raise ProviderConnectionError('Cannot connect to vCloud Director API')
-    if res.status_code >= 500:
-        # Treat all other 5xx codes as if we connected but the server
-        # encountered an error
-        raise ProviderUnavailableError('vCloud Director API encountered an error')
-    if res.status_code == 401:
-        # 401 is reported if authentication failed
-        raise AuthenticationError('Authentication failed')
-    if res.status_code == 403:
-        # 403 is reported if the authenticated user doesn't have adequate
-        # permissions
-        raise PermissionsError('Insufficient permissions')
-    if res.status_code == 404:
-        # 404 is reported if the resource doesn't exist
-        raise NoSuchResourceError('Resource does not exist')
-    if res.status_code >= 400:
-        # For other 400 codes, check the body of the request to see if we can give some
-        # more specific information
-        error = ET.fromstring(res.text)
-        error_code = error.attrib['minorErrorCode'].upper()
-        # BAD_REQUEST is sent when an action is invalid given the current state
-        # or when a badly formatted request is sent
-        if error_code == 'BAD_REQUEST':
-            # To distinguish, we need to check the message
-            if 'validation error' in error.attrib['message'].lower():
-                raise BadRequestError('Badly formatted request')
-            else:
-                raise InvalidActionError('Action is invalid for current state')
-        # DUPLICATE_NAME is sent when a name is duplicated (surprise...!)
-        if error_code == 'DUPLICATE_NAME':
-            raise DuplicateNameError('Name is already in use')
-        # Otherwise, assume the request was incorrectly specified by the implementation
-        raise ImplementationError('Bad request')
-    # Any 20x status codes are fine
-    return res
-
-
-###############################################################################
-###############################################################################
-
-
 class VCloudSession(Session):
     """
     Session implementation for the vCloud Director 5.5 API.
@@ -207,9 +154,60 @@ class VCloudSession(Session):
         # Since we don't configure requests to throw HTTP exceptions (we deal
         # with status codes instead), if we see an exception it is a problem
         try:
-            return _check_response(func(path, *args, verify = False, **kwargs))
+            res = func(path, *args, verify = False, **kwargs)
         except requests.exceptions.RequestException:
             raise ProviderConnectionError('Could not connect to provider')
+        # If the response status is an error (i.e. 4xx or 5xx), try to raise an
+        # appropriate error
+        # Otherwise, return the response 
+        # For the status codes returned by the vCD API, see
+        # http://pubs.vmware.com/vcd-55/topic/com.vmware.vcloud.api.doc_55/GUID-D2B2E6D4-7A92-4D1B-80C0-F32AE0CA3D11.html
+        if res.status_code >= 400:
+            # All error responses contain an Error XML element in the response body
+            error = ET.fromstring(res.text)
+            error_code = error.attrib['minorErrorCode'].upper()
+            error_message = error.attrib['message']
+            # Create a VCloudError from the message text
+            vcd_error = VCloudError(
+                self.__user, "{}: {}".format(error_code, error_message)
+            )
+            if res.status_code == 503:
+                # requests reports a 503 if it can't reach the server at all
+                raise ProviderConnectionError(
+                    'Cannot connect to vCloud Director API') from vcd_error
+            elif res.status_code >= 500:
+                # Treat all other 5xx codes as if we connected but the server
+                # encountered an error
+                raise ProviderUnavailableError(
+                    'vCloud Director API encountered an error') from vcd_error
+            elif res.status_code == 401:
+                # 401 is reported if authentication failed
+                raise AuthenticationError('Authentication failed') from vcd_error
+            elif res.status_code == 403:
+                # 403 is reported if the authenticated user doesn't have adequate
+                # permissions
+                raise PermissionsError('Insufficient permissions') from vcd_error
+            elif res.status_code == 404:
+                # 404 is reported if the resource doesn't exist
+                raise NoSuchResourceError('Resource does not exist') from vcd_error
+            # With 400 errors (note that we know we have 400 errors here, due to
+            # the >= 500 test above), we can be more specific
+            # BAD_REQUEST is sent when an action is invalid given the current state
+            # or when a badly formatted request is sent
+            if error_code == 'BAD_REQUEST':
+                # To distinguish, we need to check the message
+                if 'validation error' in error_message.lower():
+                    raise BadRequestError('Badly formatted request') from vcd_error
+                else:
+                    raise InvalidActionError(
+                        'Action is invalid for current state') from vcd_error
+            # DUPLICATE_NAME is sent when a name is duplicated (surprise...!)
+            if error_code == 'DUPLICATE_NAME':
+                raise DuplicateNameError('Name is already in use') from vcd_error
+            # Otherwise, assume the request was incorrectly specified by the implementation
+            raise ImplementationError('Bad request') from vcd_error
+        else:
+            return res
     
     def wait_for_task(self, task_href, exception_cls = CloudServiceError):
         """wait_for_task(self, task_href, exception_cls = CloudServiceError)
