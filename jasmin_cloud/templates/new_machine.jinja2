@@ -11,7 +11,7 @@
         
         {%- call form_group_with_errors("name", "Machine name") %}
             <input name="name" type="text" class="form-control" value="{{ name }}" required
-                   pattern="[a-zA-Z0-9_]+" title="Must use alphanumeric and _ characters only" placeholder="Required" />
+                   pattern="^[a-zA-Z0-9._-]+$" title="Must use alphanumeric, ., _ and - characters only" placeholder="Required" />
         {%- endcall %}
         
         {%- call form_group_with_errors("template", "Template") %}
