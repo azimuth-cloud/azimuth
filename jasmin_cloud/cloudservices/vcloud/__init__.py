@@ -16,7 +16,7 @@ import xml.etree.ElementTree as ET
 import requests
 from jinja2 import Environment, FileSystemLoader
 
-from .. import NATPolicy, MachineStatus, Image, Machine, Provider, Session
+from .. import NATPolicy, MachineStatus, Image, Machine, Session
 from ..exceptions import *
 
 
@@ -59,6 +59,23 @@ _escape_script = lambda s: s.replace(os.linesep, '&#13;').\
                              replace('"', '&quot;').\
                              replace('%', '&#37;').\
                              replace("'", '&apos;')
+
+
+###############################################################################
+###############################################################################
+
+
+class VCloudError(ProviderSpecificError):
+    """
+    Provider specific error class for the vCloud Director provider.
+    
+    .. py:attribute:: __user__
+    
+        The ``user@org`` from the session where the error occured.
+    """
+    def __init__(self, user, message):
+        self.__user__ = user
+        super().__init__("{} (session for {})".format(message, user))
 
 
 ###############################################################################
@@ -118,41 +135,6 @@ def _check_response(res):
 ###############################################################################
 
 
-class VCloudProvider(Provider):
-    """
-    Provider implementation for the vCloud Director 5.5 API.
-    
-    :param endpoint: The API endpoint
-    """
-    def __init__(self, endpoint):
-        self.__endpoint = endpoint.rstrip('/')
-        
-    def new_session(self, username, password):
-        """
-        See :py:meth:`jasmin_cloud.cloudservices.Provider.new_session`.
-        
-        Returns a :py:class:`VCloudSession`.
-        """
-        # Convert exceptions from requests into cloud service connection errors
-        # Since we don't configure requests to throw HTTP exceptions (we deal
-        # with status codes instead), if we see an exception it is a problem
-        try:
-            # Get an auth token for the session
-            res = _check_response(requests.post(
-                '{}/sessions'.format(self.__endpoint),
-                auth = (username, password), headers = _REQUIRED_HEADERS,
-                verify = False
-            ))
-        except requests.exceptions.RequestException:
-            raise ProviderConnectionError('Could not connect to provider')
-        auth_token = res.headers['x-vcloud-authorization']
-        return VCloudSession(self.__endpoint, auth_token)
-        
-
-###############################################################################
-###############################################################################
-
-
 class VCloudSession(Session):
     """
     Session implementation for the vCloud Director 5.5 API.
@@ -160,20 +142,26 @@ class VCloudSession(Session):
     :param endpoint: The API endpoint
     :param auth_token: An API authorisation token for the session
     """
-    def __init__(self, endpoint, auth_token):
+    def __init__(self, endpoint, user, password):
         self.__endpoint = endpoint.rstrip('/')
+        self.__user = user
         
         # Create a requests session that can inject the required headers
         self.__session = requests.Session()
         self.__session.headers.update(_REQUIRED_HEADERS)
+        
+        # Get an auth token for the session and inject it into the headers for
+        # future requests 
+        res = self.api_request('POST', 'sessions', auth = (user, password))
+        auth_token = res.headers['x-vcloud-authorization']        
         self.__session.headers.update({ 'x-vcloud-authorization' : auth_token })
                 
     def __getstate__(self):
         """
         Called when the object is pickled
         """
-        # All we need to reconstruct the session is the endpoint and auth token
-        state = { 'endpoint'   : self.__endpoint }
+        # All we need to reconstruct the session is the endpoint, user and auth token
+        state = { 'endpoint' : self.__endpoint, 'user' : self.__user }
         if self.__session:
             state['auth_token'] = self.__session.headers['x-vcloud-authorization']
         return state 
@@ -183,6 +171,7 @@ class VCloudSession(Session):
         Called when the object is unpickled
         """
         self.__endpoint = state['endpoint']
+        self.__user = state['user']
         # Reconstruct the session object
         if 'auth_token' in state:
             self.__session = requests.Session()

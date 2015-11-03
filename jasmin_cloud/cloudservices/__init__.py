@@ -176,22 +176,6 @@ class Machine(namedtuple('MachineProps', ['id', 'name', 'status',
     """
 
     
-class Provider(metaclass = abc.ABCMeta):
-    """
-    Abstract base for a cloud service provider. 
-    """
-    
-    @abc.abstractmethod
-    def new_session(self, username, password):
-        """
-        Create a new session for the provider using the given credentials.
-        
-        :param username: The cloud service username
-        :param password: The cloud service password
-        :returns: The authenticated :py:class:`Session`
-        """
-        
-
 class Session(metaclass = abc.ABCMeta):
     """
     Abstract base class for an authenticated session with a cloud provider,
@@ -203,8 +187,7 @@ class Session(metaclass = abc.ABCMeta):
     
     ::
     
-        p = VCloudProvider("https://vcloud.myexample.com/api")
-        with p.new_session("user@org", "pass") as s:
+        with VCloudSession("https://vcloud.myexample.com/api", "user@org", "pass") as s:
             m = s.provision_machine(...)
             s.start_machine(m.id)
     """

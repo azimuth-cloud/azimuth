@@ -12,7 +12,7 @@ from pyramid.httpexceptions import HTTPSeeOther, HTTPBadRequest
 
 from . import cloudservices
 from .cloudservices import NATPolicy
-from .cloudservices.vcloud import VCloudProvider
+from .cloudservices.vcloud import VCloudSession
 from .util import validate_ssh_key
 
 
@@ -134,10 +134,11 @@ def login(request):
             # Try to create a session for each of the user's orgs
             # If any of them fail, bail with the error message
             try:
-                provider = VCloudProvider(request.registry.settings['vcloud.endpoint'])
                 for org in request.memberships.orgs_for_user(username):
-                    session = provider.new_session('{}@{}'.format(username, org), password)
-                    request.cloud_sessions[org] = session
+                    request.cloud_sessions[org] = VCloudSession(
+                        request.registry.settings['vcloud.endpoint'],
+                        '{}@{}'.format(username, org), password
+                    )
             except cloudservices.CloudServiceError as e:
                 request.cloud_sessions.clear()
                 request.session.flash(str(e), 'error')
