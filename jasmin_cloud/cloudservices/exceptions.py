@@ -61,3 +61,12 @@ class NetworkingError(CloudServiceError):
 class PowerActionError(CloudServiceError):
     """Thrown when an error occurs while performing a power action on a VM."""
     
+class TaskFailedError(CloudServiceError):
+    """Thrown when a long running task fails."""
+    
+class TaskCancelledError(TaskFailedError):
+    """Thrown when a task fails due to being cancelled by a user."""
+    
+class TaskAbortedError(TaskFailedError):
+    """Thrown when a task fails due to being aborted by an administrator."""
+    

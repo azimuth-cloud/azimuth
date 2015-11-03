@@ -209,17 +209,14 @@ class VCloudSession(Session):
         else:
             return res
     
-    def wait_for_task(self, task_href, exception_cls = CloudServiceError):
-        """wait_for_task(self, task_href, exception_cls = CloudServiceError)
-        
+    def wait_for_task(self, task_href):
+        """
         Takes the href of a task and waits for it to complete before returning.
         
         If the task fails to complete successfully, it throws an exception with
-        a suitable message. The exception constructor can be specified using the
-        ``exception_cls`` argument.
+        a suitable message.
         
         :param task_href: The href of the task to wait for
-        :param exception_cls: The exception constructor to use when raising errors
         """
         # Loop until we have success or failure
         while True:
@@ -230,11 +227,17 @@ class VCloudSession(Session):
             if status == 'success':
                 break
             elif status == 'error':
-                raise exception_cls('An error occured while performing the action')
+                # Create a VCloudError for the error
+                error = task.find('.//vcd:Error', _NS)
+                vcd_error = VCloudError(self.__user, "{}: {}".format(
+                    error.attrib['minorErrorCode'].upper(), error.attrib['message']
+                ))
+                raise TaskFailedError(
+                    'An error occured while performing the action') from vcd_error
             elif status == 'canceled':
-                raise exception_cls('Action was cancelled')
+                raise TaskCancelledError('Action was cancelled')
             elif status == 'aborted':
-                raise exception_cls('Action was aborted by an administrator')
+                raise TaskAbortedError('Action was aborted by an administrator')
             # Any other statuses, we sleep before fetching the task again
             sleep(_POLL_INTERVAL)
     
@@ -366,12 +369,12 @@ class VCloudSession(Session):
         session = ET.fromstring(self.api_request('GET', 'session').text)
         org_ref = session.find('.//vcd:Link[@type="application/vnd.vmware.vcloud.org+xml"]', _NS)
         if org_ref is None:
-            raise ImageCreateError('Unable to find organisation for user')
+            raise BadConfigurationError('Unable to find organisation for user')
         org = ET.fromstring(self.api_request('GET', org_ref.attrib['href']).text)
         # Then get the catalogue from the org
         cat_ref = org.find('.//vcd:Link[@type="application/vnd.vmware.vcloud.catalog+xml"]', _NS)
         if cat_ref is None:
-            raise ImageCreateError('Organisation has no catalogues with write access')
+            raise BadConfigurationError('Organisation has no catalogues with write access')
         # Before we create the catalogue item, we must power down the machine
         try:
             self.stop_machine(machine_id)
@@ -397,7 +400,10 @@ class VCloudSession(Session):
             # name already exists
             # So we have no choice but to assume it is a duplicate name error
             raise DuplicateNameError('Name is already in use')
-        self.wait_for_task(task.attrib['href'], ImageCreateError)
+        try:
+            self.wait_for_task(task.attrib['href'])
+        except TaskFailedError as e:
+            raise ImageCreateError('Error creating catalogue item') from e
         # Get the id of the create vAppTemplate from the task
         template_ref = task.find(
             './/*[@type="application/vnd.vmware.vcloud.vAppTemplate+xml"]', _NS
@@ -413,7 +419,10 @@ class VCloudSession(Session):
         task = ET.fromstring(self.api_request(
             'POST', '{}/metadata'.format(template_ref.attrib['href']), payload
         ).text)
-        self.wait_for_task(task.attrib['href'], ImageCreateError)
+        try:
+            self.wait_for_task(task.attrib['href'])
+        except TaskFailedError as e:
+            raise ImageCreateError('Error creating catalogue item') from e
         # Delete the source machine
         self.delete_machine(machine_id)
         # Newly created templates are never public
@@ -427,10 +436,13 @@ class VCloudSession(Session):
         
             This implementation uses `vAppTemplate` uuids as the image ids
         """
-        task = ET.fromstring(self.api_request(
-            'DELETE', 'vAppTemplate/{}'.format(image_id)
-        ).text)
-        self.wait_for_task(task.attrib['href'], ImageDeleteError)
+        try:
+            task = ET.fromstring(self.api_request(
+                'DELETE', 'vAppTemplate/{}'.format(image_id)
+            ).text)
+            self.wait_for_task(task.attrib['href'])
+        except (InvalidActionError, TaskFailedError) as e:
+            raise ImageDeleteError('Error deleting catalogue item') from e
     
     def count_machines(self):
         """
@@ -571,7 +583,7 @@ fi
         session = ET.fromstring(self.api_request('GET', 'session').text)
         org_ref = session.find('.//vcd:Link[@type="application/vnd.vmware.vcloud.org+xml"]', _NS)
         if org_ref is None:
-            raise ProvisioningError('Unable to find organisation for user')
+            raise BadConfigurationError('Unable to find organisation for user')
         org = ET.fromstring(self.api_request('GET', org_ref.attrib['href']).text)
         # Configure each VM contained in the vApp
         vm_configs = []
@@ -582,7 +594,7 @@ fi
             # Get all the network connections associated with the VM
             nics = vm.findall('.//vcd:NetworkConnection', _NS)
             if not nics:
-                raise ProvisioningError('No network connection section for VM')
+                raise BadConfigurationError('No network connection section for VM')
             n_nics = len(nics)
             n_networks_required = max(n_networks_required, n_nics)
             # Get a unique name for the VM
@@ -604,12 +616,12 @@ fi
         # This is done by selecting the first VCD from the org we are using
         vdc_ref = org.find('.//vcd:Link[@type="application/vnd.vmware.vcloud.vdc+xml"]', _NS)
         if vdc_ref is None:
-            raise ProvisioningError('Organisation has no VDCs')
+            raise BadConfigurationError('Organisation has no VDCs')
         vdc = ET.fromstring(self.api_request('GET', vdc_ref.attrib['href']).text)
         # Find the available networks from the VDC
         network_refs = vdc.findall('.//vcd:AvailableNetworks/vcd:Network', _NS)
         if not network_refs:
-            raise ProvisioningError('No networks available in vdc')
+            raise BadConfigurationError('No networks available in vdc')
         # Get the mapping of NIC => network from the network metadata
         networks = {}
         for network_ref in network_refs:
@@ -626,7 +638,7 @@ fi
         # Check that there is a network for each NIC
         for n in range(n_networks_required):
             if n not in networks:
-                raise ProvisioningError('No network for NIC {}'.format(n))
+                raise BadConfigurationError('No network for NIC {}'.format(n))
         # Build the XML payload for the request
         payload = _ENV.get_template('ComposeVAppParams.xml').render({
             'appliance': {
@@ -649,7 +661,10 @@ fi
             if not tasks: break
             # Wait for each task to complete
             for task in tasks:
-                self.wait_for_task(task.attrib['href'], ProvisioningError)
+                try:
+                    self.wait_for_task(task.attrib['href'])
+                except TaskFailedError as e:
+                    raise ProvisioningError('Error provisioning machine') from e
             # Refresh our view of the app
             app = ET.fromstring(self.api_request('GET', app.attrib['href']).text)
         machine_id = app.attrib['href'].rstrip('/').split('/').pop()
@@ -667,15 +682,15 @@ fi
         app = ET.fromstring(self.api_request('GET', 'vApp/{}'.format(machine_id)).text)
         gateway = self.__gateway_from_app(app)
         if gateway is None:
-            raise NetworkingError('Could not find edge gateway')
+            raise BadConfigurationError('Could not find edge gateway')
         # Find the uplink gateway interface (assume there is only one)
         uplink = gateway.find('.//vcd:GatewayInterface[vcd:InterfaceType="uplink"]', _NS)
         if uplink is None:
-            raise NetworkingError('Edge gateway has no uplink')
+            raise BadConfigurationError('Edge gateway has no uplink')
         # Find the pool of available external IP addresses, assume only one ip range is defined
         ip_range = uplink.find('.//vcd:IpRange', _NS)
         if ip_range is None:
-            raise NetworkingError('Uplink has no IP range defined')
+            raise BadConfigurationError('Uplink has no IP range defined')
         start_ip = IPv4Address(ip_range.find('./vcd:StartAddress', _NS).text)
         end_ip = IPv4Address(ip_range.find('./vcd:EndAddress', _NS).text)
         ip_pool = set(ip for net in summarize_address_range(start_ip, end_ip) for ip in net)
@@ -710,7 +725,7 @@ fi
         # Get the current edge gateway configuration
         gateway_config = gateway.find('.//vcd:EdgeGatewayServiceConfiguration', _NS)
         if gateway_config is None:
-            raise NetworkingError('No edge gateway configuration exists')
+            raise BadConfigurationError('No edge gateway configuration exists')
         # Get the NAT service section
         # If there is no NAT service section, create one
         nat_service = gateway_config.find('vcd:NatService', _NS)
@@ -738,7 +753,7 @@ fi
         # Get the firewall service and append a new rule
         firewall = gateway_config.find('vcd:FirewallService', _NS)
         if firewall is None:
-            raise NetworkingError('No firewall configuration defined')
+            raise BadConfigurationError('No firewall configuration defined')
         firewall.append(ET.fromstring(_ENV.get_template('InboundFirewallRule.xml').render(details)))
         # Make the changes
         edit_url = '{}/action/configureServices'.format(gateway.attrib['href'])
@@ -746,7 +761,10 @@ fi
             'POST', edit_url, ET.tostring(gateway_config),
             headers = { 'Content-Type' : 'application/vnd.vmware.admin.edgeGatewayServiceConfiguration+xml' }
         ).text)
-        self.wait_for_task(task.attrib['href'], NetworkingError)
+        try:
+            self.wait_for_task(task.attrib['href'])
+        except TaskFailedError as e:
+            raise NetworkingError('Error configuring NAT and firewall rules') from e
     
     def __unexpose_machine(self, machine_id):
         """
@@ -757,7 +775,7 @@ fi
         app = ET.fromstring(self.api_request('GET', 'vApp/{}'.format(machine_id)).text)
         gateway = self.__gateway_from_app(app)
         if gateway is None:
-            raise NetworkingError('Could not find edge gateway')
+            raise BadConfigurationError('Could not find edge gateway')
         # Find our internal IP address
         internal_ip = self.__internal_ip_from_app(app)
         if internal_ip is None:
@@ -804,7 +822,7 @@ fi
         firewall = gateway_config.find('vcd:FirewallService', _NS)
         if firewall is None:
             # If we get to here, we would expect a firewall config to exist
-            raise NetworkingError('No firewall configuration defined')
+            raise BadConfigurationError('No firewall configuration defined')
         firewall_rules = firewall.findall('vcd:FirewallRule', _NS)
         for rule in firewall_rules:
             # Try the source and destination ips independently
@@ -827,18 +845,24 @@ fi
             'POST', edit_url, ET.tostring(gateway_config),
             headers = { 'Content-Type' : 'application/vnd.vmware.admin.edgeGatewayServiceConfiguration+xml' }
         ).text)
-        self.wait_for_task(task.attrib['href'], NetworkingError)
+        try:
+            self.wait_for_task(task.attrib['href'])
+        except TaskFailedError as e:
+            raise NetworkingError('Error removing NAT and firewall rules') from e
         
     def start_machine(self, machine_id):
         """
         See :py:meth:`jasmin_cloud.cloudservices.Session.start_machine`.
         """
-        task = ET.fromstring(self.api_request(
-            'POST', 'vApp/{}/power/action/powerOn'.format(machine_id)
-        ).text)
         try:
-            self.wait_for_task(task.attrib['href'], PowerActionError)
-        except PowerActionError as e:
+            task = ET.fromstring(self.api_request(
+                'POST', 'vApp/{}/power/action/powerOn'.format(machine_id)
+            ).text)
+            self.wait_for_task(task.attrib['href'])
+        except InvalidActionError:
+            # Swallow invalid action errors, as they don't really matter
+            pass
+        except TaskFailedError as e:
             raise PowerActionError('Error starting machine') from e
         
     def stop_machine(self, machine_id):
@@ -846,24 +870,30 @@ fi
         See :py:meth:`jasmin_cloud.cloudservices.Session.stop_machine`.
         """
         payload = _ENV.get_template('UndeployVAppParams.xml').render()
-        task = ET.fromstring(self.api_request(
-            'POST', 'vApp/{}/action/undeploy'.format(machine_id), payload
-        ).text)
         try:
-            self.wait_for_task(task.attrib['href'], PowerActionError)
-        except PowerActionError as e:
+            task = ET.fromstring(self.api_request(
+                'POST', 'vApp/{}/action/undeploy'.format(machine_id), payload
+            ).text)
+            self.wait_for_task(task.attrib['href'])
+        except InvalidActionError:
+            # Swallow invalid action errors, as they don't really matter
+            pass
+        except TaskFailedError as e:
             raise PowerActionError('Error stopping machine') from e
         
     def restart_machine(self, machine_id):
         """
         See :py:meth:`jasmin_cloud.cloudservices.Session.restart_machine`.
         """
-        task = ET.fromstring(self.api_request(
-            'POST', 'vApp/{}/power/action/reset'.format(machine_id)
-        ).text)
         try:
-            self.wait_for_task(task.attrib['href'], PowerActionError)
-        except PowerActionError as e:
+            task = ET.fromstring(self.api_request(
+                'POST', 'vApp/{}/power/action/reset'.format(machine_id)
+            ).text)
+            self.wait_for_task(task.attrib['href'])
+        except InvalidActionError:
+            # Swallow invalid action errors, as they don't really matter
+            pass
+        except TaskFailedError as e:
             raise PowerActionError('Error restarting machine') from e
         
     def delete_machine(self, machine_id):
@@ -875,12 +905,15 @@ fi
         # up the IP address from the pool
         # We don't care too much about the return value
         self.__unexpose_machine(machine_id)
-        task = ET.fromstring(self.api_request(
-            'DELETE', 'vApp/{}'.format(machine_id)
-        ).text)
         try:
-            self.wait_for_task(task.attrib['href'], PowerActionError)
-        except PowerActionError as e:
+            task = ET.fromstring(self.api_request(
+                'DELETE', 'vApp/{}'.format(machine_id)
+            ).text)
+            self.wait_for_task(task.attrib['href'])
+        except InvalidActionError:
+            # Swallow invalid action errors, as they don't really matter
+            pass
+        except TaskFailedError as e:
             raise PowerActionError('Error deleting machine') from e
             
     def close(self):
