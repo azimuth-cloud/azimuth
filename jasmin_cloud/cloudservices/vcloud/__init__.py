@@ -7,7 +7,7 @@ __author__ = "Matt Pryor"
 __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
 
-import os, uuid, re
+import os, uuid, re, logging
 from ipaddress import IPv4Address, AddressValueError, summarize_address_range
 from time import sleep
 from datetime import datetime
@@ -54,28 +54,14 @@ _ENV = Environment(
     loader = FileSystemLoader(os.path.dirname(os.path.realpath(__file__)))
 )
 
+# Logger
+_log = logging.getLogger(__name__)
+
 # Function to escape special chars in guest customisation script for XML
 _escape_script = lambda s: s.replace(os.linesep, '&#13;').\
                              replace('"', '&quot;').\
                              replace('%', '&#37;').\
                              replace("'", '&apos;')
-
-
-###############################################################################
-###############################################################################
-
-
-class VCloudError(ProviderSpecificError):
-    """
-    Provider specific error class for the vCloud Director provider.
-    
-    .. py:attribute:: __user__
-    
-        The ``user@org`` from the session where the error occured.
-    """
-    def __init__(self, user, message):
-        self.__user__ = user
-        super().__init__("{} : {}".format(user, message))
 
 
 ###############################################################################
@@ -93,6 +79,8 @@ class VCloudSession(Session):
         self.__endpoint = endpoint.rstrip('/')
         self.__user = user
         
+        _log.info(*self.__log_args('Starting session'))
+        
         # Create a requests session that can inject the required headers
         self.__session = requests.Session()
         self.__session.headers.update(_REQUIRED_HEADERS)
@@ -102,7 +90,15 @@ class VCloudSession(Session):
         res = self.api_request('POST', 'sessions', auth = (user, password))
         auth_token = res.headers['x-vcloud-authorization']        
         self.__session.headers.update({ 'x-vcloud-authorization' : auth_token })
-                
+        
+    def __log_args(self, msg):
+        """
+        Returns arguments suitable for calling logging.{info,warning,...} with
+        session info injected.
+        """
+        return ('%s<%s, %s> : %s',
+                self.__class__.__name__, self.__endpoint, self.__user, msg)
+    
     def __getstate__(self):
         """
         Called when the object is pickled
@@ -153,9 +149,13 @@ class VCloudSession(Session):
         # Convert exceptions from requests into cloud service connection errors
         # Since we don't configure requests to throw HTTP exceptions (we deal
         # with status codes instead), if we see an exception it is a problem
+        _log.info(*self.__log_args(
+            'Requesting {} with method {}'.format(path, method.upper())
+        ))
         try:
             res = func(path, *args, verify = False, **kwargs)
         except requests.exceptions.RequestException:
+            _log.exception(*self.__log_args('Exception thrown in requests'))
             raise ProviderConnectionError('Cannot connect to vCloud Director API')
         # If the response status is an error (i.e. 4xx or 5xx), try to raise an
         # appropriate error
@@ -167,29 +167,26 @@ class VCloudSession(Session):
             error = ET.fromstring(res.text)
             error_code = error.attrib['minorErrorCode'].upper()
             error_message = error.attrib['message']
-            # Create a VCloudError from the message text
-            vcd_error = VCloudError(
-                self.__user, "{} : {}".format(error_code, error_message)
-            )
+            _log.error(*self.__log_args(
+                'vCD Error : {} : {}'.format(error_code, error_message)
+            ))
             if res.status_code == 503:
                 # requests reports a 503 if it can't reach the server at all
-                raise ProviderConnectionError(
-                    'Cannot connect to vCloud Director API') from vcd_error
+                raise ProviderConnectionError('Cannot connect to vCloud Director API')
             elif res.status_code >= 500:
                 # Treat all other 5xx codes as if we connected but the server
                 # encountered an error
-                raise ProviderUnavailableError(
-                    'vCloud Director API encountered an error') from vcd_error
+                raise ProviderUnavailableError('vCloud Director API encountered an error')
             elif res.status_code == 401:
                 # 401 is reported if authentication failed
-                raise AuthenticationError('Authentication failed') from vcd_error
+                raise AuthenticationError('Authentication failed')
             elif res.status_code == 403:
                 # 403 is reported if the authenticated user doesn't have adequate
                 # permissions
-                raise PermissionsError('Insufficient permissions') from vcd_error
+                raise PermissionsError('Insufficient permissions')
             elif res.status_code == 404:
                 # 404 is reported if the resource doesn't exist
-                raise NoSuchResourceError('Resource does not exist') from vcd_error
+                raise NoSuchResourceError('Resource does not exist')
             # With 400 errors (note that we know we have 400 errors here, due to
             # the >= 500 test above), we can be more specific
             # BAD_REQUEST is sent when an action is invalid given the current state
@@ -197,15 +194,15 @@ class VCloudSession(Session):
             if error_code == 'BAD_REQUEST':
                 # To distinguish, we need to check the message
                 if 'validation error' in error_message.lower():
-                    raise BadRequestError('Badly formatted request') from vcd_error
+                    raise BadRequestError('Badly formatted request')
                 else:
                     raise InvalidActionError(
-                        'Action is invalid for current state') from vcd_error
+                        'Action is invalid for current state')
             # DUPLICATE_NAME is sent when a name is duplicated (surprise...!)
             if error_code == 'DUPLICATE_NAME':
-                raise DuplicateNameError('Name is already in use') from vcd_error
+                raise DuplicateNameError('Name is already in use')
             # Otherwise, assume the request was incorrectly specified by the implementation
-            raise ImplementationError('Bad request') from vcd_error
+            raise ImplementationError('Bad request')
         else:
             return res
     
@@ -223,20 +220,25 @@ class VCloudSession(Session):
             # Get the current status
             task = ET.fromstring(self.api_request('GET', task_href).text)
             status = task.attrib['status'].lower()
-            # Decide if we can exit
+            # If the task is successful, we can exit
             if status == 'success':
                 break
-            elif status == 'error':
-                # Create a VCloudError for the error
-                error = task.find('.//vcd:Error', _NS)
-                vcd_error = VCloudError(self.__user, "{}: {}".format(
-                    error.attrib['minorErrorCode'].upper(), error.attrib['message']
+            # Get a vCD error object if there is an error element
+            error = task.find('.//vcd:Error', _NS)
+            if error is not None:
+                error_code = error.attrib['minorErrorCode'].upper()
+                _log.error(*self.__log_args(
+                    'vCD Error : {} : {}'.format(error_code, error.attrib['message'])
                 ))
-                raise TaskFailedError('Unrecoverable error') from vcd_error
-            elif status == 'canceled':
+            else:
+                error_code = ''
+            # If the task stopped because of an error or cancellation, report that
+            if status == 'canceled' or error_code == 'TASK_CANCELED':
                 raise TaskCancelledError('Action cancelled')
-            elif status == 'aborted':
+            elif status == 'aborted' or error_code == 'TASK_ABORTED':
                 raise TaskAbortedError('Action aborted by administrator')
+            elif status == 'error':
+                raise TaskFailedError('Unrecoverable error')
             # Any other statuses, we sleep before fetching the task again
             sleep(_POLL_INTERVAL)
     
@@ -402,7 +404,7 @@ class VCloudSession(Session):
         try:
             self.wait_for_task(task.attrib['href'])
         except TaskFailedError as e:
-            raise ImageCreateError(str(e)) from e.__cause__
+            raise ImageCreateError('{} while creating catalogue item'.format(e)) from e
         # Get the id of the create vAppTemplate from the task
         template_ref = task.find(
             './/*[@type="application/vnd.vmware.vcloud.vAppTemplate+xml"]', _NS
@@ -421,7 +423,7 @@ class VCloudSession(Session):
         try:
             self.wait_for_task(task.attrib['href'])
         except TaskFailedError as e:
-            raise ImageCreateError(str(e)) from e.__cause__
+            raise ImageCreateError('{} while creating catalogue item'.format(e)) from e
         # Delete the source machine
         self.delete_machine(machine_id)
         # Newly created templates are never public
@@ -441,7 +443,7 @@ class VCloudSession(Session):
             ).text)
             self.wait_for_task(task.attrib['href'])
         except (InvalidActionError, TaskFailedError) as e:
-            raise ImageDeleteError(str(e)) from e.__cause__
+            raise ImageDeleteError('{} while deleting catalogue item'.format(e)) from e
     
     def count_machines(self):
         """
@@ -663,7 +665,7 @@ fi
                 try:
                     self.wait_for_task(task.attrib['href'])
                 except TaskFailedError as e:
-                    raise ProvisioningError(str(e)) from e.__cause__
+                    raise ProvisioningError('{} while provisioning machine'.format(e)) from e
             # Refresh our view of the app
             app = ET.fromstring(self.api_request('GET', app.attrib['href']).text)
         machine_id = app.attrib['href'].rstrip('/').split('/').pop()
@@ -763,8 +765,7 @@ fi
         try:
             self.wait_for_task(task.attrib['href'])
         except TaskFailedError as e:
-            raise NetworkingError(
-                '{} while configuring NAT and firewall rules'.format(e)) from e.__cause__
+            raise NetworkingError('{} while applying network configuration'.format(e)) from e
     
     def __unexpose_machine(self, machine_id):
         """
@@ -848,8 +849,7 @@ fi
         try:
             self.wait_for_task(task.attrib['href'])
         except TaskFailedError as e:
-            raise NetworkingError(
-                '{} while removing NAT and firewall rules'.format(e)) from e.__cause__
+            raise NetworkingError('{} while applying network configuration'.format(e)) from e
         
     def start_machine(self, machine_id):
         """
@@ -864,8 +864,7 @@ fi
             # Swallow invalid action errors, as they don't really matter
             pass
         except TaskFailedError as e:
-            raise PowerActionError(
-                '{} while starting machine'.format(e)) from e.__cause__
+            raise PowerActionError('{} while starting machine'.format(e)) from e
         
     def stop_machine(self, machine_id):
         """
@@ -881,8 +880,7 @@ fi
             # Swallow invalid action errors, as they don't really matter
             pass
         except TaskFailedError as e:
-            raise PowerActionError(
-                '{} while stopping machine'.format(e)) from e.__cause__
+            raise PowerActionError('{} while stopping machine'.format(e)) from e
         
     def restart_machine(self, machine_id):
         """
@@ -897,8 +895,7 @@ fi
             # Swallow invalid action errors, as they don't really matter
             pass
         except TaskFailedError as e:
-            raise PowerActionError(
-                '{} while restarting machine'.format(e)) from e.__cause__
+            raise PowerActionError('{} while restarting machine'.format(e)) from e
         
     def delete_machine(self, machine_id):
         """
@@ -918,8 +915,7 @@ fi
             # Swallow invalid action errors, as they don't really matter
             pass
         except TaskFailedError as e:
-            raise PowerActionError(
-                '{} while deleting machine'.format(e)) from e.__cause__
+            raise PowerActionError('{} while deleting machine'.format(e)) from e
             
     def close(self):
         """

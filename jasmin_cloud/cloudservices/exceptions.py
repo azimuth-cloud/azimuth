@@ -1,8 +1,5 @@
 """
 This module defines the exceptions that can be thrown by cloud operations.
-
-A lot of the time, errors will be raised with a :py:class:`ProviderSpecificError`
-as the cause, i.e. using the ``raise ... from ...`` syntax.
 """
 
 __author__ = "Matt Pryor"
@@ -17,9 +14,6 @@ class ProviderConnectionError(CloudServiceError):
     
 class ProviderUnavailableError(CloudServiceError):
     """Thrown when a provider connects but reports an error."""
-    
-class ProviderSpecificError(CloudServiceError):
-    """Base class for provider specific errors."""
     
 class ImplementationError(CloudServiceError):
     """Thrown when an error occurs in the implementation or the implementation
