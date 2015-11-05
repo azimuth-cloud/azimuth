@@ -75,7 +75,7 @@ class VCloudError(ProviderSpecificError):
     """
     def __init__(self, user, message):
         self.__user__ = user
-        super().__init__("{} (session for {})".format(message, user))
+        super().__init__("{} : {}".format(user, message))
 
 
 ###############################################################################
@@ -156,7 +156,7 @@ class VCloudSession(Session):
         try:
             res = func(path, *args, verify = False, **kwargs)
         except requests.exceptions.RequestException:
-            raise ProviderConnectionError('Could not connect to provider')
+            raise ProviderConnectionError('Cannot connect to vCloud Director API')
         # If the response status is an error (i.e. 4xx or 5xx), try to raise an
         # appropriate error
         # Otherwise, return the response 
@@ -169,7 +169,7 @@ class VCloudSession(Session):
             error_message = error.attrib['message']
             # Create a VCloudError from the message text
             vcd_error = VCloudError(
-                self.__user, "{}: {}".format(error_code, error_message)
+                self.__user, "{} : {}".format(error_code, error_message)
             )
             if res.status_code == 503:
                 # requests reports a 503 if it can't reach the server at all
@@ -232,12 +232,11 @@ class VCloudSession(Session):
                 vcd_error = VCloudError(self.__user, "{}: {}".format(
                     error.attrib['minorErrorCode'].upper(), error.attrib['message']
                 ))
-                raise TaskFailedError(
-                    'An error occured while performing the action') from vcd_error
+                raise TaskFailedError('Unrecoverable error') from vcd_error
             elif status == 'canceled':
-                raise TaskCancelledError('Action was cancelled')
+                raise TaskCancelledError('Action cancelled')
             elif status == 'aborted':
-                raise TaskAbortedError('Action was aborted by an administrator')
+                raise TaskAbortedError('Action aborted by administrator')
             # Any other statuses, we sleep before fetching the task again
             sleep(_POLL_INTERVAL)
     
@@ -403,7 +402,7 @@ class VCloudSession(Session):
         try:
             self.wait_for_task(task.attrib['href'])
         except TaskFailedError as e:
-            raise ImageCreateError('Error creating catalogue item') from e
+            raise ImageCreateError(str(e)) from e.__cause__
         # Get the id of the create vAppTemplate from the task
         template_ref = task.find(
             './/*[@type="application/vnd.vmware.vcloud.vAppTemplate+xml"]', _NS
@@ -422,7 +421,7 @@ class VCloudSession(Session):
         try:
             self.wait_for_task(task.attrib['href'])
         except TaskFailedError as e:
-            raise ImageCreateError('Error creating catalogue item') from e
+            raise ImageCreateError(str(e)) from e.__cause__
         # Delete the source machine
         self.delete_machine(machine_id)
         # Newly created templates are never public
@@ -442,7 +441,7 @@ class VCloudSession(Session):
             ).text)
             self.wait_for_task(task.attrib['href'])
         except (InvalidActionError, TaskFailedError) as e:
-            raise ImageDeleteError('Error deleting catalogue item') from e
+            raise ImageDeleteError(str(e)) from e.__cause__
     
     def count_machines(self):
         """
@@ -664,7 +663,7 @@ fi
                 try:
                     self.wait_for_task(task.attrib['href'])
                 except TaskFailedError as e:
-                    raise ProvisioningError('Error provisioning machine') from e
+                    raise ProvisioningError(str(e)) from e.__cause__
             # Refresh our view of the app
             app = ET.fromstring(self.api_request('GET', app.attrib['href']).text)
         machine_id = app.attrib['href'].rstrip('/').split('/').pop()
@@ -764,7 +763,8 @@ fi
         try:
             self.wait_for_task(task.attrib['href'])
         except TaskFailedError as e:
-            raise NetworkingError('Error configuring NAT and firewall rules') from e
+            raise NetworkingError(
+                '{} while configuring NAT and firewall rules'.format(e)) from e.__cause__
     
     def __unexpose_machine(self, machine_id):
         """
@@ -848,7 +848,8 @@ fi
         try:
             self.wait_for_task(task.attrib['href'])
         except TaskFailedError as e:
-            raise NetworkingError('Error removing NAT and firewall rules') from e
+            raise NetworkingError(
+                '{} while removing NAT and firewall rules'.format(e)) from e.__cause__
         
     def start_machine(self, machine_id):
         """
@@ -863,7 +864,8 @@ fi
             # Swallow invalid action errors, as they don't really matter
             pass
         except TaskFailedError as e:
-            raise PowerActionError('Error starting machine') from e
+            raise PowerActionError(
+                '{} while starting machine'.format(e)) from e.__cause__
         
     def stop_machine(self, machine_id):
         """
@@ -879,7 +881,8 @@ fi
             # Swallow invalid action errors, as they don't really matter
             pass
         except TaskFailedError as e:
-            raise PowerActionError('Error stopping machine') from e
+            raise PowerActionError(
+                '{} while stopping machine'.format(e)) from e.__cause__
         
     def restart_machine(self, machine_id):
         """
@@ -894,7 +897,8 @@ fi
             # Swallow invalid action errors, as they don't really matter
             pass
         except TaskFailedError as e:
-            raise PowerActionError('Error restarting machine') from e
+            raise PowerActionError(
+                '{} while restarting machine'.format(e)) from e.__cause__
         
     def delete_machine(self, machine_id):
         """
@@ -914,7 +918,8 @@ fi
             # Swallow invalid action errors, as they don't really matter
             pass
         except TaskFailedError as e:
-            raise PowerActionError('Error deleting machine') from e
+            raise PowerActionError(
+                '{} while deleting machine'.format(e)) from e.__cause__
             
     def close(self):
         """
