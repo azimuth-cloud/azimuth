@@ -68,6 +68,70 @@ _escape_script = lambda s: s.replace(os.linesep, '&#13;').\
 ###############################################################################
 
 
+class VCloudError(ProviderSpecificError):
+    """
+    Provider specific error class for the vCloud Director provider.
+    
+    .. py:attribute:: __endpoint__
+    
+        The API endpoint that raised the error.
+    
+    .. py:attribute:: __user__
+    
+        The user when the error was raised.
+        
+    .. py:attribute:: __status_code__
+    
+        The majorErrorCode from the vCD error - always matches the HTTP status
+        code of the response.
+        
+    .. py:attribute:: __error_code__
+    
+        The minorErrorCode from the vCD error.
+    """
+    def __init__(self, endpoint, user, status_code, error_code, error_message):
+        self.__endpoint__    = endpoint
+        self.__user__        = user
+        self.__status_code__ = status_code
+        self.__error_code__  = error_code
+        super().__init__(error_message)
+        
+    def __str__(self):
+        return "[{}] [{}] [{}] [{}] {}".format(
+            self.__endpoint__, self.__user__,
+            self.__status_code__, self.__error_code__, super().__str__()
+        )
+    
+    @classmethod
+    def from_xml(cls, endpoint, user, error):
+        """
+        Creates and returns a new :py:class:`VCloudError` from the given XML. The
+        XML can be given either as a string or as an ``ElementTree.Element``.
+        
+        Raises ``ValueError`` if the given XML string is not a valid vCD error.
+        
+        :param endpoint: The endpoint that produced the XML
+        :param user: The user whose session produced the XML
+        :param error: The XML or ElementTree Element containing a vCD error
+        :returns: A :py:class:`VCloudError`
+        """
+        if not isinstance(error, ET.Element):
+            error = ET.fromstring(error)
+        try:
+            return cls(
+                endpoint, user,
+                int(error.attrib['majorErrorCode']),
+                error.attrib['minorErrorCode'].upper(),
+                error.attrib['message']
+            )
+        except (ValueError, KeyError, AttributeError):
+            raise ValueError('Given XML is not a valid vCD Error')
+
+
+###############################################################################
+###############################################################################
+
+
 class VCloudSession(Session):
     """
     Session implementation for the vCloud Director 5.5 API.
@@ -79,26 +143,16 @@ class VCloudSession(Session):
         self.__endpoint = endpoint.rstrip('/')
         self.__user = user
         
-        _log.info(*self.__log_args('Starting session'))
-        
         # Create a requests session that can inject the required headers
         self.__session = requests.Session()
         self.__session.headers.update(_REQUIRED_HEADERS)
         
         # Get an auth token for the session and inject it into the headers for
-        # future requests 
+        # future requests
         res = self.api_request('POST', 'sessions', auth = (user, password))
         auth_token = res.headers['x-vcloud-authorization']        
         self.__session.headers.update({ 'x-vcloud-authorization' : auth_token })
         
-    def __log_args(self, msg):
-        """
-        Returns arguments suitable for calling logging.{info,warning,...} with
-        session info injected.
-        """
-        return ('%s<%s, %s> : %s',
-                self.__class__.__name__, self.__endpoint, self.__user, msg)
-    
     def __getstate__(self):
         """
         Called when the object is pickled
@@ -149,60 +203,62 @@ class VCloudSession(Session):
         # Convert exceptions from requests into cloud service connection errors
         # Since we don't configure requests to throw HTTP exceptions (we deal
         # with status codes instead), if we see an exception it is a problem
-        _log.info(*self.__log_args(
-            'Requesting {} with method {}'.format(path, method.upper())
-        ))
+        _log.info('[%s] [%s] %s request to %s',
+                  self.__endpoint, self.__user, method.upper(), path)
         try:
             res = func(path, *args, verify = False, **kwargs)
         except requests.exceptions.RequestException:
-            _log.exception(*self.__log_args('Exception thrown in requests'))
             raise ProviderConnectionError('Cannot connect to vCloud Director API')
         # If the response status is an error (i.e. 4xx or 5xx), try to raise an
-        # appropriate error
-        # Otherwise, return the response 
-        # For the status codes returned by the vCD API, see
-        # http://pubs.vmware.com/vcd-55/topic/com.vmware.vcloud.api.doc_55/GUID-D2B2E6D4-7A92-4D1B-80C0-F32AE0CA3D11.html
-        if res.status_code >= 400:
-            # All error responses contain an Error XML element in the response body
-            error = ET.fromstring(res.text)
-            error_code = error.attrib['minorErrorCode'].upper()
-            error_message = error.attrib['message']
-            _log.error(*self.__log_args(
-                'vCD Error : {} : {}'.format(error_code, error_message)
-            ))
-            if res.status_code == 503:
-                # requests reports a 503 if it can't reach the server at all
-                raise ProviderConnectionError('Cannot connect to vCloud Director API')
-            elif res.status_code >= 500:
-                # Treat all other 5xx codes as if we connected but the server
-                # encountered an error
-                raise ProviderUnavailableError('vCloud Director API encountered an error')
-            elif res.status_code == 401:
-                # 401 is reported if authentication failed
-                raise AuthenticationError('Authentication failed')
-            elif res.status_code == 403:
-                # 403 is reported if the authenticated user doesn't have adequate
-                # permissions
-                raise PermissionsError('Insufficient permissions')
-            elif res.status_code == 404:
-                # 404 is reported if the resource doesn't exist
-                raise NoSuchResourceError('Resource does not exist')
-            # With 400 errors (note that we know we have 400 errors here, due to
-            # the >= 500 test above), we can be more specific
-            # BAD_REQUEST is sent when an action is invalid given the current state
-            # or when a badly formatted request is sent
-            if error_code == 'BAD_REQUEST':
-                # To distinguish, we need to check the message
-                if 'validation error' in error_message.lower():
-                    raise BadRequestError('Badly formatted request')
-                else:
-                    raise InvalidActionError(
-                        'Action is invalid for current state')
-            # DUPLICATE_NAME is sent when a name is duplicated (surprise...!)
-            if error_code == 'DUPLICATE_NAME':
-                raise DuplicateNameError('Name is already in use')
-            # Otherwise, assume the request was incorrectly specified by the implementation
-            raise ImplementationError('Bad request')
+        # appropriate error, otherwise return the response 
+        if res.status_code == 503:
+            # A 503 error probably means we couldn't even contact vCD
+            raise ProviderConnectionError('Cannot connect to vCloud Director API')
+        elif res.status_code >= 500:
+            # Any other 5xx error indicates a problem on the server
+            # If there is a vCD Error in the response, extract it in order to wrap it
+            # However, it is entirely possible that one is not present
+            # We raise the exception and then catch it as it is the simplest way
+            # to get the VCloudError to capture a stack trace
+            ex = ProviderUnavailableError('vCloud Director API encountered an error')
+            try:
+                raise VCloudError.from_xml(self.__endpoint, self.__user, res.text)
+            except VCloudError as e:
+                raise ex from e
+            except ValueError:
+                raise ex
+        elif res.status_code >= 400:
+            # 4xx errors indicate that there was a problem with our request, so
+            # we expect vCD to provide an Error in the response
+            # For the status codes returned by the vCD API, see
+            # http://pubs.vmware.com/vcd-55/topic/com.vmware.vcloud.api.doc_55/GUID-D2B2E6D4-7A92-4D1B-80C0-F32AE0CA3D11.html
+            try:
+                raise VCloudError.from_xml(self.__endpoint, self.__user, res.text)
+            except VCloudError as e:
+                if e.__status_code__ == 401:
+                    # 401 is reported if authentication failed
+                    raise AuthenticationError('Authentication failed') from e
+                elif e.__status_code__ == 403:
+                    # 403 is reported if the authenticated user doesn't have adequate
+                    # permissions
+                    raise PermissionsError('Insufficient permissions') from e
+                elif e.__status_code__ == 404:
+                    # 404 is reported if the resource doesn't exist
+                    raise NoSuchResourceError('Resource does not exist') from e
+                # BAD_REQUEST is sent when an action is invalid given the current state
+                # or when a badly formatted request is sent
+                elif e.__error_code__ == 'BAD_REQUEST':
+                    # To distinguish, we need to check the message
+                    if 'validation error' in str(e).lower():
+                        raise BadRequestError('Badly formatted request') from e
+                    else:
+                        raise InvalidActionError(
+                            'Action is invalid for current state') from e
+                # DUPLICATE_NAME is sent when a name is duplicated (surprise...!)
+                elif e.__error_code__ == 'DUPLICATE_NAME':
+                    raise DuplicateNameError('Name is already in use') from e
+                # Otherwise, assume the request was incorrectly specified by the implementation
+                raise ImplementationError('Bad request') from e
         else:
             return res
     
@@ -223,22 +279,22 @@ class VCloudSession(Session):
             # If the task is successful, we can exit
             if status == 'success':
                 break
-            # Get a vCD error object if there is an error element
-            error = task.find('.//vcd:Error', _NS)
-            if error is not None:
-                error_code = error.attrib['minorErrorCode'].upper()
-                _log.error(*self.__log_args(
-                    'vCD Error : {} : {}'.format(error_code, error.attrib['message'])
-                ))
-            else:
-                error_code = ''
+            # Try to find an Error in the Task, and create the corresponding VCloudError
+            vcd_err = None
+            xml_err = task.find('.//vcd:Error', _NS)
+            if xml_err is not None:
+                try:
+                    raise VCloudError.from_xml(self.__endpoint, self.__user, xml_err)
+                except VCloudError as e:
+                    vcd_err = e
+            error_code = vcd_err.__error_code__ if vcd_err else ''
             # If the task stopped because of an error or cancellation, report that
             if status == 'canceled' or error_code == 'TASK_CANCELED':
-                raise TaskCancelledError('Action cancelled')
+                raise TaskCancelledError('Action cancelled') from vcd_err
             elif status == 'aborted' or error_code == 'TASK_ABORTED':
-                raise TaskAbortedError('Action aborted by administrator')
+                raise TaskAbortedError('Action aborted by administrator') from vcd_err
             elif status == 'error':
-                raise TaskFailedError('Unrecoverable error')
+                raise TaskFailedError('Unrecoverable error') from vcd_err
             # Any other statuses, we sleep before fetching the task again
             sleep(_POLL_INTERVAL)
     
