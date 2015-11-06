@@ -342,6 +342,20 @@ class VCloudSession(Session):
         # Just hit an API endpoint that does nothing but report session info
         self.api_request('GET', 'session')
         return True
+        
+    def has_permission(self, permission):
+        """
+        See :py:meth:`jasmin_cloud.cloudservices.Session.has_permission`.
+        """
+        # This implementation uses vCD metadata attached to the org
+        # So first, we get the href of the org for the session
+        session = ET.fromstring(self.api_request('GET', 'session').text)
+        org = session.find('.//vcd:Link[@type="application/vnd.vmware.vcloud.org+xml"]', _NS)
+        # Then get the metadata
+        meta = self.get_metadata(org.attrib['href'])
+        # Add the namespace to the permission as the key into metadata
+        #   If the key is not present, treat that as having value 0
+        return bool(meta.get('JASMIN.{}'.format(permission.upper()), 0))
             
     def list_images(self):
         """
