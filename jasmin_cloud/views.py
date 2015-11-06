@@ -86,7 +86,7 @@ def cloud_service_error(ctx, request):
         return forbidden(request)
     if isinstance(ctx, cloudservices.NoSuchResourceError):
         return notfound(request)
-    request.session.flash("{}: {}".format(ctx.__class__.__name__, ctx), 'error')
+    request.session.flash(str(ctx), 'error')
     _log.error('Unhandled cloud service error', exc_info=(type(ctx), ctx, ctx.__traceback__))
     return _exception_redirect(request)
 

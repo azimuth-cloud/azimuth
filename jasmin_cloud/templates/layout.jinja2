@@ -96,20 +96,17 @@
                     <div class="row">
                         <div class="col-md-6 col-md-offset-3">
                             {%- for message in request.session.pop_flash('success') %}
-                                <div class="alert alert-success alert-dismissible" role="alert">
-                                    <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                                <div class="alert alert-success" role="alert">
                                     <i class="fa fa-check-circle"></i> <span>{{ message }}</span>
                                 </div>
                             {%- endfor %}
                             {%- for message in request.session.pop_flash('error') %}
-                                <div class="alert alert-danger alert-dismissible" role="alert">
-                                    <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                                <div class="alert alert-danger" role="alert">
                                     <i class="fa fa-exclamation-circle"></i> <span>{{ message }}</span>
                                 </div>
                             {%- endfor %}
                             {%- for message in request.session.pop_flash('info') %}
-                                <div class="alert alert-info alert-dismissible" role="alert">
-                                    <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                                <div class="alert alert-info" role="alert">
                                     <i class="fa fa-info-circle"></i> <span>{{ message }}</span>
                                 </div>
                             {%- endfor %}
