@@ -5,6 +5,8 @@ This module contains Pyramid view callables for the JASMIN cloud portal.
 __author__ = "Matt Pryor"
 __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
+import logging
+
 from pyramid.view import view_config, forbidden_view_config, notfound_view_config
 from pyramid.security import remember, forget
 from pyramid.session import check_csrf_token
@@ -12,8 +14,11 @@ from pyramid.httpexceptions import HTTPSeeOther, HTTPBadRequest
 
 from . import cloudservices
 from .cloudservices import NATPolicy
-from .cloudservices.vcloud import VCloudProvider
+from .cloudservices.vcloud import VCloudSession
 from .util import validate_ssh_key
+
+
+_log = logging.getLogger(__name__)
 
 
 ################################################################################
@@ -66,21 +71,23 @@ def notfound(request):
 
 
 @view_config(context = cloudservices.CloudServiceError)
-def cloud_service_error(context, request):
+def cloud_service_error(ctx, request):
     """
     Handler for cloud service errors.
     
-    Shows a suitable error on the most specific page possible.
+    If the error is an "expected" error (e.g. not found, permissions), then convert
+    to the HTTP equivalent.
+    
+    Otherwise, show a suitable error on the most specific page possible and log
+    the complete error for sysadmins.
     """
-    # Convert some cloud service errors into their HTTP equivalents
-    if isinstance(context, (cloudservices.AuthenticationError,
-                            cloudservices.PermissionsError)):
+    if isinstance(ctx, (cloudservices.AuthenticationError,
+                        cloudservices.PermissionsError)):
         return forbidden(request)
-    if isinstance(context, cloudservices.NoSuchResourceError):
+    if isinstance(ctx, cloudservices.NoSuchResourceError):
         return notfound(request)
-    # For other cloud service errors, just add their text to the error flash
-    # and redirect
-    request.session.flash(str(context), 'error')
+    request.session.flash(str(ctx), 'error')
+    _log.error('Unhandled cloud service error', exc_info=(type(ctx), ctx, ctx.__traceback__))
     return _exception_redirect(request)
 
 
@@ -134,14 +141,14 @@ def login(request):
             # Try to create a session for each of the user's orgs
             # If any of them fail, bail with the error message
             try:
-                provider = VCloudProvider(request.registry.settings['vcloud.endpoint'])
                 for org in request.memberships.orgs_for_user(username):
-                    session = provider.new_session('{}@{}'.format(username, org), password)
-                    request.cloud_sessions[org] = session
-            except cloudservices.CloudServiceError as e:
+                    request.cloud_sessions[org] = VCloudSession(
+                        request.registry.settings['vcloud.endpoint'],
+                        '{}@{}'.format(username, org), password
+                    )
+            except cloudservices.CloudServiceError:
                 request.cloud_sessions.clear()
-                request.session.flash(str(e), 'error')
-                return {}
+                raise
             # When a user logs in successfully, force a refresh of the CSRF token
             request.session.new_csrf_token()
             return HTTPSeeOther(location = request.route_url('dashboard'),
@@ -386,15 +393,11 @@ def new_machine(request):
             request.session.flash('There are errors with one or more fields', 'error')
             machine_info['errors']['name'] = ['Machine name is already in use']
             return machine_info
-        except (cloudservices.BadRequestError,
-                cloudservices.ProvisioningError) as e:
-            # If provisioning fails, we want to report an error
-            request.session.flash('Provisioning error: {}'.format(str(e)), 'error')
-        except cloudservices.NetworkingError as e:
+        except cloudservices.NetworkingError:
             # Networking doesn't happen until the machine has been provisioned
-            # So we report that provisioning was successful but networking failed
+            # So we report that provisioning was successful before propagating
             request.session.flash('Machine provisioned successfully', 'success')
-            request.session.flash('Networking error: {}'.format(str(e)), 'error')
+            raise
         # If we get this far, redirect to machines
         return HTTPSeeOther(location = request.route_url('machines'))
     # Only get requests should get this far

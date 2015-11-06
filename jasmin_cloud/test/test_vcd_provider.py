@@ -1,7 +1,9 @@
 """
-Integration tests for jasmin_cloud.cloudservices.vcloud
+Integration tests for jasmin_cloud.cloudservices.vcloud.
 
-This runs against a real vCloud Director instance
+This runs against a real vCloud Director instance.
+
+The tests are designed to run against an unmanaged organisation.
 """
 from jasmin_cloud.test.vcd_settings import known_image
 
@@ -16,7 +18,7 @@ from .util import IntegrationTest
 from . import vcd_settings as settings
 
 from ..cloudservices import NATPolicy, MachineStatus, CloudServiceError, PermissionsError
-from ..cloudservices.vcloud import VCloudProvider
+from ..cloudservices.vcloud import VCloudSession
 
 
 class TestVcdProvider(unittest.TestCase, IntegrationTest):
@@ -30,17 +32,15 @@ class TestVcdProvider(unittest.TestCase, IntegrationTest):
             ('get_known_image', self.get_known_image),
             # Provision a machine (uses False for expose)
             #   This should be overridden by the NAT policy
-            ('provision_machine', self.provision_machine),
+            ('provision_exposed_machine', self.provision_exposed_machine),
             ('machine_in_list', self.machine_in_list),
-            ('machine_has_external_ip', self.machine_has_external_ip),
             ('image_from_machine', self.image_from_machine),
             ('image_in_list', self.image_in_list),
             # Provision a machine using the created image (again, uses False for expose)
             #   This time, the NAT policy should be USER, so there should be no
             #   external ip
-            ('provision_machine2', self.provision_machine),
-            ('machine_in_list2', self.machine_in_list),
-            ('not_machine_has_external_ip', self.not_machine_has_external_ip),
+            ('provision_machine', self.provision_machine),
+            ('machine_in_list_', self.machine_in_list),
             ('start_machine', self.start_machine),
             ('restart_machine', self.restart_machine),
             ('stop_machine', self.stop_machine),
@@ -52,8 +52,7 @@ class TestVcdProvider(unittest.TestCase, IntegrationTest):
         """
         Creates a session and tests that it is active
         """
-        self.session = VCloudProvider(settings.endpoint).\
-                         new_session(settings.username, settings.password)
+        self.session = VCloudSession(settings.endpoint, settings.username, settings.password)
         self.assertTrue(self.session.poll())
         
     def get_known_image(self, notused):
@@ -63,17 +62,39 @@ class TestVcdProvider(unittest.TestCase, IntegrationTest):
         image = next(i for i in self.session.list_images() if i.name == known_image)
         # The known image should be public
         self.assertTrue(image.is_public)
-        # The known image should have a NAT policy of ALWAYS
-        self.assertEqual(image.nat_policy, NATPolicy.ALWAYS)
+        # The known image should have a NAT policy of USER
+        self.assertEqual(image.nat_policy, NATPolicy.USER)
         return image
+        
+    def provision_exposed_machine(self, image):
+        """
+        Uses the current session to provision a machine using the given image and
+        returns the provisioned machine.
+        
+        Uses a value of True for expose.
+        
+        Deletes the image if it is not the known image.
+        """
+        machine = self.session.provision_machine(
+            image.id, uuid.uuid4().hex, 'A description', '', True
+        )
+        # Machines should be created in an off state
+        self.assertIs(machine.status, MachineStatus.POWERED_OFF)
+        # Check the provisioned machine has an internal IP
+        self.assertIsNotNone(machine.internal_ip)
+        # Check the provisioned machine has an external IP
+        self.assertIsNotNone(machine.external_ip)
+        # Delete the image if it is not the known image
+        if image.name != settings.known_image:
+            self.session.delete_image(image.id)
+        return machine
         
     def provision_machine(self, image):
         """
         Uses the current session to provision a machine using the given image and
         returns the provisioned machine.
         
-        Uses a value of False for expose. Depending on the template, this may be
-        overridden.
+        Uses a value of False for expose.
         
         Deletes the image if it is not the known image.
         """
@@ -84,6 +105,8 @@ class TestVcdProvider(unittest.TestCase, IntegrationTest):
         self.assertIs(machine.status, MachineStatus.POWERED_OFF)
         # Check the provisioned machine has an internal IP
         self.assertIsNotNone(machine.internal_ip)
+        # Check the provisioned machine has no external IP
+        self.assertIsNone(machine.external_ip)
         # Delete the image if it is not the known image
         if image.name != settings.known_image:
             self.session.delete_image(image.id)
@@ -97,22 +120,6 @@ class TestVcdProvider(unittest.TestCase, IntegrationTest):
         # Input is the provisioned machine
         machines = self.session.list_machines()
         self.assertTrue(any(m.id == machine.id for m in machines))
-        return machine
-    
-    def machine_has_external_ip(self, machine):
-        """
-        Verifies that the machine has an external ip (i.e. is exposed) before
-        returning it.
-        """
-        self.assertIsNotNone(machine.external_ip)
-        return machine
-    
-    def not_machine_has_external_ip(self, machine):
-        """
-        Verifies that the machine does not have an external ip (i.e. is not
-        exposed) before returning it.
-        """
-        self.assertIsNone(machine.external_ip)
         return machine
     
     def image_from_machine(self, machine):
