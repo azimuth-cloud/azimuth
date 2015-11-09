@@ -121,7 +121,7 @@ class MembershipManager:
         # We want to use the cn for the organisation name
         cns = (e['attributes']['cn'][0].lower() for e in (self.__conn.response or []))
         # We want to remove the suffix
-        return [cn.replace(self.__group_suffix, '') for cn in cns]
+        return sorted([cn.replace(self.__group_suffix, '') for cn in cns])
         
     def members_for_org(self, organisation):
         """

@@ -219,6 +219,15 @@ class Session(metaclass = abc.ABCMeta):
         
         :returns: True on success
         """
+        
+    @abc.abstractmethod
+    def has_permission(self, permission):
+        """
+        Tests whether the session has the given permission.
+        
+        :param permission: The permission to test for
+        :returns: ``True`` if the session has the permission, ``False`` otherwise
+        """
     
     @abc.abstractmethod
     def list_images(self):

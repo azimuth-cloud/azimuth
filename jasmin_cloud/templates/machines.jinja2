@@ -52,15 +52,17 @@
                     <td><code>{{ machine.external_ip|default('-', true) }}</code></td>
                     <td>{{ machine.created.strftime('%Y-%m-%d %H:%M:%S') }}</td>
                     <td style="white-space : nowrap;">
-                        <a class="btn btn-default btn-xs confirm" title="Add to catalogue"
-                           data-confirm-message="<p>Ensure you have run <code>/root/vappclean.sh</code>
-                                                 to prepare the machine for the catalogue before proceeding.</p>
-                                                 <p>This will render the machine unusable for anything other
-                                                 than adding to the catalogue.</p>"
-                           href="{{ request.route_url('catalogue_new', id = machine.id) }}">
-                            <i class="fa fa-fw fa-book"></i>
-                            <span class="sr-only">Add to catalogue</span>
-                        </a>
+                        {%- if request.active_cloud_session.has_permission('CAN_CREATE_TEMPLATES') %}
+                            <a class="btn btn-default btn-xs confirm" title="Add to catalogue"
+                               data-confirm-message="<p>Ensure you have run <code>/root/vappclean.sh</code>
+                                                     to prepare the machine for the catalogue before proceeding.</p>
+                                                     <p>This will render the machine unusable for anything other
+                                                     than adding to the catalogue.</p>"
+                               href="{{ request.route_url('catalogue_new', id = machine.id) }}">
+                                <i class="fa fa-fw fa-book"></i>
+                                <span class="sr-only">Add to catalogue</span>
+                            </a>
+                        {%- endif %}
                         <form class="disable-on-submit power-action" autocomplete="off" method="POST"
                               action="{{ request.route_url('machine_action', id = machine.id) }}">
                             <input name="action" type="hidden" value="start" />
