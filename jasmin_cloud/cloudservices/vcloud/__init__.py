@@ -434,7 +434,10 @@ class VCloudSession(Session):
         
             This implementation uses `vAppTemplate` uuids as the image ids
         """
-        # First, find the catalogue we will create the image in
+        # First, check if the session is allowed to do this!
+        if not self.has_permission('CAN_CREATE_TEMPLATES'):
+            raise PermissionsError('Insufficient permissions')
+        # Find the catalogue we will create the image in
         # This is done by selecting the first catalogue from the org we are using
         # First, we have to retrieve the org from the session
         session = ET.fromstring(self.api_request('GET', 'session').text)

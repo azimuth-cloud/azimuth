@@ -10,7 +10,7 @@ import logging
 from pyramid.view import view_config, forbidden_view_config, notfound_view_config
 from pyramid.security import remember, forget
 from pyramid.session import check_csrf_token
-from pyramid.httpexceptions import HTTPSeeOther, HTTPBadRequest
+from pyramid.httpexceptions import HTTPForbidden, HTTPSeeOther, HTTPBadRequest
 
 from . import cloudservices
 from .cloudservices import NATPolicy
@@ -234,7 +234,7 @@ def catalogue(request):
     """
     # Get the available catalogue items
     # Sort the items so that the public items appear first, and then by name
-    items = request.cloud_sessions[request.current_org].list_images()
+    items = request.active_cloud_session.list_images()
     return { 'items' : sorted(items, key = lambda i: (not i.is_public, i.name)) }
 
 
@@ -260,7 +260,10 @@ def catalogue_new(request):
         On a duplicate name error, show the form with an error message.        
     """
     # Get the cloud session for the current org
-    cloud_session = request.cloud_sessions[request.current_org]
+    cloud_session = request.active_cloud_session
+    # Check if the session has permission to create templates
+    if not cloud_session.has_permission('CAN_CREATE_TEMPLATES'):
+        raise HTTPForbidden()
     # Get the machine details from the id
     machine = cloud_session.get_machine(request.matchdict['id'])
     # On a POST request, we must try to create the catalogue item
@@ -311,7 +314,7 @@ def catalogue_delete(request):
     """
     # Request must pass a CSRF test
     check_csrf_token(request)
-    request.cloud_sessions[request.current_org].delete_image(request.matchdict['id'])
+    request.active_cloud_session.delete_image(request.matchdict['id'])
     request.session.flash('Catalogue item deleted', 'success')
     return HTTPSeeOther(location = request.route_url('catalogue'))
 
@@ -327,8 +330,7 @@ def machines(request):
     
     Show the machines available to the organisation in the URL.
     """
-    cloud_session = request.cloud_sessions[request.current_org]
-    return { 'machines'  : cloud_session.list_machines() }
+    return { 'machines'  : request.active_cloud_session.list_machines() }
 
 
 @view_config(route_name = 'new_machine',
@@ -357,7 +359,7 @@ def new_machine(request):
         If the provisioning fails with a cloud error, show an error on ``/{org}/machines``.
     """
     # Try to load the catalogue item
-    item = request.cloud_sessions[request.current_org].get_image(request.matchdict['id'])
+    item = request.active_cloud_session.get_image(request.matchdict['id'])
     # If we have a POST request, try and provision a machine with the info
     if request.method == 'POST':
         # For a POST request, the request must pass a CSRF test
@@ -377,10 +379,8 @@ def new_machine(request):
             request.session.flash('There are errors with one or more fields', 'error')
             machine_info['errors']['ssh_key'] = [str(e)]
             return machine_info
-        # Get the cloud session for the current org
-        cloud_session = request.cloud_sessions[request.current_org]
         try:
-            machine = cloud_session.provision_machine(
+            machine = request.active_cloud_session.provision_machine(
                 item.id, machine_info['name'],
                 machine_info['description'], machine_info['ssh_key'],
                 machine_info['expose'] == 'true'
@@ -426,7 +426,7 @@ def machine_action(request):
     """
     # Request must pass a CSRF test
     check_csrf_token(request)
-    action = getattr(request.cloud_sessions[request.current_org],
+    action = getattr(request.active_cloud_session,
                      '{}_machine'.format(request.params['action']), None)
     if not callable(action):
         raise HTTPBadRequest()
