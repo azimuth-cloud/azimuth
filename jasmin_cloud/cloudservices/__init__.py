@@ -204,14 +204,6 @@ class Session(metaclass = abc.ABCMeta):
         """
         self.close()
         
-    def __del__(self):
-        """
-        Destructor - called when the object is about to be destroyed.
-        
-        Just calls ``close`` to ensure that the session has been closed.
-        """
-        self.close()
-        
     @abc.abstractmethod
     def poll(self):
         """

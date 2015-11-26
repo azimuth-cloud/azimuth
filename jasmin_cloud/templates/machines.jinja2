@@ -51,7 +51,7 @@
                     <td><code>{{ machine.internal_ip|default('-', true) }}</code></td>
                     <td><code>{{ machine.external_ip|default('-', true) }}</code></td>
                     <td>{{ machine.created.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                    <td style="white-space : nowrap;">
+                    <td style="white-space : nowrap; width : 170px;">
                         {%- if request.active_cloud_session.has_permission('CAN_CREATE_TEMPLATES') %}
                             <a class="btn btn-default btn-xs confirm" title="Add to catalogue"
                                data-confirm-message="<p>Ensure you have run <code>/root/vappclean.sh</code>

@@ -127,13 +127,15 @@ sudo yum install python33-mod_wsgi
 First, on your dev box, freeze the code and dependencies:
 
 ```sh
-# Freeze the dependencies, omitting the jasmin cloud portal and jasmin auth projects
+# Freeze the dependencies, omitting any jasmin projects
 $PYENV/bin/pip freeze | grep -v jasmin > requirements.txt
 git add requirements.txt
 git commit -m "Freezing dependencies"
 git push -u origin  # If you want to push the changes to Github
 
 # Create a release tarball containing wheels for all the dependencies
+# NOTE: If you installed jasmin-auth in development mode (using -e), you will also
+#       need to manually generate the wheel for that
 $PYENV/bin/pip wheel --no-deps -r requirements.txt
 $PYENV/bin/pip wheel --no-deps /path/to/jasmin-auth
 $PYENV/bin/pip wheel --no-deps .
@@ -146,36 +148,43 @@ Then move `jasmin-cloud-bundle.tar.gz` to the server.
 On the server, first create a new user to run the portal:
 
 ```sh
-# Create the user with no home directory but with a group of their own
 useradd -U -s /bin/bash jasmincloud
 ```
 
-Then create the required directories under `/var/www/jasmin-cloud` and install the portal:
+We will install the portal in the home directory of this user. Create the required
+directories under `/home/jasmin-cloud`:
 
 ```sh
+# Run the commands as jasmincloud
+sudo -u jasmincloud bash
+cd ~
+
 # Create a basic directory structure
-sudo mkdir -p /var/www/jasmin-cloud/conf /var/www/jasmin-cloud/wsgi
+mkdir -p /home/jasmincloud/conf /home/jasmincloud/wsgi
 
 # Create a venv (if you need to use a proxy, remember to use it)
-sudo python3.3 -m venv --clear /var/www/jasmin-cloud/venv
-wget https://bootstrap.pypa.io/get-pip.py -O - | sudo /var/www/jasmin-cloud/venv/bin/python
+python3.3 -m venv --clear /home/jasmincloud/venv
+wget https://bootstrap.pypa.io/get-pip.py -O - | /home/jasmincloud/venv/bin/python
 
 # Install the jasmin portal code and dependencies
 tar -xzf jasmin-cloud-bundle.tar.gz
-sudo /var/www/jasmin-cloud/venv/bin/pip install --force-reinstall --ignore-installed --upgrade --no-index --no-deps wheelhouse/*
+/home/jasmincloud/venv/bin/pip install --force-reinstall --ignore-installed --upgrade --no-index --no-deps wheelhouse/*
 ```
 
-Create `/var/www/jasmin-cloud/conf/application.ini` and adjust the settings for your environment (see
+Create `/home/jasmincloud/conf/application.ini` and adjust the settings for your environment (see
 http://docs.pylonsproject.org/docs/pyramid/en/1.5-branch/narr/environment.html and above).
 
-Next, create the WSGI entry point at `/var/www/jasmin-cloud/wsgi/portal.wsgi` containing the following:
+Next, create the WSGI entry point at `/home/jasmincloud/wsgi/portal.wsgi` containing the following:
 
 ```python
 from pyramid.paster import get_app, setup_logging
-ini_path = '/var/www/jasmin-cloud/conf/application.ini'
+ini_path = '/home/jasmincloud/conf/application.ini'
 setup_logging(ini_path)
 application = get_app(ini_path, 'main')
 ```
+
+Check that all the permissions are set appropriately on the files we just created
+(i.e. read-only for users that are not `jasmincloud`).
 
 Add the following to your Apache config file:
 
@@ -184,7 +193,7 @@ Add the following to your Apache config file:
 WSGISocketPrefix /var/run/wsgi
 
 # The following lines should be *inside* a virtual host
-<Directory "/var/www/jasmin-cloud/wsgi">
+<Directory "/home/jasmincloud/wsgi">
     Order allow,deny
     Allow from all
 </Directory>
@@ -197,9 +206,9 @@ WSGIApplicationGroup %{GLOBAL}
 WSGIProcessGroup jasmin
 
 # Since we are using long-polling to connect to vCD, we need to specify a long timeout
-WSGIDaemonProcess jasmin user=jasmincloud group=jasmincloud processes=2 threads=15 display-name=%{GROUP} shutdown-timeout=60 python-path=/var/www/jasmin-cloud/venv/lib/python3.3/site-packages:/var/www/jasmin-cloud/venv/lib64/python3.3/site-packages
+WSGIDaemonProcess jasmin user=jasmincloud group=jasmincloud processes=2 threads=15 display-name=%{GROUP} shutdown-timeout=60 python-path=/home/jasmincloud/venv/lib/python3.3/site-packages:/home/jasmincloud/venv/lib64/python3.3/site-packages
 
-WSGIScriptAlias / /var/www/jasmin-cloud/wsgi/portal.wsgi
+WSGIScriptAlias / /home/jasmincloud/wsgi/portal.wsgi
 ```
 
 Then restart Apache:
