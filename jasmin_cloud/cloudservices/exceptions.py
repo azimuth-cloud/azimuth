@@ -1,5 +1,5 @@
 """
-This module defines the exceptions that can be thrown by cloud operations.
+This module defines the exceptions that can be raised by cloud operations.
 
 A lot of the time, errors will be raised with a :py:class:`ProviderSpecificError`
 as the cause, i.e. using the ``raise ... from ...`` syntax.
@@ -10,63 +10,66 @@ __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
 
 class CloudServiceError(RuntimeError):
-    """Base class for all errors thrown by cloud services."""
+    """Base class for all errors raised by cloud services."""
     
 class ProviderConnectionError(CloudServiceError):
-    """Thrown if a provider cannot be connected to."""
+    """Raised if a provider cannot be connected to."""
     
 class ProviderUnavailableError(CloudServiceError):
-    """Thrown when a provider connects but reports an error."""
+    """Raised when a provider connects but reports an error."""
     
 class ProviderSpecificError(CloudServiceError):
     """Base class for provider specific errors."""
     
 class ImplementationError(CloudServiceError):
-    """Thrown when an error occurs in the implementation or the implementation
+    """Raised when an error occurs in the implementation or the implementation
        issues a bad request."""
     
 class AuthenticationError(CloudServiceError):
-    """Thrown when authentication with a provider fails."""
+    """Raised when authentication with a provider fails."""
     
 class PermissionsError(CloudServiceError):
-    """Thrown when a session has insufficient permissions to perform an action."""
+    """Raised when a session has insufficient permissions to perform an action."""
     
 class NoSuchResourceError(CloudServiceError):
-    """Thrown when a resource is requested that does not exist."""
+    """Raised when a resource is requested that does not exist."""
     
 class BadRequestError(CloudServiceError):
-    """Thrown when a badly formatted request is made to the cloud service."""
+    """Raised when a badly formatted request is made to the cloud service."""
     
 class BadConfigurationError(CloudServiceError):
-    """Thrown when the cloud service is configured in a way that the portal cannot use."""
+    """Raised when the cloud service is configured in a way that the portal cannot use."""
     
 class DuplicateNameError(CloudServiceError):
-    """Thrown when a name conflicts with a resource that already exists."""
+    """Raised when a name conflicts with a resource that already exists."""
     
 class InvalidActionError(CloudServiceError):
-    """Thrown when an action is invalid given the current state of an entity."""
+    """Raised when an action is invalid given the current state of an entity."""
     
 class ImageCreateError(CloudServiceError):
-    """Thrown when an error occurs while creating a new image."""
+    """Raised when an error occurs while creating a new image."""
     
 class ImageDeleteError(CloudServiceError):
-    """Thrown when an error occurs while deleting an image."""
+    """Raised when an error occurs while deleting an image."""
     
 class ProvisioningError(CloudServiceError):
-    """Thrown when an error occurs during provisioning."""
+    """Raised when an error occurs during provisioning."""
     
 class NetworkingError(CloudServiceError):
-    """Thrown when an error occurs while performing a networking operation."""
+    """Raised when an error occurs while performing a networking operation."""
     
 class PowerActionError(CloudServiceError):
-    """Thrown when an error occurs while performing a power action on a VM."""
+    """Raised when an error occurs while performing a power action on a VM."""
+    
+class ResourceAllocationError(CloudServiceError):
+    """Raised when an error occurs while allocating resources to a VM"""
     
 class TaskFailedError(CloudServiceError):
-    """Thrown when a long running task fails."""
+    """Raised when a long running task fails."""
     
 class TaskCancelledError(TaskFailedError):
-    """Thrown when a task fails due to being cancelled by a user."""
+    """Raised when a task fails due to being cancelled by a user."""
     
 class TaskAbortedError(TaskFailedError):
-    """Thrown when a task fails due to being aborted by an administrator."""
+    """Raised when a task fails due to being aborted by an administrator."""
     

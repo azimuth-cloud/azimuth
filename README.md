@@ -5,16 +5,16 @@ Web portal for administration of virtual organisations in the JASMIN Scientific 
 
 ## Requirements
 
-The reference platform is a fully patched CentOS 6.x installation with Python 3.3.
+The reference platform is a fully patched CentOS 6.x installation with Python 3.4.
 
-The reason we use Python 3.3 is that it is the latest version for which a `mod_wsgi`
-package currently exists in the IUS Community repository (at the time of writing).
+Python 3.4 is used since that is the only Python 3.x version supported by Django
+1.9 for which there is a `mod_wsgi` package in the RHSC (at the time of writing).
 
-To install Python 3.3 in CentOS 6.x, the following can be used:
+To install Python 3.4 in CentOS 6.x, the following can be used:
 
 ```sh
-sudo yum install https://dl.iuscommunity.org/pub/ius/stable/CentOS/6/x86_64/ius-release-1.0-14.ius.centos6.noarch.rpm
-sudo yum install python33 python33-devel
+sudo yum install https://centos6.iuscommunity.org/ius-release.rpm
+sudo yum install python34u python34u-devel
 ```
 
 The JASMIN Cloud Portal uses metadata attached to items in vCloud Director to determine
@@ -27,17 +27,13 @@ To ensure that you are using the correct Python version and libraries, it is rec
 use a [Python virtual environment (venv)](https://docs.python.org/3/library/venv.html).
 
 ```sh
-python3.3 -m venv --clear $PYENV
+python3.4 -m venv --clear $PYENV
 ```
+   
+where `$PYENV` is the directory where the created venv will live (e.g. `~/jasmin-account-venv`).
 
-where `$PYENV` is the directory where the created venv will live (e.g. `~/jasmin-venv`).
-
-`jasmin-cloud` uses [pip](https://pypi.python.org/pypi/pip) to manage dependencies and installation.
-To install pip in the venv, run:
-
-```sh
-wget https://bootstrap.pypa.io/get-pip.py -O - | $PYENV/bin/python
-```
+`jasmin-cloud` uses [pip](https://pypi.python.org/pypi/pip), which is included
+by default from Python 3.4, to manage dependencies and installation.
 
 
 ## Developing

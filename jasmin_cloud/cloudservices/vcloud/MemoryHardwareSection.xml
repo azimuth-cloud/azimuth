@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Item xmlns="http://www.vmware.com/vcloud/v1.5"
+      xmlns:rasd="http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_ResourceAllocationSettingData"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      type="application/vnd.vmware.vcloud.rasdItem+xml">
+    <rasd:AllocationUnits>byte * 2^20</rasd:AllocationUnits>
+    <rasd:Description>Memory Size</rasd:Description>
+    <rasd:ElementName>{{ memory }} MB of memory</rasd:ElementName>
+    <rasd:InstanceID>5</rasd:InstanceID>
+    <rasd:Reservation>0</rasd:Reservation>
+    <rasd:ResourceType>4</rasd:ResourceType>
+    <rasd:VirtualQuantity>{{ memory }}</rasd:VirtualQuantity>
+    <rasd:Weight>0</rasd:Weight>
+</Item>

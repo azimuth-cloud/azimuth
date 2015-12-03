@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Item xmlns="http://www.vmware.com/vcloud/v1.5"
+      xmlns:rasd="http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_ResourceAllocationSettingData"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      type="application/vnd.vmware.vcloud.rasdItem+xml">
+    <rasd:AllocationUnits>hertz * 10^6</rasd:AllocationUnits>
+    <rasd:Description>Number of Virtual CPUs</rasd:Description>
+    <rasd:ElementName>{{ cores }} virtual CPU(s)</rasd:ElementName>
+    <rasd:InstanceID>1</rasd:InstanceID>
+    <rasd:Reservation>0</rasd:Reservation>
+    <rasd:ResourceType>3</rasd:ResourceType>
+    <rasd:VirtualQuantity>{{ cores }}</rasd:VirtualQuantity>
+    <rasd:Weight>0</rasd:Weight>
+</Item>

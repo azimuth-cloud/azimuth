@@ -924,6 +924,42 @@ fi
         except TaskFailedError as e:
             raise NetworkingError('{} while applying network configuration'.format(e)) from e
         
+    def resize_machine(self, machine_id, cores, memory):
+        """
+        See :py:meth:`jasmin_cloud.cloudservices.Session.resize_machine`.
+        """
+        # Get the id of the first VM in the vApp
+        app = ET.fromstring(self.api_request('GET', 'vApp/{}'.format(machine_id)).text)
+        vm_id = app.find('.//vcd:Vm', _NS).attrib['href'].rstrip('/').split('/').pop()
+        # Change the CPU
+        payload = _ENV.get_template('CPUHardwareSection.xml').render({
+            'cores' : cores,
+        })
+        cpu_task = ET.fromstring(self.api_request(
+            'PUT', 'vApp/{}/virtualHardwareSection/cpu'.format(vm_id), payload
+        ).text)
+        try:
+            self.wait_for_task(cpu_task.attrib['href'])
+        except TaskFailedError as e:
+            raise ResourceAllocationError(
+                '{} while allocating {} cores'.format(e, cores)
+            ) from e
+        # Change the memory
+        payload = _ENV.get_template('MemoryHardwareSection.xml').render({
+            # Convert GB to MB
+            'memory' : memory * 1024,
+        })
+        mem_task = ET.fromstring(self.api_request(
+            'PUT', 'vApp/{}/virtualHardwareSection/memory'.format(vm_id), payload
+        ).text)
+        try:
+            self.wait_for_task(mem_task.attrib['href'])
+        except TaskFailedError as e:
+            raise ResourceAllocationError(
+                '{} while allocating {} GB RAM'.format(e, memory)
+            ) from e
+        return self.get_machine(machine_id)
+        
     def start_machine(self, machine_id):
         """
         See :py:meth:`jasmin_cloud.cloudservices.Session.start_machine`.

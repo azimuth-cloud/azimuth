@@ -313,6 +313,18 @@ class Session(metaclass = abc.ABCMeta):
         """
         
     @abc.abstractmethod
+    def resize_machine(self, machine_id, cores, memory):
+        """
+        Resizes the virtual hardware of the specified virtual machine to have the
+        given amounts of cores and RAM.
+        
+        :param machine_id: The id of the machine to resize
+        :param cores: The new number of cores
+        :param memory: The new amount of RAM in GB
+        :returns: The updated :py:class:`Machine`
+        """
+        
+    @abc.abstractmethod
     def start_machine(self, machine_id):
         """
         Powers up the specified virtual machine.
