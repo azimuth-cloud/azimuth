@@ -5,10 +5,10 @@
       type="application/vnd.vmware.vcloud.rasdItem+xml">
     <rasd:AllocationUnits>hertz * 10^6</rasd:AllocationUnits>
     <rasd:Description>Number of Virtual CPUs</rasd:Description>
-    <rasd:ElementName>{{ cores }} virtual CPU(s)</rasd:ElementName>
+    <rasd:ElementName>{{ cpus }} virtual CPU(s)</rasd:ElementName>
     <rasd:InstanceID>1</rasd:InstanceID>
     <rasd:Reservation>0</rasd:Reservation>
     <rasd:ResourceType>3</rasd:ResourceType>
-    <rasd:VirtualQuantity>{{ cores }}</rasd:VirtualQuantity>
+    <rasd:VirtualQuantity>{{ cpus }}</rasd:VirtualQuantity>
     <rasd:Weight>0</rasd:Weight>
 </Item>

@@ -22,9 +22,10 @@ from ..exceptions import *
 
 # Prefixes for vCD namespaces
 _NS = {
-    'vcd' : 'http://www.vmware.com/vcloud/v1.5',
-    'xsi' : 'http://www.w3.org/2001/XMLSchema-instance',
-    'ovf' : 'http://schemas.dmtf.org/ovf/envelope/1',
+    'vcd'  : 'http://www.vmware.com/vcloud/v1.5',
+    'xsi'  : 'http://www.w3.org/2001/XMLSchema-instance',
+    'ovf'  : 'http://schemas.dmtf.org/ovf/envelope/1',
+    'rasd' : 'http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_ResourceAllocationSettingData',
 }
 
 # Required headers for all requests
@@ -409,10 +410,7 @@ class VCloudSession(Session):
             raise NoSuchResourceError('Image is not a gold master')
         # Strip the version string from the name
         name = '-'.join(template.attrib['name'].split('-')[:-1])
-        try:
-            description = template.find('vcd:Description', _NS).text or ''
-        except AttributeError:
-            description = ''
+        description = template.findtext('vcd:Description', '', _NS)
         # If the template has a link to delete it, then it is private
         is_public = template.find('./vcd:Link[@rel="remove"]', _NS) is None
         # Fetch the metadata associated with the vAppTemplate
@@ -576,33 +574,33 @@ class VCloudSession(Session):
         try:
             nic = self.__primary_nic_from_app(app)
             return IPv4Address(nic.find('vcd:IpAddress', _NS).text)
-        except AttributeError:
+        except (AttributeError, AddressValueError):
             return None
         
     def get_machine(self, machine_id):
         """
         See :py:meth:`jasmin_cloud.cloudservices.Session.get_machine`.
         """
+        print(self.api_request('GET', 'vApp/{}'.format(machine_id)).text)
         app = ET.fromstring(self.api_request('GET', 'vApp/{}'.format(machine_id)).text)
         name = app.attrib['name']
         # Convert the integer status to one of the statuses in MachineStatus
         status = _STATUS_MAP.get(int(app.attrib['status']), MachineStatus.UNRECOGNISED)
         # Get the description
-        try:
-            description = app.find('vcd:Description', _NS).text or ''
-        except AttributeError:
-            description = ''
+        description = app.findtext('vcd:Description', '', _NS)
         # Convert the string creationDate to a datetime
         # For now, make no attempt to process timezone
         created = datetime.strptime(
             app.find('vcd:DateCreated', _NS).text[:19], '%Y-%m-%dT%H:%M:%S'
         )
-        # For the OS, we use the value from the first VM
-        try:
-            os = app.find('.//vcd:Vm//ovf:OperatingSystemSection/ovf:Description', _NS).text
-        except AttributeError:
-            os = None
-        os = os or 'Unknown'
+        # For OS, CPUs and RAM, we use the values from the first VM
+        vm = app.find('.//vcd:Vm', _NS)
+        os = vm.findtext('.//ovf:OperatingSystemSection/ovf:Description', 'Unknown', _NS)
+        vhs = vm.find('.//ovf:VirtualHardwareSection', _NS)
+        cpus = int(vhs.findtext('./ovf:Item[rasd:ResourceType="3"]/rasd:VirtualQuantity', '-1', _NS))
+        ram = int(vhs.findtext('./ovf:Item[rasd:ResourceType="4"]/rasd:VirtualQuantity', '-1024', _NS))
+        # RAM comes out in MB - convert to GB
+        ram = ram // 1024
         # For IP addresses, we use the values from the primary NIC of the first VM
         internal_ip = self.__internal_ip_from_app(app)
         external_ip = None
@@ -621,7 +619,8 @@ class VCloudSession(Session):
                     if translated == internal_ip:
                         external_ip = IPv4Address(rule.find('.//vcd:OriginalIp', _NS).text)
                         break
-        return Machine(machine_id, name, status, description, created, os, internal_ip, external_ip)
+        return Machine(machine_id, name, status, cpus, ram,
+                       description, created, os, internal_ip, external_ip)
     
     # Guest customisation script expects a script to be baked into each template
     # at /usr/local/bin/activator.sh
@@ -924,16 +923,16 @@ fi
         except TaskFailedError as e:
             raise NetworkingError('{} while applying network configuration'.format(e)) from e
         
-    def resize_machine(self, machine_id, cores, memory):
+    def reconfigure_machine(self, machine_id, cpus, ram):
         """
-        See :py:meth:`jasmin_cloud.cloudservices.Session.resize_machine`.
+        See :py:meth:`jasmin_cloud.cloudservices.Session.reconfigure_machine`.
         """
         # Get the id of the first VM in the vApp
         app = ET.fromstring(self.api_request('GET', 'vApp/{}'.format(machine_id)).text)
         vm_id = app.find('.//vcd:Vm', _NS).attrib['href'].rstrip('/').split('/').pop()
         # Change the CPU
         payload = _ENV.get_template('CPUHardwareSection.xml').render({
-            'cores' : cores,
+            'cpus' : cpus,
         })
         cpu_task = ET.fromstring(self.api_request(
             'PUT', 'vApp/{}/virtualHardwareSection/cpu'.format(vm_id), payload
@@ -942,12 +941,12 @@ fi
             self.wait_for_task(cpu_task.attrib['href'])
         except TaskFailedError as e:
             raise ResourceAllocationError(
-                '{} while allocating {} cores'.format(e, cores)
+                '{} while allocating {} cores'.format(e, cpus)
             ) from e
         # Change the memory
         payload = _ENV.get_template('MemoryHardwareSection.xml').render({
             # Convert GB to MB
-            'memory' : memory * 1024,
+            'ram' : ram * 1024,
         })
         mem_task = ET.fromstring(self.api_request(
             'PUT', 'vApp/{}/virtualHardwareSection/memory'.format(vm_id), payload
@@ -956,7 +955,7 @@ fi
             self.wait_for_task(mem_task.attrib['href'])
         except TaskFailedError as e:
             raise ResourceAllocationError(
-                '{} while allocating {} GB RAM'.format(e, memory)
+                '{} while allocating {} GB RAM'.format(e, ram)
             ) from e
         return self.get_machine(machine_id)
         
