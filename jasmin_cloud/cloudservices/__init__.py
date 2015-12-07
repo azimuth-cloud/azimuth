@@ -29,7 +29,7 @@ class MachineStatus(enum.Enum):
     PROVISIONING_FAILED = 'Provisioning Failed'
     
     #: Machine is in an unspecified error state.
-    ERROR = 'Error'
+    ERROR = 'ERROR'
     
     #: Machine is in the process of being provisioned.
     PROVISIONING = 'Provisioning...'
@@ -130,6 +130,7 @@ class Image(namedtuple('ImageProps', ['id', 'name', 'host_type',
 
 
 class Machine(namedtuple('MachineProps', ['id', 'name', 'status',
+                                          'cpus', 'ram',
                                           'description', 'created', 'os',
                                           'internal_ip', 'external_ip'])):
     """
@@ -147,6 +148,14 @@ class Machine(namedtuple('MachineProps', ['id', 'name', 'status',
     
         A :py:class:`MachineStatus` object representing the current status of the
         virtual machine. 
+        
+    .. py:attribute:: cpus
+    
+        The number of CPUs that the virtual machine has.
+        
+    .. py:attribute:: ram
+    
+        The amount of RAM that the virtual machine has, in GB.
         
     .. py:attribute:: description
     
@@ -310,6 +319,18 @@ class Session(metaclass = abc.ABCMeta):
         :param expose: Indicates whether to apply NAT/firewall rules if NAT policy
                        is ``USER``
         :returns: The provisioned :py:class:`Machine`
+        """
+        
+    @abc.abstractmethod
+    def reconfigure_machine(self, machine_id, cpus, ram):
+        """
+        Reconfigures the virtual hardware of the specified virtual machine to have
+        the given amount of CPUs and RAM.
+        
+        :param machine_id: The id of the machine to resize
+        :param cpus: The new number of cpus
+        :param ram: The new amount of RAM in GB
+        :returns: The updated :py:class:`Machine`
         """
         
     @abc.abstractmethod

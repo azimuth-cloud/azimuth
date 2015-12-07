@@ -30,20 +30,18 @@ class TestVcdProvider(unittest.TestCase, IntegrationTest):
         return OrderedDict((
             ('create_session', self.create_session),
             ('get_known_image', self.get_known_image),
-            # Provision a machine (uses False for expose)
-            #   This should be overridden by the NAT policy
             ('provision_exposed_machine', self.provision_exposed_machine),
             ('machine_in_list', self.machine_in_list),
             ('image_from_machine', self.image_from_machine),
             ('image_in_list', self.image_in_list),
-            # Provision a machine using the created image (again, uses False for expose)
-            #   This time, the NAT policy should be USER, so there should be no
-            #   external ip
             ('provision_machine', self.provision_machine),
             ('machine_in_list_', self.machine_in_list),
             ('start_machine', self.start_machine),
             ('restart_machine', self.restart_machine),
             ('stop_machine', self.stop_machine),
+            ('reconfigure_machine', self.reconfigure_machine),
+            ('start_reconfigured', self.start_machine),
+            ('stop_reconfigured', self.stop_machine),
             ('delete_machine', self.delete_machine),
             ('close_session', self.close_session),
         ))
@@ -186,6 +184,17 @@ class TestVcdProvider(unittest.TestCase, IntegrationTest):
         # Fetch the machine and check it is off
         machine = self.session.get_machine(machine.id)
         self.assertIs(machine.status, MachineStatus.POWERED_OFF)
+        return machine
+    
+    def reconfigure_machine(self, machine):
+        """
+        Uses the session to reconfigure the RAM and CPU before returning the machine.
+        """
+        # Give the machine 2 CPUs and 4GB RAM
+        machine = self.session.reconfigure_machine(machine.id, 2, 4)
+        # Check that the machine now has 2 CPUs and 4GB RAM
+        self.assertEqual(machine.cpus, 2)
+        self.assertEqual(machine.ram, 4)
         return machine
         
     def delete_machine(self, machine):

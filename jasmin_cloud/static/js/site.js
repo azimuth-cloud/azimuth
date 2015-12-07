@@ -1,6 +1,6 @@
 // Make sure the has-error class gets applied to the parent form-group of any invalid controls
 $('.form-control:invalid').closest('.form-group').each(function() { $(this).addClass('has-error'); });
-$('.form-control').on('input', function() {
+$(document).on('input', '.form-control', function() {
     var action = this.checkValidity() ? 'removeClass' : 'addClass';
     $(this).closest('.form-group').each(function() { $(this)[action]('has-error'); });
 });
@@ -33,6 +33,20 @@ $('.markdown-editor').each(function() {
         timeout = setTimeout(updatePreview, 1000);
     });
     updatePreview();
+});
+
+// Enable the reconfigure form - this event fires when the modal is opened
+$('#reconfigure-form').on('show.bs.modal', function(e) {
+    var button = $(e.relatedTarget); // This is the element that triggered the modal
+    var modal = $(this);
+    modal.find('form').attr('action', button.data('action'));
+    // Force the input event to fire when we change the value
+    modal.find('input[name="cpus"]').val(button.data('cpus')).trigger('input');
+    modal.find('input[name="ram"]').val(button.data('ram')).trigger('input');
+});
+// Hide the modal when the form is submitted
+$(document).on('submit-confirmed', '#reconfigure-form form', function() {
+    $('#reconfigure-form').modal('hide');
 });
 
 // Confirmation dialog for links
@@ -74,21 +88,17 @@ $(document).on('submit', 'form', function(e) {
 
 // Find forms requesting the disable-on-submit functionality and enable it
 $(document).on('submit-confirmed', 'form.disable-on-submit', function(e) {
-    $(document).on('submit', 'form', function(e) { e.preventDefault(); return false; });
-    $(document).find('button[type="submit"], input[type="submit"]').attr('disabled', 'disabled');
-    $(document).find('a.btn').addClass('disabled');
+    var $form = $(this);
+    $form.on('submit', function(e) { e.preventDefault(); return false; });
+    $form.find('button[type="submit"], input[type="submit"]').attr('disabled', 'disabled');
     return true;
 });
 
-// Find forms tagged as power-action forms and enable the replacement of cell content with a progress bar
-$(document).on('submit-confirmed', 'form.power-action', function(e) {
-    // Hide all the forms in the cell, and append an element
-    $(this).closest('td').find('form, a').hide().siblings('.progress').removeClass('hidden');
-    return true;
-});
-
-// Find forms tagged as provisioning forms and enable replacing of the button content
+// Find forms tagged as forms that perform work and show the working dialog with their message
 $(document).on('submit-confirmed', 'form.working', function(e) {
-    $(this).find('.working-message').removeClass('hidden');
+    var message = $(this).data('working-message');
+    var modal = $('#working-modal');
+    if( message ) modal.find('.progress-bar').text(message);
+    modal.modal('show');
     return true;
 });

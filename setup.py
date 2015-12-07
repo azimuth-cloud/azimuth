@@ -23,7 +23,6 @@ with open(os.path.join(here, 'README.md')) as f:
     README = f.read()
 
 requires = [
-    'enum34',
     'pyramid',
     'pyramid_debugtoolbar',
     'pyramid_jinja2',

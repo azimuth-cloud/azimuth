@@ -6,7 +6,8 @@
 
 {% block content %}
 <div class="col-md-8 col-md-offset-2">
-    <form method="POST" action="{{ request.route_url('new_machine', id = template.id) }}" class="form-horizontal disable-on-submit working">
+    <form method="POST" action="{{ request.route_url('new_machine', id = template.id) }}"
+          class="form-horizontal working" data-working-message="Provisioning machine...">
         <input name="csrf_token" type="hidden" value="{{ request.session.get_csrf_token() }}" />
         
         {%- call form_group_with_errors("name", "Machine name") %}
@@ -51,7 +52,6 @@
         <div class="form-group">
             <div class="col-sm-offset-3 col-sm-9">
                 <button name="submitted" type="submit" class="btn btn-primary" autocomplete="off">Provision machine</button>
-                <span class="working-message text-muted hidden">Provisioning...</span>
             </div>
         </div>
     </form>
