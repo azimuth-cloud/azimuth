@@ -411,6 +411,35 @@ def new_machine(request):
         'ssh_key'     : request.authenticated_user.ssh_key or '',
         'errors'      : {}
     }
+    
+    
+@view_config(route_name = 'machine_reconfigure',
+             request_method = 'POST', permission = 'org_edit')
+def machine_reconfigure(request):
+    """
+    Handler for POST requests to ``/{org}/machine/{id}/reconfigure``.
+    
+    The user must be authenticated for the organisation in the URL to reach here.
+    
+    Attempt to reconfigure the specified machine with the given amount of CPU
+    and RAM.
+    """
+    # Request must pass a CSRF test
+    check_csrf_token(request)
+    try:
+        cpus = int(request.params['cpus'])
+        ram = int(request.params['ram'])
+        if cpus < 1 or ram < 1:
+            raise ValueError('CPU and RAM must be at least 1')
+    except (ValueError, KeyError):
+        # If the user has used the UI without modification, this should never happen
+        request.session.flash('Error with inputs', 'error')
+        return HTTPSeeOther(location = request.route_url('machines'))
+    # Reconfigure the machine
+    machine_id = request.matchdict['id']
+    request.active_cloud_session.reconfigure_machine(machine_id, cpus, ram)
+    request.session.flash('Machine reconfigured successfully', 'success')
+    return HTTPSeeOther(location = request.route_url('machines'))
 
 
 @view_config(route_name = 'machine_action',

@@ -102,6 +102,54 @@ class VCloudError(ProviderSpecificError):
             self.__endpoint__, self.__user__,
             self.__status_code__, self.__error_code__, super().__str__()
         )
+        
+    def raise_cloud_service_error(self):
+        """
+        Raises the appropriate :py:class`..exceptions.CloudServiceError` with this
+        vCD error as the cause. 
+        """
+        # A 503 error probably means we couldn't even contact vCD
+        if self.__status_code__ == 503:
+            raise ProviderConnectionError('Cannot connect to vCloud Director API') from self
+        # Any other 5xx error indicates a problem on the server
+        if self.__status_code__ >= 500:
+            raise ProviderUnavailableError('vCloud Director API encountered an error') from self
+        # 4xx errors indicate that there was a problem with our request, so we want
+        # to try and be more specific
+        # For the status codes returned by the vCD API, see
+        # http://pubs.vmware.com/vcd-55/topic/com.vmware.vcloud.api.doc_55/GUID-D2B2E6D4-7A92-4D1B-80C0-F32AE0CA3D11.html
+        if self.__status_code__ == 401:
+            # 401 is reported if authentication failed
+            raise AuthenticationError('Authentication failed') from self
+        elif self.__status_code__ == 403:
+            # 403 is reported if the authenticated user doesn't have adequate
+            # permissions
+            raise PermissionsError('Insufficient permissions') from self
+        elif self.__status_code__ == 404:
+            # 404 is reported if the resource doesn't exist
+            raise NoSuchResourceError('Resource does not exist') from self
+        # BAD_REQUEST is sent when an action is invalid given the current state
+        # or when a badly formatted request is sent
+        elif self.__error_code__ == 'BAD_REQUEST':
+            # To distinguish, we need to check the message
+            if 'validation error' in str(self).lower():
+                raise BadRequestError('Badly formatted request') from self
+            elif 'vdc has run out of' in str(self).lower():
+                raise QuotaExceededError('Quota exceeded') from self
+            else:
+                raise InvalidActionError(
+                    'Action is invalid for current state') from self
+        # DUPLICATE_NAME is sent when a name is duplicated (surprise...!)
+        elif self.__error_code__ == 'DUPLICATE_NAME':
+            raise DuplicateNameError('Name is already in use') from self
+        # TASK_CANCELED is sent when a task is cancelled...
+        elif self.__error_code__ == 'TASK_CANCELED':
+            raise TaskCancelledError('Action cancelled') from self
+        # And TASK_ABORTED is sent when an admin aborts a task...
+        elif self.__error_code__ == 'TASK_ABORTED':
+            raise TaskAbortedError('Action aborted by administrator') from self
+        # Otherwise, assume the request was incorrectly specified by the implementation
+        raise ImplementationError('Bad request') from self
     
     @classmethod
     def from_xml(cls, endpoint, user, error):
@@ -217,49 +265,19 @@ class VCloudSession(Session):
             raise ProviderConnectionError('Cannot connect to vCloud Director API')
         elif res.status_code >= 500:
             # Any other 5xx error indicates a problem on the server
-            # If there is a vCD Error in the response, extract it in order to wrap it
-            # However, it is entirely possible that one is not present
-            # We raise the exception and then catch it as it is the simplest way
-            # to get the VCloudError to capture a stack trace
-            ex = ProviderUnavailableError('vCloud Director API encountered an error')
             try:
-                raise VCloudError.from_xml(self.__endpoint, self.__user, res.text)
-            except VCloudError as e:
-                raise ex from e
+                # Try to derive an exception from the vCD error
+                VCloudError.from_xml(self.__endpoint, self.__user, res.text) \
+                           .raise_cloud_service_error()
             except ValueError:
-                raise ex
+                # If creating a vCD error fails (probaby because there is not one
+                # in the response), raise a more generic error
+                raise ProviderUnavailableError('vCloud Director API encountered an error')
         elif res.status_code >= 400:
             # 4xx errors indicate that there was a problem with our request, so
             # we expect vCD to provide an Error in the response
-            # For the status codes returned by the vCD API, see
-            # http://pubs.vmware.com/vcd-55/topic/com.vmware.vcloud.api.doc_55/GUID-D2B2E6D4-7A92-4D1B-80C0-F32AE0CA3D11.html
-            try:
-                raise VCloudError.from_xml(self.__endpoint, self.__user, res.text)
-            except VCloudError as e:
-                if e.__status_code__ == 401:
-                    # 401 is reported if authentication failed
-                    raise AuthenticationError('Authentication failed') from e
-                elif e.__status_code__ == 403:
-                    # 403 is reported if the authenticated user doesn't have adequate
-                    # permissions
-                    raise PermissionsError('Insufficient permissions') from e
-                elif e.__status_code__ == 404:
-                    # 404 is reported if the resource doesn't exist
-                    raise NoSuchResourceError('Resource does not exist') from e
-                # BAD_REQUEST is sent when an action is invalid given the current state
-                # or when a badly formatted request is sent
-                elif e.__error_code__ == 'BAD_REQUEST':
-                    # To distinguish, we need to check the message
-                    if 'validation error' in str(e).lower():
-                        raise BadRequestError('Badly formatted request') from e
-                    else:
-                        raise InvalidActionError(
-                            'Action is invalid for current state') from e
-                # DUPLICATE_NAME is sent when a name is duplicated (surprise...!)
-                elif e.__error_code__ == 'DUPLICATE_NAME':
-                    raise DuplicateNameError('Name is already in use') from e
-                # Otherwise, assume the request was incorrectly specified by the implementation
-                raise ImplementationError('Bad request') from e
+            VCloudError.from_xml(self.__endpoint, self.__user, res.text) \
+                       .raise_cloud_service_error()
         else:
             return res
     
@@ -280,22 +298,34 @@ class VCloudSession(Session):
             # If the task is successful, we can exit
             if status == 'success':
                 break
-            # Try to find an Error in the Task, and create the corresponding VCloudError
-            vcd_err = None
+            # Try to find an Error in the Task, and raise the corresponding
+            # cloud service error with the VCloudError as it's cause
+            cs_err = None
             xml_err = task.find('.//vcd:Error', _NS)
             if xml_err is not None:
                 try:
-                    raise VCloudError.from_xml(self.__endpoint, self.__user, xml_err)
-                except VCloudError as e:
-                    vcd_err = e
-            error_code = vcd_err.__error_code__ if vcd_err else ''
-            # If the task stopped because of an error or cancellation, report that
-            if status == 'canceled' or error_code == 'TASK_CANCELED':
-                raise TaskCancelledError('Action cancelled') from vcd_err
-            elif status == 'aborted' or error_code == 'TASK_ABORTED':
-                raise TaskAbortedError('Action aborted by administrator') from vcd_err
+                    VCloudError.from_xml(self.__endpoint, self.__user, xml_err) \
+                               .raise_cloud_service_error()
+                except TaskFailedError:
+                    # If the raised exception is already a task error, re-raise it
+                    raise
+                except CloudServiceError as e:
+                    # All other cloud service errors should be wrapped in TaskFailedError
+                    # to make the context clear
+                    raise TaskFailedError(str(e)) from e
+                except ValueError:
+                    # A value error means there was not a valid error in the XML
+                    # This is OK
+                    pass
+            # We should probably never get this far (if status is canceled, aborted
+            # or error, there should be an Error element in the response)
+            # But if we do, bail based on status
+            if status == 'canceled':
+                raise TaskCancelledError('Action cancelled')
+            elif status == 'aborted':
+                raise TaskAbortedError('Action aborted by administrator')
             elif status == 'error':
-                raise TaskFailedError('Unrecoverable error') from vcd_err
+                raise TaskFailedError('Unrecoverable error')
             # Any other statuses, we sleep before fetching the task again
             sleep(_POLL_INTERVAL)
     
@@ -581,11 +611,15 @@ class VCloudSession(Session):
         """
         See :py:meth:`jasmin_cloud.cloudservices.Session.get_machine`.
         """
-        print(self.api_request('GET', 'vApp/{}'.format(machine_id)).text)
         app = ET.fromstring(self.api_request('GET', 'vApp/{}'.format(machine_id)).text)
         name = app.attrib['name']
-        # Convert the integer status to one of the statuses in MachineStatus
-        status = _STATUS_MAP.get(int(app.attrib['status']), MachineStatus.UNRECOGNISED)
+        # If the app has an outstanding task with status="error", set machine status
+        # to 'unspecified error'
+        if app.find('.//vcd:Task[@status="error"]', _NS) is not None:
+            status = MachineStatus.ERROR
+        else:
+            # Otherwise, convert the integer status to one of the statuses in MachineStatus
+            status = _STATUS_MAP.get(int(app.attrib['status']), MachineStatus.UNRECOGNISED)
         # Get the description
         description = app.findtext('vcd:Description', '', _NS)
         # Convert the string creationDate to a datetime
@@ -595,12 +629,23 @@ class VCloudSession(Session):
         )
         # For OS, CPUs and RAM, we use the values from the first VM
         vm = app.find('.//vcd:Vm', _NS)
-        os = vm.findtext('.//ovf:OperatingSystemSection/ovf:Description', 'Unknown', _NS)
-        vhs = vm.find('.//ovf:VirtualHardwareSection', _NS)
-        cpus = int(vhs.findtext('./ovf:Item[rasd:ResourceType="3"]/rasd:VirtualQuantity', '-1', _NS))
-        ram = int(vhs.findtext('./ovf:Item[rasd:ResourceType="4"]/rasd:VirtualQuantity', '-1024', _NS))
+        if vm is not None:
+            os = vm.findtext(
+                './/ovf:OperatingSystemSection/ovf:Description', 'Unknown', _NS
+            )
+            vhs = vm.find('.//ovf:VirtualHardwareSection', _NS)
+            cpus = int(vhs.findtext(
+                './ovf:Item[rasd:ResourceType="3"]/rasd:VirtualQuantity', '-1', _NS
+            ))
+            ram = int(vhs.findtext(
+                './ovf:Item[rasd:ResourceType="4"]/rasd:VirtualQuantity', '-1', _NS
+            ))
+        else:
+            os = 'Unknown'
+            cpus = -1
+            ram = -1
         # RAM comes out in MB - convert to GB
-        ram = ram // 1024
+        ram = ram // 1024 if ram > 0 else ram
         # For IP addresses, we use the values from the primary NIC of the first VM
         internal_ip = self.__internal_ip_from_app(app)
         external_ip = None
@@ -927,36 +972,46 @@ fi
         """
         See :py:meth:`jasmin_cloud.cloudservices.Session.reconfigure_machine`.
         """
+        # First, get the machine
+        machine = self.get_machine(machine_id)
+        # The machine must be off
+        if machine.status != MachineStatus.POWERED_OFF:
+            raise InvalidActionError('Machine must be powered off to reconfigure')
+        # If there are no changes, just return
+        if cpus == machine.cpus and ram == machine.ram:
+            return machine
         # Get the id of the first VM in the vApp
         app = ET.fromstring(self.api_request('GET', 'vApp/{}'.format(machine_id)).text)
         vm_id = app.find('.//vcd:Vm', _NS).attrib['href'].rstrip('/').split('/').pop()
-        # Change the CPU
-        payload = _ENV.get_template('CPUHardwareSection.xml').render({
-            'cpus' : cpus,
-        })
-        cpu_task = ET.fromstring(self.api_request(
-            'PUT', 'vApp/{}/virtualHardwareSection/cpu'.format(vm_id), payload
-        ).text)
-        try:
-            self.wait_for_task(cpu_task.attrib['href'])
-        except TaskFailedError as e:
-            raise ResourceAllocationError(
-                '{} while allocating {} cores'.format(e, cpus)
-            ) from e
-        # Change the memory
-        payload = _ENV.get_template('MemoryHardwareSection.xml').render({
-            # Convert GB to MB
-            'ram' : ram * 1024,
-        })
-        mem_task = ET.fromstring(self.api_request(
-            'PUT', 'vApp/{}/virtualHardwareSection/memory'.format(vm_id), payload
-        ).text)
-        try:
-            self.wait_for_task(mem_task.attrib['href'])
-        except TaskFailedError as e:
-            raise ResourceAllocationError(
-                '{} while allocating {} GB RAM'.format(e, ram)
-            ) from e
+        # Change the CPU if it is different to the previous
+        if cpus != machine.cpus:
+            payload = _ENV.get_template('CPUHardwareSection.xml').render({
+                'cpus' : cpus,
+            })
+            cpu_task = ET.fromstring(self.api_request(
+                'PUT', 'vApp/{}/virtualHardwareSection/cpu'.format(vm_id), payload
+            ).text)
+            try:
+                self.wait_for_task(cpu_task.attrib['href'])
+            except TaskFailedError as e:
+                raise ResourceAllocationError(
+                    '{} while allocating {} cores'.format(e, cpus)
+                ) from e
+        # Change the memory if it is different to the previous
+        if ram != machine.ram:
+            payload = _ENV.get_template('MemoryHardwareSection.xml').render({
+                # Convert GB to MB
+                'ram' : ram * 1024,
+            })
+            mem_task = ET.fromstring(self.api_request(
+                'PUT', 'vApp/{}/virtualHardwareSection/memory'.format(vm_id), payload
+            ).text)
+            try:
+                self.wait_for_task(mem_task.attrib['href'])
+            except TaskFailedError as e:
+                raise ResourceAllocationError(
+                    '{} while allocating {} GB RAM'.format(e, ram)
+                ) from e
         return self.get_machine(machine_id)
         
     def start_machine(self, machine_id):
@@ -1009,19 +1064,17 @@ fi
         """
         See :py:meth:`jasmin_cloud.cloudservices.Session.delete_machine`.
         """
-        # Before deleting a machine, we want to remove any exposure to the internet
-        # If we don't, we risk exposing to the internet the next machine that picks
-        # up the IP address from the pool
-        # We don't care too much about the return value
+        # Before deleting a machine, we make sure it is off
+        self.stop_machine(machine_id)
+        # We also want to remove any exposure to the internet
+        # If we don't, we risk exposing the next machine that picks up the local
+        # IP address from the pool
         self.__unexpose_machine(machine_id)
         try:
             task = ET.fromstring(self.api_request(
                 'DELETE', 'vApp/{}'.format(machine_id)
             ).text)
             self.wait_for_task(task.attrib['href'])
-        except InvalidActionError:
-            # Swallow invalid action errors, as they don't really matter
-            pass
         except TaskFailedError as e:
             raise PowerActionError('{} while deleting machine'.format(e)) from e
             

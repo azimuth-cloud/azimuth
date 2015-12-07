@@ -24,6 +24,8 @@
             <tr>
                 <th>Name</th>
                 <th>Status</th>
+                <th>CPUs</th>
+                <th>RAM</th>
                 <th>Operating System</th>
                 <th>Internal IP</th>
                 <th>External IP</th>
@@ -47,11 +49,25 @@
                         {%- endif %}
                         <span class="label label-{{ label_type }}">{{ machine.status.value }}</span>
                     </td>
-                    <td>{{ machine.os }}</td>
+                    <td>
+                        {%- if machine.cpus >= 0 %}
+                            {{ machine.cpus }}
+                        {%- else %}
+                            <code>-</code>
+                        {%- endif %}
+                    </td>
+                    <td style="white-space : nowrap;">
+                        {%- if machine.cpus >= 0 %}
+                            {{ machine.ram }} GB
+                        {%- else %}
+                            <code>-</code>
+                        {%- endif %}
+                    </td>
+                    <td style="width : 99%;">{{ machine.os }}</td>
                     <td><code>{{ machine.internal_ip|default('-', true) }}</code></td>
                     <td><code>{{ machine.external_ip|default('-', true) }}</code></td>
-                    <td>{{ machine.created.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                    <td style="white-space : nowrap; width : 170px;">
+                    <td style="white-space : nowrap;">{{ machine.created.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td style="white-space : nowrap;">
                         {%- if request.active_cloud_session.has_permission('CAN_CREATE_TEMPLATES') %}
                             <a class="btn btn-default btn-xs confirm" title="Add to catalogue"
                                data-confirm-message="<p>Ensure you have run <code>/root/vappclean.sh</code>
@@ -63,7 +79,15 @@
                                 <span class="sr-only">Add to catalogue</span>
                             </a>
                         {%- endif %}
-                        <form class="disable-on-submit power-action" autocomplete="off" method="POST"
+                        <button class="btn btn-primary btn-xs" title="Reconfigure CPU and RAM"
+                                data-toggle="modal" data-target="#reconfigure-form"
+                                data-action="{{ request.route_url('machine_reconfigure', id = machine.id) }}"
+                                data-cpus="{{ machine.cpus }}" data-ram="{{ machine.ram }}">
+                            <i class="fa fa-fw fa-gears"></i>
+                            <span class="sr-only">Reconfigure CPU and RAM</span>
+                        </button>
+                        <form class="working" data-working-message="Starting machine..."
+                              autocomplete="off" method="POST"
                               action="{{ request.route_url('machine_action', id = machine.id) }}">
                             <input name="action" type="hidden" value="start" />
                             <input name="csrf_token" type="hidden" value="{{ request.session.get_csrf_token() }}" />
@@ -72,7 +96,8 @@
                                 <span class="sr-only">Power On</span>
                             </button>
                         </form>
-                        <form class="disable-on-submit power-action" autocomplete="off" method="POST"
+                        <form class="working" data-working-message="Stopping machine..."
+                              autocomplete="off" method="POST"
                               action="{{ request.route_url('machine_action', id = machine.id) }}">
                             <input name="action" type="hidden" value="stop" />
                             <input name="csrf_token" type="hidden" value="{{ request.session.get_csrf_token() }}" />
@@ -81,7 +106,8 @@
                                 <span class="sr-only">Power Off</span>
                             </button>
                         </form>
-                        <form class="disable-on-submit power-action" autocomplete="off" method="POST"
+                        <form class="working" data-working-message="Restarting machine..."
+                              autocomplete="off" method="POST"
                               action="{{ request.route_url('machine_action', id = machine.id) }}">
                             <input name="action" type="hidden" value="restart" />
                             <input name="csrf_token" type="hidden" value="{{ request.session.get_csrf_token() }}" />
@@ -90,7 +116,8 @@
                                 <span class="sr-only">Restart</span>
                             </button>
                         </form>
-                        <form class="disable-on-submit power-action confirm" autocomplete="off" method="POST"
+                        <form class="working confirm" data-working-message="Deleting machine..."
+                              autocomplete="off" method="POST"
                               action="{{ request.route_url('machine_action', id = machine.id) }}"
                               data-confirm-message="Are you sure? Once deleted, a machine cannot be restored!">
                             <input name="action" type="hidden" value="delete" />
@@ -100,14 +127,57 @@
                                 <span class="sr-only">Delete</span>
                             </button>
                         </form>
-                        {#- Progress bar - hidden initially, but made visible by Javascript on submit #}
-                        <div class="progress hidden">
-                            <div class="progress-bar progress-bar-info progress-bar-striped active" style="width: 100%">Working...</div>
-                        </div>
                     </td>
                 </tr>
             {%- endfor %}
         </tbody>
     </table>
+</div>
+
+{#- Modal for the form for reconfiguring CPU and RAM #}
+<div class="modal fade" id="reconfigure-form" tabindex="-1"
+     data-backdrop="static" role="dialog" aria-labelledby="reconfigure-form-title">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="reconfigure-form-title">Reconfigure CPU and RAM</h4>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-10 col-md-offset-1">
+                        <form class="form-horizontal working"
+                              data-working-message="Reconfiguring CPU and RAM..."
+                              autocomplete="off" method="POST" action="">
+                            <input name="csrf_token" type="hidden" value="{{ request.session.get_csrf_token() }}" />
+                    
+                            <div class="form-group">
+                                <label for="cpus" class="col-sm-3 control-label">CPUs</label>
+                                <div class="col-sm-9">
+                                    <input class="form-control" name="cpus" type="number" min="1" step="1" value="1" />
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="ram" class="col-sm-3 control-label">RAM</label>
+                                <div class="col-sm-9">
+                                    <div class="input-group">
+                                        <input class="form-control" name="ram" type="number" min="1" step="1" value="1" />
+                                        <div class="input-group-addon">GB</div>
+                                    </div>
+                                </div>
+                            </div>
+            
+                            <div class="form-group">
+                                <div class="col-sm-offset-3 col-sm-9">
+                                    <button name="submitted" type="submit" class="btn btn-primary" autocomplete="off">Reconfigure</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}

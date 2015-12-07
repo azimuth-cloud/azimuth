@@ -64,6 +64,9 @@ class PowerActionError(CloudServiceError):
 class ResourceAllocationError(CloudServiceError):
     """Raised when an error occurs while allocating resources to a VM"""
     
+class QuotaExceededError(CloudServiceError):
+    """Raised when an error occurs due to a quota being exceeded"""
+    
 class TaskFailedError(CloudServiceError):
     """Raised when a long running task fails."""
     

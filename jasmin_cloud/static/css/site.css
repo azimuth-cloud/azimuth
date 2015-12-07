@@ -128,6 +128,16 @@ td > .progress {
     margin-top : 70px;
 }
 
+#working-modal .progress {
+    margin : 10px;
+    height : 40px;
+}
+
+#working-modal .progress-bar {
+    line-height : 40px;
+    font-size : 20px;
+}
+
 h2.panel-heading {
 	margin-top : 0px;
 	margin-bottom : 0px;

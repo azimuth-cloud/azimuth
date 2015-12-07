@@ -29,7 +29,7 @@ class MachineStatus(enum.Enum):
     PROVISIONING_FAILED = 'Provisioning Failed'
     
     #: Machine is in an unspecified error state.
-    ERROR = 'Error'
+    ERROR = 'ERROR'
     
     #: Machine is in the process of being provisioned.
     PROVISIONING = 'Provisioning...'
