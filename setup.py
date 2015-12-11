@@ -32,6 +32,7 @@ requires = [
     'requests',
     'bleach',
     'markdown',
+    'waitress',
     # Required for docs
     'sphinx',
 ]
