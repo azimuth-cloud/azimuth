@@ -5,16 +5,13 @@ Web portal for administration of virtual organisations in the JASMIN Scientific 
 
 ## Requirements
 
-The reference platform is a fully patched CentOS 6.x installation with Python 3.4.
+The reference platform is a fully patched CentOS 6.x installation with Python 3.5.
 
-Python 3.4 is used since that is the only Python 3.x version supported by Django
-1.9 for which there is a `mod_wsgi` package in the RHSC (at the time of writing).
-
-To install Python 3.4 in CentOS 6.x, the following can be used:
+To install Python 3.5 in CentOS 6.x, the following can be used:
 
 ```sh
 sudo yum install https://centos6.iuscommunity.org/ius-release.rpm
-sudo yum install python34u python34u-devel
+sudo yum install python35u python35u-devel
 ```
 
 The JASMIN Cloud Portal uses metadata attached to items in vCloud Director to determine
@@ -27,7 +24,7 @@ To ensure that you are using the correct Python version and libraries, it is rec
 use a [Python virtual environment (venv)](https://docs.python.org/3/library/venv.html).
 
 ```sh
-python3.4 -m venv --clear $PYENV
+python3.5 -m venv --clear $PYENV
 ```
    
 where `$PYENV` is the directory where the created venv will live (e.g. `~/jasmin-account-venv`).
@@ -75,7 +72,7 @@ You can then launch the portal using a development server:
 $PYENV/bin/pserve application.ini
 ```
 
-The portal will then be available in a web browser at `127.0.0.1:6543`.
+The portal will then be available in a web browser at `localhost:8080`.
 
 **NOTE:** The example configuration uses `wsgiref.simple_server`, which is not suitable for
 anything other than development. However, because it is single-threaded, it can be used by the PyDev

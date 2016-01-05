@@ -14,7 +14,6 @@ __version__ = "0.1"
 
 
 from pyramid.config import Configurator
-from pyramid.session import SignedCookieSessionFactory
 
 from . import jinja2_ext
 
@@ -25,10 +24,10 @@ def main(global_config, **settings):
     for the JASMIN cloud portal.
     """
 
-    config = Configurator(
-        settings = settings,
-        session_factory = SignedCookieSessionFactory(settings['session.secret'])
-    )
+    config = Configurator(settings = settings)
+    
+    # Use Beaker sessions
+    config.include('pyramid_beaker')
 
     # We want to use Jinja2 templates
     config.include('pyramid_jinja2')
