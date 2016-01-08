@@ -32,8 +32,8 @@ auth.secret = <myauthsecret>
 
 # Session configuration
 session.type = cookie
+session.secret = <mysessionsecret>
 session.validate_key = <myvalidatekey>
-session.encrypt_key = <myencryptkey>
 
 
 ###
