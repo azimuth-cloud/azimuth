@@ -27,7 +27,6 @@ requires = [
     'pyramid_debugtoolbar',
     'pyramid_jinja2',
     'pyramid_beaker',
-    'pycrypto',  # For encrypted cookie sessions
     'jinja2',
     'jasmin-auth',
     'ldap3',
