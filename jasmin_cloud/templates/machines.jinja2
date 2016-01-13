@@ -26,9 +26,10 @@
                 <th>Status</th>
                 <th>CPUs</th>
                 <th>RAM</th>
-                <th>Operating System</th>
-                <th>Internal IP</th>
-                <th>External IP</th>
+                <th style="white-space : nowrap;"># Disks</th>
+                <th style="white-space : nowrap;">Operating System</th>
+                <th style="white-space : nowrap;">Internal IP</th>
+                <th style="white-space : nowrap;">External IP</th>
                 <th>Created</th>
                 <th>Actions</th>
             </tr>
@@ -57,12 +58,13 @@
                         {%- endif %}
                     </td>
                     <td style="white-space : nowrap;">
-                        {%- if machine.cpus >= 0 %}
+                        {%- if machine.ram >= 0 %}
                             {{ machine.ram }} GB
                         {%- else %}
                             <code>-</code>
                         {%- endif %}
                     </td>
+                    <td>{{ machine.disks|count }}</td>
                     <td style="width : 99%;">{{ machine.os }}</td>
                     <td><code>{{ machine.internal_ip|default('-', true) }}</code></td>
                     <td><code>{{ machine.external_ip|default('-', true) }}</code></td>
@@ -150,14 +152,14 @@
                               data-working-message="Reconfiguring CPU and RAM..."
                               autocomplete="off" method="POST" action="">
                             <input name="csrf_token" type="hidden" value="{{ request.session.get_csrf_token() }}" />
-                    
+
                             <div class="form-group">
                                 <label for="cpus" class="col-sm-3 control-label">CPUs</label>
                                 <div class="col-sm-9">
                                     <input class="form-control" name="cpus" type="number" min="1" step="1" value="1" />
                                 </div>
                             </div>
-                            
+
                             <div class="form-group">
                                 <label for="ram" class="col-sm-3 control-label">RAM</label>
                                 <div class="col-sm-9">
@@ -167,7 +169,7 @@
                                     </div>
                                 </div>
                             </div>
-            
+
                             <div class="form-group">
                                 <div class="col-sm-offset-3 col-sm-9">
                                     <button name="submitted" type="submit" class="btn btn-primary" autocomplete="off">Reconfigure</button>

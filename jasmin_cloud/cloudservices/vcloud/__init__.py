@@ -16,7 +16,7 @@ import xml.etree.ElementTree as ET
 import requests
 from jinja2 import Environment, FileSystemLoader
 
-from .. import NATPolicy, MachineStatus, Image, Machine, Session
+from .. import NATPolicy, MachineStatus, Image, HardDisk, Machine, Session
 from ..exceptions import *
 
 
@@ -618,6 +618,7 @@ class VCloudSession(Session):
         except (AttributeError, AddressValueError):
             return None
 
+    _CAPACITY_KEY = '{{{}}}capacity'.format(_NS['vcd'])
     def get_machine(self, machine_id):
         """
         See :py:meth:`jasmin_cloud.cloudservices.Session.get_machine`.
@@ -638,7 +639,7 @@ class VCloudSession(Session):
         created = datetime.strptime(
             app.find('vcd:DateCreated', _NS).text[:19], '%Y-%m-%dT%H:%M:%S'
         )
-        # For OS, CPUs and RAM, we use the values from the first VM
+        # For OS, CPU, RAM and disks, we use the values from the first VM
         vm = app.find('.//vcd:Vm', _NS)
         if vm is not None:
             os = vm.findtext(
@@ -650,13 +651,20 @@ class VCloudSession(Session):
             ))
             ram = int(vhs.findtext(
                 './ovf:Item[rasd:ResourceType="4"]/rasd:VirtualQuantity', '-1', _NS
-            ))
+            )) // 1024  # RAM comes out in MB - convert to GB
+            # Find the disks associated with the VM
+            disks = []
+            for disk in vhs.findall('./ovf:Item[rasd:ResourceType="17"]', _NS):
+                disk_name = "Disk {}".format(disk.find('./rasd:AddressOnParent', _NS).text)
+                size = disk.find('./rasd:HostResource', _NS).attrib[self._CAPACITY_KEY]
+                size = int(size) // 1024  # Disk size comes out in MB
+                disks.append(HardDisk(disk_name, size))
+            disks = tuple(disks)
         else:
             os = 'Unknown'
             cpus = -1
             ram = -1
-        # RAM comes out in MB - convert to GB
-        ram = ram // 1024 if ram > 0 else ram
+            disks = tuple()
         # For IP addresses, we use the values from the primary NIC of the first VM
         internal_ip = self.__internal_ip_from_app(app)
         external_ip = None
@@ -675,7 +683,7 @@ class VCloudSession(Session):
                     if translated == internal_ip:
                         external_ip = IPv4Address(rule.find('.//vcd:OriginalIp', _NS).text)
                         break
-        return Machine(machine_id, name, status, cpus, ram,
+        return Machine(machine_id, name, status, cpus, ram, disks,
                        description, created, os, internal_ip, external_ip)
 
     # Guest customisation script expects a script to be baked into each template
