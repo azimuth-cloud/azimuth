@@ -81,8 +81,8 @@
                                 <span class="sr-only">Add to catalogue</span>
                             </a>
                         {%- endif %}
-                        <button class="btn btn-primary btn-xs" title="Reconfigure CPU and RAM"
-                                data-toggle="modal" data-target="#reconfigure-form"
+                        <button class="btn btn-primary btn-xs btn-reconfigure-machine"
+                                title="Reconfigure CPU and RAM"
                                 data-action="{{ request.route_url('machine_reconfigure', id = machine.id) }}"
                                 data-cpus="{{ machine.cpus }}" data-ram="{{ machine.ram }}">
                             <i class="fa fa-fw fa-gears"></i>
@@ -136,50 +136,53 @@
     </table>
 </div>
 
-{#- Modal for the form for reconfiguring CPU and RAM #}
-<div class="modal fade" id="reconfigure-form" tabindex="-1"
-     data-backdrop="static" role="dialog" aria-labelledby="reconfigure-form-title">
-    <div class="modal-dialog modal-sm" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title" id="reconfigure-form-title">Reconfigure CPU and RAM</h4>
+{#- Template for machine resources popup #}
+<script type="text/template" id="resources-popup-template">
+    <form class="form-horizontal working"
+          data-working-message="Reconfiguring CPU and RAM..."
+          autocomplete="off" method="POST" action="<%= action %>">
+        <input name="csrf_token" type="hidden" value="{{ request.session.get_csrf_token() }}" />
+
+        <div class="form-group">
+            <label for="cpus" class="col-sm-3 control-label">CPUs</label>
+            <div class="col-sm-9">
+                <input class="form-control" name="cpus" type="number" min="1" step="1" value="<%= cpus %>" />
             </div>
-            <div class="modal-body">
-                <div class="row">
-                    <div class="col-md-10 col-md-offset-1">
-                        <form class="form-horizontal working"
-                              data-working-message="Reconfiguring CPU and RAM..."
-                              autocomplete="off" method="POST" action="">
-                            <input name="csrf_token" type="hidden" value="{{ request.session.get_csrf_token() }}" />
+        </div>
 
-                            <div class="form-group">
-                                <label for="cpus" class="col-sm-3 control-label">CPUs</label>
-                                <div class="col-sm-9">
-                                    <input class="form-control" name="cpus" type="number" min="1" step="1" value="1" />
-                                </div>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="ram" class="col-sm-3 control-label">RAM</label>
-                                <div class="col-sm-9">
-                                    <div class="input-group">
-                                        <input class="form-control" name="ram" type="number" min="1" step="1" value="1" />
-                                        <div class="input-group-addon">GB</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="form-group">
-                                <div class="col-sm-offset-3 col-sm-9">
-                                    <button name="submitted" type="submit" class="btn btn-primary" autocomplete="off">Reconfigure</button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
+        <div class="form-group">
+            <label for="ram" class="col-sm-3 control-label">RAM</label>
+            <div class="col-sm-9">
+                <div class="input-group">
+                    <input class="form-control" name="ram" type="number" min="1" step="1" value="<%= ram %>" />
+                    <div class="input-group-addon">GB</div>
                 </div>
             </div>
         </div>
-    </div>
-</div>
+    </form>
+</script>
+
+{#- Javascript controlling the machine resources popup #}
+<script type="text/javascript">
+var resourcestpl = _.template($('#resources-popup-template').html());
+
+// Respond to clicks on the reconfigure buttons by popping a dialog
+$('.btn-reconfigure-machine').on('click', function(event) {
+    var button = $(this);
+    var content = resourcestpl({
+        action : button.data('action'),
+        cpus   : button.data('cpus'),
+        ram    : button.data('ram')
+    });
+    var dialog = bootbox.dialog({
+        title : 'Reconfigure CPU and RAM',
+        message : content,
+        buttons : {
+            "Reconfigure" : function() { dialog.find('form').submit(); }
+        }
+    });
+    // Hide the dialog when any form in it is submitted
+    var form = dialog.find('form').on('submit-confirmed', function() { dialog.modal('hide'); });
+});
+</script>
 {% endblock %}
