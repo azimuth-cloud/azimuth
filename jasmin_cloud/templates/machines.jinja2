@@ -138,28 +138,99 @@
 
 {#- Template for machine resources popup #}
 <script type="text/template" id="resources-popup-template">
-    <form class="form-horizontal working"
-          data-working-message="Reconfiguring CPU and RAM..."
-          autocomplete="off" method="POST" action="<%= action %>">
-        <input name="csrf_token" type="hidden" value="{{ request.session.get_csrf_token() }}" />
+    <ul class="nav nav-tabs" role="tablist">
+        <li role="presentation" class="active">
+            <a href="#cpu-ram" aria-controls="cpu-ram" role="tab" data-toggle="tab">CPU &amp; RAM</a>
+        </li>
+        <li role="presentation">
+            <a href="#hard-disks" aria-controls="hard-disks" role="tab" data-toggle="tab">Hard disks</a>
+        </li>
+    </ul>
 
-        <div class="form-group">
-            <label for="cpus" class="col-sm-3 control-label">CPUs</label>
-            <div class="col-sm-9">
-                <input class="form-control" name="cpus" type="number" min="1" step="1" value="<%= cpus %>" />
-            </div>
-        </div>
+    <div class="tab-content">
+        <div role="tabpanel" class="tab-pane active" id="cpu-ram">
+            <div class="row">
+                <div class="col-md-10 col-md-offset-1">
+                    <form class="form-horizontal working"
+                          data-working-message="Reconfiguring CPU and RAM..."
+                          autocomplete="off" method="POST" action="<%= action %>">
+                        <input name="csrf_token" type="hidden" value="{{ request.session.get_csrf_token() }}" />
 
-        <div class="form-group">
-            <label for="ram" class="col-sm-3 control-label">RAM</label>
-            <div class="col-sm-9">
-                <div class="input-group">
-                    <input class="form-control" name="ram" type="number" min="1" step="1" value="<%= ram %>" />
-                    <div class="input-group-addon">GB</div>
+                        <div class="form-group">
+                            <label for="cpus" class="col-sm-3 control-label">CPUs</label>
+                            <div class="col-sm-9">
+                                <input class="form-control" name="cpus" type="number" min="1" step="1" value="<%= cpus %>" />
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="ram" class="col-sm-3 control-label">RAM</label>
+                            <div class="col-sm-9">
+                                <div class="input-group">
+                                    <input class="form-control" name="ram" type="number" min="1" step="1" value="<%= ram %>" />
+                                    <div class="input-group-addon">GB</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="col-sm-offset-3 col-sm-9">
+                                <button name="submitted" type="submit" class="btn btn-primary" autocomplete="off">Reconfigure</button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
-    </form>
+        <div role="tabpanel" class="tab-pane" id="hard-disks">
+            <div class="row">
+                <div class="col-md-10 col-md-offset-1">
+                    <form>
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Size</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style="white-space : nowrap;"><code>Disk 0</code></td>
+                                    <td style="white-space : nowrap;">20 GB</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td style="white-space : nowrap;"><code>Disk 1</code></td>
+                                    <td style="white-space : nowrap;">100 GB</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td style="white-space : nowrap; vertical-align : middle;">
+                                        <label for="disk-size">New Disk</label>
+                                    </td>
+                                    <td>
+                                        <div class="form-group">
+                                            <div class="input-group">
+                                                <input class="form-control" name="disk-size" type="number" min="1" step="1" value="40" />
+                                                <div class="input-group-addon">GB</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <button title="Add disk" type="submit" class="btn btn-success">
+                                            <i class="fa fa-fw fa-plus"></i>
+                                            <span class="sr-only">Add disk</span>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 </script>
 
 {#- Javascript controlling the machine resources popup #}
@@ -175,11 +246,8 @@ $('.btn-reconfigure-machine').on('click', function(event) {
         ram    : button.data('ram')
     });
     var dialog = bootbox.dialog({
-        title : 'Reconfigure CPU and RAM',
+        title : 'Machine resources',
         message : content,
-        buttons : {
-            "Reconfigure" : function() { dialog.find('form').submit(); }
-        }
     });
     // Hide the dialog when any form in it is submitted
     var form = dialog.find('form').on('submit-confirmed', function() { dialog.modal('hide'); });

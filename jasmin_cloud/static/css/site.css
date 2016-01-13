@@ -5,7 +5,7 @@
  *
  * Copyright 2015 STFC
  */
- 
+
 /* CSS rules to force footer to the bottom of the page on short pages */
 
 html {
@@ -84,13 +84,13 @@ ul.actions > li {
 */
 .has-error .form-control::-webkit-input-placeholder {
     color : #d4a2a0 !important;
-}  
+}
 .has-error .form-control:-moz-placeholder {
     color : #d4a2a0 !important;
-}   
+}
 .has-error .form-control::-moz-placeholder {
     color : #d4a2a0 !important;
-}   
+}
 .has-error .form-control:-ms-input-placeholder {
     color : #d4a2a0 !important;
 }
@@ -173,4 +173,12 @@ h2.panel-heading {
 .markdown-preview .content :last-child {
     margin-bottom : 0;
     padding-bottom : 0;
+}
+
+.nav-tabs {
+    margin-bottom : 15px;
+}
+
+td .form-group {
+    margin-bottom : 0;
 }
