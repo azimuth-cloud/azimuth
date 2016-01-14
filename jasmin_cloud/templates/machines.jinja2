@@ -66,6 +66,7 @@
                         <button class="btn btn-primary btn-xs btn-reconfigure-machine"
                                 title="Reconfigure machine resources"
                                 data-cpu-ram-action="{{ request.route_url('machine_reconfigure', id = machine.id) }}"
+                                data-add-disk-action="{{ request.route_url('machine_add_disk', id = machine.id) }}"
                                 data-cpus="{{ machine.cpus }}" data-ram="{{ machine.ram }}"
                                 data-disks='[{% for disk in machine.disks %}{ "name":"{{ disk.name }}", "size":{{ disk.size }} }{% if not loop.last %},{% endif %}{%- endfor %}]'>
                             <i class="fa fa-fw fa-gears"></i>
@@ -171,6 +172,8 @@
                     <form class="working"
                           data-working-message="Adding hard disk..."
                           autocomplete="off" method="POST" action="<%= add_disk_action %>">
+                        <input name="csrf_token" type="hidden" value="{{ request.session.get_csrf_token() }}" />
+
                         <table class="table table-striped">
                             <thead>
                                 <tr>
@@ -224,7 +227,7 @@ $('.btn-reconfigure-machine').on('click', function(event) {
     var button = $(this);
     var content = resourcestpl({
         cpu_ram_action  : button.data('cpu-ram-action'),
-        add_disk_action : '#',
+        add_disk_action : button.data('add-disk-action'),
         cpus            : button.data('cpus'),
         ram             : button.data('ram'),
         disks           : button.data('disks')

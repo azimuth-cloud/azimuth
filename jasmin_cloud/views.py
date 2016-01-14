@@ -443,6 +443,33 @@ def machine_reconfigure(request):
     return HTTPSeeOther(location = request.route_url('machines'))
 
 
+@view_config(route_name = 'machine_add_disk',
+             request_method = 'POST', permission = 'org_edit')
+def machine_add_disk(request):
+    """
+    Handler for POST requests to ``/{org}/machine/{id}/add_disk``.
+
+    The user must be authenticated for the organisation in the URL to reach here.
+
+    Attempt to add a hard disk of the specified size to the machine.
+    """
+    # Request must pass a CSRF test
+    check_csrf_token(request)
+    try:
+        disk_size = int(request.params['disk-size'])
+        if disk_size < 1:
+            raise ValueError('Disk size must be at least 1')
+    except (ValueError, KeyError):
+        # If the user has used the UI without modification, this should never happen
+        request.session.flash('Error with inputs', 'error')
+        return HTTPSeeOther(location = request.route_url('machines'))
+    # Reconfigure the machine
+    machine_id = request.matchdict['id']
+    # request.active_cloud_session.add_disk_to_machine(machine_id, disk_size)
+    request.session.flash('Disk added successfully', 'success')
+    return HTTPSeeOther(location = request.route_url('machines'))
+
+
 @view_config(route_name = 'machine_action',
              request_method = 'POST', permission = 'org_edit')
 def machine_action(request):

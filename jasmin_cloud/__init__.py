@@ -25,7 +25,7 @@ def main(global_config, **settings):
     """
 
     config = Configurator(settings = settings)
-    
+
     # Use Beaker sessions
     config.include('pyramid_beaker')
 
@@ -37,31 +37,31 @@ def main(global_config, **settings):
     config.get_jinja2_environment().filters.update({
         'markdown' : jinja2_ext.markdown_filter,
     })
-    
+
     # Set up the integration for the portal services
     config.include('jasmin_cloud.auth')
     config.include('jasmin_cloud.membership')
     config.include('jasmin_cloud.cloud')
-    
-    
+
+
     ############################################################################
     ## Define routes
     ############################################################################
     # Define a pass-through route for static content with caching
     config.add_static_view(name = 'static', path = 'static', cache_max_age = 3600)
-    
+
     config.add_route('home',   '/')
-    
+
     # Route for XMLHttpRequest calls to get markdown preview
     config.add_route('markdown_preview', '/markdown_preview')
-    
+
     # Single login and logout for all orgs
     config.add_route('login',  '/login')
     config.add_route('logout', '/logout')
-    
+
     # User-specific routes
     config.add_route('dashboard', '/dashboard')
-    
+
     # Org-specific routes
     config.add_route('org_home',            '/{org}')
     config.add_route('users',               '/{org}/users')
@@ -71,6 +71,7 @@ def main(global_config, **settings):
     config.add_route('machines',            '/{org}/machines')
     config.add_route('new_machine',         '/{org}/machine/new/{id}')
     config.add_route('machine_reconfigure', '/{org}/machine/{id}/reconfigure')
+    config.add_route('machine_add_disk',    '/{org}/machine/{id}/add_disk')
     config.add_route('machine_action',      '/{org}/machine/{id}/action')
 
     config.scan(ignore = ['.test'])
