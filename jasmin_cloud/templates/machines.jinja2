@@ -24,9 +24,6 @@
             <tr>
                 <th>Name</th>
                 <th>Status</th>
-                <th>CPUs</th>
-                <th>RAM</th>
-                <th style="white-space : nowrap;"># Disks</th>
                 <th style="white-space : nowrap;">Operating System</th>
                 <th style="white-space : nowrap;">Internal IP</th>
                 <th style="white-space : nowrap;">External IP</th>
@@ -50,21 +47,6 @@
                         {%- endif %}
                         <span class="label label-{{ label_type }}">{{ machine.status.value }}</span>
                     </td>
-                    <td>
-                        {%- if machine.cpus >= 0 %}
-                            {{ machine.cpus }}
-                        {%- else %}
-                            <code>-</code>
-                        {%- endif %}
-                    </td>
-                    <td style="white-space : nowrap;">
-                        {%- if machine.ram >= 0 %}
-                            {{ machine.ram }} GB
-                        {%- else %}
-                            <code>-</code>
-                        {%- endif %}
-                    </td>
-                    <td>{{ machine.disks|count }}</td>
                     <td style="width : 99%;">{{ machine.os }}</td>
                     <td><code>{{ machine.internal_ip|default('-', true) }}</code></td>
                     <td><code>{{ machine.external_ip|default('-', true) }}</code></td>
@@ -82,11 +64,12 @@
                             </a>
                         {%- endif %}
                         <button class="btn btn-primary btn-xs btn-reconfigure-machine"
-                                title="Reconfigure CPU and RAM"
-                                data-action="{{ request.route_url('machine_reconfigure', id = machine.id) }}"
-                                data-cpus="{{ machine.cpus }}" data-ram="{{ machine.ram }}">
+                                title="Reconfigure machine resources"
+                                data-cpu-ram-action="{{ request.route_url('machine_reconfigure', id = machine.id) }}"
+                                data-cpus="{{ machine.cpus }}" data-ram="{{ machine.ram }}"
+                                data-disks='[{% for disk in machine.disks %}{ "name":"{{ disk.name }}", "size":{{ disk.size }} }{% if not loop.last %},{% endif %}{%- endfor %}]'>
                             <i class="fa fa-fw fa-gears"></i>
-                            <span class="sr-only">Reconfigure CPU and RAM</span>
+                            <span class="sr-only">Reconfigure machine resources</span>
                         </button>
                         <form class="working" data-working-message="Starting machine..."
                               autocomplete="off" method="POST"
@@ -153,7 +136,7 @@
                 <div class="col-md-10 col-md-offset-1">
                     <form class="form-horizontal working"
                           data-working-message="Reconfiguring CPU and RAM..."
-                          autocomplete="off" method="POST" action="<%= action %>">
+                          autocomplete="off" method="POST" action="<%= cpu_ram_action %>">
                         <input name="csrf_token" type="hidden" value="{{ request.session.get_csrf_token() }}" />
 
                         <div class="form-group">
@@ -185,7 +168,9 @@
         <div role="tabpanel" class="tab-pane" id="hard-disks">
             <div class="row">
                 <div class="col-md-10 col-md-offset-1">
-                    <form>
+                    <form class="working"
+                          data-working-message="Adding hard disk..."
+                          autocomplete="off" method="POST" action="<%= add_disk_action %>">
                         <table class="table table-striped">
                             <thead>
                                 <tr>
@@ -195,19 +180,16 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr>
-                                    <td style="white-space : nowrap;"><code>Disk 0</code></td>
-                                    <td style="white-space : nowrap;">20 GB</td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td style="white-space : nowrap;"><code>Disk 1</code></td>
-                                    <td style="white-space : nowrap;">100 GB</td>
-                                    <td></td>
-                                </tr>
+                                <% _.each(disks, function(disk) { %>
+                                    <tr>
+                                        <td style="white-space : nowrap;"><code><%= _.escape(disk.name) %></code></td>
+                                        <td style="white-space : nowrap;"><%= _.escape(disk.size) %> GB</td>
+                                        <td></td>
+                                    </tr>
+                                <% }); %>
                                 <tr>
                                     <td style="white-space : nowrap; vertical-align : middle;">
-                                        <label for="disk-size">New Disk</label>
+                                        <label for="disk-size">Add a disk</label>
                                     </td>
                                     <td>
                                         <div class="form-group">
@@ -241,9 +223,11 @@ var resourcestpl = _.template($('#resources-popup-template').html());
 $('.btn-reconfigure-machine').on('click', function(event) {
     var button = $(this);
     var content = resourcestpl({
-        action : button.data('action'),
-        cpus   : button.data('cpus'),
-        ram    : button.data('ram')
+        cpu_ram_action  : button.data('cpu-ram-action'),
+        add_disk_action : '#',
+        cpus            : button.data('cpus'),
+        ram             : button.data('ram'),
+        disks           : button.data('disks')
     });
     var dialog = bootbox.dialog({
         title : 'Machine resources',
