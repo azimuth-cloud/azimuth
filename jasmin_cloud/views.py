@@ -154,7 +154,7 @@ def login(request):
             return HTTPSeeOther(location = request.route_url('dashboard'),
                                 headers  = remember(request, username))
         else:
-            _log.warning('Failed login attempt from {} with username {}'.format(req.client_addr, username))
+            _log.warning('Failed login attempt from {} with username {}'.format(request.client_addr, username))
             request.session.flash('Invalid credentials', 'error')
     return {}
 
