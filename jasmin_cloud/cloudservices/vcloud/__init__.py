@@ -72,22 +72,22 @@ _escape_script = lambda s: s.replace(os.linesep, '&#13;').\
 class VCloudError(ProviderSpecificError):
     """
     Provider specific error class for the vCloud Director provider.
-    
+
     .. py:attribute:: __endpoint__
-    
+
         The API endpoint that raised the error.
-    
+
     .. py:attribute:: __user__
-    
+
         The user when the error was raised.
-        
+
     .. py:attribute:: __status_code__
-    
+
         The majorErrorCode from the vCD error - always matches the HTTP status
         code of the response.
-        
+
     .. py:attribute:: __error_code__
-    
+
         The minorErrorCode from the vCD error.
     """
     def __init__(self, endpoint, user, status_code, error_code, error_message):
@@ -96,17 +96,17 @@ class VCloudError(ProviderSpecificError):
         self.__status_code__ = status_code
         self.__error_code__  = error_code
         super().__init__(error_message)
-        
+
     def __str__(self):
         return "[{}] [{}] [{}] [{}] {}".format(
             self.__endpoint__, self.__user__,
             self.__status_code__, self.__error_code__, super().__str__()
         )
-        
+
     def raise_cloud_service_error(self):
         """
         Raises the appropriate :py:class`..exceptions.CloudServiceError` with this
-        vCD error as the cause. 
+        vCD error as the cause.
         """
         # A 503 error probably means we couldn't even contact vCD
         if self.__status_code__ == 503:
@@ -150,15 +150,15 @@ class VCloudError(ProviderSpecificError):
             raise TaskAbortedError('Action aborted by administrator') from self
         # Otherwise, assume the request was incorrectly specified by the implementation
         raise ImplementationError('Bad request') from self
-    
+
     @classmethod
     def from_xml(cls, endpoint, user, error):
         """
         Creates and returns a new :py:class:`VCloudError` from the given XML. The
         XML can be given either as a string or as an ``ElementTree.Element``.
-        
+
         Raises ``ValueError`` if the given XML string is not a valid vCD error.
-        
+
         :param endpoint: The endpoint that produced the XML
         :param user: The user whose session produced the XML
         :param error: The XML or ElementTree Element containing a vCD error
@@ -184,24 +184,24 @@ class VCloudError(ProviderSpecificError):
 class VCloudSession(Session):
     """
     Session implementation for the vCloud Director 5.5 API.
-    
+
     :param endpoint: The API endpoint
     :param auth_token: An API authorisation token for the session
     """
     def __init__(self, endpoint, user, password):
         self.__endpoint = endpoint.rstrip('/')
         self.__user = user
-        
+
         # Create a requests session that can inject the required headers
         self.__session = requests.Session()
         self.__session.headers.update(_REQUIRED_HEADERS)
-        
+
         # Get an auth token for the session and inject it into the headers for
         # future requests
         res = self.api_request('POST', 'sessions', auth = (user, password))
-        auth_token = res.headers['x-vcloud-authorization']        
+        auth_token = res.headers['x-vcloud-authorization']
         self.__session.headers.update({ 'x-vcloud-authorization' : auth_token })
-        
+
     def __getstate__(self):
         """
         Called when the object is pickled
@@ -210,8 +210,8 @@ class VCloudSession(Session):
         state = { 'endpoint' : self.__endpoint, 'user' : self.__user }
         if self.__session:
             state['auth_token'] = self.__session.headers['x-vcloud-authorization']
-        return state 
-        
+        return state
+
     def __setstate__(self, state):
         """
         Called when the object is unpickled
@@ -225,14 +225,14 @@ class VCloudSession(Session):
             self.__session.headers.update({ 'x-vcloud-authorization' : state['auth_token'] })
         else:
             self.__session = None
-                
+
     def api_request(self, method, path, *args, **kwargs):
         """
         Makes a request to the vCloud Director API, injecting auth headers etc.,
         and returns the response if it has a 20x status code.
-        
+
         If the status code is not 20x, a relevant exception is thrown.
-        
+
         :param method: HTTP method to use (case-insensitive)
         :param path: Path to request
                      Can be relative (endpoint is prepended) or fully-qualified
@@ -259,7 +259,7 @@ class VCloudSession(Session):
         except requests.exceptions.RequestException:
             raise ProviderConnectionError('Cannot connect to vCloud Director API')
         # If the response status is an error (i.e. 4xx or 5xx), try to raise an
-        # appropriate error, otherwise return the response 
+        # appropriate error, otherwise return the response
         if res.status_code == 503:
             # A 503 error probably means we couldn't even contact vCD
             raise ProviderConnectionError('Cannot connect to vCloud Director API')
@@ -280,14 +280,14 @@ class VCloudSession(Session):
                        .raise_cloud_service_error()
         else:
             return res
-    
+
     def wait_for_task(self, task_href):
         """
         Takes the href of a task and waits for it to complete before returning.
-        
+
         If the task fails to complete successfully, it throws an exception with
         a suitable message.
-        
+
         :param task_href: The href of the task to wait for
         """
         # Loop until we have success or failure
@@ -328,13 +328,13 @@ class VCloudSession(Session):
                 raise TaskFailedError('Unrecoverable error')
             # Any other statuses, we sleep before fetching the task again
             sleep(_POLL_INTERVAL)
-    
+
     _TYPE_KEY = '{{{}}}type'.format(_NS['xsi'])
     def get_metadata(self, base):
         """
         Finds all the metadata associated with the given base and returns it as
         a dictionary.
-        
+
         :param base: The object to find metadata for
         :returns: A dictionary of metadata entries
         """
@@ -365,7 +365,7 @@ class VCloudSession(Session):
             except (ValueError, TypeError):
                 raise BadConfigurationError('Invalid metadata value')
         return meta
-            
+
     def poll(self):
         """
         See :py:meth:`jasmin_cloud.cloudservices.Session.poll`.
@@ -373,7 +373,7 @@ class VCloudSession(Session):
         # Just hit an API endpoint that does nothing but report session info
         self.api_request('GET', 'session')
         return True
-        
+
     def has_permission(self, permission):
         """
         See :py:meth:`jasmin_cloud.cloudservices.Session.has_permission`.
@@ -387,13 +387,13 @@ class VCloudSession(Session):
         # Add the namespace to the permission as the key into metadata
         #   If the key is not present, treat that as having value 0
         return bool(meta.get('JASMIN.{}'.format(permission.upper()), 0))
-            
+
     def list_images(self):
         """
         See :py:meth:`jasmin_cloud.cloudservices.Session.list_images`.
-        
+
         .. note::
-        
+
             This implementation uses `vAppTemplate` uuids as the image ids
         """
         # Get a list of uris of catalogs available to the user
@@ -423,13 +423,13 @@ class VCloudSession(Session):
                 except NoSuchResourceError:
                     continue
         return images
-    
+
     def get_image(self, image_id):
         """
         See :py:meth:`jasmin_cloud.cloudservices.Session.get_image`.
-        
+
         .. note::
-        
+
             This implementation uses `vAppTemplate` uuids as the image ids
         """
         template = ET.fromstring(
@@ -453,13 +453,13 @@ class VCloudSession(Session):
         # Use a default for host type if not available
         host_type = meta.get('JASMIN.HOST_TYPE', 'other')
         return Image(image_id, name, host_type, description, nat_policy, is_public)
-        
+
     def image_from_machine(self, machine_id, name, description):
         """
         See :py:meth:`jasmin_cloud.cloudservices.Session.image_from_machine`.
-        
+
         .. note::
-        
+
             This implementation uses `vAppTemplate` uuids as the image ids
         """
         # First, check if the session is allowed to do this!
@@ -529,13 +529,13 @@ class VCloudSession(Session):
         self.delete_machine(machine_id)
         # Newly created templates are never public
         return Image(template_id, name, host_type, description, nat_policy, False)
-        
+
     def delete_image(self, image_id):
         """
         See :py:meth:`jasmin_cloud.cloudservices.Session.delete_image`.
-        
+
         .. note::
-        
+
             This implementation uses `vAppTemplate` uuids as the image ids
         """
         try:
@@ -545,7 +545,7 @@ class VCloudSession(Session):
             self.wait_for_task(task.attrib['href'])
         except (InvalidActionError, TaskFailedError) as e:
             raise ImageDeleteError('{} while deleting catalogue item'.format(e)) from e
-    
+
     def count_machines(self):
         """
         See :py:meth:`jasmin_cloud.cloudservices.Session.count_machines`.
@@ -553,7 +553,7 @@ class VCloudSession(Session):
         # We only need one API query to return this
         results = ET.fromstring(self.api_request('GET', 'vApps/query').text)
         return len(results.findall('vcd:VAppRecord', _NS))
-        
+
     def list_machines(self):
         """
         See :py:meth:`jasmin_cloud.cloudservices.Session.list_machines`.
@@ -564,7 +564,7 @@ class VCloudSession(Session):
         return [
             self.get_machine(app.attrib['href'].rstrip('/').split('/').pop()) for app in apps
         ]
-        
+
     def __gateway_from_app(self, app):
         """
         Given an ET element representing a vApp, returns an ET element representing the
@@ -581,7 +581,7 @@ class VCloudSession(Session):
             return ET.fromstring(self.api_request('GET', gateway_ref.attrib['href']).text)
         except AttributeError:
             return None
-        
+
     def __primary_nic_from_app(self, app):
         """
         Given an ET element representing a vApp, returns an ET element representing the primary
@@ -595,7 +595,7 @@ class VCloudSession(Session):
             )
         except AttributeError:
             return None
-        
+
     def __internal_ip_from_app(self, app):
         """
         Given an ET element representing a vApp, returns the internal IP of the primary
@@ -606,7 +606,7 @@ class VCloudSession(Session):
             return IPv4Address(nic.find('vcd:IpAddress', _NS).text)
         except (AttributeError, AddressValueError):
             return None
-        
+
     def get_machine(self, machine_id):
         """
         See :py:meth:`jasmin_cloud.cloudservices.Session.get_machine`.
@@ -666,7 +666,7 @@ class VCloudSession(Session):
                         break
         return Machine(machine_id, name, status, cpus, ram,
                        description, created, os, internal_ip, external_ip)
-    
+
     # Guest customisation script expects a script to be baked into each template
     # at /usr/local/bin/activator.sh
     # The script should have the following interface on all machines:
@@ -674,16 +674,16 @@ class VCloudSession(Session):
     # However, the script itself may differ from machine to machine, and is free
     # to use or ignore the arguments as it sees fit
     _GUEST_CUSTOMISATION = """#!/bin/sh
-if [ x$1 == x"postcustomization" ]; then
+if [ x$1 = x"postcustomization" ]; then
   /usr/local/bin/activator.sh "{ssh_key}" "{org_name}" "{vm_type}" "{vm_id}"
 fi
 """
     def provision_machine(self, image_id, name, description, ssh_key, expose):
         """
         See :py:meth:`jasmin_cloud.cloudservices.Session.provision_machine`.
-        
+
         .. note::
-        
+
             This implementation uses `vAppTemplate` uuids as the image ids
         """
         # Get the image info
@@ -790,7 +790,7 @@ fi
         if expose:
             self.__expose_machine(machine_id)
         return self.get_machine(machine_id)
-    
+
     def __expose_machine(self, machine_id):
         """
         Applies NAT and firewall rules to expose the given machine to the internet.
@@ -883,7 +883,7 @@ fi
             self.wait_for_task(task.attrib['href'])
         except TaskFailedError as e:
             raise NetworkingError('{} while applying network configuration'.format(e)) from e
-    
+
     def __unexpose_machine(self, machine_id):
         """
         Removes any NAT and firewall rules applied to the given machine.
@@ -967,7 +967,7 @@ fi
             self.wait_for_task(task.attrib['href'])
         except TaskFailedError as e:
             raise NetworkingError('{} while applying network configuration'.format(e)) from e
-        
+
     def reconfigure_machine(self, machine_id, cpus, ram):
         """
         See :py:meth:`jasmin_cloud.cloudservices.Session.reconfigure_machine`.
@@ -1013,7 +1013,7 @@ fi
                     '{} while allocating {} GB RAM'.format(e, ram)
                 ) from e
         return self.get_machine(machine_id)
-        
+
     def start_machine(self, machine_id):
         """
         See :py:meth:`jasmin_cloud.cloudservices.Session.start_machine`.
@@ -1028,7 +1028,7 @@ fi
             pass
         except TaskFailedError as e:
             raise PowerActionError('{} while starting machine'.format(e)) from e
-        
+
     def stop_machine(self, machine_id):
         """
         See :py:meth:`jasmin_cloud.cloudservices.Session.stop_machine`.
@@ -1044,7 +1044,7 @@ fi
             pass
         except TaskFailedError as e:
             raise PowerActionError('{} while stopping machine'.format(e)) from e
-        
+
     def restart_machine(self, machine_id):
         """
         See :py:meth:`jasmin_cloud.cloudservices.Session.restart_machine`.
@@ -1059,7 +1059,7 @@ fi
             pass
         except TaskFailedError as e:
             raise PowerActionError('{} while restarting machine'.format(e)) from e
-        
+
     def delete_machine(self, machine_id):
         """
         See :py:meth:`jasmin_cloud.cloudservices.Session.delete_machine`.
@@ -1077,7 +1077,7 @@ fi
             self.wait_for_task(task.attrib['href'])
         except TaskFailedError as e:
             raise PowerActionError('{} while deleting machine'.format(e)) from e
-            
+
     def close(self):
         """
         See :py:meth:`jasmin_cloud.cloudservices.Session.close`.
