@@ -25,7 +25,7 @@ class TestVcdProvider(unittest.TestCase, IntegrationTest):
     """
     Test case for vCloud Director provider
     """
-    
+
     def steps(self):
         return OrderedDict((
             ('create_session', self.create_session),
@@ -40,12 +40,13 @@ class TestVcdProvider(unittest.TestCase, IntegrationTest):
             ('restart_machine', self.restart_machine),
             ('stop_machine', self.stop_machine),
             ('reconfigure_machine', self.reconfigure_machine),
+            ('add_disk_to_machine', self.add_disk_to_machine),
             ('start_reconfigured', self.start_machine),
             ('stop_reconfigured', self.stop_machine),
             ('delete_machine', self.delete_machine),
             ('close_session', self.close_session),
         ))
-        
+
     def create_session(self, notused):
         """
         Creates a session and tests that it is active
@@ -55,7 +56,7 @@ class TestVcdProvider(unittest.TestCase, IntegrationTest):
         # Check that the session has the ability to create templates, or the test
         # will fail later
         self.assertTrue(self.session.has_permission('CAN_CREATE_TEMPLATES'))
-        
+
     def get_known_image(self, notused):
         """
         Uses the current session to get a known image and returns it
@@ -66,14 +67,14 @@ class TestVcdProvider(unittest.TestCase, IntegrationTest):
         # The known image should have a NAT policy of USER
         self.assertEqual(image.nat_policy, NATPolicy.USER)
         return image
-        
+
     def provision_exposed_machine(self, image):
         """
         Uses the current session to provision a machine using the given image and
         returns the provisioned machine.
-        
+
         Uses a value of True for expose.
-        
+
         Deletes the image if it is not the known image.
         """
         machine = self.session.provision_machine(
@@ -89,14 +90,14 @@ class TestVcdProvider(unittest.TestCase, IntegrationTest):
         if image.name != settings.known_image:
             self.session.delete_image(image.id)
         return machine
-        
+
     def provision_machine(self, image):
         """
         Uses the current session to provision a machine using the given image and
         returns the provisioned machine.
-        
+
         Uses a value of False for expose.
-        
+
         Deletes the image if it is not the known image.
         """
         machine = self.session.provision_machine(
@@ -112,7 +113,7 @@ class TestVcdProvider(unittest.TestCase, IntegrationTest):
         if image.name != settings.known_image:
             self.session.delete_image(image.id)
         return machine
-        
+
     def machine_in_list(self, machine):
         """
         Uses the session to check that the given machine is in the list of
@@ -122,7 +123,7 @@ class TestVcdProvider(unittest.TestCase, IntegrationTest):
         machines = self.session.list_machines()
         self.assertTrue(any(m.id == machine.id for m in machines))
         return machine
-    
+
     def image_from_machine(self, machine):
         """
         Uses the session to create an image from the given machine and returns
@@ -139,7 +140,7 @@ class TestVcdProvider(unittest.TestCase, IntegrationTest):
         machines = self.session.list_machines()
         self.assertFalse(any(m.id == machine.id for m in machines))
         return image
-    
+
     def image_in_list(self, image):
         """
         Uses the session to check that the given image is in the list of available
@@ -149,7 +150,7 @@ class TestVcdProvider(unittest.TestCase, IntegrationTest):
         self.assertGreater(len(images), 0)
         self.assertTrue(any(i.id == image.id for i in images))
         return image
-    
+
     def start_machine(self, machine):
         """
         Uses the session to start the machine that it should receive as input
@@ -161,7 +162,7 @@ class TestVcdProvider(unittest.TestCase, IntegrationTest):
         machine = self.session.get_machine(machine.id)
         self.assertIs(machine.status, MachineStatus.POWERED_ON)
         return machine
-    
+
     def restart_machine(self, machine):
         """
         Uses the session to restart the machine that it should recieve as input
@@ -173,7 +174,7 @@ class TestVcdProvider(unittest.TestCase, IntegrationTest):
         machine = self.session.get_machine(machine.id)
         self.assertIs(machine.status, MachineStatus.POWERED_ON)
         return machine
-    
+
     def stop_machine(self, machine):
         """
         Uses the session to stop the machine that it should recieve as input
@@ -185,7 +186,7 @@ class TestVcdProvider(unittest.TestCase, IntegrationTest):
         machine = self.session.get_machine(machine.id)
         self.assertIs(machine.status, MachineStatus.POWERED_OFF)
         return machine
-    
+
     def reconfigure_machine(self, machine):
         """
         Uses the session to reconfigure the RAM and CPU before returning the machine.
@@ -196,7 +197,24 @@ class TestVcdProvider(unittest.TestCase, IntegrationTest):
         self.assertEqual(machine.cpus, 2)
         self.assertEqual(machine.ram, 4)
         return machine
-        
+
+    def add_disk_to_machine(self, machine):
+        """
+        Uses the session to add a disk before returning the machine.
+        """
+        n_disks = len(machine.disks)
+        # Give the machine another disk of size 4GB
+        machine = self.session.add_disk_to_machine(machine.id, 4)
+        # Check that the machine now has an extra disk
+        self.assertEqual(len(machine.disks), n_disks + 1)
+        # Check that one of the disks has size 4GB
+        for disk in machine.disks:
+            if disk.size == 4: break
+        else:
+            # If the loop completes normally, we will get here
+            self.fail('No disk with size 4GB')
+        return machine
+
     def delete_machine(self, machine):
         """
         Uses the session to delete the machine that it should recieve as input
@@ -207,7 +225,7 @@ class TestVcdProvider(unittest.TestCase, IntegrationTest):
         # details about what is a real id
         with self.assertRaises(PermissionsError):
             self.session.get_machine(machine.id)
-        
+
     def close_session(self, notused):
         """
         Closes the session and checks that it is no longer active
@@ -216,4 +234,3 @@ class TestVcdProvider(unittest.TestCase, IntegrationTest):
         with self.assertRaises(CloudServiceError):
             self.session.poll()
         self.session = None
-    
