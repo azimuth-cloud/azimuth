@@ -465,7 +465,7 @@ def machine_add_disk(request):
         return HTTPSeeOther(location = request.route_url('machines'))
     # Reconfigure the machine
     machine_id = request.matchdict['id']
-    # request.active_cloud_session.add_disk_to_machine(machine_id, disk_size)
+    request.active_cloud_session.add_disk_to_machine(machine_id, disk_size)
     request.session.flash('Disk added successfully', 'success')
     return HTTPSeeOther(location = request.route_url('machines'))
 

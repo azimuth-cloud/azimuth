@@ -47,7 +47,7 @@
                         {%- endif %}
                         <span class="label label-{{ label_type }}">{{ machine.status.value }}</span>
                     </td>
-                    <td style="width : 99%;">{{ machine.os }}</td>
+                    <td>{{ machine.os }}</td>
                     <td><code>{{ machine.internal_ip|default('-', true) }}</code></td>
                     <td><code>{{ machine.external_ip|default('-', true) }}</code></td>
                     <td style="white-space : nowrap;">{{ machine.created.strftime('%Y-%m-%d %H:%M:%S') }}</td>

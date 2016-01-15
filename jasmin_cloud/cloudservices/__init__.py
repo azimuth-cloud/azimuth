@@ -353,6 +353,17 @@ class Session(metaclass = abc.ABCMeta):
         """
 
     @abc.abstractmethod
+    def add_disk_to_machine(self, machine_id, size):
+        """
+        Adds a virtual hard disk to the specified virtual machine with the given
+        size.
+
+        :param machine_id: The id of the machine to add a disk to
+        :param size: The size of the new disk in GB
+        :returns: The updated :py:class:`Machine`
+        """
+
+    @abc.abstractmethod
     def start_machine(self, machine_id):
         """
         Powers up the specified virtual machine.

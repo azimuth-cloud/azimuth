@@ -655,7 +655,7 @@ class VCloudSession(Session):
             # Find the disks associated with the VM
             disks = []
             for disk in vhs.findall('./ovf:Item[rasd:ResourceType="17"]', _NS):
-                disk_name = "Disk {}".format(disk.find('./rasd:AddressOnParent', _NS).text)
+                disk_name = disk.find('./rasd:ElementName', _NS).text
                 size = disk.find('./rasd:HostResource', _NS).attrib[self._CAPACITY_KEY]
                 size = int(size) // 1024  # Disk size comes out in MB
                 disks.append(HardDisk(disk_name, size))
@@ -1031,6 +1031,61 @@ fi
                 raise ResourceAllocationError(
                     '{} while allocating {} GB RAM'.format(e, ram)
                 ) from e
+        return self.get_machine(machine_id)
+
+    _BUS_TYPE_KEY = '{{{}}}busType'.format(_NS['vcd'])
+    _BUS_SUBTYPE_KEY = '{{{}}}busSubType'.format(_NS['vcd'])
+    def add_disk_to_machine(self, machine_id, size):
+        """
+        See :py:meth:`jasmin_cloud.cloudservices.Session.add_disk_to_machine`.
+        """
+        # First, check that the machine if off
+        if self.get_machine(machine_id).status != MachineStatus.POWERED_OFF:
+            raise InvalidActionError('Machine must be powered off to add a disk')
+        # We will work with the first VM in the vApp
+        app = ET.fromstring(self.api_request('GET', 'vApp/{}'.format(machine_id)).text)
+        vm_id = app.find('.//vcd:Vm', _NS).attrib['href'].rstrip('/').split('/').pop()
+        # Get the current disk info from the virtual hardware section
+        disks_section = ET.fromstring(self.api_request(
+            'GET', 'vApp/{}/virtualHardwareSection/disks'.format(vm_id)
+        ).text)
+        disks = disks_section.findall('./vcd:Item[rasd:ResourceType="17"]', _NS)
+        # There must be at least one disk to use as a template
+        if not disks:
+            raise BadConfigurationError('Machine must have at least one disk before operation')
+        # Find the maximum unit number and instance ID for all current disks
+        max_unit = -1
+        max_id = -1
+        for disk in disks:
+            max_unit = max(max_unit, int(disk.find('./rasd:AddressOnParent', _NS).text))
+            max_id = max(max_id, int(disk.find('./rasd:InstanceID', _NS).text))
+        # Create a new disk element
+        new_disk = ET.fromstring(_ENV.get_template('HardDisk.xml').render({
+            # Increase the discovered unit and ID by 1 for the new disk
+            'unit' : max_unit + 1,
+            'instance_id' : max_id + 1,
+            # Capacity should be given in MB
+            'capacity' : size * 1024,
+            # Take bus and parent info from the first disk
+            'bus_sub_type' : disks[0].find('./rasd:HostResource', _NS).attrib[self._BUS_SUBTYPE_KEY],
+            'bus_type' : disks[0].find('./rasd:HostResource', _NS).attrib[self._BUS_TYPE_KEY],
+            'parent' : disks[0].find('./rasd:Parent', _NS).text,
+        }))
+        # Add the disk to the disks section
+        disks_section.append(new_disk)
+        # Initiate the changes
+        edit_url = 'vApp/{}/virtualHardwareSection/disks'.format(vm_id)
+        task = ET.fromstring(self.api_request(
+            'PUT', edit_url, ET.tostring(disks_section),
+            headers = { 'Content-Type' : 'application/vnd.vmware.vcloud.rasdItemsList+xml' }
+        ).text)
+        # Wait for the task to complete
+        try:
+            self.wait_for_task(task.attrib['href'])
+        except TaskFailedError as e:
+            raise ResourceAllocationError(
+                '{} while allocating {} GB hard disk'.format(e, size)
+            ) from e
         return self.get_machine(machine_id)
 
     def start_machine(self, machine_id):
