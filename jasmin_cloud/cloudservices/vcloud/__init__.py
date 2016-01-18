@@ -128,14 +128,20 @@ class VCloudError(ProviderSpecificError):
         elif self.__status_code__ == 404:
             # 404 is reported if the resource doesn't exist
             raise NoSuchResourceError('Resource does not exist') from self
-        # BAD_REQUEST is sent when an action is invalid given the current state
-        # or when a badly formatted request is sent
+        # BAD_REQUEST is sent when:
+        #  * An action is invalid given the current state
+        #  * When a quota is exceeded
+        #  * When a badly formatted request is sent
+        #  * Who knows what else...!
         elif self.__error_code__ == 'BAD_REQUEST':
             # To distinguish, we need to check the message
-            if 'validation error' in str(self).lower():
+            message = str(self).lower()
+            if 'validation error' in message:
                 raise BadRequestError('Badly formatted request') from self
-            elif 'vdc has run out of' in str(self).lower():
-                raise QuotaExceededError('Quota exceeded') from self
+            elif 'vdc has run out of' in message:
+                raise QuotaExceededError('Quota exceeded for organisation') from self
+            elif 'requested operation will exceed' in message:
+                raise QuotaExceededError('Requested operation will exceed organisation quota') from self
             else:
                 raise InvalidActionError(
                     'Action is invalid for current state') from self
