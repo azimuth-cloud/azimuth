@@ -143,7 +143,7 @@
                         <div class="form-group">
                             <label for="cpus" class="col-sm-3 control-label">CPUs</label>
                             <div class="col-sm-9">
-                                <input class="form-control" name="cpus" type="number" min="1" step="1" value="<%= cpus %>" />
+                                <input class="form-control" name="cpus" type="number" min="1" step="1" value="<%= cpus %>" required />
                             </div>
                         </div>
 
@@ -151,7 +151,7 @@
                             <label for="ram" class="col-sm-3 control-label">RAM</label>
                             <div class="col-sm-9">
                                 <div class="input-group">
-                                    <input class="form-control" name="ram" type="number" min="1" step="1" value="<%= ram %>" />
+                                    <input class="form-control" name="ram" type="number" min="1" step="1" value="<%= ram %>" required />
                                     <div class="input-group-addon">GB</div>
                                 </div>
                             </div>
@@ -197,7 +197,7 @@
                                     <td>
                                         <div class="form-group">
                                             <div class="input-group">
-                                                <input class="form-control" name="disk-size" type="number" min="1" step="1" value="40" />
+                                                <input class="form-control" name="disk-size" type="number" min="1" step="1" placeholder="Size of disk" required />
                                                 <div class="input-group-addon">GB</div>
                                             </div>
                                         </div>
