@@ -699,7 +699,7 @@ class VCloudSession(Session):
     # However, the script itself may differ from machine to machine, and is free
     # to use or ignore the arguments as it sees fit
     _GUEST_CUSTOMISATION = """#!/bin/sh
-if [ x$1 == x"postcustomization" ]; then
+if [ x$1 = x"postcustomization" ]; then
   /usr/local/bin/activator.sh "{ssh_key}" "{org_name}" "{vm_type}" "{vm_id}"
 fi
 """
