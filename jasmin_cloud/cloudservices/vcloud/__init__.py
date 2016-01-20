@@ -16,7 +16,7 @@ import xml.etree.ElementTree as ET
 import requests
 from jinja2 import Environment, FileSystemLoader
 
-from .. import NATPolicy, MachineStatus, Image, Machine, Session
+from .. import NATPolicy, MachineStatus, Image, HardDisk, Machine, Session
 from ..exceptions import *
 
 
@@ -128,14 +128,20 @@ class VCloudError(ProviderSpecificError):
         elif self.__status_code__ == 404:
             # 404 is reported if the resource doesn't exist
             raise NoSuchResourceError('Resource does not exist') from self
-        # BAD_REQUEST is sent when an action is invalid given the current state
-        # or when a badly formatted request is sent
+        # BAD_REQUEST is sent when:
+        #  * An action is invalid given the current state
+        #  * When a quota is exceeded
+        #  * When a badly formatted request is sent
+        #  * Who knows what else...!
         elif self.__error_code__ == 'BAD_REQUEST':
             # To distinguish, we need to check the message
-            if 'validation error' in str(self).lower():
+            message = str(self).lower()
+            if 'validation error' in message:
                 raise BadRequestError('Badly formatted request') from self
-            elif 'vdc has run out of' in str(self).lower():
-                raise QuotaExceededError('Quota exceeded') from self
+            elif 'vdc has run out of' in message:
+                raise QuotaExceededError('Quota exceeded for organisation') from self
+            elif 'requested operation will exceed' in message:
+                raise QuotaExceededError('Requested operation will exceed organisation quota') from self
             else:
                 raise InvalidActionError(
                     'Action is invalid for current state') from self
@@ -164,16 +170,16 @@ class VCloudError(ProviderSpecificError):
         :param error: The XML or ElementTree Element containing a vCD error
         :returns: A :py:class:`VCloudError`
         """
-        if not isinstance(error, ET.Element):
-            error = ET.fromstring(error)
         try:
+            if not isinstance(error, ET.Element):
+                error = ET.fromstring(error)
             return cls(
                 endpoint, user,
                 int(error.attrib['majorErrorCode']),
                 error.attrib['minorErrorCode'].upper(),
                 error.attrib['message']
             )
-        except (ValueError, KeyError, AttributeError):
+        except (ET.ParseError, ValueError, KeyError, AttributeError):
             raise ValueError('Given XML is not a valid vCD Error')
 
 
@@ -274,10 +280,21 @@ class VCloudSession(Session):
                 # in the response), raise a more generic error
                 raise ProviderUnavailableError('vCloud Director API encountered an error')
         elif res.status_code >= 400:
-            # 4xx errors indicate that there was a problem with our request, so
-            # we expect vCD to provide an Error in the response
-            VCloudError.from_xml(self.__endpoint, self.__user, res.text) \
-                       .raise_cloud_service_error()
+            try:
+                # Try to create a cloud service error from the underlying vCD error
+                VCloudError.from_xml(self.__endpoint, self.__user, res.text) \
+                           .raise_cloud_service_error()
+            except ValueError:
+                # If there is no cloud error, raise the specific errors ourself
+                # vCD only raises 401, 403 and 404 error codes
+                if res.status_code == 401:
+                    raise AuthenticationError('Authentication failed')
+                elif res.status_code == 403:
+                    raise PermissionsError('Insufficient permissions')
+                elif res.status_code == 404:
+                    raise NoSuchResourceError('Resource does not exist')
+                else:
+                    raise CloudServiceError('Unknown error with status code {}'.format(res.status_code))
         else:
             return res
 
@@ -607,6 +624,7 @@ class VCloudSession(Session):
         except (AttributeError, AddressValueError):
             return None
 
+    _CAPACITY_KEY = '{{{}}}capacity'.format(_NS['vcd'])
     def get_machine(self, machine_id):
         """
         See :py:meth:`jasmin_cloud.cloudservices.Session.get_machine`.
@@ -627,7 +645,7 @@ class VCloudSession(Session):
         created = datetime.strptime(
             app.find('vcd:DateCreated', _NS).text[:19], '%Y-%m-%dT%H:%M:%S'
         )
-        # For OS, CPUs and RAM, we use the values from the first VM
+        # For OS, CPU, RAM and disks, we use the values from the first VM
         vm = app.find('.//vcd:Vm', _NS)
         if vm is not None:
             os = vm.findtext(
@@ -639,13 +657,20 @@ class VCloudSession(Session):
             ))
             ram = int(vhs.findtext(
                 './ovf:Item[rasd:ResourceType="4"]/rasd:VirtualQuantity', '-1', _NS
-            ))
+            )) // 1024  # RAM comes out in MB - convert to GB
+            # Find the disks associated with the VM
+            disks = []
+            for disk in vhs.findall('./ovf:Item[rasd:ResourceType="17"]', _NS):
+                disk_name = disk.find('./rasd:ElementName', _NS).text
+                size = disk.find('./rasd:HostResource', _NS).attrib[self._CAPACITY_KEY]
+                size = int(size) // 1024  # Disk size comes out in MB
+                disks.append(HardDisk(disk_name, size))
+            disks = tuple(disks)
         else:
             os = 'Unknown'
             cpus = -1
             ram = -1
-        # RAM comes out in MB - convert to GB
-        ram = ram // 1024 if ram > 0 else ram
+            disks = tuple()
         # For IP addresses, we use the values from the primary NIC of the first VM
         internal_ip = self.__internal_ip_from_app(app)
         external_ip = None
@@ -664,7 +689,7 @@ class VCloudSession(Session):
                     if translated == internal_ip:
                         external_ip = IPv4Address(rule.find('.//vcd:OriginalIp', _NS).text)
                         break
-        return Machine(machine_id, name, status, cpus, ram,
+        return Machine(machine_id, name, status, cpus, ram, disks,
                        description, created, os, internal_ip, external_ip)
 
     # Guest customisation script expects a script to be baked into each template
@@ -1012,6 +1037,61 @@ fi
                 raise ResourceAllocationError(
                     '{} while allocating {} GB RAM'.format(e, ram)
                 ) from e
+        return self.get_machine(machine_id)
+
+    _BUS_TYPE_KEY = '{{{}}}busType'.format(_NS['vcd'])
+    _BUS_SUBTYPE_KEY = '{{{}}}busSubType'.format(_NS['vcd'])
+    def add_disk_to_machine(self, machine_id, size):
+        """
+        See :py:meth:`jasmin_cloud.cloudservices.Session.add_disk_to_machine`.
+        """
+        # First, check that the machine if off
+        if self.get_machine(machine_id).status != MachineStatus.POWERED_OFF:
+            raise InvalidActionError('Machine must be powered off to add a disk')
+        # We will work with the first VM in the vApp
+        app = ET.fromstring(self.api_request('GET', 'vApp/{}'.format(machine_id)).text)
+        vm_id = app.find('.//vcd:Vm', _NS).attrib['href'].rstrip('/').split('/').pop()
+        # Get the current disk info from the virtual hardware section
+        disks_section = ET.fromstring(self.api_request(
+            'GET', 'vApp/{}/virtualHardwareSection/disks'.format(vm_id)
+        ).text)
+        disks = disks_section.findall('./vcd:Item[rasd:ResourceType="17"]', _NS)
+        # There must be at least one disk to use as a template
+        if not disks:
+            raise BadConfigurationError('Machine must have at least one disk before operation')
+        # Find the maximum unit number and instance ID for all current disks
+        max_unit = -1
+        max_id = -1
+        for disk in disks:
+            max_unit = max(max_unit, int(disk.find('./rasd:AddressOnParent', _NS).text))
+            max_id = max(max_id, int(disk.find('./rasd:InstanceID', _NS).text))
+        # Create a new disk element
+        new_disk = ET.fromstring(_ENV.get_template('HardDisk.xml').render({
+            # Increase the discovered unit and ID by 1 for the new disk
+            'unit' : max_unit + 1,
+            'instance_id' : max_id + 1,
+            # Capacity should be given in MB
+            'capacity' : size * 1024,
+            # Take bus and parent info from the first disk
+            'bus_sub_type' : disks[0].find('./rasd:HostResource', _NS).attrib[self._BUS_SUBTYPE_KEY],
+            'bus_type' : disks[0].find('./rasd:HostResource', _NS).attrib[self._BUS_TYPE_KEY],
+            'parent' : disks[0].find('./rasd:Parent', _NS).text,
+        }))
+        # Add the disk to the disks section
+        disks_section.append(new_disk)
+        # Initiate the changes
+        edit_url = 'vApp/{}/virtualHardwareSection/disks'.format(vm_id)
+        task = ET.fromstring(self.api_request(
+            'PUT', edit_url, ET.tostring(disks_section),
+            headers = { 'Content-Type' : 'application/vnd.vmware.vcloud.rasdItemsList+xml' }
+        ).text)
+        # Wait for the task to complete
+        try:
+            self.wait_for_task(task.attrib['href'])
+        except TaskFailedError as e:
+            raise ResourceAllocationError(
+                '{} while allocating {} GB hard disk'.format(e, size)
+            ) from e
         return self.get_machine(machine_id)
 
     def start_machine(self, machine_id):

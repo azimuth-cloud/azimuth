@@ -7,14 +7,13 @@ $(document).on('input', '.form-control', function() {
 
 // Enable preview for markdown editors
 //  In order to ensure we use the same rendering algorithm, we use an Ajax callback
-//  We throttle ajax calls using a timeout
 $('.markdown-editor').each(function() {
     var $input = $(this);
     var $preview = $('<div class="markdown-preview"><header>Live preview</header><div class="content"></div></div>');
     $preview.hide();
     $input.parent().append($preview);
-    var timeout;
-    function updatePreview() {
+    // Throttle calls to the update function
+    var updatePreview = _.debounce(function() {
         if( $input.val() === "" ) {
             // If there is no content, hide the preview
             $preview.hide();
@@ -26,27 +25,9 @@ $('.markdown-editor').each(function() {
                 function() { $preview.show(); }
             );
         }
-    }
-    $input.on('input', function() {
-        // Clear any existing timeout and set a new one
-        clearTimeout(timeout);
-        timeout = setTimeout(updatePreview, 1000);
-    });
+    }, 1000);
+    $input.on('input', updatePreview);
     updatePreview();
-});
-
-// Enable the reconfigure form - this event fires when the modal is opened
-$('#reconfigure-form').on('show.bs.modal', function(e) {
-    var button = $(e.relatedTarget); // This is the element that triggered the modal
-    var modal = $(this);
-    modal.find('form').attr('action', button.data('action'));
-    // Force the input event to fire when we change the value
-    modal.find('input[name="cpus"]').val(button.data('cpus')).trigger('input');
-    modal.find('input[name="ram"]').val(button.data('ram')).trigger('input');
-});
-// Hide the modal when the form is submitted
-$(document).on('submit-confirmed', '#reconfigure-form form', function() {
-    $('#reconfigure-form').modal('hide');
 });
 
 // Confirmation dialog for links
@@ -64,7 +45,7 @@ $(document).on('click', 'a.confirm', function(e) {
 /**
  * In order to allow a modular framework for attaching functionality on form submission, we use
  * a custom event, submit-confirmed, that fires only once a form submission has been confirmed
- * if required 
+ * if required
  */
 
 $(document).on('submit', 'form', function(e) {

@@ -30,7 +30,7 @@ _log = logging.getLogger(__name__)
 def _exception_redirect(request):
     """
     Returns a redirect to the most specific page accessible to the current user:
-    
+
       * Current org machines page if user is logged in and belongs to org in URL
       * Dashboard if user is logged in but doesn't belong to org in URL
       * Login page if user is not logged in
@@ -43,13 +43,13 @@ def _exception_redirect(request):
             return HTTPSeeOther(location = request.route_path('dashboard'))
     else:
         return HTTPSeeOther(location = request.route_path('login'))
-    
+
 
 @forbidden_view_config()
 def forbidden(request):
     """
     Handler for 403 forbidden errors.
-    
+
     Shows a suitable error on the most specific page possible.
     """
     if request.authenticated_user:
@@ -63,7 +63,7 @@ def forbidden(request):
 def notfound(request):
     """
     Handler for 404 not found errors.
-    
+
     Shows a suitable error on the most specific page possible.
     """
     request.session.flash('Resource not found', 'error')
@@ -74,10 +74,10 @@ def notfound(request):
 def cloud_service_error(ctx, request):
     """
     Handler for cloud service errors.
-    
+
     If the error is an "expected" error (e.g. not found, permissions), then convert
     to the HTTP equivalent.
-    
+
     Otherwise, show a suitable error on the most specific page possible and log
     the complete error for sysadmins.
     """
@@ -103,7 +103,7 @@ def cloud_service_error(ctx, request):
 def home(request):
     """
     Handler for GET requests to ``/``.
-    
+
     If the user is logged in, redirect to the dashboard, otherwise show a splash page.
     """
     if request.authenticated_user:
@@ -117,17 +117,17 @@ def home(request):
 def login(request):
     """
     Handler for ``/login``.
-    
+
     GET request
         Show a login form.
-        
+
     POST request
         Attempt to authenticate the user.
-        
+
         If authentication is successful, try to start a vCloud Director session
         for each organisation that the user belongs to. Login is only considered
         successful if we successfully obtain a session for every organisation.
-        
+
         Redirect to the dashboard on success, otherwise show the login form with
         errors.
     """
@@ -154,33 +154,34 @@ def login(request):
             return HTTPSeeOther(location = request.route_url('dashboard'),
                                 headers  = remember(request, username))
         else:
+            _log.warning('Failed login attempt from {} with username {}'.format(request.client_addr, username))
             request.session.flash('Invalid credentials', 'error')
     return {}
-            
+
 
 @view_config(route_name = 'logout')
 def logout(request):
     """
     Handler for ``/logout``.
-    
+
     If the user is logged in, forget them and redirect to splash page.
     """
     request.cloud_sessions.clear()
     request.session.flash('Logged out successfully', 'success')
     return HTTPSeeOther(location = request.route_url('home'),
                         headers = forget(request))
-    
-    
+
+
 @view_config(route_name = 'dashboard',
              request_method = 'GET',
              renderer = 'templates/dashboard.jinja2', permission = 'view')
 def dashboard(request):
     """
     Handler for GET requests to ``/dashboard``.
-    
+
     The user must be authenticated to reach here, which means that there should be
     a cloud session for each organisation that the user belongs to.
-    
+
     Shows a list of organisations available to the user with the number of
     machines in each.
     """
@@ -190,15 +191,15 @@ def dashboard(request):
             org : sess.count_machines() for org, sess in request.cloud_sessions.items()
         }
     }
-    
+
 
 @view_config(route_name = 'org_home', request_method = 'GET', permission = 'org_view')
 def org_home(request):
     """
     Handler for GET requests to ``/{org}``.
-    
+
     The user must be authenticated for the organisation in the URL to reach here.
-    
+
     Just redirect the user to ``/{org}/machines``.
     """
     return HTTPSeeOther(location = request.route_url('machines'))
@@ -210,9 +211,9 @@ def org_home(request):
 def users(request):
     """
     Handler for GET requests to ``/{org}/users``.
-    
+
     The user must be authenticated for the organisation in the URL to reach here.
-    
+
     Show the users belonging to the organisation in the URL.
     """
     # Get the users for the org
@@ -220,16 +221,16 @@ def users(request):
     # Convert the usernames to user objects
     return { 'users' : [request.users.find_by_username(uid) for uid in member_ids] }
 
-   
+
 @view_config(route_name = 'catalogue',
              request_method = 'GET',
              renderer = 'templates/catalogue.jinja2', permission = 'org_view')
 def catalogue(request):
     """
     Handler for GET requests to ``/{org}/catalogue``.
-    
+
     The user must be authenticated for the organisation in the URL to reach here.
-    
+
     Show the catalogue items available to the organisation in the URL.
     """
     # Get the available catalogue items
@@ -244,20 +245,20 @@ def catalogue(request):
 def catalogue_new(request):
     """
     Handler for ``/{org}/catalogue/new/{id}``
-    
+
     The user must be authenticated for the organisation in the URL to reach here.
-    
+
     ``{id}`` is the uuid of the machine to use as a template.
-    
+
     GET request
         Show a form to gather information required to create a new catalogue item.
-        
+
     POST request
         Attempt to create a new catalogue item using the provided information.
-        
+
         On success, redirect the user to ``/{org}/catalogue`` with a success message.
-        
-        On a duplicate name error, show the form with an error message.        
+
+        On a duplicate name error, show the form with an error message.
     """
     # Get the cloud session for the current org
     cloud_session = request.active_cloud_session
@@ -297,20 +298,20 @@ def catalogue_new(request):
         },
         'errors' : {}
     }
-    
-    
+
+
 @view_config(route_name = 'catalogue_delete',
              request_method = 'POST', permission = 'org_edit')
 def catalogue_delete(request):
     """
     Handler for ``/{org}/catalogue/delete/{id}``
-    
+
     The user must be authenticated for the organisation in the URL to reach here.
-    
+
     Attempts to delete a catalogue item and redirects to the catalogue page with
     a success message.
-    
-    ``{id}`` is the id of the catalogue item to delete.    
+
+    ``{id}`` is the id of the catalogue item to delete.
     """
     # Request must pass a CSRF test
     check_csrf_token(request)
@@ -325,9 +326,9 @@ def catalogue_delete(request):
 def machines(request):
     """
     Handler for GET requests to ``/{org}/machines``.
-    
+
     The user must be authenticated for the organisation in the URL to reach here.
-    
+
     Show the machines available to the organisation in the URL.
     """
     return { 'machines'  : request.active_cloud_session.list_machines() }
@@ -339,23 +340,23 @@ def machines(request):
 def new_machine(request):
     """
     Handler for ``/{org}/machine/new/{id}``.
-    
+
     The user must be authenticated for the organisation in the URL to reach here.
-    
+
     ``{id}`` is the id of the catalogue item to use for the new machine.
-    
+
     GET request
         Show a form to gather information required for provisioning.
-         
+
     POST request
         Attempt to provision a machine with the given details.
-        
+
         If the provisioning is successful, redirect the user to ``/{org}/machines``
         with a success message.
-        
+
         If the provisioning fails with an error that the user can correct, show
         the form with an error message.
-        
+
         If the provisioning fails with a cloud error, show an error on ``/{org}/machines``.
     """
     # Try to load the catalogue item
@@ -411,16 +412,16 @@ def new_machine(request):
         'ssh_key'     : request.authenticated_user.ssh_key or '',
         'errors'      : {}
     }
-    
-    
+
+
 @view_config(route_name = 'machine_reconfigure',
              request_method = 'POST', permission = 'org_edit')
 def machine_reconfigure(request):
     """
     Handler for POST requests to ``/{org}/machine/{id}/reconfigure``.
-    
+
     The user must be authenticated for the organisation in the URL to reach here.
-    
+
     Attempt to reconfigure the specified machine with the given amount of CPU
     and RAM.
     """
@@ -442,14 +443,41 @@ def machine_reconfigure(request):
     return HTTPSeeOther(location = request.route_url('machines'))
 
 
+@view_config(route_name = 'machine_add_disk',
+             request_method = 'POST', permission = 'org_edit')
+def machine_add_disk(request):
+    """
+    Handler for POST requests to ``/{org}/machine/{id}/add_disk``.
+
+    The user must be authenticated for the organisation in the URL to reach here.
+
+    Attempt to add a hard disk of the specified size to the machine.
+    """
+    # Request must pass a CSRF test
+    check_csrf_token(request)
+    try:
+        disk_size = int(request.params['disk-size'])
+        if disk_size < 1:
+            raise ValueError('Disk size must be at least 1')
+    except (ValueError, KeyError):
+        # If the user has used the UI without modification, this should never happen
+        request.session.flash('Error with inputs', 'error')
+        return HTTPSeeOther(location = request.route_url('machines'))
+    # Reconfigure the machine
+    machine_id = request.matchdict['id']
+    request.active_cloud_session.add_disk_to_machine(machine_id, disk_size)
+    request.session.flash('Disk added successfully', 'success')
+    return HTTPSeeOther(location = request.route_url('machines'))
+
+
 @view_config(route_name = 'machine_action',
              request_method = 'POST', permission = 'org_edit')
 def machine_action(request):
     """
     Handler for POST requests to ``/{org}/machine/{id}/action``.
-    
+
     The user must be authenticated for the organisation in the URL to reach here.
-    
+
     Attempt to perform the specified action and redirect to ``/{org}/machines``
     with a success message.
     """
@@ -470,9 +498,9 @@ def machine_action(request):
 def markdown_preview(request):
     """
     Handler for POST requests via XMLHttpRequest to ``/markdown_preview``.
-    
+
     The user must be authenticated to reach here.
-    
+
     Renders the specified markdown to HTML using the same filter used in templates.
     """
     return { 'value' : request.params['markdown'] }

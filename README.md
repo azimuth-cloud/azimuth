@@ -26,7 +26,7 @@ use a [Python virtual environment (venv)](https://docs.python.org/3/library/venv
 ```sh
 python3.5 -m venv --clear $PYENV
 ```
-   
+
 where `$PYENV` is the directory where the created venv will live (e.g. `~/jasmin-account-venv`).
 
 `jasmin-cloud` uses [pip](https://pypi.python.org/pypi/pip), which is included
@@ -39,16 +39,15 @@ Installing `jasmin-cloud` in development mode, via pip, ensures that dependencie
 and entry points are set up properly in the venv, but changes we make to the source code are
 instantly picked up by the venv.
 
-`jasmin-cloud` uses another JASMIN library - [jasmin-auth](https://github.com/cedadev/jasmin-auth) -
-for authentication, so we must install that first:
+`jasmin-cloud` uses another JASMIN library - [jasmin-auth](https://github.com/cedadev/jasmin-common) -
+for authentication, so we must install that first (note that the repository has been renamed as
+`jasmin-common` due to pending changes to the package):
 
 ```sh
-# Clone the jasmin-auth repository
-git clone https://github.com/cedadev/jasmin-auth.git
-
 # Install jasmin-auth
-#   If you are also editing jasmin-auth, use -e as for jasmin-cloud below
-$PYENV/bin/pip install jasmin-auth
+wget -O jasmin-common.tar.gz https://github.com/cedadev/jasmin-common/archive/v0.1.tar.gz
+tar -xzf jasmin-common.tar.gz
+$PYENV/bin/pip install jasmin-common-0.1
 ```
 
 
