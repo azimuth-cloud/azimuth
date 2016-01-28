@@ -148,6 +148,10 @@ class VCloudError(ProviderSpecificError):
         # DUPLICATE_NAME is sent when a name is duplicated (surprise...!)
         elif self.__error_code__ == 'DUPLICATE_NAME':
             raise DuplicateNameError('Name is already in use') from self
+        # BUSY_ENTITY is sent when a task cannot be completed because another task is in effect...
+        elif self.__error_code__ == 'BUSY_ENTITY':
+            raise OperationInProgressError(
+                'Another operation is using a resource required by this operation') from self
         # TASK_CANCELED is sent when a task is cancelled...
         elif self.__error_code__ == 'TASK_CANCELED':
             raise TaskCancelledError('Action cancelled') from self
