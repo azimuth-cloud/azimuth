@@ -14,8 +14,10 @@
         </p>
 
         <section>
-            <h3 id="add-storage">How do I add extra storage to a virtual machine?</h3>
-
+            <header id="add-storage">
+                <a class="pull-right" href="#" title="Back to top"><i class="fa fa-caret-up"></i> Back to top</a>
+                <h3>How do I add extra storage to a virtual machine?</h3>
+            </header>
             <p>
                 There are two things that must be done to add extra storage to a virtual machine. The first
                 is to attach a new virtual disk to the machine. On the machines page for your tenancy, click the
@@ -214,12 +216,15 @@ none                         100M     0  100M   0% /run/user
         </section>
 
         <section>
-            <h3 id="no-external-ips">Why are there no external IP addresses available for a virtual machine?</h3>
+            <header id="no-external-ips">
+                <a class="pull-right" href="#" title="Back to top"><i class="fa fa-caret-up"></i> Back to top</a>
+                <h3>Why are there no external IP addresses available for a virtual machine?</h3>
+            </header>
 
             <p>
                 Each tenancy in the JASMIN Cloud gets a fixed number of external IP addresses, usually four.
                 One is used for outgoing traffic from internal machines in a tenancy, with the remainder
-                available to be used as unique external IP addresses for machines. Once they are are all used,
+                available to be used as unique external IP addresses for machines. Once they are all used,
                 no more machines can be exposed to incoming traffic from the internet. However, you can
                 provision as many machines on the internal network as the tenancy quota allows.
             </p>
@@ -242,7 +247,10 @@ none                         100M     0  100M   0% /run/user
         </section>
 
         <section>
-            <h3 id="create-template">How do I create a reusable template from a running virtual machine?</h3>
+            <header id="create-template">
+                <a class="pull-right" href="#" title="Back to top"><i class="fa fa-caret-up"></i> Back to top</a>
+                <h3>How do I create a reusable template from a running virtual machine?</h3>
+            </header>
 
             <p>
                 It is possible to take a running virtual machine and create a template from it that can then
@@ -273,8 +281,9 @@ none                         100M     0  100M   0% /run/user
                 In order to create a reusable template, a machine must be prepared appropriately.
                 Unfortunately, it is not possible for the portal to check whether a machine has been prepared
                 correctly - the portal will still create a template from an un-prepared machine, but machines
-                provisioned using the template may exhibit strange behaviour. Also, the process of creating
-                a template destroys the source machine, so care should be taken.
+                provisioned using the template may exhibit strange behaviour (e.g. unpredictable networking
+                issues). Also, the process of creating a template destroys the source machine, so care should
+                be taken.
             </p>
             <p>
                 To prepare a machine to become a reusable template, the only thing that is <em>required</em>
@@ -314,11 +323,11 @@ none                         100M     0  100M   0% /run/user
 <script type="text/javascript">
 $('#faqs').prepend(
     _.template($('#toc-template').html())({
-        questions : $('#faqs section h3').map(function() {
+        questions : $('#faqs header').map(function() {
             var $this = $(this);
             return {
                 id   : $this.attr('id'),
-                text : $this.text()
+                text : $this.find('h3').text()
             }
         })
     })

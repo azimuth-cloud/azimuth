@@ -205,7 +205,19 @@ td .form-group {
     margin : 30px auto;
 }
 
-#faqs h3 {
-    padding-top : 60px;
+#faqs header {
+    padding-top : 70px;
     margin-top : -50px !important;
+}
+
+#faqs header h3 {
+    margin-top : 0;
+    padding-bottom : 5px;
+    border-bottom: 1px solid #eee;
+}
+
+#faqs header a {
+    display : block;
+    vertical-align : middle;
+    line-height : 24px;
 }
