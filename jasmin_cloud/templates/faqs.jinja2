@@ -3,7 +3,7 @@
 {% block pagetitle %}Frequently Asked Questions{% endblock %}
 
 {%- macro cedasupport(subject = 'ENTER QUERY HERE') %}
-    <a href="mailto:support@ceda.ac.uk?subject=[CEDA-JASMIN/CEMS]:%20{{ subject|urlencode }}">CEDA support</a>
+    <a href="mailto:support@ceda.ac.uk?subject=[jasmin-cloud]%20{{ subject|urlencode }}">CEDA support</a>
 {%- endmacro %}
 
 {% block content %}
@@ -12,6 +12,64 @@
         <p>
             If the answer to your question is not here, please contact {{ cedasupport() }}.
         </p>
+
+        <section>
+            <header id="dns-service">
+                <a class="pull-right" href="#" title="Back to top"><i class="fa fa-caret-up"></i> Back to top</a>
+                <h3>How do I associate a domain name with a JASMIN Cloud IP address?</h3>
+            </header>
+
+            <p>
+                The JASMIN Cloud does not provide DNS services. If you need to associate a domain name with
+                an IP address hosted on the JASMIN Cloud, you must use an external DNS provider.
+            </p>
+        </section>
+
+        <section>
+            <header id="smtp-server">
+                <a class="pull-right" href="#" title="Back to top"><i class="fa fa-caret-up"></i> Back to top</a>
+                <h3>Does the JASMIN Cloud provide a mail relay I can use?</h3>
+            </header>
+
+            <p>
+                No - this is not a service that is provided by the JASMIN Cloud. It is possible to configure your
+                own mail relay within your tenancy, however this is complicated, error-prone and unsupported.
+                Alternatively, you may wish to consider using a commercial service that allows you to send and
+                receive email using an API. Many services will also provide useful dashboards and analytics for
+                your mail.
+            </p>
+        </section>
+
+        <section>
+            <header id="no-external-ips">
+                <a class="pull-right" href="#" title="Back to top"><i class="fa fa-caret-up"></i> Back to top</a>
+                <h3>Why are there no external IP addresses available for a virtual machine?</h3>
+            </header>
+
+            <p>
+                Each tenancy in the JASMIN Cloud gets a fixed number of external IP addresses, usually four.
+                One is used for outgoing traffic from internal machines in a tenancy, with the remainder
+                available to be used as unique external IP addresses for machines. Once they are all used,
+                no more machines can be exposed to incoming traffic from the internet. However, you can
+                provision as many machines on the internal network as the tenancy quota allows.
+            </p>
+            <p>
+                A typical tenancy containing a web-based service would be something like:
+            </p>
+            <ul>
+                <li>Internal shared infrastructure machines, e.g. LDAP server, NFS server - outbound traffic only on IP 1</li>
+                <li><a href="http://blog.scottlowe.org/2015/11/21/using-ssh-bastion-host/" target="blank">SSH bastion</a> / login machine - exposed on IP 2</li>
+                <li>Production web server - exposed on IP 3</li>
+                <li>Test web server - exposed on IP 4</li>
+            </ul>
+            <p>
+                So four external IP addresses is usually sufficient for a tenancy containing a web service.
+                It is possible to request additional external IP addresses by contacting
+                {{ cedasupport('Additional external IPs') }}, but tenants are encouraged to consider other
+                solutions first. For example, if you need to run multiple related web services from the same
+                tenancy, consider using a proxy server to host the services on the same IP address.
+            </p>
+        </section>
 
         <section>
             <header id="add-storage">
@@ -212,37 +270,6 @@ none                         100M     0  100M   0% /run/user
             <p>
                 In order to make the mount permanent (so that it is automatically mounted on reboot),
                 you must also add an entry to <code>/etc/fstab</code>.
-            </p>
-        </section>
-
-        <section>
-            <header id="no-external-ips">
-                <a class="pull-right" href="#" title="Back to top"><i class="fa fa-caret-up"></i> Back to top</a>
-                <h3>Why are there no external IP addresses available for a virtual machine?</h3>
-            </header>
-
-            <p>
-                Each tenancy in the JASMIN Cloud gets a fixed number of external IP addresses, usually four.
-                One is used for outgoing traffic from internal machines in a tenancy, with the remainder
-                available to be used as unique external IP addresses for machines. Once they are all used,
-                no more machines can be exposed to incoming traffic from the internet. However, you can
-                provision as many machines on the internal network as the tenancy quota allows.
-            </p>
-            <p>
-                A typical tenancy containing a web-based service would be something like:
-            </p>
-            <ul>
-                <li>Internal shared infrastructure machines, e.g. LDAP server, NFS server - outbound traffic only on IP 1</li>
-                <li><a href="http://blog.scottlowe.org/2015/11/21/using-ssh-bastion-host/" target="blank">SSH bastion</a> / login machine - exposed on IP 2</li>
-                <li>Production web server - exposed on IP 3</li>
-                <li>Test web server - exposed on IP 4</li>
-            </ul>
-            <p>
-                So four external IP addresses is usually sufficient for a tenancy containing a web service.
-                It is possible to request additional external IP addresses by contacting
-                {{ cedasupport('Additional external IPs') }}, but tenants are encouraged to consider other
-                solutions first. For example, if you need to run multiple related web services from the same
-                tenancy, consider using a proxy server to host the services on the same IP address.
             </p>
         </section>
 
