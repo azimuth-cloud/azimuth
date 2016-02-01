@@ -834,13 +834,12 @@ fi
         uplink = gateway.find('.//vcd:GatewayInterface[vcd:InterfaceType="uplink"]', _NS)
         if uplink is None:
             raise BadConfigurationError('Edge gateway has no uplink')
-        # Find the pool of available external IP addresses, assume only one ip range is defined
-        ip_range = uplink.find('.//vcd:IpRange', _NS)
-        if ip_range is None:
-            raise BadConfigurationError('Uplink has no IP range defined')
-        start_ip = IPv4Address(ip_range.find('./vcd:StartAddress', _NS).text)
-        end_ip = IPv4Address(ip_range.find('./vcd:EndAddress', _NS).text)
-        ip_pool = set(ip for net in summarize_address_range(start_ip, end_ip) for ip in net)
+        # Find the pool of available external IP addresses
+        ip_pool = set()
+        for ip_range in uplink.findall('.//vcd:IpRange', _NS):
+            start_ip = IPv4Address(ip_range.find('./vcd:StartAddress', _NS).text)
+            end_ip = IPv4Address(ip_range.find('./vcd:EndAddress', _NS).text)
+            ip_pool |= set(ip for net in summarize_address_range(start_ip, end_ip) for ip in net)
         # Find our internal IP address
         internal_ip = self.__internal_ip_from_app(app)
         if internal_ip is None:
