@@ -52,6 +52,9 @@ def main(global_config, **settings):
 
     config.add_route('home',   '/')
 
+    # Route for FAQs
+    config.add_route('faqs', '/faqs')
+
     # Route for XMLHttpRequest calls to get markdown preview
     config.add_route('markdown_preview', '/markdown_preview')
 

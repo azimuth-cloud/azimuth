@@ -111,6 +111,18 @@ def home(request):
     return {}
 
 
+@view_config(route_name = 'faqs',
+             request_method = 'GET',
+             renderer = 'templates/faqs.jinja2')
+def faqs(request):
+    """
+    Handler for GET requests to ``/faqs``.
+
+    Just renders a static Jinja2 template.
+    """
+    return {}
+
+
 @view_config(route_name = 'login',
              request_method = ('GET', 'POST'),
              renderer = 'templates/login.jinja2')

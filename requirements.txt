@@ -1,11 +1,11 @@
 alabaster==0.7.7
 Babel==2.2.0
-Beaker==1.7.0
+Beaker==1.8.0
 bleach==1.4.2
 docutils==0.12
 html5lib==0.9999999
 Jinja2==2.8
-ldap3==1.0.3
+ldap3==1.0.4
 Mako==1.0.3
 Markdown==2.6.5
 MarkupSafe==0.23
