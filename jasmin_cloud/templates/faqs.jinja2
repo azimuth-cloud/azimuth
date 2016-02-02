@@ -67,7 +67,7 @@
                 It is possible to request additional external IP addresses by contacting
                 {{ cedasupport('Additional external IPs') }}, but tenants are encouraged to consider other
                 solutions first. For example, if you need to run multiple related web services from the same
-                tenancy, consider using a proxy server to host the services on the same IP address.
+                tenancy, consider using virtual hosts or a proxy server to host the services at the same IP address.
             </p>
         </section>
 
@@ -177,7 +177,12 @@ sr0                           11:0    1  1024M  0 rom
             </p>
             <ol>
                 <li>Add a new filesystem to the disk and mount it somewhere (e.g. <code>/data</code>)</li>
-                <li>Use <a href="https://en.wikipedia.org/wiki/Logical_Volume_Manager_(Linux)" target="blank">LVM</a> to extend the root (i.e. <code>/</code>) filesystem</li>
+                <li>
+                    If the template has been built with the root (i.e. <code>/</code>) filesystem using
+                    <a href="https://en.wikipedia.org/wiki/Logical_Volume_Manager_(Linux)" target="blank">LVM</a>
+                    (as is the case for the official CentOS and Ubuntu templates), the new disk can be used
+                    to extend the root filesystem
+                </li>
             </ol>
             <p>The simplest option is the first, an example of which is shown here:</p>
             <pre>
@@ -266,11 +271,10 @@ none                        1001M     0 1001M   0% /run/shm
 none                         100M     0  100M   0% /run/user
 /dev/sda1                    236M   41M  183M  19% /boot
 /dev/sdb1                     16G   44M   15G   1% /data
+
+<span class="text-muted"># Add a line to /etc/fstab to make the mount persistent (i.e. automatic mount on boot)</span>
+<b>echo "/dev/sdb1  /data  ext4  defaults  0 0" >> /etc/fstab</b>
 </pre>
-            <p>
-                In order to make the mount permanent (so that it is automatically mounted on reboot),
-                you must also add an entry to <code>/etc/fstab</code>.
-            </p>
         </section>
 
         <section>
@@ -332,6 +336,16 @@ none                         100M     0  100M   0% /run/user
                 a fully reusable template from a machine. For example, if you are trying to create a reusable
                 template for a web service, you may want to remove machine specific configurations such as
                 SSL private keys before creating a template.
+            </p>
+            <p>
+                Once a machine has been fully prepared, navigate to the machines page for your tenancy and
+                click the
+                <button class="btn btn-default btn-xs" title="Add to catalogue">
+                    <i class="fa fa-fw fa-book"></i>
+                    <span class="sr-only">Add to catalogue</span>
+                </button>
+                button for the machine. This will show a form to collect a name and description for the template.
+                Once the template has been created, it will be available to select in the catalogue for your tenancy.
             </p>
         </section>
     </div>
