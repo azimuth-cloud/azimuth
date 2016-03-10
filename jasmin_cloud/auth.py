@@ -140,21 +140,25 @@ def _check_cloud_sessions(userid, request):
     To do this, we use ``request.cloud_sessions``, and assume it contains a session
     per organisation for which the user has access.
 
-    If one of the sessions has timed out, we treat the user as completely
-    unauthenticated, and force them to log in again.
+    If any session that was successfully opened has timed out, we treat the user
+    as completely unauthenticated, and force them to log in again.
     """
     # First, make sure we can find a user with the given userid
     if not request.users.find_by_username(userid):
         return None
     # Get the user's orgs
     orgs = request.memberships.orgs_for_user(userid)
-    # Make sure they have an accessible cloud session for each org they belong to
-    # If there is an error while polling any session, treat that as a total
-    # failure of authentication
+    # Bail if any sessions that were successfully started have now timed out
     for org in orgs:
+        # If this raises, the session was never successfully started
         try:
-            request.cloud_sessions[org].poll()
-        except (KeyError, CloudServiceError):
+            session = request.cloud_sessions.get_session(org)
+        except CloudServiceError:
+            continue
+        # If this raises, the session has timed out
+        try:
+            session.poll()
+        except CloudServiceError:
             return None
     return orgs
 

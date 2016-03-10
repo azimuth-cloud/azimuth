@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ComposeVAppParams xmlns="http://www.vmware.com/vcloud/v1.5" xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1"
-	               deploy="false" powerOn="false" name="{{ appliance.name|e }}">
+                   deploy="false" powerOn="false" name="{{ appliance.name|e }}">
     <Description>{{ appliance.description|e }}</Description>
 
     <InstantiationParams>
@@ -26,7 +26,7 @@
                                       ovf:required="false">
                 <ovf:Info />
                 <PrimaryNetworkConnectionIndex>0</PrimaryNetworkConnectionIndex>
-                
+
                 {%- for n in range(vm.n_nics) %}
                 <NetworkConnection network="{{ networks[n].name }}">
                     <NetworkConnectionIndex>{{ n }}</NetworkConnectionIndex>
