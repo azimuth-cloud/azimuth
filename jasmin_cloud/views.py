@@ -31,16 +31,20 @@ def _exception_redirect(request):
     """
     Returns a redirect to the most specific page accessible to the current user:
 
-      * Current org machines page if user is logged in and belongs to org in URL
+      * Current org machines page if user is logged in and has an active session
+        for the org in the URL
       * Dashboard if user is logged in but doesn't belong to org in URL
       * Login page if user is not logged in
     """
     if request.authenticated_user:
-        user_orgs = request.memberships.orgs_for_user(request.authenticated_user.username)
-        if request.current_org and (request.current_org in user_orgs):
-            return HTTPSeeOther(location = request.route_path('machines'))
-        else:
-            return HTTPSeeOther(location = request.route_path('dashboard'))
+        if request.current_org:
+            # Try to get the session for the org in the URL
+            try:
+                request.cloud_sessions.get_session(request.current_org)
+                return HTTPSeeOther(location = request.route_path('machines'))
+            except (KeyError, cloudservices.CloudServiceError):
+                pass
+        return HTTPSeeOther(location = request.route_path('dashboard'))
     else:
         return HTTPSeeOther(location = request.route_path('login'))
 
@@ -137,8 +141,7 @@ def login(request):
         Attempt to authenticate the user.
 
         If authentication is successful, try to start a vCloud Director session
-        for each organisation that the user belongs to. Login is only considered
-        successful if we successfully obtain a session for every organisation.
+        for each organisation that the user belongs to.
 
         Redirect to the dashboard on success, otherwise show the login form with
         errors.
@@ -151,16 +154,14 @@ def login(request):
         password = request.params['password']
         if request.users.authenticate(username, password):
             # Try to create a session for each of the user's orgs
-            # If any of them fail, bail with the error message
-            try:
-                for org in request.memberships.orgs_for_user(username):
-                    request.cloud_sessions[org] = VCloudSession(
-                        request.registry.settings['vcloud.endpoint'],
-                        '{}@{}'.format(username, org), password
-                    )
-            except cloudservices.CloudServiceError:
-                request.cloud_sessions.clear()
-                raise
+            for org in request.memberships.orgs_for_user(username):
+                request.cloud_sessions.start_session(
+                    org,
+                    VCloudSession,
+                    request.registry.settings['vcloud.endpoint'],
+                    '{}@{}'.format(username, org),
+                    password
+                )
             # When a user logs in successfully, force a refresh of the CSRF token
             request.session.new_csrf_token()
             return HTTPSeeOther(location = request.route_url('dashboard'),
@@ -192,15 +193,23 @@ def dashboard(request):
     Handler for GET requests to ``/dashboard``.
 
     The user must be authenticated to reach here, which means that there should be
-    a cloud session for each organisation that the user belongs to.
+    a cloud session or an error for each organisation that the user belongs to.
 
-    Shows a list of organisations available to the user with the number of
-    machines in each.
+    Shows a list of organisations for the user. If a session for the organisation
+    is open, the the number of machines in the org is shown. If there was an error
+    opening the org session, the error is shown.
     """
-    # Pass the per-org counts to the template
     return {
+        'org_names' : list(sorted(request.cloud_sessions.sessions.keys())),
         'machine_counts' : {
-            org : sess.count_machines() for org, sess in request.cloud_sessions.items()
+            org : sess.count_machines()
+              for org, sess in request.cloud_sessions.sessions.items()
+              if isinstance(sess, cloudservices.Session)
+        },
+        'errors' : {
+            org : str(sess)
+              for org, sess in request.cloud_sessions.sessions.items()
+              if isinstance(sess, cloudservices.CloudServiceError)
         }
     }
 

@@ -39,21 +39,21 @@ footer {
 }
 
 .panel-grid-row, .panel-grid-row [class*="col-"] {
-	display : flex;
+    display : flex;
 }
 
 .panel-grid-row .panel {
-	display : flex;
-	flex-direction : column;
-	flex : 1 1 auto;
+    display : flex;
+    flex-direction : column;
+    flex : 1 1 auto;
 }
 
 .panel-grid-row .panel-heading, .panel-grid-row .panel-footer {
-	flex : 0 0 auto;
+    flex : 0 0 auto;
 }
 
 .panel-grid-row .panel-body {
-	flex : 1 1 auto;
+    flex : 1 1 auto;
 }
 
 .panel-body :last-child, .help-block:last-child {
@@ -76,6 +76,10 @@ ul.actions {
 
 ul.actions > li {
     display : inline-block;
+}
+
+.badge-danger {
+    background-color : #d9534f;
 }
 
 /* NOTE: These rules are not combined on purpose
@@ -139,17 +143,17 @@ td > .progress {
 }
 
 h2.panel-heading {
-	margin-top : 0px;
-	margin-bottom : 0px;
-	font-size : 20px;
+    margin-top : 0px;
+    margin-bottom : 0px;
+    font-size : 20px;
 }
 
 .dropdown-menu > li > a {
-	padding : 5px 15px;
+    padding : 5px 15px;
 }
 
 .dropdown-menu a i {
-	margin-right : 5px;
+    margin-right : 5px;
 }
 
 .markdown-preview {
