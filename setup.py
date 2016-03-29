@@ -34,8 +34,6 @@ requires = [
     'bleach',
     'markdown',
     'waitress',
-    # Required for docs
-    'sphinx',
 ]
 
 if __name__ == "__main__":
