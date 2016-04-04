@@ -58,12 +58,6 @@ _ENV = Environment(
 # Logger
 _log = logging.getLogger(__name__)
 
-# Function to escape special chars in guest customisation script for XML
-_escape_script = lambda s: s.replace(os.linesep, '&#13;').\
-                             replace('"', '&quot;').\
-                             replace('%', '&#37;').\
-                             replace("'", '&apos;')
-
 
 ###############################################################################
 ###############################################################################
@@ -747,12 +741,12 @@ fi
             # Get a unique name for the VM
             vm_name = uuid.uuid4().hex
             # Make sure the guest customisation script is escaped after formatting
-            script = _escape_script(self._GUEST_CUSTOMISATION.format(
+            script = self._GUEST_CUSTOMISATION.format(
                 ssh_key  = ssh_key.strip(),
                 org_name = org.attrib['name'],
                 vm_type  = image.host_type,
                 vm_id    = vm_name,
-            ))
+            )
             vm_configs.append({
                 'href'          : vm.attrib['href'],
                 'name'          : vm_name,
