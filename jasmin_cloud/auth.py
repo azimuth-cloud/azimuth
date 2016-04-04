@@ -148,6 +148,13 @@ def _check_cloud_sessions(userid, request):
         return None
     # Get the user's orgs
     orgs = request.memberships.orgs_for_user(userid)
+    # Get the orgs for which we have sessions
+    session_orgs = request.cloud_sessions.has_sessions_for()
+    # If the two differ, force the user to log in again so that we can log them
+    # in to any new orgs and make sure they are NOT logged in to any that they
+    # can no longer access
+    if set(orgs).symmetric_difference(session_orgs):
+        return None
     # Bail if any sessions that were successfully started have now timed out
     for org in orgs:
         # If this raises, the session was never successfully started

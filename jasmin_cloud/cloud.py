@@ -62,6 +62,12 @@ class CloudSessionManager:
     def __init__(self, sessions):
         self.sessions = sessions
 
+    def has_sessions_for(self):
+        """
+        Returns the orgs for which the cloud session manager has a session.
+        """
+        return self.sessions.keys()
+
     def start_session(self, org, provider, *args, **kwargs):
         """
         Starts a session using the given provider, catching any cloud service errors
