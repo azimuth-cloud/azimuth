@@ -10,7 +10,7 @@ an Eclipse Debug configuration.
 __author__ = "Matt Pryor"
 __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
-__version__ = "1.0.2"
+__version__ = "1.0.3"
 
 
 from pyramid.config import Configurator
