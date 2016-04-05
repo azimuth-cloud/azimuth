@@ -77,7 +77,7 @@ class CloudSessionManager:
             self.sessions[org] = provider(*args, **kwargs)
         except CloudServiceError as e:
             self.sessions[org] = e
-            _log.exception('Error opening session for {} with args {}, {}'.format(org, args, kwargs))
+            _log.exception('Error opening session for {}'.format(org))
 
     def get_session(self, org):
         """
