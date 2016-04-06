@@ -202,7 +202,12 @@ class VCloudSession(Session):
 
         # Get an auth token for the session and inject it into the headers for
         # future requests
-        res = self.api_request('POST', 'sessions', auth = (user, password))
+        try:
+            res = self.api_request('POST', 'sessions', auth = (user, password))
+        except CloudServiceError:
+            # Log some extra context with the error
+            _log.error('Error while authenticating - {}, {}'.format(endpoint, user))
+            raise
         auth_token = res.headers['x-vcloud-authorization']
         self.__session.headers.update({ 'x-vcloud-authorization' : auth_token })
 
