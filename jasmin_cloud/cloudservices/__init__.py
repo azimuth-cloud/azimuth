@@ -146,7 +146,8 @@ class HardDisk(namedtuple('HardDiskProps', ['name', 'size'])):
 class Machine(namedtuple('MachineProps', ['id', 'name', 'status',
                                           'cpus', 'ram', 'disks',
                                           'description', 'created', 'os',
-                                          'internal_ip', 'external_ip'])):
+                                          'internal_ip', 'external_ip',
+                                          'owner'])):
     """
     Represents a virtual machine.
 
@@ -201,6 +202,11 @@ class Machine(namedtuple('MachineProps', ['id', 'name', 'status',
         An ``ipaddress.IPv4Address`` indicating the IP of the virtual machine, as
         visible to the outside world, or ``None`` if the machine is not exposed
         to the outside world.
+
+    .. py:attribute:: owner
+
+        The username of the user who deployed the machine, or ``None`` if it cannot
+        be discovered.
     """
 
 
