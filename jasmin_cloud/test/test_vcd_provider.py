@@ -53,9 +53,10 @@ class TestVcdProvider(unittest.TestCase, IntegrationTest):
         """
         self.session = VCloudSession(settings.endpoint, settings.username, settings.password)
         self.assertTrue(self.session.poll())
-        # Check that the session has the ability to create templates, or the test
-        # will fail later
+        # Check that the session has the ability to create templates and add disk,
+        # or the test will fail later
         self.assertTrue(self.session.has_permission('CAN_CREATE_TEMPLATES'))
+        self.assertTrue(self.session.has_permission('CAN_ADD_DISK'))
 
     def get_known_image(self, notused):
         """

@@ -481,6 +481,9 @@ def machine_add_disk(request):
     """
     # Request must pass a CSRF test
     check_csrf_token(request)
+    # Check if the session has permission to create templates
+    if not request.active_cloud_session.has_permission('CAN_ADD_DISK'):
+        raise HTTPForbidden()
     try:
         disk_size = int(request.params['disk-size'])
         if disk_size < 1:
