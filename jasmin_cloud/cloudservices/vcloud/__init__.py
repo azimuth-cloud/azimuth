@@ -694,8 +694,11 @@ class VCloudSession(Session):
                     if translated == internal_ip:
                         external_ip = IPv4Address(rule.find('.//vcd:OriginalIp', _NS).text)
                         break
+        # Get the username of the owner
+        user = app.find('.//vcd:Owner/vcd:User', _NS)
+        owner = user.attrib['name'] if user is not None else None
         return Machine(machine_id, name, status, cpus, ram, disks,
-                       description, created, os, internal_ip, external_ip)
+                       description, created, os, internal_ip, external_ip, owner)
 
     # Guest customisation script expects a script to be baked into each template
     # at /usr/local/bin/activator.sh
