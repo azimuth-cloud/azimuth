@@ -415,6 +415,11 @@ def new_machine(request):
             request.session.flash('There are errors with one or more fields', 'error')
             machine_info['errors']['name'] = ['Machine name is already in use']
             return machine_info
+        except cloudservices.InvalidMachineNameError as e:
+            # If the machine name is invalid, the user can correct that
+            request.session.flash('There are errors with one or more fields', 'error')
+            machine_info['errors']['name'] = [str(e)]
+            return machine_info
         except cloudservices.NetworkingError:
             # Networking doesn't happen until the machine has been provisioned
             # So we report that provisioning was successful before propagating

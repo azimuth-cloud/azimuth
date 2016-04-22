@@ -225,3 +225,9 @@ td .form-group {
     vertical-align : middle;
     line-height : 24px;
 }
+
+caption {
+    caption-side : bottom;
+    padding-left : 15px;
+    border-top: 2px solid #ddd;
+}

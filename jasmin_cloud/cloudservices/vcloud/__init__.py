@@ -136,6 +136,8 @@ class VCloudError(ProviderSpecificError):
                 raise QuotaExceededError('Quota exceeded for organisation') from self
             elif 'requested operation will exceed' in message:
                 raise QuotaExceededError('Requested operation will exceed organisation quota') from self
+            elif 'computer name can only contain' in message:
+                raise InvalidMachineNameError('Must start with a letter and contain alphanumeric, - and . characters only') from self
             else:
                 raise InvalidActionError(
                     'Action is invalid for current state') from self
@@ -734,23 +736,27 @@ fi
         # Configure each VM contained in the vApp
         vm_configs = []
         # Track the maximum number of NICs for a VM
-        # The caller is required to provide a network for each NIC
+        # The VDC is required to provide a network for each NIC
         n_networks_required = 0
-        for vm in template.findall('.//vcd:Vm', _NS):
+        for idx, vm in enumerate(template.findall('.//vcd:Vm', _NS)):
             # Get all the network connections associated with the VM
             nics = vm.findall('.//vcd:NetworkConnection', _NS)
             if not nics:
                 raise BadConfigurationError('No network connection section for VM')
             n_nics = len(nics)
             n_networks_required = max(n_networks_required, n_nics)
+            # Get a UUID for the VM
+            vm_id = uuid.uuid4().hex
             # Get a unique name for the VM
-            vm_name = uuid.uuid4().hex
+            #   The first VM has the same name as the vApp
+            #   Subsequent VMs have the index appended
+            vm_name = '{}{}'.format(name, idx if idx > 0 else '')
             # Make sure the guest customisation script is escaped after formatting
             script = self._GUEST_CUSTOMISATION.format(
                 ssh_key  = ssh_key.strip(),
                 org_name = org.attrib['name'],
                 vm_type  = image.host_type,
-                vm_id    = vm_name,
+                vm_id    = vm_id,
             )
             vm_configs.append({
                 'href'          : vm.attrib['href'],
