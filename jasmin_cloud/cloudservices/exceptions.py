@@ -55,6 +55,9 @@ class ImageDeleteError(CloudServiceError):
 class ProvisioningError(CloudServiceError):
     """Raised when an error occurs during provisioning."""
 
+class InvalidMachineNameError(ProvisioningError):
+    """Raised when an invalid machine name is given."""
+
 class NetworkingError(CloudServiceError):
     """Raised when an error occurs while performing a networking operation."""
 
