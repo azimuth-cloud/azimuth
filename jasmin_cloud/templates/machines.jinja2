@@ -191,25 +191,31 @@
                                         <td></td>
                                     </tr>
                                 <% }); %>
-                                <tr>
-                                    <td style="white-space : nowrap; vertical-align : middle;">
-                                        <label for="disk-size">Add a new disk</label>
-                                    </td>
-                                    <td>
-                                        <div class="form-group">
-                                            <div class="input-group">
-                                                <input class="form-control" name="disk-size" type="number" min="1" step="1" placeholder="Size of disk" required />
-                                                <div class="input-group-addon">GB</div>
+                                {% if request.active_cloud_session.has_permission('CAN_ADD_DISK') %}
+                                    <tr>
+                                        <td style="white-space : nowrap; vertical-align : middle;">
+                                            <label for="disk-size">Add a new disk</label>
+                                        </td>
+                                        <td>
+                                            <div class="form-group">
+                                                <div class="input-group">
+                                                    <input class="form-control" name="disk-size" type="number" min="1" step="1" placeholder="Size of disk" required />
+                                                    <div class="input-group-addon">GB</div>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <button title="Add disk" type="submit" class="btn btn-success">
-                                            <i class="fa fa-fw fa-plus"></i>
-                                            <span class="sr-only">Add disk</span>
-                                        </button>
-                                    </td>
-                                </tr>
+                                        </td>
+                                        <td>
+                                            <button title="Add disk" type="submit" class="btn btn-success">
+                                                <i class="fa fa-fw fa-plus"></i>
+                                                <span class="sr-only">Add disk</span>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                {% else %}
+                                    <tr>
+                                        <td colspan="3" class="text-muted">Adding a hard disk is disabled for this tenancy.</td>
+                                    </tr>
+                                {% endif %}
                             </tbody>
                         </table>
                     </form>

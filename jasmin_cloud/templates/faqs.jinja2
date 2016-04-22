@@ -348,6 +348,32 @@ none                         100M     0  100M   0% /run/user
                 Once the template has been created, it will be available to select in the catalogue for your tenancy.
             </p>
         </section>
+
+        <section>
+            <header id="add-disk-disabled">
+                <a class="pull-right" href="#" title="Back to top"><i class="fa fa-caret-up"></i> Back to top</a>
+                <h3>Why is adding a hard disk disabled for my tenancy?</h3>
+            </header>
+
+            <p>
+                Adding a disk is not allowed for tenancies in the Managed Cloud.
+            </p>
+
+            <p>
+                In order to do anything useful with a newly-added disk, such as partition, format or mount it,
+                root access is required. Users are not permitted root access in the managed cloud, due to the
+                Platform-as-a-Service (PaaS) nature of the offering.
+            </p>
+
+            <p>
+                The main reason for having a tenancy in the Managed Cloud is to exploit the high-performance
+                Panasas filesystem that is available, either via a
+                <a href="http://jasmin.ac.uk/how-to-use-jasmin/group-workspaces/working-with-data/">Group Workspace</a>,
+                utilising data in the <a href="http://jasmin.ac.uk/how-to-use-jasmin/group-workspaces/ceda-archives/">CEDA Archives</a>,
+                or both. If you find yourself needing a large local disk, you should consider whether parts of your
+                workload can be moved into the unmanaged cloud.
+            </p>
+        </section>
     </div>
 </div>
 

@@ -1053,7 +1053,10 @@ fi
         """
         See :py:meth:`jasmin_cloud.cloudservices.Session.add_disk_to_machine`.
         """
-        # First, check that the machine if off
+        # First, check if the session is allowed to do this!
+        if not self.has_permission('CAN_ADD_DISK'):
+            raise PermissionsError('Insufficient permissions')
+        # Check that the machine if off
         if self.get_machine(machine_id).status != MachineStatus.POWERED_OFF:
             raise InvalidActionError('Machine must be powered off to add a disk')
         # We will work with the first VM in the vApp
