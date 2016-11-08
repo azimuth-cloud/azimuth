@@ -6,13 +6,12 @@ the cloud portal, and adds some useful properties to the request.
 __author__ = "Matt Pryor"
 __copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
 
-
 from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.security import Allow, Authenticated, DENY_ALL
 from pyramid import events
 
-from jasmin_auth import UserManager
+from jasmin_ldap import Server, Query, AuthenticationError
 
 from .cloudservices import CloudServiceError
 
@@ -33,7 +32,14 @@ def includeme(config):
     config.set_authorization_policy(ACLAuthorizationPolicy())
     config.set_root_factory(RootFactory)
 
-    # Make a user manager available for the request
+    # Add a user manager to the request
+    def users(request):
+        return UserManager(
+            request.registry.settings['ldap.server'],
+            request.registry.settings['ldap.user_base'],
+            request.registry.settings['ldap.bind_dn'],
+            request.registry.settings['ldap.bind_pass']
+        )
     config.add_request_method(users, reify = True)
 
     # Make (un)authenticated_user properties available on the request object that
@@ -66,27 +72,70 @@ def includeme(config):
     config.add_subscriber(overwrite_path_funcs, events.NewRequest)
 
 
-def users(request):
+class UserManager:
     """
-    Returns a ``jasmin_auth.UserManager`` configured using settings from the given
-    request.
+    Class for managing JASMIN users in LDAP.
 
     .. note::
 
-        This function should be accessed as a property of the Pyramid request object,
-        i.e. ``users = request.users``.
+        An instance of this class can be accessed as a property of the Pyramid
+        request object, i.e. ``r = request.users``.
 
         This property is reified, so it is only evaluated once per request.
 
-    :param request: The Pyramid request
-    :returns: A ``jasmin_auth.UserManager``
+    :param server: The address of the LDAP server
+    :param user_base: The DN of the part of the tree to search for entries
+    :param bind_dn: The DN to use when authenticating with the LDAP server
+                    (optional - if omitted, an anonymous connection is used, but
+                    some functionality may be unavailable)
+    :param bind_pass: The password to use when authenticating with the LDAP server
+                      (optional - if ``bind_dn`` is not given, this is ignored)
     """
-    return UserManager(
-        request.registry.settings['ldap.server'],
-        request.registry.settings['ldap.user_base'],
-        request.registry.settings['ldap.bind_dn'],
-        request.registry.settings['ldap.bind_pass']
-    )
+    def __init__(self, server, user_base, bind_dn = None, bind_pass = None):
+        self._user_base = user_base
+        self._server = Server(server)
+        # Create a base query
+        self._query = Query(
+            self._server.authenticate(bind_dn, bind_pass), user_base
+        ).filter(objectClass = 'posixAccount')
+
+    def authenticate(self, username, password):
+        """
+        Attempts to authenticate a user with the given username and password.
+
+        Returns ``True`` if authentication is successful, ``False`` otherwise.
+
+        :param username: The username to authenticate
+        :param password: The password to authenticate
+        :returns: ``True`` on success, ``False`` on failure.
+        """
+        user_dn = 'cn={},{}'.format(username, self._user_base)
+        try:
+            # Try to authenticate with the server as the user
+            self._server.authenticate(user_dn, password).close()
+            return True
+        except AuthenticationError:
+            return False
+
+    def find_by_username(self, username):
+        """
+        Returns the user with the given username, or ``None`` if none exists.
+
+        :param username: The username to search for
+        :returns: Dictionary of user details, or ``None``
+        """
+        user = self._query.filter(cn = username).one()
+        if user:
+            return {
+                'username' : user['cn'][0],
+                'full_name' : '{} {}'.format(
+                    next(iter(user.get('givenName', [])), ''), user['sn'][0]
+                ).strip(),
+                'email' : next(iter(user.get('mail', [])), ''),
+                'ssh_key' : next(iter(user.get('sshPublicKey', [])), ''),
+            }
+        else:
+            return None
 
 
 def authenticated_user(request):

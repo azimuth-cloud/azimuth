@@ -28,12 +28,10 @@ requires = [
     'pyramid_jinja2',
     'pyramid_beaker',
     'jinja2',
-    'jasmin-auth',
-    'ldap3',
+    'jasmin-ldap',
     'requests',
     'bleach',
     'markdown',
-    'waitress',
 ]
 
 if __name__ == "__main__":

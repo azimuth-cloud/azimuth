@@ -435,7 +435,7 @@ def new_machine(request):
         # The default value for expose is based on the NAT policy
         'expose'      : 'true' if item.nat_policy == NATPolicy.ALWAYS else 'false',
         # Use the current user's SSH key as the default
-        'ssh_key'     : request.authenticated_user.ssh_key or '',
+        'ssh_key'     : request.authenticated_user.get('ssh_key', ''),
         'errors'      : {}
     }
 
