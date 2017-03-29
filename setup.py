@@ -9,8 +9,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 try:
     import jasmin_cloud.__version__ as version
 except ImportError:
-    # If we get an import error, find the version string manually from
-    # jasmin_cloud/__init__.py
+    # If we get an import error, find the version string manually
     version = "unknown"
     with open(os.path.join(here, 'jasmin_cloud', '__init__.py')) as f:
         for line in f:
@@ -23,15 +22,10 @@ with open(os.path.join(here, 'README.md')) as f:
     README = f.read()
 
 requires = [
-    'pyramid',
-    'pyramid_debugtoolbar',
-    'pyramid_jinja2',
-    'pyramid_beaker',
-    'jinja2',
-    'jasmin-ldap',
+    'python-dateutil',
+    'wrapt',
     'requests',
-    'bleach',
-    'markdown',
+    'openstacksdk'
 ]
 
 if __name__ == "__main__":
@@ -43,22 +37,15 @@ if __name__ == "__main__":
         long_description = README,
         classifiers = [
             "Programming Language :: Python",
-            "Framework :: Pyramid",
             "Topic :: Internet :: WWW/HTTP",
             "Topic :: Internet :: WWW/HTTP :: WSGI :: Application",
         ],
         author = 'Matt Pryor',
         author_email = 'matt.pryor@stfc.ac.uk',
-        url = 'http://jasmin.ac.uk',
-        keywords = 'web pyramid cloud jasmin',
+        url = 'https://github.com/cedadev/jasmin-cloud',
+        keywords = 'cloud jasmin',
         packages = find_packages(),
         include_package_data = True,
         zip_safe = False,
         install_requires = requires,
-        tests_require = requires,
-        test_suite = "jasmin_cloud.test",
-        entry_points = """\
-        [paste.app_factory]
-        main = jasmin_cloud:main
-        """,
     )

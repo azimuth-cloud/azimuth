@@ -24,3 +24,4 @@ development.ini
 production.ini
 catalogue.json
 jasmin_cloud/test/vcd_settings.py
+venv
