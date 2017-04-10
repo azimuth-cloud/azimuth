@@ -47,6 +47,12 @@ class Proxy(wrapt.ObjectProxy):
         # Otherwise, trigger the thunk
         return super().__getattr__(name)
 
+    @property
+    def __class__(self):
+        if '__class__' in self._self_known_attributes:
+            return self._self_known_attributes['__class__']
+        return self.__wrapped__.__class__
+
 
 class Tenancy(namedtuple('Tenancy', ['id', 'name'])):
     """
@@ -96,13 +102,13 @@ class Size(namedtuple('Size', ['id', 'name', 'cpus', 'ram'])):
     Attributes:
         id: The id of the size.
         name: The human-readable name of the size.
-        cpus: The number of CPUs that the size allows.
-        ram: The amount of RAM (in MB) that the size allows.
+        cpus: The number of CPUs.
+        ram: The amount of RAM (in MB).
     """
 
 
 class Machine(namedtuple('Machine', ['id', 'name', 'image', 'size',
-                                     'status', 'power_state',
+                                     'status', 'power_state', 'task',
                                      'internal_ips', 'external_ips', 'nat_allowed',
                                      'attached_volumes', 'owner', 'created'])):
     """
@@ -112,9 +118,10 @@ class Machine(namedtuple('Machine', ['id', 'name', 'image', 'size',
         id: The id of the machine.
         name: The human-readable name of the machine.
         image: The :py:class:`Image` used to deploy the machine.
-        size: The :py:class:`Size` of the machine.
+        size: The :py:class:`Size` size of the machine.
         status: The status of the machine as a string.
         power_state: The power state of the machine as a string.
+        task: String representation of any task that is currently executing.
         internal_ips: The internal IPv4 addresses of this machine.
         external_ips: The external IPv4 addresses of this machine.
         nat_allowed: Indicates if NAT is allowed for this machine.
@@ -124,12 +131,25 @@ class Machine(namedtuple('Machine', ['id', 'name', 'image', 'size',
     """
 
 
-class Volume(namedtuple('Volume', ['id', 'name', 'size'])):
+class Volume(namedtuple('Volume', ['id', 'machine', 'name', 'size', 'device'])):
     """
     Represents a volume attached to a machine.
 
     Attributes:
         id: The id of the volume.
+        machine: The :py:class:`~.dto.Machine` that the volume is attached to.
         name: The name of the volume.
         size: The size of the volume in GB.
+        device: The device that the volume is attached as.
+    """
+
+
+class ExternalIp(namedtuple('ExternalIp', ['external_ip', 'internal_ip'])):
+    """
+    Represents an externally visible IP address.
+
+    Attributes:
+        external_ip: The externally visible IP address.
+        internal_ip: The internally visible IP address to which it maps, or
+                     ``None`` if it is not mapped.
     """

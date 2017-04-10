@@ -8,6 +8,12 @@ class Error(Exception):
     Base class for all other errors in this module.
     """
 
+class BadInputError(Error, RuntimeError):
+    """
+    Raised when the input to a create or update is invalid. Invalid input to a
+    find should raise :py:class:`ObjectNotFoundError`.
+    """
+
 class UnsupportedOperationError(Error, NotImplementedError):
     """
     Raised when the requested operation is not supported by a provider.

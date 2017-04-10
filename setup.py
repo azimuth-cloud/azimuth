@@ -22,10 +22,15 @@ with open(os.path.join(here, 'README.md')) as f:
     README = f.read()
 
 requires = [
+    'docutils',
     'python-dateutil',
     'wrapt',
     'requests',
-    'openstacksdk'
+    'openstacksdk',
+    'django',
+    'djangorestframework',
+    'psycopg2',
+    'django-picklefield',
 ]
 
 if __name__ == "__main__":

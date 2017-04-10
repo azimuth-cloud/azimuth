@@ -20,7 +20,9 @@ class Provider:
         Returns:
             An :py:class:`UnscopedSession` for the user.
         """
-        raise errors.UnsupportedOperationError
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
 
 
 class UnscopedSession:
@@ -37,7 +39,9 @@ class UnscopedSession:
         Returns:
             An iterable of :py:class:`~.dto.Tenancy` objects.
         """
-        raise errors.UnsupportedOperationError
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
 
     def scoped_session(self, tenancy):
         """
@@ -50,7 +54,9 @@ class UnscopedSession:
         Returns:
             A :py:class:`~ScopedSession` for the tenancy.
         """
-        raise errors.UnsupportedOperationError
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
 
 
 class ScopedSession:
@@ -78,7 +84,9 @@ class ScopedSession:
         Returns:
             A dictionary of :py:class:`~.dto.Quota` objects indexed by resource.
         """
-        raise errors.UnsupportedOperationError
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
 
     def images(self):
         """
@@ -87,7 +95,9 @@ class ScopedSession:
         Returns:
             An iterable of :py:class:`~.dto.Image` objects.
         """
-        raise errors.UnsupportedOperationError
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
 
     def find_image(self, id):
         """
@@ -99,7 +109,9 @@ class ScopedSession:
         Returns:
             An :py:class:`~.dto.Image` object.
         """
-        raise errors.UnsupportedOperationError
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
 
     def sizes(self):
         """
@@ -108,7 +120,9 @@ class ScopedSession:
         Returns:
             An iterable of :py:class:`~.dto.Size` objects.
         """
-        raise errors.UnsupportedOperationError
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
 
     def find_size(self, id):
         """
@@ -120,7 +134,9 @@ class ScopedSession:
         Returns:
             A :py:class:`~.dto.Size` object.
         """
-        raise errors.UnsupportedOperationError
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
 
     def machines(self):
         """
@@ -129,7 +145,9 @@ class ScopedSession:
         Returns:
             An iterable of :py:class:`~.dto.Machine`s.
         """
-        raise errors.UnsupportedOperationError
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
 
     def find_machine(self, id):
         """
@@ -141,7 +159,9 @@ class ScopedSession:
         Returns:
             A :py:class:`~.dto.Machine` object.
         """
-        raise errors.UnsupportedOperationError
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
 
     def create_machine(self, name, image, size):
         """
@@ -153,9 +173,11 @@ class ScopedSession:
             size: The size to use. Can be a size id or a :py:class:`~.dto.Size`.
 
         Returns:
-            The created machine as a :py:class:`~.dto.Machine`.
+            The created :py:class:`~.dto.Machine`.
         """
-        raise errors.UnsupportedOperationError
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
 
     def resize_machine(self, machine, size):
         """
@@ -168,7 +190,9 @@ class ScopedSession:
         Returns:
             ``True`` on success (should raise on failure).
         """
-        raise errors.UnsupportedOperationError
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
 
     def start_machine(self, machine):
         """
@@ -180,7 +204,9 @@ class ScopedSession:
         Returns:
             ``True`` on success (should raise on failure).
         """
-        raise errors.UnsupportedOperationError
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
 
     def stop_machine(self, machine):
         """
@@ -192,7 +218,9 @@ class ScopedSession:
         Returns:
             ``True`` on success (should raise on failure).
         """
-        raise errors.UnsupportedOperationError
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
 
     def restart_machine(self, machine):
         """
@@ -204,7 +232,9 @@ class ScopedSession:
         Returns:
             ``True`` on success (should raise on failure).
         """
-        raise errors.UnsupportedOperationError
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
 
     def delete_machine(self, machine):
         """
@@ -216,45 +246,49 @@ class ScopedSession:
         Returns:
             ``True`` on success (should raise on failure).
         """
-        raise errors.UnsupportedOperationError
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
 
-    def available_external_ips(self):
+    def external_ips(self):
         """
-        Returns an iterable of external IP addresses that are already allocated
-        to the tenancy but *not* attached to a machine.
+        Returns the external IP addresses that are currently allocated to the
+        tenancy.
 
         Returns:
-            An iterable of IP addresses.
+            An iterable of :py:class:`~.dto.ExternalIp`s.
         """
-        raise errors.UnsupportedOperationError
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
 
-    def allocate_external_ip(self, machine):
+    def allocate_external_ip(self):
         """
-        Allocates a new external IP address from a pool and attaches it to the
-        machine (on platforms that support it).
-
-        Args:
-            machine: The machine. Can be a machine id or a :py:class:`~.dto.Machine`.
+        Allocates a new external IP address for the tenancy from a pool and returns
+        it.
 
         Returns:
-            ``True`` on success (should raise on failure).
+            The allocated :py:class:`~.dto.ExternalIp` (should raise on failure).
         """
-        raise errors.UnsupportedOperationError
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
 
     def attach_external_ip(self, machine, ip):
         """
         Attaches an external IP to a machine.
 
-        ``ip`` should be one of the available IPs returned by :py:meth:`available_external_ips`.
-
         Args:
             machine: The machine. Can be a machine id or a :py:class:`~.dto.Machine`.
-            ip: The IP address to attach.
+            ip: The IP address to attach. Can be an external IP address as a string
+                or a :py:class:`~.dto.ExternalIp`.
 
         Returns:
             ``True`` on success (should raise on failure).
         """
-        raise errors.UnsupportedOperationError
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
 
     def detach_external_ips(self, machine):
         """
@@ -266,24 +300,55 @@ class ScopedSession:
         Returns:
             ``True`` on success (should raise on failure).
         """
-        raise errors.UnsupportedOperationError
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
+
+    def volumes(self, machine):
+        """
+        Lists the volumes attached to the machine.
+
+        Returns:
+            An iterable of :py:class:`~.dto.Volume`s.
+        """
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
+
+    def find_volume(self, machine, id):
+        """
+        Finds a volume by machine and id.
+
+        Args:
+            machine: The machine to search for volumes on. Can be a machine id
+                     or a :py:class:`~.dto.Machine`.
+            id: The id of the volume to find.
+
+        Returns:
+            A :py:class:`~.dto.Volume` object.
+        """
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
 
     def attach_volume(self, machine, size):
         """
-        Attaches an additional volume of the given size to the given machine.
+        Attaches a volume of the given size to the given machine.
 
         Args:
             machine: The machine. Can be a machine id or a :py:class:`~.dto.Machine`.
             size: The size of the volume to attach in GB.
 
         Returns:
-            ``True`` on success (should raise on failure).
+            The created :py:class:`~.dto.Volume`.
         """
-        raise errors.UnsupportedOperationError
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
 
     def detach_volume(self, machine, volume):
         """
-        Detaches the given volume from the machine and destroys it.
+        Detaches the specified volume from the machine and destroys it.
 
         Args:
             machine: The machine. Can be a machine id or a :py:class:`~.dto.Machine`.
@@ -292,4 +357,6 @@ class ScopedSession:
         Returns:
             ``True`` on success (should raise on failure).
         """
-        raise errors.UnsupportedOperationError
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
