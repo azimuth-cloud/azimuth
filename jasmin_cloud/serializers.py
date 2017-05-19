@@ -18,19 +18,6 @@ class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField(style = { 'input_type' : 'password' })
 
-    def validate(self, data):
-        user = authenticate(username = data['username'], password = data['password'])
-        if user is None:
-            raise serializers.ValidationError(
-                'Invalid username or password.', code = 'invalid'
-            )
-        if not user.is_active:
-            raise serializers.ValidationError(
-                'Inactive users cannot log in', code = 'inactive'
-            )
-        data['user'] = user
-        return data
-
 
 class TenancySerializer(serializers.Serializer):
     id = serializers.UUIDField(read_only = True)
@@ -78,8 +65,11 @@ class QuotaSerializer(serializers.Serializer):
     used = serializers.IntegerField(read_only = True)
 
 
-class ImageRefSerializer(serializers.Serializer):
+class ImageSerializer(serializers.Serializer):
     id = serializers.UUIDField(read_only = True)
+    name = serializers.CharField(read_only = True)
+    is_public = serializers.BooleanField(read_only = True)
+    nat_allowed = serializers.BooleanField(read_only = True)
 
     def to_representation(self, obj):
         result = super().to_representation(obj)
@@ -95,14 +85,12 @@ class ImageRefSerializer(serializers.Serializer):
             )
         return result
 
-class ImageSerializer(ImageRefSerializer):
-    name = serializers.CharField(read_only = True)
-    is_public = serializers.BooleanField(read_only = True)
-    nat_allowed = serializers.BooleanField(read_only = True)
 
-
-class SizeRefSerializer(serializers.Serializer):
+class SizeSerializer(serializers.Serializer):
     id = serializers.RegexField('^[a-z0-9-]+$', read_only = True)
+    name = serializers.CharField(read_only = True)
+    cpus = serializers.IntegerField(read_only = True)
+    ram = serializers.IntegerField(read_only = True)
 
     def to_representation(self, obj):
         result = super().to_representation(obj)
@@ -118,14 +106,12 @@ class SizeRefSerializer(serializers.Serializer):
             )
         return result
 
-class SizeSerializer(SizeRefSerializer):
-    name = serializers.CharField(read_only = True)
-    cpus = serializers.IntegerField(read_only = True)
-    ram = serializers.IntegerField(read_only = True)
 
-
-class VolumeRefSerializer(serializers.Serializer):
+class VolumeSerializer(serializers.Serializer):
     id = serializers.UUIDField(read_only = True)
+    name = serializers.CharField(read_only = True)
+    size = serializers.IntegerField(min_value = 1)
+    device = serializers.CharField(read_only = True)
 
     def to_representation(self, obj):
         result = super().to_representation(obj)
@@ -136,31 +122,32 @@ class VolumeRefSerializer(serializers.Serializer):
             result.setdefault('links', {})['self'] = request.build_absolute_uri(
                 reverse('jasmin_cloud:machine_volume_details', kwargs = {
                     'tenant' : tenant,
-                    'machine' : obj.machine.id,
+                    'machine' : obj.machine_id,
                     'volume' : obj.id,
                 })
             )
         return result
 
-class VolumeSerializer(VolumeRefSerializer):
-    name = serializers.CharField(read_only = True)
-    size = serializers.IntegerField(min_value = 1)
-    device = serializers.CharField(read_only = True)
 
+class MachineStatusSerializer(serializers.Serializer):
+    name = serializers.CharField(read_only = True)
+    type = serializers.CharField(source = 'type.name', read_only = True)
+    details = serializers.CharField(read_only = True)
 
 class MachineSerializer(serializers.Serializer):
     id = serializers.UUIDField(read_only = True)
-    name = serializers.RegexField('^[a-z0-9-_]+$')
+    name = serializers.RegexField('^[a-z0-9\.\-_]+$')
 
-    image = ImageRefSerializer(read_only = True)
+    image = ImageSerializer(read_only = True)
     image_id = serializers.UUIDField(write_only = True)
 
-    size = SizeRefSerializer(read_only = True)
+    size = SizeSerializer(read_only = True)
     size_id = serializers.RegexField('^[a-z0-9-]+$', write_only = True)
 
-    status = serializers.CharField(read_only = True)
+    status = MachineStatusSerializer(read_only = True)
     power_state = serializers.CharField(read_only = True)
     task = serializers.CharField(read_only = True)
+    fault = serializers.CharField(read_only = True)
     internal_ips = serializers.ListField(
         child = serializers.IPAddressField(),
         read_only = True
@@ -170,7 +157,7 @@ class MachineSerializer(serializers.Serializer):
         read_only = True
     )
     nat_allowed = serializers.BooleanField(read_only = True)
-    attached_volumes = VolumeRefSerializer(many = True, read_only = True)
+    attached_volumes = VolumeSerializer(many = True, read_only = True)
     owner = serializers.CharField(read_only = True)
     created = serializers.DateTimeField(read_only = True)
 

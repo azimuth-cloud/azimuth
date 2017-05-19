@@ -2,7 +2,7 @@
 This module contains the provider implementation for OpenStack.
 """
 
-import functools, time, logging, re
+import functools, time, logging, re, collections
 
 import dateutil.parser
 import requests
@@ -67,6 +67,21 @@ class Provider(base.Provider):
             raise errors.CommunicationError('Unable to extract token from response')
 
 
+_REPLACEMENTS = [
+    ('instance', 'machine'),
+    ('Instance', 'Machine'),
+    ('flavorRef', 'size'),
+    ('flavor', 'size'),
+    ('Flavor', 'Size')
+]
+def _replace_resource_names(message):
+    return functools.reduce(
+        lambda a, x: a.replace(x[0], x[1]),
+        _REPLACEMENTS,
+        message
+    )
+
+
 def convert_sdk_exceptions(f):
     """
     Decorator that converts OpenStack SDK exceptions into errors from :py:mod:`.errors`.
@@ -76,55 +91,28 @@ def convert_sdk_exceptions(f):
         try:
             return f(*args, **kwargs)
         except exceptions.ResourceNotFound as e:
-            # Convert the OpenStack 404 message into one that represents our resources
-            message = e.details.replace('404 Not Found: ', '')
-            match = re.match('Flavor ([^ ]+) could not be found.', message)
-            if match:
-                raise errors.ObjectNotFoundError(
-                    'Could not find size with ID {}'.format(match.group(1))
-                )
-            match = re.match('Instance ([a-z0-9-]+) could not be found.', message)
-            if match:
-                raise errors.ObjectNotFoundError(
-                    'Could not find machine with ID {}'.format(match.group(1))
-                )
+            message = _replace_resource_names(e.details.replace('404 Not Found: ', ''))
             raise errors.ObjectNotFoundError(message)
         except exceptions.HttpException as e:
+            message = _replace_resource_names(e.details)
             if e.http_status == 400:
-                message = e.details.replace('flavorRef', 'size')
                 raise errors.BadInputError(message)
             elif e.http_status == 401:
                 raise errors.AuthenticationError('Your session has expired')
             elif e.http_status == 403:
                 raise errors.PermissionDeniedError('Permission denied')
             elif e.http_status == 404:
-                message = e.details
-                match = re.match('floating ip not found', message)
-                if match:
-                    raise errors.ObjectNotFoundError('External IP not found.')
                 raise errors.ObjectNotFoundError(message)
             elif e.http_status == 409:
                 # 409 (Conflict) has a lot of different sub-errors depending on
                 # the actual error text
                 if 'quota exceeded' in e.details.lower():
-                    message = e.details
-                    message = message.replace('floatingip', 'external_ips')
                     raise errors.QuotaExceededError(message)
-                match = re.match(
-                    "^Cannot '(?P<action>\w+)' instance [a-z0-9-]+ while it is "
-                    "in vm_state (?P<state>.+)$",
-                    e.details
-                )
-                if match:
-                    raise errors.InvalidOperationError(
-                        "Cannot {} machine while it is in state {}".format(
-                            match.group('action'), match.group('state')
-                        )
-                    )
-                raise errors.InvalidOperationError(e.details)
+                raise errors.InvalidOperationError(message)
             else:
                 raise errors.CommunicationError('Error communicating with OpenStack API')
         except exceptions.SDKException as e:
+            logger.exception('Unknown error in OpenStack SDK')
             raise errors.Error('Unknown error in OpenStack SDK')
     return wrapper
 
@@ -191,17 +179,27 @@ class UnscopedSession(base.UnscopedSession):
         logger.info('[%s] [%s] Creating scoped session', self.username, tenancy)
         prof = profile.Profile()
         prof.set_version('identity', 'v2')
-        return ScopedSession(
-            self.username,
-            tenancy,
-            connection.Connection(
-                auth_url = self.auth_url,
-                profile = prof,
-                project_id = tenancy,
-                auth_plugin = 'token',
-                token = self.token
+        try:
+            return ScopedSession(
+                self.username,
+                tenancy,
+                connection.Connection(
+                    auth_url = self.auth_url,
+                    profile = prof,
+                    project_id = tenancy,
+                    auth_plugin = 'token',
+                    token = self.token
+                )
             )
-        )
+        except exceptions.HttpException as e:
+            # If creating the session fails with an auth error, convert that to
+            # not found to avoid revealing details about valid tenancies
+            if e.status_code in { 401, 403 }:
+                raise errors.ObjectNotFoundError(
+                    'Could not find tenancy with ID {}'.format(tenancy)
+                )
+            else:
+                raise e
 
 
 class ScopedSession(base.ScopedSession):
@@ -305,6 +303,7 @@ class ScopedSession(base.ScopedSession):
         return tuple(self._from_sdk_image(i) for i in images)
 
     @convert_sdk_exceptions
+    @functools.lru_cache()
     def find_image(self, id):
         """
         See :py:meth:`.base.ScopedSession.find_image`.
@@ -334,12 +333,28 @@ class ScopedSession(base.ScopedSession):
         return tuple(self._from_sdk_flavor(f) for f in flavors)
 
     @convert_sdk_exceptions
+    @functools.lru_cache()
     def find_size(self, id):
         """
         See :py:meth:`.base.ScopedSession.find_size`.
         """
         self._log("Fetching flavor with id '%s'", id)
         return self._from_sdk_flavor(self.connection.compute.get_flavor(id))
+
+    @convert_sdk_exceptions
+    def machines(self):
+        """
+        See :py:meth:`.base.ScopedSession.machines`.
+        """
+        # There doesn't seem to be a way to get the fault info for a server through
+        # the OpenStack SDK. So we use the API directly.
+        self._log('Fetching available servers')
+        compute_ep = self.connection.session.get_endpoint(service_type = 'compute')
+        servers = self.connection.session.get(compute_ep + '/servers').json()['servers']
+        self._log('Found %s servers', len(servers))
+        # The API only returns objects with a name and an ID
+        # So fetch the full server for each machine
+        return tuple(self.find_machine(s['id']) for s in servers)
 
     _POWER_STATES = {
         0 : 'Unknown',
@@ -349,80 +364,57 @@ class ScopedSession(base.ScopedSession):
         6 : 'Crashed',
         7 : 'Suspended',
     }
-    def _from_sdk_server(self, sdk_server):
-        """
-        Converts an OpenStack SDK server object into a :py:class:`.dto.Machine`.
-        """
-        # Use proxies for the image and size, so they are only fetched if needed
-        image = dto.Proxy(
-            lambda: self.find_image(sdk_server.image['id']),
-            id = sdk_server.image['id'],
-            __class__ = dto.Image
-        )
-        size = dto.Proxy(
-            lambda: self.find_size(sdk_server.flavor['id']),
-            id = sdk_server.flavor['id'],
-            __class__ = dto.Size
-        )
-        # Also use proxies for the attached volumes
-        def volumes():
-            def volume_lambda(id):
-                return lambda: self.find_volume(sdk_server.id, id)
-            for v in sdk_server.attached_volumes:
-                yield dto.Proxy(
-                    volume_lambda(v['id']),
-                    id = v['id'],
-                    __class__ = dto.Volume
-                )
-        # Generator to produce the IPs of a certain type
-        def ips(ip_type):
-            for y in sdk_server.addresses.values():
-                for x in y:
-                    if x['version'] == 4 and x['OS-EXT-IPS:type'] == ip_type:
-                        yield x['addr']
-        # Try to get nat_allowed from the machine metadata
-        try:
-            nat_allowed = bool(int(sdk_server.metadata['jasmin:nat_allowed']))
-        except (TypeError, KeyError):
-            # If the nat_allowed metadata was not present, try to get it from the image
-            try:
-                nat_allowed = image.nat_allowed
-            except errors.ObjectNotFoundError:
-                # By default, NAT is allowed
-                nat_allowed = True
-        return dto.Machine(
-            sdk_server.id,
-            sdk_server.name,
-            image,
-            size,
-            sdk_server.status,
-            self._POWER_STATES[sdk_server.power_state],
-            sdk_server.task_state.capitalize() if sdk_server.task_state else None,
-            tuple(ips('fixed')),
-            tuple(ips('floating')),
-            nat_allowed,
-            tuple(volumes()),
-            sdk_server.user_id,
-            dateutil.parser.parse(sdk_server.created_at)
-        )
 
     @convert_sdk_exceptions
-    def machines(self):
-        """
-        See :py:meth:`.base.ScopedSession.machines`.
-        """
-        self._log('Fetching available servers')
-        servers = list(self.connection.compute.servers())
-        self._log('Found %s servers', len(servers))
-        return tuple(self._from_sdk_server(s) for s in servers)
-
-    @convert_sdk_exceptions
+    @functools.lru_cache()
     def find_machine(self, id):
         """
         See :py:meth:`.base.ScopedSession.find_machine`.
         """
+        # There doesn't seem to be a way to get the fault info for a server through
+        # the OpenStack SDK. So we use the API directly.
         self._log("Fetching server with id '%s'", id)
-        return self._from_sdk_server(self.connection.compute.get_server(id))
+        compute_ep = self.connection.session.get_endpoint(service_type = 'compute')
+        response = self.connection.session.get(compute_ep + '/servers/' + id)
+        sdk_server = response.json()['server']
+        # Generator to produce the IPs of a certain type
+        def ips(ip_type):
+            for y in sdk_server['addresses'].values():
+                for x in y:
+                    if x['version'] == 4 and x['OS-EXT-IPS:type'] == ip_type:
+                        yield x['addr']
+        # Try to get nat_allowed from the machine metadata
+        # If the nat_allowed metadata is not present, try to get it from the image
+        image = self.find_image(sdk_server['image']['id'])
+        try:
+            nat_allowed = bool(int(sdk_server['metadata']['jasmin:nat_allowed']))
+        except (TypeError, KeyError):
+            nat_allowed = image.nat_allowed
+        status = sdk_server['status']
+        fault = sdk_server.get('fault', {}).get('message', None)
+        task = sdk_server.get('OS-EXT-STS:task_state', None)
+        return dto.Machine(
+            sdk_server['id'],
+            sdk_server['name'],
+            image,
+            self.find_size(sdk_server['flavor']['id']),
+            dto.Machine.Status(
+                getattr(dto.Machine.Status.Type, status, dto.Machine.Status.Type.OTHER),
+                status,
+                _replace_resource_names(fault) if fault else None
+            ),
+            self._POWER_STATES[sdk_server['OS-EXT-STS:power_state']],
+            task.capitalize() if task else None,
+            tuple(ips('fixed')),
+            tuple(ips('floating')),
+            nat_allowed,
+            tuple(
+                self.find_volume(sdk_server['id'], v['id'])
+                for v in sdk_server['os-extended-volumes:volumes_attached']
+            ),
+            sdk_server['user_id'],
+            dateutil.parser.parse(sdk_server['created'])
+        )
 
     @convert_sdk_exceptions
     def create_machine(self, name, image, size):
@@ -440,7 +432,10 @@ class ScopedSession(base.ScopedSession):
         # This assumes there is one tenancy router with a single tenant network
         # attached to it
         ports = self.connection.network.ports(device_owner = 'network:router_interface')
-        network = next(ports).network_id
+        try:
+            network = next(ports).network_id
+        except StopIteration:
+            raise errors.ImproperlyConfiguredError('Could not find tenancy network')
         server = self.connection.compute.create_server(
             name = name,
             image_id = image.id,
@@ -450,11 +445,7 @@ class ScopedSession(base.ScopedSession):
             # Set the nat_allowed metadata based on the image
             metadata = { 'jasmin:nat_allowed' : '1' if image.nat_allowed else '0' }
         )
-        return dto.Proxy(
-            lambda: self.find_machine(server.id),
-            id = server.id,
-            __class__ = dto.Machine
-        )
+        return self.find_machine(server.id)
 
     @convert_sdk_exceptions
     def start_machine(self, machine):
@@ -542,7 +533,7 @@ class ScopedSession(base.ScopedSession):
         # If NATing is not allowed for the machine, bail
         if not machine.nat_allowed:
             raise errors.InvalidOperationError(
-                'This machine is not allowed to have an external IP address'
+                'Machine is not allowed to have an external IP address'
             )
         self._log("Attaching floating ip '%s' to server '%s'", ip, machine.id)
         # Get the fixed IP of the machine on the tenant network
@@ -576,12 +567,7 @@ class ScopedSession(base.ScopedSession):
         """
         return dto.Volume(
             sdk_volume.id,
-            # Use a proxy for the machine
-            dto.Proxy(
-                lambda: self.find_machine(machine),
-                id = machine,
-                __class__ = dto.Machine
-            ),
+            machine,
             # If there is no name, use part of the ID
             sdk_volume.name or sdk_volume.id[:13],
             sdk_volume.size,
@@ -614,6 +600,7 @@ class ScopedSession(base.ScopedSession):
         return volumes
 
     @convert_sdk_exceptions
+    @functools.lru_cache()
     def find_volume(self, machine, id):
         """
         See :py:meth:`.base.ScopedSession.find_volume`.
@@ -624,7 +611,7 @@ class ScopedSession(base.ScopedSession):
         # If the volume is not attached to the machine, treat it as not found
         if not any(a['server_id'] == machine for a in volume.attachments):
             raise errors.ObjectNotFoundError(
-                'Could not find size with ID {}'.format(match.group(1))
+                'Could not find volume with ID {}'.format(id)
             )
         return self._from_sdk_volume(machine, volume)
 
@@ -637,35 +624,39 @@ class ScopedSession(base.ScopedSession):
         self._log('Creating new volume of size %s', size)
         volume = self.connection.block_store.create_volume(size = size)
         # Wait for the volume to become available for attaching it
-        #   Wait for 5s at a time for a maximum of 1m
-        for _ in range(12):
-            time.sleep(5)
+        #   We wait for a maximum of 5 minutes
+        deadline = time.time() + (5 * 60)
+        while True:
+            time.sleep(1)
             volume = self.connection.block_store.get_volume(volume.id)
-            if volume.status.lower() == 'available': break
-        else:
-            raise errors.OperationTimedOutError(
-                'Timed out waiting for volume to be created'
-            )
+            status = volume.status.lower()
+            if status == 'available': break
+            if status == 'error':
+                raise errors.Error('Error during volume creation.')
+            if time.time() > deadline:
+                raise errors.OperationTimedOutError(
+                    'Timed out waiting for volume to be created.'
+                )
         self._log("Attaching volume '%s' to server '%s'", volume.id, machine)
-        try:
-            # It is not clear how to do this through the SDK, so use the API
-            compute_ep = self.connection.session.get_endpoint(service_type = 'compute')
-            r = self.connection.session.post(
-                compute_ep + '/servers/' + machine + '/os-volume_attachments',
-                json = { "volumeAttachment" : { "volumeId" : volume.id } }
-            )
-        except exceptions.HttpException:
-            # If there is a problem attaching the volume, roll back the creation
-            # of the volume before re-raising
-            # We don't want to leave volumes hanging around that aren't attached
-            # as they are not accessible via this API
-            self.connection.block_store.delete_volume(volume)
-            raise
-        return dto.Proxy(
-            lambda: self.find_volume(machine, volume.id),
-            id = volume.id,
-            __class__ = dto.Volume
+        # It is not clear how to do this through the SDK, so use the API
+        compute_ep = self.connection.session.get_endpoint(service_type = 'compute')
+        r = self.connection.session.post(
+            compute_ep + '/servers/' + machine + '/os-volume_attachments',
+            json = { "volumeAttachment" : { "volumeId" : volume.id } }
         )
+        # Wait for the volume to become attached
+        #   We wait for a maximum of 5 minutes
+        deadline = time.time() + (5 * 60)
+        while True:
+            time.sleep(1)
+            volume = self.connection.block_store.get_volume(volume.id)
+            status = volume.status.lower()
+            if status == 'in-use': break
+            if time.time() > deadline:
+                raise errors.OperationTimedOutError(
+                    'Timed out waiting for volume to attach.'
+                )
+        return self.find_volume(machine, volume.id)
 
     @convert_sdk_exceptions
     def detach_volume(self, machine, volume):
@@ -689,15 +680,16 @@ class ScopedSession(base.ScopedSession):
         # the attachments until there are none for the machine
         #   Check every 5s for a maximum of 1m
         vinfo = None
-        for _ in range(12):
-            time.sleep(5)
+        deadline = time.time() + (5 * 60)
+        while True:
+            time.sleep(1)
             vinfo = self.connection.block_store.get_volume(volume)
             if not any(a['server_id'] == machine for a in vinfo.attachments):
                 break
-        else:
-            raise errors.OperationTimedOutError(
-                'Timed out waiting for volume to detach'
-            )
+            if time.time() > deadline:
+                raise errors.OperationTimedOutError(
+                    'Timed out waiting for volume to detach.'
+                )
         # If there no attachments to other machines, delete the volume
         if not vinfo.attachments:
             self._log("Deleting volume '%s'", volume)

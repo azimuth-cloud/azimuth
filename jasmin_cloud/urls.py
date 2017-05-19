@@ -12,6 +12,7 @@ UUID_REGEX = r'[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}'
 app_name = 'jasmin_cloud'
 urlpatterns = [
     url(r'^authenticate/$', views.authenticate, name = 'authenticate'),
+    url(r'^session/$', views.session, name = 'session'),
     url(r'^tenancies/$', views.tenancies, name = 'tenancies'),
     url(r'^tenancies/(?P<tenant>'+ UUID_REGEX + r')/', include([
         url(r'^quotas/$', views.quotas, name = 'quotas'),

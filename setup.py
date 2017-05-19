@@ -24,7 +24,6 @@ with open(os.path.join(here, 'README.md')) as f:
 requires = [
     'docutils',
     'python-dateutil',
-    'wrapt',
     'requests',
     'openstacksdk',
     'django',

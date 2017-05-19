@@ -7,7 +7,7 @@ import functools
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.utils.encoding import smart_text
-from django.contrib.auth import login
+from django.contrib.auth import authenticate as dj_authenticate, login, logout
 
 from docutils import core
 
@@ -43,44 +43,59 @@ def get_view_description(view_cls, html = False):
     return description
 
 
-def exception_handler(exc, context):
+def convert_provider_exceptions(view):
     """
-    Exception handler that converts errors from :py:mod:`.provider.errors` into
-    appropriate HTTP responses.
+    Decorator that converts errors from :py:mod:`.provider.errors` into appropriate
+    HTTP responses or Django REST framework errors.
     """
-    if isinstance(exc, provider_errors.UnsupportedOperationError):
-        return response.Response(
-            { 'detail' : str(exc), 'code' : 'unsupported_operation'},
-            status = status.HTTP_501_NOT_IMPLEMENTED
-        )
-    if isinstance(exc, provider_errors.QuotaExceededError):
-        return response.Response(
-            { 'detail' : str(exc), 'code' : 'quota_exceeded'},
-            status = status.HTTP_409_CONFLICT
-        )
-    if isinstance(exc, provider_errors.InvalidOperationError):
-        return response.Response(
-            { 'detail' : str(exc), 'code' : 'invalid_operation'},
-            status = status.HTTP_409_CONFLICT
-        )
-    if isinstance(exc, provider_errors.BadInputError):
-        return response.Response(
-            { 'detail' : str(exc), 'code' : 'bad_input'},
-            status = status.HTTP_400_BAD_REQUEST
-        )
-    # If we get this far, we are going to defer to the DRF exception handler
-    # For provider errors that have a direct correlation with DRF exceptions,
-    # convert them before deferring to DRF
-    if isinstance(exc, provider_errors.AuthenticationError):
-        exc = drf_exceptions.AuthenticationFailed(str(exc))
-    elif isinstance(exc, provider_errors.PermissionDeniedError):
-        exc = drf_exceptions.PermissionDenied(str(exc))
-    elif isinstance(exc, provider_errors.ObjectNotFoundError):
-        exc = drf_exceptions.NotFound(str(exc))
-    return drf_views.exception_handler(exc, context)
+    @functools.wraps(view)
+    def wrapper(*args, **kwargs):
+        try:
+            return view(*args, **kwargs)
+        # For provider errors that don't map to authentication/not found errors,
+        # return suitable responses
+        except provider_errors.UnsupportedOperationError as exc:
+            return response.Response(
+                { 'detail' : str(exc), 'code' : 'unsupported_operation'},
+                status = status.HTTP_501_NOT_IMPLEMENTED
+            )
+        except provider_errors.QuotaExceededError as exc:
+            return response.Response(
+                { 'detail' : str(exc), 'code' : 'quota_exceeded'},
+                status = status.HTTP_409_CONFLICT
+            )
+        except provider_errors.InvalidOperationError as exc:
+            return response.Response(
+                { 'detail' : str(exc), 'code' : 'invalid_operation'},
+                status = status.HTTP_409_CONFLICT
+            )
+        except provider_errors.BadInputError as exc:
+            return response.Response(
+                { 'detail' : str(exc), 'code' : 'bad_input'},
+                status = status.HTTP_400_BAD_REQUEST
+            )
+        except provider_errors.OperationTimedOutError as exc:
+            return response.Response(
+                { 'detail' : str(exc), 'code' : 'operation_timed_out'},
+                status = status.HTTP_504_GATEWAY_TIMEOUT
+            )
+        # For authentication/not found errors, raise the DRF equivalent
+        except provider_errors.AuthenticationError as exc:
+            raise drf_exceptions.AuthenticationFailed(str(exc))
+        except provider_errors.PermissionDeniedError as exc:
+            raise drf_exceptions.PermissionDenied(str(exc))
+        except provider_errors.ObjectNotFoundError as exc:
+            raise drf_exceptions.NotFound(str(exc))
+        except provider_errors.Error as exc:
+            return response.Response(
+                { 'detail' : str(exc) },
+                status = status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    return wrapper
 
 
 @decorators.api_view(['POST'])
+@convert_provider_exceptions
 def authenticate(request):
     """
     This view attempts to authenticate the user using the given username and
@@ -95,13 +110,49 @@ def authenticate(request):
     """
     serializer = serializers.LoginSerializer(data = request.data)
     serializer.is_valid(raise_exception = True)
-    login(request, serializer.validated_data['user'])
+    username = serializer.validated_data['username']
+    password = serializer.validated_data['password']
+    user = dj_authenticate(request, username = username, password = password)
+    if user is None:
+        raise drf_exceptions.AuthenticationFailed('Invalid username or password.')
+    if not user.is_active:
+        raise drf_exceptions.AuthenticationFailed('User is not active.')
+    login(request, user)
     # Just return a 200 OK response
-    return response.Response()
+    return response.Response({
+        'username' : user.username,
+        'links' : {
+            'tenancies' : request.build_absolute_uri(reverse('jasmin_cloud:tenancies'))
+        }
+    })
+
+
+@decorators.api_view(['GET', 'DELETE'])
+@decorators.permission_classes([permissions.IsAuthenticated])
+@convert_provider_exceptions
+def session(request):
+    """
+    On ``GET`` requests, return information about the current session.
+
+    On ``DELETE`` requests, destroy the current session.
+    """
+    if request.method == 'DELETE':
+        logout(request)
+        return response.Response()
+    else:
+        # Before claiming to be successful, first ping the current cloudsession
+        _ = request.user.cloudsession.session.tenancies()
+        return response.Response({
+            'username' : request.user.username,
+            'links' : {
+                'tenancies' : request.build_absolute_uri(reverse('jasmin_cloud:tenancies'))
+            }
+        })
 
 
 @decorators.api_view(['GET'])
 @decorators.permission_classes([permissions.IsAuthenticated])
+@convert_provider_exceptions
 def tenancies(request):
     """
     Returns the tenancies available to the authenticated user.
@@ -117,6 +168,7 @@ def tenancies(request):
 
 @decorators.api_view(['GET'])
 @decorators.permission_classes([permissions.IsAuthenticated])
+@convert_provider_exceptions
 def quotas(request, tenant):
     """
     Returns information about the quotas available to the tenant.
@@ -129,6 +181,7 @@ def quotas(request, tenant):
 
 @decorators.api_view(['GET'])
 @decorators.permission_classes([permissions.IsAuthenticated])
+@convert_provider_exceptions
 def images(request, tenant):
     """
     Returns the images available to the specified tenancy.
@@ -151,6 +204,7 @@ def images(request, tenant):
 
 @decorators.api_view(['GET'])
 @decorators.permission_classes([permissions.IsAuthenticated])
+@convert_provider_exceptions
 def image_details(request, tenant, image):
     """
     Returns the details for the specified image.
@@ -172,6 +226,7 @@ def image_details(request, tenant, image):
 
 @decorators.api_view(['GET'])
 @decorators.permission_classes([permissions.IsAuthenticated])
+@convert_provider_exceptions
 def sizes(request, tenant):
     """
     Returns the machine sizes available to the specified tenancy.
@@ -194,6 +249,7 @@ def sizes(request, tenant):
 
 @decorators.api_view(['GET'])
 @decorators.permission_classes([permissions.IsAuthenticated])
+@convert_provider_exceptions
 def size_details(request, tenant, size):
     """
     Returns the details for the specified machine size.
@@ -215,6 +271,7 @@ def size_details(request, tenant, size):
 
 @decorators.api_view(['GET', 'POST'])
 @decorators.permission_classes([permissions.IsAuthenticated])
+@convert_provider_exceptions
 def machines(request, tenant):
     """
     On ``GET`` requests, return the machines deployed in the specified tenancy.
@@ -231,23 +288,15 @@ def machines(request, tenant):
     if request.method == 'POST':
         input_serializer = serializers.MachineSerializer(data = request.data)
         input_serializer.is_valid(raise_exception = True)
-        machine = session.create_machine(
-            input_serializer.validated_data['name'],
-            input_serializer.validated_data['image_id'],
-            input_serializer.validated_data['size_id']
+        output_serializer = serializers.MachineSerializer(
+            session.create_machine(
+                input_serializer.validated_data['name'],
+                input_serializer.validated_data['image_id'],
+                input_serializer.validated_data['size_id']
+            ),
+            context = { 'request' : request, 'tenant' : tenant }
         )
-        # REST semantics say the response should be a 201 Created with a Location
-        # header pointing to the resource
-        location = request.build_absolute_uri(
-            reverse('jasmin_cloud:machine_details', kwargs = {
-                'tenant' : tenant,
-                'machine' : machine.id
-            })
-        )
-        return response.Response(
-            status = status.HTTP_201_CREATED,
-            headers = { 'Location' : location }
-        )
+        return response.Response(output_serializer.data, status = status.HTTP_201_CREATED)
     else:
         serializer = serializers.MachineSerializer(
             session.machines(),
@@ -259,6 +308,7 @@ def machines(request, tenant):
 
 @decorators.api_view(['GET', 'DELETE'])
 @decorators.permission_classes([permissions.IsAuthenticated])
+@convert_provider_exceptions
 def machine_details(request, tenant, machine):
     """
     On ``GET`` requests, return the details for the specified machine.
@@ -279,39 +329,55 @@ def machine_details(request, tenant, machine):
 
 @decorators.api_view(['POST'])
 @decorators.permission_classes([permissions.IsAuthenticated])
+@convert_provider_exceptions
 def machine_start(request, tenant, machine):
     """
     Start (power on) the specified machine.
     """
     session = request.user.cloudsession.session.scoped_session(tenant)
     session.start_machine(machine)
-    return response.Response()
+    serializer = serializers.MachineSerializer(
+        session.find_machine(machine),
+        context = { 'request' : request, 'tenant' : tenant }
+    )
+    return response.Response(serializer.data)
 
 
 @decorators.api_view(['POST'])
 @decorators.permission_classes([permissions.IsAuthenticated])
+@convert_provider_exceptions
 def machine_stop(request, tenant, machine):
     """
     Stop (power off) the specified machine.
     """
     session = request.user.cloudsession.session.scoped_session(tenant)
     session.stop_machine(machine)
-    return response.Response()
+    serializer = serializers.MachineSerializer(
+        session.find_machine(machine),
+        context = { 'request' : request, 'tenant' : tenant }
+    )
+    return response.Response(serializer.data)
 
 
 @decorators.api_view(['POST'])
 @decorators.permission_classes([permissions.IsAuthenticated])
+@convert_provider_exceptions
 def machine_restart(request, tenant, machine):
     """
     Restart (power cycle) the specified machine.
     """
     session = request.user.cloudsession.session.scoped_session(tenant)
     session.restart_machine(machine)
-    return response.Response()
+    serializer = serializers.MachineSerializer(
+        session.find_machine(machine),
+        context = { 'request' : request, 'tenant' : tenant }
+    )
+    return response.Response(serializer.data)
 
 
 @decorators.api_view(['GET', 'POST'])
 @decorators.permission_classes([permissions.IsAuthenticated])
+@convert_provider_exceptions
 def external_ips(request, tenant):
     """
     On ``GET`` requests, return a list of external IP addresses that are
@@ -340,6 +406,7 @@ def external_ips(request, tenant):
 
 @decorators.api_view(['POST'])
 @decorators.permission_classes([permissions.IsAuthenticated])
+@convert_provider_exceptions
 def machine_attach_external_ip(request, tenant, machine):
     """
     Attaches the given external IP to the specified machine.
@@ -360,6 +427,7 @@ def machine_attach_external_ip(request, tenant, machine):
 
 @decorators.api_view(['POST'])
 @decorators.permission_classes([permissions.IsAuthenticated])
+@convert_provider_exceptions
 def machine_detach_external_ips(request, tenant, machine):
     """
     Detaches all external IPs from the specified machine.
@@ -373,6 +441,7 @@ def machine_detach_external_ips(request, tenant, machine):
 
 @decorators.api_view(['GET', 'POST'])
 @decorators.permission_classes([permissions.IsAuthenticated])
+@convert_provider_exceptions
 def machine_volumes(request, tenant, machine):
     """
     On ``GET`` requests, return a list of the volumes attached to the specified
@@ -387,33 +456,26 @@ def machine_volumes(request, tenant, machine):
     if request.method == 'POST':
         input_serializer = serializers.VolumeSerializer(data = request.data)
         input_serializer.is_valid(raise_exception = True)
-        volume = session.attach_volume(
-            machine, input_serializer.validated_data['size']
+        output_serializer = serializers.VolumeSerializer(
+            session.attach_volume(
+                machine,
+                input_serializer.validated_data['size']
+            ),
+            context = { 'request' : request, 'tenant' : tenant }
         )
-        # REST semantics say the response should be a 201 Created with a Location
-        # header pointing to the resource
-        location = request.build_absolute_uri(
-            reverse('jasmin_cloud:machine_volume_details', kwargs = {
-                'tenant' : tenant,
-                'machine' : machine,
-                'volume' : volume.id,
-            })
-        )
-        return response.Response(
-            status = status.HTTP_201_CREATED,
-            headers = { 'Location' : location }
-        )
+        return response.Response(output_serializer.data, status = status.HTTP_201_CREATED)
     else:
         serializer = serializers.VolumeSerializer(
             session.volumes(machine),
             many = True,
-            context = { 'request' : request, 'tenant' : tenant, 'machine' : machine }
+            context = { 'request' : request, 'tenant' : tenant }
         )
         return response.Response(serializer.data)
 
 
 @decorators.api_view(['GET', 'DELETE'])
 @decorators.permission_classes([permissions.IsAuthenticated])
+@convert_provider_exceptions
 def machine_volume_details(request, tenant, machine, volume):
     """
     On ``GET`` requests, return the details for the specified volume.
@@ -427,6 +489,6 @@ def machine_volume_details(request, tenant, machine, volume):
     else:
         serializer = serializers.VolumeSerializer(
             session.find_volume(machine, volume),
-            context = { 'request' : request, 'tenant' : tenant, 'machine' : machine }
+            context = { 'request' : request, 'tenant' : tenant }
         )
         return response.Response(serializer.data)
