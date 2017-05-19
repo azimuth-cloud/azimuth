@@ -284,7 +284,6 @@ class ScopedSession(base.ScopedSession):
         """
         Converts an OpenStack SDK image object into a :py:class:`.dto.Image`.
         """
-        print(sdk_image.size)
         return dto.Image(
             sdk_image.id,
             sdk_image.name,
@@ -322,7 +321,8 @@ class ScopedSession(base.ScopedSession):
             sdk_flavor.id,
             sdk_flavor.name,
             sdk_flavor.vcpus,
-            sdk_flavor.ram
+            sdk_flavor.ram,
+            sdk_flavor.disk
         )
 
     @convert_sdk_exceptions

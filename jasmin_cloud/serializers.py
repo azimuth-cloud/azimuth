@@ -97,6 +97,7 @@ class SizeSerializer(serializers.Serializer):
     name = serializers.CharField(read_only = True)
     cpus = serializers.IntegerField(read_only = True)
     ram = serializers.IntegerField(read_only = True)
+    disk = serializers.IntegerField(read_only = True)
 
     def to_representation(self, obj):
         result = super().to_representation(obj)

@@ -39,11 +39,11 @@ class Image(namedtuple('Image', ['id', 'name', 'is_public', 'nat_allowed', 'size
         name: The human-readable name of the image.
         is_public: Indicates if the image is public or private.
         nat_allowed: Indicates if NAT is allowed for machines deployed from the image.
-        size: The size of the image in MB.
+        size: The size of the image (in MB). Can be a float for more precision.
     """
 
 
-class Size(namedtuple('Size', ['id', 'name', 'cpus', 'ram'])):
+class Size(namedtuple('Size', ['id', 'name', 'cpus', 'ram', 'disk'])):
     """
     Represents a machine size available to a tenancy.
 
@@ -57,6 +57,8 @@ class Size(namedtuple('Size', ['id', 'name', 'cpus', 'ram'])):
         name: The human-readable name of the size.
         cpus: The number of CPUs.
         ram: The amount of RAM (in MB).
+        disk: The size of the root disk (in GB).
+              Can be -1 to indicate no root disk size limit.
     """
 
 
