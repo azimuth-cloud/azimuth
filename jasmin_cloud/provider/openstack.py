@@ -284,12 +284,15 @@ class ScopedSession(base.ScopedSession):
         """
         Converts an OpenStack SDK image object into a :py:class:`.dto.Image`.
         """
+        print(sdk_image.size)
         return dto.Image(
             sdk_image.id,
             sdk_image.name,
             sdk_image.visibility == 'public',
             # Unless specifically disallowed by a flag, NAT is allowed
-            bool(int((sdk_image.metadata or {}).get('jasmin:nat_allowed', '1')))
+            bool(int((sdk_image.metadata or {}).get('jasmin:nat_allowed', '1'))),
+            # The image size is specified in bytes. Convert to MB.
+            float(sdk_image.size) / 1024.0 / 1024.0
         )
 
     @convert_sdk_exceptions

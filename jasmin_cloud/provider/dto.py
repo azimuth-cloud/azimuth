@@ -28,7 +28,7 @@ class Quota(namedtuple('Quota', ['resource', 'units', 'allocated', 'used'])):
     """
 
 
-class Image(namedtuple('Image', ['id', 'name', 'is_public', 'nat_allowed'])):
+class Image(namedtuple('Image', ['id', 'name', 'is_public', 'nat_allowed', 'size'])):
     """
     Represents an image available to a tenancy.
 
@@ -39,6 +39,7 @@ class Image(namedtuple('Image', ['id', 'name', 'is_public', 'nat_allowed'])):
         name: The human-readable name of the image.
         is_public: Indicates if the image is public or private.
         nat_allowed: Indicates if NAT is allowed for machines deployed from the image.
+        size: The size of the image in MB.
     """
 
 

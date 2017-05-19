@@ -70,6 +70,12 @@ class ImageSerializer(serializers.Serializer):
     name = serializers.CharField(read_only = True)
     is_public = serializers.BooleanField(read_only = True)
     nat_allowed = serializers.BooleanField(read_only = True)
+    size = serializers.DecimalField(
+        None, # No limit on the number of digits
+        decimal_places = 2,
+        coerce_to_string = False,
+        read_only = True
+    )
 
     def to_representation(self, obj):
         result = super().to_representation(obj)
