@@ -64,7 +64,7 @@ class Size(namedtuple('Size', ['id', 'name', 'cpus', 'ram', 'disk'])):
 
 class Machine(namedtuple('Machine', ['id', 'name', 'image', 'size',
                                      'status', 'power_state', 'task',
-                                     'internal_ips', 'external_ips', 'nat_allowed',
+                                     'internal_ip', 'external_ip', 'nat_allowed',
                                      'attached_volumes', 'owner', 'created'])):
     """
     Represents a machine in a tenancy.
@@ -77,10 +77,10 @@ class Machine(namedtuple('Machine', ['id', 'name', 'image', 'size',
         status: The :py:class:`Status` of the machine.
         power_state: The power state of the machine as a string.
         task: String representation of any task that is currently executing.
-        internal_ips: The internal IPv4 addresses of this machine.
-        external_ips: The external IPv4 addresses of this machine.
-        nat_allowed: Indicates if NAT is allowed for this machine.
-        attached_volumes: A tuple of :py:class:`Volume`s attached to this machine.
+        internal_ip: The internal IPv4 address of the machine.
+        external_ip: The external IPv4 address of the machine.
+        nat_allowed: Indicates if NAT is allowed for the machine.
+        attached_volumes: A tuple of :py:class:`Volume`s attached to the machine.
         owner: The username of the user who deployed the machine.
         created: The `datetime` at which the machine was deployed.
     """

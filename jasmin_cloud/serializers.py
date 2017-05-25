@@ -155,14 +155,8 @@ class MachineSerializer(serializers.Serializer):
     power_state = serializers.CharField(read_only = True)
     task = serializers.CharField(read_only = True)
     fault = serializers.CharField(read_only = True)
-    internal_ips = serializers.ListField(
-        child = serializers.IPAddressField(),
-        read_only = True
-    )
-    external_ips = serializers.ListField(
-        child = serializers.IPAddressField(),
-        read_only = True
-    )
+    internal_ip = serializers.IPAddressField(read_only = True)
+    external_ip = serializers.IPAddressField(read_only = True)
     nat_allowed = serializers.BooleanField(read_only = True)
     attached_volumes = VolumeSerializer(many = True, read_only = True)
     owner = serializers.CharField(read_only = True)

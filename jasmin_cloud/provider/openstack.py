@@ -100,14 +100,24 @@ def convert_sdk_exceptions(f):
             elif e.http_status == 401:
                 raise errors.AuthenticationError('Your session has expired')
             elif e.http_status == 403:
+                # Some quota exceeded errors get reported as permission denied (WHY???!!!)
+                # So report them as quota exceeded instead
+                if 'quota exceeded' in message.lower():
+                    raise errors.QuotaExceededError(
+                        'Requested operation would exceed at least one quota. '
+                        'Please check your tenancy quotas.'
+                    )
                 raise errors.PermissionDeniedError('Permission denied')
             elif e.http_status == 404:
                 raise errors.ObjectNotFoundError(message)
             elif e.http_status == 409:
                 # 409 (Conflict) has a lot of different sub-errors depending on
                 # the actual error text
-                if 'quota exceeded' in e.details.lower():
-                    raise errors.QuotaExceededError(message)
+                if 'quota exceeded' in message.lower():
+                    raise errors.QuotaExceededError(
+                        'Requested operation would exceed at least one quota. '
+                        'Please check your tenancy quotas.'
+                    )
                 raise errors.InvalidOperationError(message)
             else:
                 raise errors.CommunicationError('Error communicating with OpenStack API')
@@ -344,6 +354,20 @@ class ScopedSession(base.ScopedSession):
         self._log("Fetching flavor with id '%s'", id)
         return self._from_sdk_flavor(self.connection.compute.get_flavor(id))
 
+    def _tenant_network(self):
+        """
+        Returns the ID of the tenant network connected to the tenant router.
+        Assumes a single router with a single tenant network connected.
+        Return ``None`` if the tenant network cannot be located.
+        """
+        try:
+            port = next(
+                self.connection.network.ports(device_owner = 'network:router_interface')
+            )
+            return self.connection.network.find_network(port.network_id)
+        except StopIteration:
+            return None
+
     @convert_sdk_exceptions
     def machines(self):
         """
@@ -380,12 +404,6 @@ class ScopedSession(base.ScopedSession):
         compute_ep = self.connection.session.get_endpoint(service_type = 'compute')
         response = self.connection.session.get(compute_ep + '/servers/' + id)
         sdk_server = response.json()['server']
-        # Generator to produce the IPs of a certain type
-        def ips(ip_type):
-            for y in sdk_server['addresses'].values():
-                for x in y:
-                    if x['version'] == 4 and x['OS-EXT-IPS:type'] == ip_type:
-                        yield x['addr']
         # Try to get nat_allowed from the machine metadata
         # If the nat_allowed metadata is not present, try to get it from the image
         image = self.find_image(sdk_server['image']['id'])
@@ -396,6 +414,18 @@ class ScopedSession(base.ScopedSession):
         status = sdk_server['status']
         fault = sdk_server.get('fault', {}).get('message', None)
         task = sdk_server.get('OS-EXT-STS:task_state', None)
+        # Find IP addresses
+        network = self._tenant_network()
+        # Function to get the first IP of a particular type on the tenant network
+        def ip_of_type(ip_type):
+            return next(
+                (
+                    a['addr']
+                    for a in sdk_server['addresses'].get(network.name, [])
+                    if a['version'] == 4 and a['OS-EXT-IPS:type'] == ip_type
+                ),
+                None
+            )
         return dto.Machine(
             sdk_server['id'],
             sdk_server['name'],
@@ -408,8 +438,8 @@ class ScopedSession(base.ScopedSession):
             ),
             self._POWER_STATES[sdk_server['OS-EXT-STS:power_state']],
             task.capitalize() if task else None,
-            tuple(ips('fixed')),
-            tuple(ips('floating')),
+            ip_of_type('fixed'),
+            ip_of_type('floating'),
             nat_allowed,
             tuple(
                 self.find_volume(sdk_server['id'], v['id'])
@@ -432,18 +462,14 @@ class ScopedSession(base.ScopedSession):
         size = size.id if isinstance(size, dto.Size) else size
         self._log("Creating machine '%s' (image: %s, size: %s)", name, image.name, size)
         # Get the network id to use
-        # This assumes there is one tenancy router with a single tenant network
-        # attached to it
-        ports = self.connection.network.ports(device_owner = 'network:router_interface')
-        try:
-            network = next(ports).network_id
-        except StopIteration:
+        network = self._tenant_network()
+        if not network:
             raise errors.ImproperlyConfiguredError('Could not find tenancy network')
         server = self.connection.compute.create_server(
             name = name,
             image_id = image.id,
             flavor_id = size,
-            networks = [{ 'uuid' : network }],
+            networks = [{ 'uuid' : network.id }],
             # TODO: Sort out what to do with key pairs
             # Set the nat_allowed metadata based on the image
             metadata = { 'jasmin:nat_allowed' : '1' if image.nat_allowed else '0' }
@@ -519,7 +545,10 @@ class ScopedSession(base.ScopedSession):
         """
         self._log("Allocating new floating ip")
         # Get the external network being used by the tenancy router
-        router = next(self.connection.network.routers())
+        try:
+            router = next(self.connection.network.routers())
+        except StopIteration:
+            raise errors.ImproperlyConfiguredError('Could not find tenancy router.')
         extnet = router.external_gateway_info['network_id']
         # Create a new floating IP on that network
         fip = self.connection.network.create_ip(floating_network_id = extnet)
@@ -540,16 +569,19 @@ class ScopedSession(base.ScopedSession):
             )
         self._log("Attaching floating ip '%s' to server '%s'", ip, machine.id)
         # Get the fixed IP of the machine on the tenant network
-        ports = list(self.connection.network.ports())
-        # The tenant network is the only network attached to the router
-        tenant_net = next(
-            p for p in ports if p.device_owner == 'network:router_interface'
-        ).network_id
-        machine_port = next(
-            p for p in ports
-            if p.device_id == machine.id and p.network_id == tenant_net
-        )
-        fixed_ip = machine_port.fixed_ips[0]['ip_address']
+        tenant_net = self._tenant_network()
+        if not tenant_net:
+            raise errors.ImproperlyConfiguredError('Could not find tenancy network.')
+        try:
+            port = next(
+                self.connection.network.ports(device_id = machine.id,
+                                              network_id = tenant_net.id)
+            )
+        except StopIteration:
+            raise errors.ImproperlyConfiguredError(
+                'Machine is not connected to tenancy network.'
+            )
+        fixed_ip = port.fixed_ips[0]['ip_address']
         self.connection.compute.add_floating_ip_to_server(machine.id, ip, fixed_ip)
         return True
 
