@@ -399,44 +399,46 @@ def external_ips(request, tenant):
     else:
         serializer = serializers.ExternalIPSerializer(
             session.external_ips(),
-            many = True
+            many = True,
+            context = { 'request' : request, 'tenant' : tenant }
         )
         return response.Response(serializer.data)
 
 
-@decorators.api_view(['POST'])
+@decorators.api_view(['GET', 'PUT'])
 @decorators.permission_classes([permissions.IsAuthenticated])
 @convert_provider_exceptions
-def machine_attach_external_ip(request, tenant, machine):
+def external_ip_details(request, tenant, ip):
     """
-    Attaches the given external IP to the specified machine.
+    On ``GET`` requests, return the details for the external IP address.
 
-    The request body should look like::
+    On ``PUT`` requests, attach the specified machine to the external IP address.
+    If the machine_id is ``null``, the external IP address will be detached from
+    the machine it is currently attached to.
+    The request body should contain the machine ID::
 
-        { "external_ip" : "172.28.128.3" }
-
-    where ``external_ip`` should be one of the available IPs returned by
-    ``/tenancies/<tenant>/external_ips/``.
-    """
-    serializer = serializers.ExternalIPSerializer(data = request.data)
-    serializer.is_valid(raise_exception = True)
-    session = request.user.cloudsession.session.scoped_session(tenant)
-    session.attach_external_ip(machine, serializer.validated_data['external_ip'])
-    return response.Response()
-
-
-@decorators.api_view(['POST'])
-@decorators.permission_classes([permissions.IsAuthenticated])
-@convert_provider_exceptions
-def machine_detach_external_ips(request, tenant, machine):
-    """
-    Detaches all external IPs from the specified machine.
-
-    The request body should be empty.
+        { "machine_id" : "<UUID>" }
     """
     session = request.user.cloudsession.session.scoped_session(tenant)
-    session.detach_external_ips(machine)
-    return response.Response()
+    if request.method == 'PUT':
+        input_serializer = serializers.ExternalIPSerializer(data = request.data)
+        input_serializer.is_valid(raise_exception = True)
+        machine_id = input_serializer.validated_data['machine_id']
+        if machine_id:
+            ip = session.attach_external_ip(ip, str(machine_id))
+        else:
+            ip = session.detach_external_ip(ip)
+        output_serializer = serializers.ExternalIPSerializer(
+            ip,
+            context = { 'request' : request, 'tenant' : tenant }
+        )
+        return response.Response(output_serializer.data)
+    else:
+        serializer = serializers.ExternalIPSerializer(
+            session.find_external_ip(ip),
+            context = { 'request' : request, 'tenant' : tenant }
+        )
+        return response.Response(serializer.data)
 
 
 @decorators.api_view(['GET', 'POST'])

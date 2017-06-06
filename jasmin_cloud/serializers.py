@@ -193,18 +193,6 @@ class MachineSerializer(serializers.Serializer):
                         'machine' : obj.id,
                     })
                 ),
-                'attach_external_ip' : request.build_absolute_uri(
-                    reverse('jasmin_cloud:machine_attach_external_ip', kwargs = {
-                        'tenant' : tenant,
-                        'machine' : obj.id,
-                    })
-                ),
-                'detach_external_ips' : request.build_absolute_uri(
-                    reverse('jasmin_cloud:machine_detach_external_ips', kwargs = {
-                        'tenant' : tenant,
-                        'machine' : obj.id,
-                    })
-                ),
                 'volumes' : request.build_absolute_uri(
                     reverse('jasmin_cloud:machine_volumes', kwargs = {
                         'tenant' : tenant,
@@ -216,5 +204,19 @@ class MachineSerializer(serializers.Serializer):
 
 
 class ExternalIPSerializer(serializers.Serializer):
-    external_ip = serializers.IPAddressField(protocol = 'IPv4')
-    internal_ip = serializers.IPAddressField(read_only = True)
+    external_ip = serializers.IPAddressField(read_only = True)
+    machine_id = serializers.UUIDField(allow_null = True)
+
+    def to_representation(self, obj):
+        result = super().to_representation(obj)
+        # If the info to build a link is in the context, add it
+        request = self.context.get('request')
+        tenant = self.context.get('tenant')
+        if request and tenant:
+            result.setdefault('links', {})['self'] = request.build_absolute_uri(
+                reverse('jasmin_cloud:external_ip_details', kwargs = {
+                    'tenant' : tenant,
+                    'ip' : obj.external_ip,
+                })
+            )
+        return result

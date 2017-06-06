@@ -117,12 +117,12 @@ class Volume(namedtuple('Volume', ['id', 'machine_id', 'name', 'size', 'device']
     """
 
 
-class ExternalIp(namedtuple('ExternalIp', ['external_ip', 'internal_ip'])):
+class ExternalIp(namedtuple('ExternalIp', ['external_ip', 'machine_id'])):
     """
     Represents an externally visible IP address.
 
     Attributes:
         external_ip: The externally visible IP address.
-        internal_ip: The internally visible IP address to which it maps, or
-                     ``None`` if it is not mapped.
+        machine_id: The ID of the machine to which the external IP address is
+                    mapped, or ``None`` if it is not mapped.
     """

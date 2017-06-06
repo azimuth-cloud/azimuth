@@ -262,6 +262,17 @@ class ScopedSession:
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
+    def find_external_ip(self, ip):
+        """
+        Finds external IP details by IP address.
+
+        Returns:
+            A :py:class:`~.dto.ExternalIp` object.
+        """
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
+
     def allocate_external_ip(self):
         """
         Allocates a new external IP address for the tenancy from a pool and returns
@@ -274,31 +285,33 @@ class ScopedSession:
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def attach_external_ip(self, machine, ip):
+    def attach_external_ip(self, ip, machine):
         """
         Attaches an external IP to a machine.
 
         Args:
-            machine: The machine. Can be a machine id or a :py:class:`~.dto.Machine`.
             ip: The IP address to attach. Can be an external IP address as a string
                 or a :py:class:`~.dto.ExternalIp`.
+            machine: The machine. Can be a machine id or a :py:class:`~.dto.Machine`.
 
         Returns:
-            ``True`` on success (should raise on failure).
+            The updated :py:class:`~.dto.ExternalIp` object (should raise on failure).
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def detach_external_ips(self, machine):
+    def detach_external_ip(self, ip):
         """
-        Detaches all the external IPs from the given machine.
+        Detaches the given external IP from whichever machine it is currently
+        attached to.
 
         Args:
-            machine: The machine. Can be a machine id or a :py:class:`~.dto.Machine`.
+            ip: The IP address to detach. Can be an external IP address as a string
+                or a :py:class:`~.dto.ExternalIp`.
 
         Returns:
-            ``True`` on success (should raise on failure).
+            The updated :py:class:`~.dto.ExternalIp` object (should raise on failure).
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)

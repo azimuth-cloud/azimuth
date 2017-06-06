@@ -360,12 +360,10 @@ class ScopedSession(base.ScopedSession):
         Assumes a single router with a single tenant network connected.
         Return ``None`` if the tenant network cannot be located.
         """
-        try:
-            port = next(
-                self.connection.network.ports(device_owner = 'network:router_interface')
-            )
+        port = next(self.connection.network.ports(device_owner = 'network:router_interface'))
+        if port:
             return self.connection.network.find_network(port.network_id)
-        except StopIteration:
+        else:
             return None
 
     @convert_sdk_exceptions
@@ -523,10 +521,12 @@ class ScopedSession(base.ScopedSession):
         """
         Converts an OpenStack SDK floatingip object into a :py:class:`.dto.ExternalIp`.
         """
-        return dto.ExternalIp(
-            sdk_floatingip.floating_ip_address,
-            sdk_floatingip.fixed_ip_address
-        )
+        if sdk_floatingip.port_id:
+            port = self.connection.network.find_port(sdk_floatingip.port_id)
+            machine_id = port.device_id
+        else:
+            machine_id = None
+        return dto.ExternalIp(sdk_floatingip.floating_ip_address, machine_id)
 
     @convert_sdk_exceptions
     def external_ips(self):
@@ -545,9 +545,8 @@ class ScopedSession(base.ScopedSession):
         """
         self._log("Allocating new floating ip")
         # Get the external network being used by the tenancy router
-        try:
-            router = next(self.connection.network.routers())
-        except StopIteration:
+        router = next(self.connection.network.routers(), None)
+        if not router:
             raise errors.ImproperlyConfiguredError('Could not find tenancy router.')
         extnet = router.external_gateway_info['network_id']
         # Create a new floating IP on that network
@@ -555,46 +554,70 @@ class ScopedSession(base.ScopedSession):
         self._log("Allocated new floating ip '%s'", fip.floating_ip_address)
         return self._from_sdk_floatingip(fip)
 
+    def find_external_ip(self, ip):
+        """
+        See :py:meth:`.base.ScopedSession.find_external_ip`.
+        """
+        self._log("Fetching floating IP details for '%s'", ip)
+        fip = next(self.connection.network.ips(floating_ip_address = ip), None)
+        if not fip:
+            raise errors.ObjectNotFoundError("Could not find external IP '{}'".format(ip))
+        return self._from_sdk_floatingip(fip)
+
     @convert_sdk_exceptions
-    def attach_external_ip(self, machine, ip):
+    def attach_external_ip(self, ip, machine):
         """
         See :py:meth:`.base.ScopedSession.attach_external_ip`.
         """
         machine = machine if isinstance(machine, dto.Machine) else self.find_machine(machine)
-        ip = ip.external_ip if isinstance(machine, dto.ExternalIp) else ip
+        ip = ip.external_ip if isinstance(ip, dto.ExternalIp) else ip
         # If NATing is not allowed for the machine, bail
         if not machine.nat_allowed:
             raise errors.InvalidOperationError(
-                'Machine is not allowed to have an external IP address'
+                'Machine is not allowed to have an external IP address.'
             )
         self._log("Attaching floating ip '%s' to server '%s'", ip, machine.id)
-        # Get the fixed IP of the machine on the tenant network
+        # Get the port that attaches the machine to the tenant network
         tenant_net = self._tenant_network()
         if not tenant_net:
             raise errors.ImproperlyConfiguredError('Could not find tenancy network.')
-        try:
-            port = next(
-                self.connection.network.ports(device_id = machine.id,
-                                              network_id = tenant_net.id)
-            )
-        except StopIteration:
+        port = next(
+            self.connection.network.ports(device_id = machine.id,
+                                          network_id = tenant_net.id),
+            None
+        )
+        if not port:
             raise errors.ImproperlyConfiguredError(
                 'Machine is not connected to tenancy network.'
             )
-        fixed_ip = port.fixed_ips[0]['ip_address']
-        self.connection.compute.add_floating_ip_to_server(machine.id, ip, fixed_ip)
-        return True
+        # If there is already a floating IP associated with the port, detach it
+        current = next(self.connection.network.ips(port_id = port.id), None)
+        if current:
+            self.connection.network.update_ip(current, port_id = None)
+        # Find the floating IP instance for the given address
+        fip = next(self.connection.network.ips(floating_ip_address = ip), None)
+        if not fip:
+            raise errors.ObjectNotFoundError("Could not find external IP '{}'".format(ip))
+        # Associate the floating IP with the port
+        return self._from_sdk_floatingip(
+            self.connection.network.update_ip(fip, port_id = port.id)
+        )
 
     @convert_sdk_exceptions
-    def detach_external_ips(self, machine):
+    def detach_external_ip(self, ip):
         """
-        See :py:meth:`.base.ScopedSession.detach_external_ips`.
+        See :py:meth:`.base.ScopedSession.detach_external_ip`.
         """
-        machine = machine if isinstance(machine, dto.Machine) else self.find_machine(machine)
-        for ip in machine.external_ips:
-            self._log("Detaching floating ip '%s' from server '%s'", ip, machine.id)
-            self.connection.compute.remove_floating_ip_from_server(machine.id, ip)
-        return True
+        ip = ip.external_ip if isinstance(ip, dto.ExternalIp) else ip
+        self._log("Detaching floating ip '%s'", ip)
+        # Find the floating IP instance for the given address
+        fip = next(self.connection.network.ips(floating_ip_address = ip), None)
+        if not fip:
+            raise errors.ObjectNotFoundError("Could not find external IP '{}'".format(ip))
+        # Remove any association for the floating IP
+        return self._from_sdk_floatingip(
+            self.connection.network.update_ip(fip, port_id = None)
+        )
 
     def _from_sdk_volume(self, machine, sdk_volume):
         """
