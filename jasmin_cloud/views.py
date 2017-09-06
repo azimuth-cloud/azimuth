@@ -2,7 +2,7 @@
 This module contains the views for the JASMIN Cloud API.
 """
 
-import functools
+import logging, functools
 
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -19,6 +19,9 @@ from rest_framework import (
 
 from . import serializers
 from .provider import errors as provider_errors
+
+
+log = logging.getLogger(__name__)
 
 
 def get_view_description(view_cls, html = False):
@@ -87,6 +90,7 @@ def convert_provider_exceptions(view):
         except provider_errors.ObjectNotFoundError as exc:
             raise drf_exceptions.NotFound(str(exc))
         except provider_errors.Error as exc:
+            log.exception('Unexpected provider error occurred')
             return response.Response(
                 { 'detail' : str(exc) },
                 status = status.HTTP_500_INTERNAL_SERVER_ERROR

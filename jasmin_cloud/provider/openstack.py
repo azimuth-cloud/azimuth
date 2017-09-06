@@ -19,13 +19,18 @@ class Provider(base.Provider):
     Provider implementation for OpenStack.
 
     Args:
-        auth_url: The Keystone v2.0 authentication URL.
+        auth_url: The Keystone v3 authentication URL.
+        domain: The domain to authenticate with.
+        verify_ssl: If ``True`` (the default), verify SSL certificates. If ``False``
+                    SSL certificates are not verified.
     """
     provider_name = 'openstack'
 
-    def __init__(self, auth_url):
+    def __init__(self, auth_url, domain = 'Default', verify_ssl = True):
         # Strip any trailing slashes from the auth URL
         self.auth_url = auth_url.rstrip('/')
+        self.domain = domain
+        self.verify_ssl = verify_ssl
 
     def authenticate(self, username, password):
         """
@@ -39,15 +44,24 @@ class Provider(base.Provider):
         # be **really** hard to do through the SDK.
         # So we use the API directly
         res = requests.post(
-            self.auth_url + '/tokens',
+            self.auth_url + '/auth/tokens',
             json = {
-                "auth" : {
-                    "passwordCredentials" : {
-                        "username" : username,
-                        "password" : password,
+                "auth": {
+                    "identity": {
+                        "methods": [ "password" ],
+                        "password": {
+                            "user": {
+                                "name": username,
+                                "domain": {
+                                    "name": self.domain,
+                                },
+                                "password": password,
+                            },
+                        },
                     },
                 },
-            }
+            },
+            verify = self.verify_ssl
         )
         try:
             res.raise_for_status()
@@ -60,8 +74,9 @@ class Provider(base.Provider):
             raise errors.CommunicationError('Error with HTTP connection')
         try:
             logger.info('[%s] Creating unscoped session', username)
+            # The token is in a header
             return UnscopedSession(
-                self.auth_url, username, res.json()['access']['token']['id']
+                self.auth_url, username, res.headers['X-Subject-Token'], self.verify_ssl
             )
         except KeyError:
             raise errors.CommunicationError('Unable to extract token from response')
@@ -135,13 +150,16 @@ class UnscopedSession(base.UnscopedSession):
         auth_url: The Keystone v2.0 authentication URL.
         username: The username of the OpenStack user.
         token: An unscoped user token for the OpenStack user.
+        verify_ssl: If ``True`` (the default), verify SSL certificates. If ``False``
+                    SSL certificates are not verified.
     """
     provider_name = 'openstack'
 
-    def __init__(self, auth_url, username, token):
+    def __init__(self, auth_url, username, token, verify_ssl = True):
         self.auth_url = auth_url
         self.username = username
         self.token = token
+        self.verify_ssl = verify_ssl
 
     def __repr__(self):
         return "openstack.UnscopedSession({}, {}, {})".format(
@@ -157,8 +175,9 @@ class UnscopedSession(base.UnscopedSession):
         # be **really** hard to do through the SDK.
         # So we use the API directly
         res = requests.get(
-            self.auth_url + '/tenants',
-            headers = { 'X-Auth-Token' : self.token }
+            self.auth_url + '/auth/projects',
+            headers = { 'X-Auth-Token' : self.token },
+            verify = self.verify_ssl
         )
         try:
             res.raise_for_status()
@@ -172,9 +191,9 @@ class UnscopedSession(base.UnscopedSession):
         except requests.exceptions.ConnectionError:
             raise errors.CommunicationError('Error with HTTP connection')
         try:
-            tenancies = res.json()['tenants']
-            logger.info('[%s] Found %s tenancies', self.username, len(tenancies))
-            return tuple(dto.Tenancy(t['id'], t['name']) for t in tenancies)
+            projects = res.json()['projects']
+            logger.info('[%s] Found %s projects', self.username, len(projects))
+            return tuple(dto.Tenancy(p['id'], p['name']) for p in projects if p['enabled'])
         except KeyError:
             raise errors.CommunicationError(
                 'Unable to extract tenancy information from response'
@@ -188,7 +207,7 @@ class UnscopedSession(base.UnscopedSession):
         tenancy = tenancy.id if isinstance(tenancy, dto.Tenancy) else tenancy
         logger.info('[%s] [%s] Creating scoped session', self.username, tenancy)
         prof = profile.Profile()
-        prof.set_version('identity', 'v2')
+        prof.set_version('identity', 'v3')
         try:
             return ScopedSession(
                 self.username,
@@ -198,7 +217,8 @@ class UnscopedSession(base.UnscopedSession):
                     profile = prof,
                     project_id = tenancy,
                     auth_plugin = 'token',
-                    token = self.token
+                    token = self.token,
+                    verify = self.verify_ssl
                 )
             )
         except exceptions.HttpException as e:

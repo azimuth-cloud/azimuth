@@ -1,14 +1,11 @@
 """
-Module containing authentication helpers and `authentication backends`_ for the
-JASMIN Cloud API.
-
-.. _authentication backends: https://docs.djangoproject.com/en/1.11/topics/auth/customizing/#specifying-authentication-backends
+Authentication helpers and backends for the ``jasmin_cloud`` Django app.
 """
 
 from django.conf import settings
 from django.contrib.auth import backends, get_user_model
 
-from . import models
+from .models import CloudSession
 from .provider import errors
 
 
@@ -36,7 +33,7 @@ class ProviderBackend(backends.ModelBackend):
             user = UserModel.objects.create_user(username = username)
         if not self.user_can_authenticate(user):
             return None
-        models.CloudSession.objects.update_or_create(
+        CloudSession.objects.update_or_create(
             user = user, defaults = { 'session' : session }
         )
         return user
