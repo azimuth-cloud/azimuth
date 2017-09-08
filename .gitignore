@@ -57,6 +57,4 @@ docs/_build/
 target/
 
 # Settings
-settings.py
-
-.trystack-creds
+jasmin_cloud_site/settings.py

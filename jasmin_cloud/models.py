@@ -1,5 +1,5 @@
 """
-Djanog models for the JASMIN Cloud API.
+Django models for the ``jasmin_cloud`` app.
 """
 
 from django.conf import settings

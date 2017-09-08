@@ -2,11 +2,11 @@
 Authentication helpers and backends for the ``jasmin_cloud`` Django app.
 """
 
-from django.conf import settings
 from django.contrib.auth import backends, get_user_model
 
 from .models import CloudSession
 from .provider import errors
+from .settings import cloud_settings
 
 
 UserModel = get_user_model()
@@ -22,7 +22,7 @@ class ProviderBackend(backends.ModelBackend):
     is saved in the database to be retrieved later.
     """
     def authenticate(self, request, username = None, password = None, **kwargs):
-        provider = settings.JASMIN_CLOUD['PROVIDER']
+        provider = cloud_settings.PROVIDER
         try:
             session = provider.authenticate(username, password)
         except errors.AuthenticationError:

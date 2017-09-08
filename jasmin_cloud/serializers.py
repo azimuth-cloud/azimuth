@@ -1,9 +1,7 @@
 """
-This module contains the `Django REST framework serializers`_ for the JASMIN Cloud API.
+Django REST framework serializers for the ``jasmin_cloud`` app.
 
 These serializers marshall objects from the :py:mod:`.provider.dto` package.
-
-.. _Django REST framework serializers: http://www.django-rest-framework.org/api-guide/serializers/
 """
 
 from django.urls import reverse

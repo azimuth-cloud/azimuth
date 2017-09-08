@@ -1,5 +1,5 @@
 """
-This module contains the views for the JASMIN Cloud API.
+Django views for the ``jasmin_cloud`` app.
 """
 
 import logging, functools

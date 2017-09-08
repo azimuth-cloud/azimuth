@@ -1,5 +1,5 @@
 """
-Django admin declarations for the JASMIN Cloud Portal.
+Django admin declarations for the ``jasmin_cloud`` app.
 """
 
 from django.contrib import admin

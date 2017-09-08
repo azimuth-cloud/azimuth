@@ -1,5 +1,5 @@
 """
-URL definitions for the JASMIN Cloud API.
+URL definitions for the ``jasmin_cloud`` Django app.
 """
 
 from django.conf.urls import url, include
