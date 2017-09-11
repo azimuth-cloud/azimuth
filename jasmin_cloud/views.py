@@ -19,6 +19,7 @@ from rest_framework import (
 
 from . import serializers
 from .provider import errors as provider_errors
+from .settings import cloud_settings
 
 
 log = logging.getLogger(__name__)
@@ -296,7 +297,8 @@ def machines(request, tenant):
             session.create_machine(
                 input_serializer.validated_data['name'],
                 input_serializer.validated_data['image_id'],
-                input_serializer.validated_data['size_id']
+                input_serializer.validated_data['size_id'],
+                cloud_settings.SSH_KEY_STORE.get_key(request.user.username)
             ),
             context = { 'request' : request, 'tenant' : tenant }
         )

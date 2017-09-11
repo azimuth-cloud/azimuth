@@ -2,7 +2,7 @@
 This module contains the provider implementation for OpenStack.
 """
 
-import functools, time, logging, re, collections
+import functools, time, logging, re, collections, base64, hashlib
 
 import dateutil.parser
 import requests
@@ -467,8 +467,23 @@ class ScopedSession(base.ScopedSession):
             dateutil.parser.parse(sdk_server['created'])
         )
 
+    def _get_or_create_keypair(self, ssh_key):
+        # Keypairs are immutable, i.e. once created cannot be changed
+        # We create keys with names of the form "<username>-<fingerprint>", which
+        # allows for us to recognise when a user has changed their key and create
+        # a new one
+        fingerprint = hashlib.md5(base64.b64decode(ssh_key.split()[1])).hexdigest()
+        key_name = '{}-{}'.format(self.username, fingerprint)
+        try:
+            return self.connection.compute.find_keypair(key_name, False)
+        except exceptions.ResourceNotFound:
+            return self.connection.compute.create_keypair(
+                name = key_name,
+                public_key = ssh_key
+            )
+
     @convert_sdk_exceptions
-    def create_machine(self, name, image, size):
+    def create_machine(self, name, image, size, ssh_key = None):
         """
         See :py:meth:`.base.ScopedSession.create_machine`.
         """
@@ -483,14 +498,18 @@ class ScopedSession(base.ScopedSession):
         network = self._tenant_network()
         if not network:
             raise errors.ImproperlyConfiguredError('Could not find tenancy network')
+        # Get the keypair to inject
+        keypair = self._get_or_create_keypair(ssh_key) if ssh_key else None
         server = self.connection.compute.create_server(
             name = name,
             image_id = image.id,
             flavor_id = size,
             networks = [{ 'uuid' : network.id }],
-            # TODO: Sort out what to do with key pairs
             # Set the nat_allowed metadata based on the image
-            metadata = { 'jasmin:nat_allowed' : '1' if image.nat_allowed else '0' }
+            metadata = { 'jasmin:nat_allowed' : '1' if image.nat_allowed else '0' },
+            # The SDK doesn't like it if None is given for keypair, but behaves
+            # correctly if it is not given at all
+            **({ 'key_name': keypair.name } if keypair else {})
         )
         return self.find_machine(server.id)
 

@@ -7,8 +7,6 @@ import versioneer
 
 
 here = os.path.abspath(os.path.dirname(__file__))
-
-
 with open(os.path.join(here, 'README.md')) as f:
     README = f.read()
 
@@ -41,5 +39,7 @@ if __name__ == "__main__":
             'djangorestframework',
             'psycopg2',
             'django-picklefield',
+            'jasmin-django-utils',
+            'jasmin-ldap',
         ],
     )
