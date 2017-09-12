@@ -57,30 +57,30 @@ class Size(namedtuple('Size', ['id', 'name', 'cpus', 'ram', 'disk'])):
         name: The human-readable name of the size.
         cpus: The number of CPUs.
         ram: The amount of RAM (in MB).
-        disk: The size of the root disk (in GB).
+        disk: The size of the image's disk (in GB).
               Can be -1 to indicate no root disk size limit.
     """
 
 
-class Machine(namedtuple('Machine', ['id', 'name', 'image', 'size',
+class Machine(namedtuple('Machine', ['id', 'name', 'image_id', 'size_id',
                                      'status', 'power_state', 'task',
                                      'internal_ip', 'external_ip', 'nat_allowed',
-                                     'attached_volumes', 'owner', 'created'])):
+                                     'attachment_ids', 'owner', 'created'])):
     """
     Represents a machine in a tenancy.
 
     Attributes:
         id: The id of the machine.
         name: The human-readable name of the machine.
-        image: The :py:class:`Image` used to deploy the machine.
-        size: The :py:class:`Size` size of the machine.
+        image_id: The id of the image used to deploy the machine.
+        size_id: The of the size of the machine.
         status: The :py:class:`Status` of the machine.
         power_state: The power state of the machine as a string.
         task: String representation of any task that is currently executing.
         internal_ip: The internal IPv4 address of the machine.
         external_ip: The external IPv4 address of the machine.
         nat_allowed: Indicates if NAT is allowed for the machine.
-        attached_volumes: A tuple of :py:class:`Volume`s attached to the machine.
+        attachment_ids: A tuple of ids of volume attachments for the machine.
         owner: The username of the user who deployed the machine.
         created: The `datetime` at which the machine was deployed.
     """
@@ -104,15 +104,40 @@ class Machine(namedtuple('Machine', ['id', 'name', 'image', 'size',
             OTHER = 'OTHER'
 
 
-class Volume(namedtuple('Volume', ['id', 'machine_id', 'name', 'size', 'device'])):
+class Volume(namedtuple('Volume', ['id', 'name', 'status', 'size', 'attachment_ids'])):
     """
     Represents a volume attached to a machine.
 
     Attributes:
         id: The id of the volume.
-        machine_id: The id of the machine that the volume is attached to.
         name: The name of the volume.
+        status: The :py:class:`Status` of the volume.
         size: The size of the volume in GB.
+        attachment_ids: A tuple of ids of volume attachments for the volume.
+    """
+    @enum.unique
+    class Status(enum.Enum):
+        """
+        Enum representing the possible volume statuses.
+        """
+        CREATING  = 'CREATING'
+        AVAILABLE = 'AVAILABLE'
+        ATTACHING = 'ATTACHING'
+        DETACHING = 'DETACHING'
+        IN_USE    = 'IN_USE'
+        DELETING  = 'DELETING'
+        ERROR     = 'ERROR'
+        OTHER     = 'OTHER'
+
+
+class VolumeAttachment(namedtuple('Attachment', ['id', 'machine_id', 'volume_id', 'device'])):
+    """
+    Represents an attachment of a volume to a machine.
+
+    Attributes:
+        id: The id of the volume attachment.
+        machine_id: The id of the machine.
+        volume_id: The id of the volume.
         device: The device that the volume is attached as.
     """
 

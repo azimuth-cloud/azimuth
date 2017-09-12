@@ -450,23 +450,26 @@ def external_ip_details(request, tenant, ip):
 @decorators.api_view(['GET', 'POST'])
 @decorators.permission_classes([permissions.IsAuthenticated])
 @convert_provider_exceptions
-def machine_volumes(request, tenant, machine):
+def volumes(request, tenant):
     """
-    On ``GET`` requests, return a list of the volumes attached to the specified
-    machine.
+    On ``GET`` requests, return a list of the volumes for the tenancy.
 
-    On ``POST`` requests, attach a new volume to the machine. The request body
-    should contain the size of the volume to attach in GB::
+    On ``POST`` requests, create a new volume. The request body should look like::
 
-        { "size" : 20 }
+        {
+            "name" : "volume-name",
+            "size" : 20
+        }
+
+    The size of the volume is given in GB.
     """
     session = request.user.cloudsession.session.scoped_session(tenant)
     if request.method == 'POST':
         input_serializer = serializers.VolumeSerializer(data = request.data)
         input_serializer.is_valid(raise_exception = True)
         output_serializer = serializers.VolumeSerializer(
-            session.attach_volume(
-                machine,
+            session.create_volume(
+                input_serializer.validated_data['name'],
                 input_serializer.validated_data['size']
             ),
             context = { 'request' : request, 'tenant' : tenant }
@@ -474,7 +477,7 @@ def machine_volumes(request, tenant, machine):
         return response.Response(output_serializer.data, status = status.HTTP_201_CREATED)
     else:
         serializer = serializers.VolumeSerializer(
-            session.volumes(machine),
+            session.volumes(),
             many = True,
             context = { 'request' : request, 'tenant' : tenant }
         )
@@ -484,7 +487,7 @@ def machine_volumes(request, tenant, machine):
 @decorators.api_view(['GET', 'DELETE'])
 @decorators.permission_classes([permissions.IsAuthenticated])
 @convert_provider_exceptions
-def machine_volume_details(request, tenant, machine, volume):
+def volume_details(request, tenant, volume):
     """
     On ``GET`` requests, return the details for the specified volume.
 
@@ -492,11 +495,68 @@ def machine_volume_details(request, tenant, machine, volume):
     """
     session = request.user.cloudsession.session.scoped_session(tenant)
     if request.method == 'DELETE':
-        session.detach_volume(machine, volume)
+        session.delete_volume(volume)
         return response.Response()
     else:
         serializer = serializers.VolumeSerializer(
-            session.find_volume(machine, volume),
+            session.find_volume(volume),
+            context = { 'request' : request, 'tenant' : tenant }
+        )
+        return response.Response(serializer.data)
+
+
+@decorators.api_view(['GET', 'POST'])
+@decorators.permission_classes([permissions.IsAuthenticated])
+@convert_provider_exceptions
+def volume_attachments(request, tenant):
+    """
+    On ``GET`` requests, return a list of the volume attachments for the tenancy.
+
+    On ``POST`` requests, create a new volume attachment. The request body should
+    look like::
+
+        {
+            "machine_id" : "<machine id>",
+            "volume_id" : "<volume id"
+        }
+    """
+    session = request.user.cloudsession.session.scoped_session(tenant)
+    if request.method == 'POST':
+        input_serializer = serializers.VolumeAttachmentSerializer(data = request.data)
+        input_serializer.is_valid(raise_exception = True)
+        output_serializer = serializers.VolumeAttachmentSerializer(
+            session.create_volume_attachment(
+                input_serializer.validated_data['machine_id'],
+                input_serializer.validated_data['volume_id']
+            ),
+            context = { 'request' : request, 'tenant' : tenant }
+        )
+        return response.Response(output_serializer.data, status = status.HTTP_201_CREATED)
+    else:
+        serializer = serializers.VolumeAttachmentSerializer(
+            session.volume_attachments(),
+            many = True,
+            context = { 'request' : request, 'tenant' : tenant }
+        )
+        return response.Response(serializer.data)
+
+
+@decorators.api_view(['GET', 'DELETE'])
+@decorators.permission_classes([permissions.IsAuthenticated])
+@convert_provider_exceptions
+def volume_attachment_details(request, tenant, attachment):
+    """
+    On ``GET`` requests, return the details for the specified volume attachment.
+
+    On ``DELETE`` requests, delete the specified volume attachment.
+    """
+    session = request.user.cloudsession.session.scoped_session(tenant)
+    if request.method == 'DELETE':
+        session.delete_volume_attachment(attachment)
+        return response.Response()
+    else:
+        serializer = serializers.VolumeAttachmentSerializer(
+            session.find_volume_attachment(attachment),
             context = { 'request' : request, 'tenant' : tenant }
         )
         return response.Response(serializer.data)

@@ -318,9 +318,9 @@ class ScopedSession:
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def volumes(self, machine):
+    def volumes(self):
         """
-        Lists the volumes attached to the machine.
+        Lists the volumes currently available to the tenancy.
 
         Returns:
             An iterable of :py:class:`~.dto.Volume`s.
@@ -329,13 +329,11 @@ class ScopedSession:
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def find_volume(self, machine, id):
+    def find_volume(self, id):
         """
-        Finds a volume by machine and id.
+        Finds a volume by id.
 
         Args:
-            machine: The machine to search for volumes on. Can be a machine id
-                     or a :py:class:`~.dto.Machine`.
             id: The id of the volume to find.
 
         Returns:
@@ -345,28 +343,82 @@ class ScopedSession:
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def attach_volume(self, machine, size):
+    def create_volume(self, name, size):
         """
-        Attaches a volume of the given size to the given machine.
+        Create a new volume in the tenancy.
 
         Args:
-            machine: The machine. Can be a machine id or a :py:class:`~.dto.Machine`.
-            size: The size of the volume to attach in GB.
+            name: The name of the volume.
+            size: The size of the volume in GB.
 
         Returns:
-            The created :py:class:`~.dto.Volume`.
+            A :py:class:`~.dto.Volume` object.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def detach_volume(self, machine, volume):
+    def delete_volume(self, volume):
         """
-        Detaches the specified volume from the machine and destroys it.
+        Delete the specified volume.
+
+        Args:
+            volume: The volume to delete. Can be a volume id or a :py:class:`~.dto.Volume`.
+
+        Returns:
+            ``True`` on success (should raise on failure).
+        """
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
+
+    def volume_attachments(self):
+        """
+        Lists the volumes attachments currently in the tenancy.
+
+        Returns:
+            An iterable of :py:class:`~.dto.VolumeAttachment`s.
+        """
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
+
+    def find_volume_attachment(self, id):
+        """
+        Finds a volume attachment by id.
+
+        Args:
+            id: The id of the volume attachment to find.
+
+        Returns:
+            A :py:class:`~.dto.VolumeAttachment`.
+        """
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
+
+    def create_volume_attachment(self, machine, volume):
+        """
+        Creates an attachment for the specified volume to the specified machine.
 
         Args:
             machine: The machine. Can be a machine id or a :py:class:`~.dto.Machine`.
-            volume: The volume to detach. Can be a volume id or a :py:class:`~.dto.Volume`.
+            volume: The volume to attach. Can be a volume id or a :py:class:`~.dto.Volume`.
+
+        Returns:
+            The created :py:class:`~.dto.VolumeAttachment`.
+        """
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
+
+    def delete_volume_attachment(self, attachment):
+        """
+        Deletes the specified volume attachment.
+
+        Args:
+            attachment: The attachment to delete. Can be an attachment id or a
+                        :py:class:`~.dto.VolumeAttachment`.
 
         Returns:
             ``True`` on success (should raise on failure).
