@@ -2,7 +2,7 @@
 This module contains the provider implementation for OpenStack.
 """
 
-import functools, time, logging, re, collections, base64, hashlib
+import functools, logging, base64, hashlib
 
 import dateutil.parser
 import requests
@@ -263,51 +263,55 @@ class ScopedSession(base.ScopedSession):
         # Compute provides a way to fetch this information through the SDK, but
         # the floating IP quota obtained through it is rubbish...
         compute_limits = self.connection.compute.get_limits().absolute
-        quotas = {
-            'cpus' : dto.Quota(
+        quotas = [
+            dto.Quota(
                 'cpus',
                 None,
                 compute_limits.total_cores,
                 compute_limits.total_cores_used
             ),
-            'ram' : dto.Quota(
+            dto.Quota(
                 'ram',
                 'MB',
                 compute_limits.total_ram,
                 compute_limits.total_ram_used
             ),
-            'machines' : dto.Quota(
+            dto.Quota(
                 'machines',
                 None,
                 compute_limits.instances,
                 compute_limits.instances_used
             ),
-        }
+        ]
         # For block storage and floating IPs, use the API directly
         network_ep = self.connection.session.get_endpoint(service_type = 'network')
         network_quotas = self.connection.session.get(
             network_ep + '/quotas/' + self.tenancy
         ).json()
-        quotas['external_ips'] = dto.Quota(
-            'external_ips',
-            None,
-            network_quotas['quota']['floatingip'],
-            len(list(self.connection.network.ips()))
+        quotas.append(
+            dto.Quota(
+                'external_ips',
+                None,
+                network_quotas['quota']['floatingip'],
+                len(list(self.connection.network.ips()))
+            )
         )
         volume_ep = self.connection.session.get_endpoint(service_type = 'volume')
         volume_limits = self.connection.session.get(volume_ep + '/limits').json()
-        quotas['storage'] = dto.Quota(
-            'storage',
-            'GB',
-            volume_limits['limits']['absolute']['maxTotalVolumeGigabytes'],
-            volume_limits['limits']['absolute']['totalGigabytesUsed']
-        )
-        quotas['volumes'] = dto.Quota(
-            'volumes',
-            None,
-            volume_limits['limits']['absolute']['maxTotalVolumes'],
-            volume_limits['limits']['absolute']['totalVolumesUsed']
-        )
+        quotas.extend([
+            dto.Quota(
+                'storage',
+                'GB',
+                volume_limits['limits']['absolute']['maxTotalVolumeGigabytes'],
+                volume_limits['limits']['absolute']['totalGigabytesUsed']
+            ),
+            dto.Quota(
+                'volumes',
+                None,
+                volume_limits['limits']['absolute']['maxTotalVolumes'],
+                volume_limits['limits']['absolute']['totalVolumesUsed']
+            )
+        ])
         return quotas
 
     def _from_sdk_image(self, sdk_image):
@@ -330,7 +334,7 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.images`.
         """
         self._log('Fetching available images')
-        images = list(self.connection.image.images())
+        images = list(self.connection.image.images(status = 'active'))
         self._log('Found %s images', len(images))
         return tuple(self._from_sdk_image(i) for i in images)
 

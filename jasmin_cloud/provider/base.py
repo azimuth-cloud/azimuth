@@ -82,7 +82,7 @@ class ScopedSession:
         The absence of these resources indicates that there is no specific limit.
 
         Returns:
-            A dictionary of :py:class:`~.dto.Quota` objects indexed by resource.
+            An iterable of :py:class:`~.dto.Quota` objects.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)

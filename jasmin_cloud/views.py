@@ -179,9 +179,12 @@ def quotas(request, tenant):
     Returns information about the quotas available to the tenant.
     """
     session = request.user.cloudsession.session.scoped_session(tenant)
-    return response.Response({
-        k : serializers.QuotaSerializer(v).data for k, v in session.quotas().items()
-    })
+    serializer = serializers.QuotaSerializer(
+        session.quotas(),
+        many = True,
+        context = { 'request' : request, 'tenant' : tenant }
+    )
+    return response.Response(serializer.data)
 
 
 @decorators.api_view(['GET'])
