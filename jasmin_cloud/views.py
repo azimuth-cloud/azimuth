@@ -145,8 +145,8 @@ def session(request):
         logout(request)
         return response.Response()
     else:
-        # Before claiming to be successful, first ping the current cloudsession
-        _ = request.user.cloudsession.session.tenancies()
+        # Before claiming to be successful, first ping the current cloud session
+        _ = request.session['unscoped_session'].tenancies()
         return response.Response({
             'username' : request.user.username,
             'links' : {
@@ -162,7 +162,7 @@ def tenancies(request):
     """
     Returns the tenancies available to the authenticated user.
     """
-    session = request.user.cloudsession.session
+    session = request.session['unscoped_session']
     serializer = serializers.TenancySerializer(
         session.tenancies(),
         many = True,
@@ -178,7 +178,7 @@ def quotas(request, tenant):
     """
     Returns information about the quotas available to the tenant.
     """
-    session = request.user.cloudsession.session.scoped_session(tenant)
+    session = request.session['unscoped_session'].scoped_session(tenant)
     serializer = serializers.QuotaSerializer(
         session.quotas(),
         many = True,
@@ -201,7 +201,7 @@ def images(request, tenant):
     * ``is_public``: Indicates if the image is public or private.
     * ``nat_allowed``: Indicates if NAT is allowed for machines deployed from the image.
     """
-    session = request.user.cloudsession.session.scoped_session(tenant)
+    session = request.session['unscoped_session'].scoped_session(tenant)
     serializer = serializers.ImageSerializer(
         session.images(),
         many = True,
@@ -224,7 +224,7 @@ def image_details(request, tenant, image):
     * ``is_public``: Indicates if the image is public or private.
     * ``nat_allowed``: Indicates if NAT is allowed for machines deployed from the image.
     """
-    session = request.user.cloudsession.session.scoped_session(tenant)
+    session = request.session['unscoped_session'].scoped_session(tenant)
     serializer = serializers.ImageSerializer(
         session.find_image(image),
         context = { 'request' : request, 'tenant' : tenant }
@@ -246,7 +246,7 @@ def sizes(request, tenant):
     * ``cpus``: The number of CPUs.
     * ``ram``: The amount of RAM (in MB).
     """
-    session = request.user.cloudsession.session.scoped_session(tenant)
+    session = request.session['unscoped_session'].scoped_session(tenant)
     serializer = serializers.SizeSerializer(
         session.sizes(),
         many = True,
@@ -269,7 +269,7 @@ def size_details(request, tenant, size):
     * ``cpus``: The number of CPUs.
     * ``ram``: The amount of RAM (in MB).
     """
-    session = request.user.cloudsession.session.scoped_session(tenant)
+    session = request.session['unscoped_session'].scoped_session(tenant)
     serializer = serializers.SizeSerializer(
         session.find_size(size),
         context = { 'request' : request, 'tenant' : tenant }
@@ -292,7 +292,7 @@ def machines(request, tenant):
             "size_id" : "<id of size>"
         }
     """
-    session = request.user.cloudsession.session.scoped_session(tenant)
+    session = request.session['unscoped_session'].scoped_session(tenant)
     if request.method == 'POST':
         input_serializer = serializers.MachineSerializer(data = request.data)
         input_serializer.is_valid(raise_exception = True)
@@ -324,7 +324,7 @@ def machine_details(request, tenant, machine):
 
     On ``DELETE`` requests, delete the specified machine.
     """
-    session = request.user.cloudsession.session.scoped_session(tenant)
+    session = request.session['unscoped_session'].scoped_session(tenant)
     if request.method == 'DELETE':
         session.delete_machine(machine)
         return response.Response()
@@ -343,7 +343,7 @@ def machine_start(request, tenant, machine):
     """
     Start (power on) the specified machine.
     """
-    session = request.user.cloudsession.session.scoped_session(tenant)
+    session = request.session['unscoped_session'].scoped_session(tenant)
     session.start_machine(machine)
     serializer = serializers.MachineSerializer(
         session.find_machine(machine),
@@ -359,7 +359,7 @@ def machine_stop(request, tenant, machine):
     """
     Stop (power off) the specified machine.
     """
-    session = request.user.cloudsession.session.scoped_session(tenant)
+    session = request.session['unscoped_session'].scoped_session(tenant)
     session.stop_machine(machine)
     serializer = serializers.MachineSerializer(
         session.find_machine(machine),
@@ -375,7 +375,7 @@ def machine_restart(request, tenant, machine):
     """
     Restart (power cycle) the specified machine.
     """
-    session = request.user.cloudsession.session.scoped_session(tenant)
+    session = request.session['unscoped_session'].scoped_session(tenant)
     session.restart_machine(machine)
     serializer = serializers.MachineSerializer(
         session.find_machine(machine),
@@ -401,7 +401,7 @@ def external_ips(request, tenant):
             "internal_ip" : null
         }
     """
-    session = request.user.cloudsession.session.scoped_session(tenant)
+    session = request.session['unscoped_session'].scoped_session(tenant)
     if request.method == 'POST':
         serializer = serializers.ExternalIPSerializer(session.allocate_external_ip())
         return response.Response(serializer.data, status = status.HTTP_201_CREATED)
@@ -428,7 +428,7 @@ def external_ip_details(request, tenant, ip):
 
         { "machine_id" : "<UUID>" }
     """
-    session = request.user.cloudsession.session.scoped_session(tenant)
+    session = request.session['unscoped_session'].scoped_session(tenant)
     if request.method == 'PUT':
         input_serializer = serializers.ExternalIPSerializer(data = request.data)
         input_serializer.is_valid(raise_exception = True)
@@ -466,7 +466,7 @@ def volumes(request, tenant):
 
     The size of the volume is given in GB.
     """
-    session = request.user.cloudsession.session.scoped_session(tenant)
+    session = request.session['unscoped_session'].scoped_session(tenant)
     if request.method == 'POST':
         input_serializer = serializers.VolumeSerializer(data = request.data)
         input_serializer.is_valid(raise_exception = True)
@@ -496,7 +496,7 @@ def volume_details(request, tenant, volume):
 
     On ``DELETE`` requests, delete the specified volume.
     """
-    session = request.user.cloudsession.session.scoped_session(tenant)
+    session = request.session['unscoped_session'].scoped_session(tenant)
     if request.method == 'DELETE':
         session.delete_volume(volume)
         return response.Response()
@@ -523,7 +523,7 @@ def volume_attachments(request, tenant):
             "volume_id" : "<volume id"
         }
     """
-    session = request.user.cloudsession.session.scoped_session(tenant)
+    session = request.session['unscoped_session'].scoped_session(tenant)
     if request.method == 'POST':
         input_serializer = serializers.VolumeAttachmentSerializer(data = request.data)
         input_serializer.is_valid(raise_exception = True)
@@ -553,7 +553,7 @@ def volume_attachment_details(request, tenant, attachment):
 
     On ``DELETE`` requests, delete the specified volume attachment.
     """
-    session = request.user.cloudsession.session.scoped_session(tenant)
+    session = request.session['unscoped_session'].scoped_session(tenant)
     if request.method == 'DELETE':
         session.delete_volume_attachment(attachment)
         return response.Response()

@@ -7,11 +7,8 @@ These serializers marshall objects from the :py:mod:`.provider.dto` package.
 import collections
 
 from django.urls import reverse
-from django.contrib.auth import authenticate
 
 from rest_framework import serializers
-
-from .provider import dto
 
 
 class LoginSerializer(serializers.Serializer):

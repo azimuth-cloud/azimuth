@@ -4,7 +4,6 @@ Authentication helpers and backends for the ``jasmin_cloud`` Django app.
 
 from django.contrib.auth import backends, get_user_model
 
-from .models import CloudSession
 from .provider import errors
 from .settings import cloud_settings
 
@@ -19,7 +18,7 @@ class ProviderBackend(backends.ModelBackend):
 
     We use the model backend, but rather than checking passwords in the database
     we use the provider. The authenticated :py:class:`~.provider.base.UnscopedSession`
-    is saved in the database to be retrieved later.
+    is saved in the session to be retrieved later.
     """
     def authenticate(self, request, username = None, password = None, **kwargs):
         provider = cloud_settings.PROVIDER
@@ -33,7 +32,5 @@ class ProviderBackend(backends.ModelBackend):
             user = UserModel.objects.create_user(username = username)
         if not self.user_can_authenticate(user):
             return None
-        CloudSession.objects.update_or_create(
-            user = user, defaults = { 'session' : session }
-        )
+        request.session['unscoped_session'] = session
         return user
