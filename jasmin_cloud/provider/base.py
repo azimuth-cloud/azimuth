@@ -189,7 +189,7 @@ class ScopedSession:
             size: The size to use. Can be a size id or a :py:class:`~.dto.Size`.
 
         Returns:
-            ``True`` on success (should raise on failure).
+            The updated :py:class:`~.dto.Machine`.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
@@ -203,7 +203,7 @@ class ScopedSession:
             machine: The machine. Can be a machine id or a :py:class:`~.dto.Machine`.
 
         Returns:
-            ``True`` on success (should raise on failure).
+            The updated :py:class:`~.dto.Machine`.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
@@ -217,7 +217,7 @@ class ScopedSession:
             machine: The machine. Can be a machine id or a :py:class:`~.dto.Machine`.
 
         Returns:
-            ``True`` on success (should raise on failure).
+            The updated :py:class:`~.dto.Machine`.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
@@ -231,7 +231,7 @@ class ScopedSession:
             machine: The machine. Can be a machine id or a :py:class:`~.dto.Machine`.
 
         Returns:
-            ``True`` on success (should raise on failure).
+            The updated :py:class:`~.dto.Machine`.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)

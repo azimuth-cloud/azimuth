@@ -521,7 +521,7 @@ class ScopedSession(base.ScopedSession):
         machine = machine.id if isinstance(machine, dto.Machine) else machine
         self._log("Starting machine '%s'", machine)
         self.connection.compute.start_server(machine)
-        return True
+        return self.find_machine(machine)
 
     @convert_sdk_exceptions
     def stop_machine(self, machine):
@@ -531,7 +531,7 @@ class ScopedSession(base.ScopedSession):
         machine = machine.id if isinstance(machine, dto.Machine) else machine
         self._log("Stopping machine '%s'", machine)
         self.connection.compute.stop_server(machine)
-        return True
+        return self.find_machine(machine)
 
     @convert_sdk_exceptions
     def restart_machine(self, machine):
@@ -541,7 +541,7 @@ class ScopedSession(base.ScopedSession):
         machine = machine.id if isinstance(machine, dto.Machine) else machine
         self._log("Restarting machine '%s'", machine)
         self.connection.compute.reboot_server(machine, 'SOFT')
-        return True
+        return self.find_machine(machine)
 
     @convert_sdk_exceptions
     def delete_machine(self, machine):
