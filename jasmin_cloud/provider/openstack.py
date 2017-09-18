@@ -747,13 +747,12 @@ class ScopedSession(base.ScopedSession):
         # The SDK only allows fetching the attachments for a machine
         # So unfortunately, we need to fetch all the machines first
         # However, we only the need the IDs, so don't use machines()
-        compute_ep = self.connection.session.get_endpoint(service_type = 'compute')
-        servers = self.connection.session.get(compute_ep + '/servers').json()['servers']
+        servers = list(self.connection.compute.servers())
         self._log('Fetching attachments for %s servers', len(servers))
         attachments = [
-            (s['id'], a)
+            (s.id, a)
             for s in servers
-            for a in self.connection.compute.volume_attachments(s['id'])
+            for a in self.connection.compute.volume_attachments(s.id)
         ]
         self._log('Found %s attachments', len(attachments))
         return tuple(self._from_sdk_attachment(s, a) for s, a in attachments)
@@ -769,13 +768,12 @@ class ScopedSession(base.ScopedSession):
         # So unfortunately, we need to fetch all the machines first in order to
         # search through the machines until we find the volume
         # However, we only the need the IDs, so don't use machines()
-        compute_ep = self.connection.session.get_endpoint(service_type = 'compute')
-        servers = self.connection.session.get(compute_ep + '/servers').json()['servers']
+        servers = list(self.connection.compute.servers())
         self._log("Checking %s servers for attachment '%s'", len(servers), id)
         for server in servers:
-            attachment = self.connection.compute.get_volume_attachment(id, server['id'])
-            if attachment:
-                return self._from_sdk_attachment(server['id'], attachment)
+            for attachment in self.connection.compute.volume_attachments(server.id):
+                if attachment.id == id:
+                    return self._from_sdk_attachment(server.id, attachment)
         raise errors.ObjectNotFoundError(
             "Could not find volume attachment with id '{}'".format(id)
         )
