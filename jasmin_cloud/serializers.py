@@ -274,9 +274,13 @@ class MachineSerializer(MachineRefSerializer):
 
 class ExternalIPSerializer(serializers.Serializer):
     external_ip = serializers.IPAddressField(read_only = True)
-    machine_id = serializers.UUIDField(allow_null = True)
+
+    machine = MachineRefSerializer(read_only = True, allow_null = True)
+    machine_id = serializers.UUIDField(write_only = True, allow_null = True)
 
     def to_representation(self, obj):
+        # Convert raw ids to attachment refs before serializing
+        obj.machine = Ref(obj.machine_id) if obj.machine_id else None
         result = super().to_representation(obj)
         # If the info to build a link is in the context, add it
         request = self.context.get('request')
