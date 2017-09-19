@@ -65,7 +65,7 @@ class Size(namedtuple('Size', ['id', 'name', 'cpus', 'ram', 'disk'])):
 class Machine(namedtuple('Machine', ['id', 'name', 'image_id', 'size_id',
                                      'status', 'power_state', 'task',
                                      'internal_ip', 'external_ip', 'nat_allowed',
-                                     'attachment_ids', 'owner', 'created'])):
+                                     'attached_volume_ids', 'owner', 'created'])):
     """
     Represents a machine in a tenancy.
 
@@ -80,7 +80,7 @@ class Machine(namedtuple('Machine', ['id', 'name', 'image_id', 'size_id',
         internal_ip: The internal IPv4 address of the machine.
         external_ip: The external IPv4 address of the machine.
         nat_allowed: Indicates if NAT is allowed for the machine.
-        attachment_ids: A tuple of ids of volume attachments for the machine.
+        attached_volume_ids: A tuple of ids of attached volumes for the machine.
         owner: The username of the user who deployed the machine.
         created: The `datetime` at which the machine was deployed.
     """
@@ -104,7 +104,8 @@ class Machine(namedtuple('Machine', ['id', 'name', 'image_id', 'size_id',
             OTHER = 'OTHER'
 
 
-class Volume(namedtuple('Volume', ['id', 'name', 'status', 'size', 'attachment_ids'])):
+class Volume(namedtuple('Volume', ['id', 'name', 'status',
+                                   'size', 'machine_id', 'device'])):
     """
     Represents a volume attached to a machine.
 
@@ -113,7 +114,10 @@ class Volume(namedtuple('Volume', ['id', 'name', 'status', 'size', 'attachment_i
         name: The name of the volume.
         status: The :py:class:`Status` of the volume.
         size: The size of the volume in GB.
-        attachment_ids: A tuple of ids of volume attachments for the volume.
+        machine_id: The id of the machine the volume is attached to, or ``None``
+                    if the volume is not attached.
+        device: The device that the volume is attached on, or ``None`` if the
+                volume is not attached.
     """
     @enum.unique
     class Status(enum.Enum):
@@ -128,18 +132,6 @@ class Volume(namedtuple('Volume', ['id', 'name', 'status', 'size', 'attachment_i
         DELETING  = 'DELETING'
         ERROR     = 'ERROR'
         OTHER     = 'OTHER'
-
-
-class VolumeAttachment(namedtuple('Attachment', ['id', 'machine_id', 'volume_id', 'device'])):
-    """
-    Represents an attachment of a volume to a machine.
-
-    Attributes:
-        id: The id of the volume attachment.
-        machine_id: The id of the machine.
-        volume_id: The id of the volume.
-        device: The device that the volume is attached as.
-    """
 
 
 class ExternalIp(namedtuple('ExternalIp', ['external_ip', 'machine_id'])):

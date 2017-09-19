@@ -32,10 +32,6 @@ urlpatterns = [
         url(r'^volumes/(?P<volume>' + UUID_REGEX + r')/$',
             views.volume_details,
             name = 'volume_details'),
-        url(r'^volume_attachments/$', views.volume_attachments, name = 'volume_attachments'),
-        url(r'^volume_attachments/(?P<attachment>' + UUID_REGEX + r')/$',
-            views.volume_attachment_details,
-            name = 'volume_attachment_details'),
         url(r'^machines/$', views.machines, name = 'machines'),
         url(r'^machines/(?P<machine>' + UUID_REGEX + r')/', include([
             url(r'^$', views.machine_details, name = 'machine_details'),

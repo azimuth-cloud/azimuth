@@ -372,56 +372,30 @@ class ScopedSession:
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def volume_attachments(self):
+    def attach_volume(self, volume, machine):
         """
-        Lists the volumes attachments currently in the tenancy.
-
-        Returns:
-            An iterable of :py:class:`~.dto.VolumeAttachment`s.
-        """
-        raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
-        )
-
-    def find_volume_attachment(self, id):
-        """
-        Finds a volume attachment by id.
+        Attaches the specified volume to the specified machine.
 
         Args:
-            id: The id of the volume attachment to find.
-
-        Returns:
-            A :py:class:`~.dto.VolumeAttachment`.
-        """
-        raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
-        )
-
-    def create_volume_attachment(self, machine, volume):
-        """
-        Creates an attachment for the specified volume to the specified machine.
-
-        Args:
-            machine: The machine. Can be a machine id or a :py:class:`~.dto.Machine`.
             volume: The volume to attach. Can be a volume id or a :py:class:`~.dto.Volume`.
+            machine: The machine. Can be a machine id or a :py:class:`~.dto.Machine`.
 
         Returns:
-            The created :py:class:`~.dto.VolumeAttachment`.
+            The updated :py:class:`~.dto.Volume`.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def delete_volume_attachment(self, attachment):
+    def detach_volume(self, volume):
         """
-        Deletes the specified volume attachment.
+        Detaches the specified volume from the machine it is attached to.
 
         Args:
-            attachment: The attachment to delete. Can be an attachment id or a
-                        :py:class:`~.dto.VolumeAttachment`.
+            volume: The volume to detach. Can be a volume id or a :py:class:`~.dto.Volume`.
 
         Returns:
-            ``True`` on success (should raise on failure).
+            The updated :py:class:`~.dto.Volume`.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)

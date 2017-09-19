@@ -426,7 +426,7 @@ def external_ip_details(request, tenant, ip):
     the machine it is currently attached to.
     The request body should contain the machine ID::
 
-        { "machine_id" : "<UUID>" }
+        { "machine_id" : "<machine id>" }
     """
     session = request.session['unscoped_session'].scoped_session(tenant)
     if request.method == 'PUT':
@@ -468,7 +468,7 @@ def volumes(request, tenant):
     """
     session = request.session['unscoped_session'].scoped_session(tenant)
     if request.method == 'POST':
-        input_serializer = serializers.VolumeSerializer(data = request.data)
+        input_serializer = serializers.CreateVolumeSerializer(data = request.data)
         input_serializer.is_valid(raise_exception = True)
         output_serializer = serializers.VolumeSerializer(
             session.create_volume(
@@ -487,79 +487,46 @@ def volumes(request, tenant):
         return response.Response(serializer.data)
 
 
-@decorators.api_view(['GET', 'DELETE'])
+@decorators.api_view(['GET', 'PUT', 'DELETE'])
 @decorators.permission_classes([permissions.IsAuthenticated])
 @convert_provider_exceptions
 def volume_details(request, tenant, volume):
     """
     On ``GET`` requests, return the details for the specified volume.
 
+    On ``PUT`` requests, update the attachment status of the specified volume
+    depending on the given ``machine_id``.
+
+    To attach a volume to a machine, just give the machine id::
+
+        { "machine_id" : "<uuid of machine>" }
+
+    To detach a volume, just give ``null`` as the the machine id::
+
+        { "machine_id" : null }
+
     On ``DELETE`` requests, delete the specified volume.
     """
     session = request.session['unscoped_session'].scoped_session(tenant)
-    if request.method == 'DELETE':
+    if request.method == 'PUT':
+        input_serializer = serializers.UpdateVolumeSerializer(data = request.data)
+        input_serializer.is_valid(raise_exception = True)
+        machine_id = input_serializer.validated_data['machine_id']
+        if machine_id:
+            volume = session.attach_volume(volume, str(machine_id))
+        else:
+            volume = session.detach_volume(volume)
+        output_serializer = serializers.VolumeSerializer(
+            volume,
+            context = { 'request' : request, 'tenant' : tenant }
+        )
+        return response.Response(output_serializer.data)
+    elif request.method == 'DELETE':
         session.delete_volume(volume)
         return response.Response()
     else:
         serializer = serializers.VolumeSerializer(
             session.find_volume(volume),
-            context = { 'request' : request, 'tenant' : tenant }
-        )
-        return response.Response(serializer.data)
-
-
-@decorators.api_view(['GET', 'POST'])
-@decorators.permission_classes([permissions.IsAuthenticated])
-@convert_provider_exceptions
-def volume_attachments(request, tenant):
-    """
-    On ``GET`` requests, return a list of the volume attachments for the tenancy.
-
-    On ``POST`` requests, create a new volume attachment. The request body should
-    look like::
-
-        {
-            "machine_id" : "<machine id>",
-            "volume_id" : "<volume id"
-        }
-    """
-    session = request.session['unscoped_session'].scoped_session(tenant)
-    if request.method == 'POST':
-        input_serializer = serializers.VolumeAttachmentSerializer(data = request.data)
-        input_serializer.is_valid(raise_exception = True)
-        output_serializer = serializers.VolumeAttachmentSerializer(
-            session.create_volume_attachment(
-                input_serializer.validated_data['machine_id'],
-                input_serializer.validated_data['volume_id']
-            ),
-            context = { 'request' : request, 'tenant' : tenant }
-        )
-        return response.Response(output_serializer.data, status = status.HTTP_201_CREATED)
-    else:
-        serializer = serializers.VolumeAttachmentSerializer(
-            session.volume_attachments(),
-            many = True,
-            context = { 'request' : request, 'tenant' : tenant }
-        )
-        return response.Response(serializer.data)
-
-
-@decorators.api_view(['GET', 'DELETE'])
-@decorators.permission_classes([permissions.IsAuthenticated])
-@convert_provider_exceptions
-def volume_attachment_details(request, tenant, attachment):
-    """
-    On ``GET`` requests, return the details for the specified volume attachment.
-
-    On ``DELETE`` requests, delete the specified volume attachment.
-    """
-    session = request.session['unscoped_session'].scoped_session(tenant)
-    if request.method == 'DELETE':
-        session.delete_volume_attachment(attachment)
-        return response.Response()
-    else:
-        serializer = serializers.VolumeAttachmentSerializer(
-            session.find_volume_attachment(attachment),
             context = { 'request' : request, 'tenant' : tenant }
         )
         return response.Response(serializer.data)

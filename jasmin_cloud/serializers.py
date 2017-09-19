@@ -46,11 +46,6 @@ class TenancySerializer(serializers.Serializer):
                         'tenant' : obj.id,
                     })
                 ),
-                'volume_attachments' : request.build_absolute_uri(
-                    reverse('jasmin_cloud:volume_attachments', kwargs = {
-                        'tenant' : obj.id,
-                    })
-                ),
                 'external_ips' : request.build_absolute_uri(
                     reverse('jasmin_cloud:external_ips', kwargs = {
                         'tenant' : obj.id,
@@ -126,24 +121,6 @@ class VolumeRefSerializer(serializers.Serializer):
         return result
 
 
-class VolumeAttachmentRefSerializer(serializers.Serializer):
-    id = serializers.UUIDField(read_only = True)
-
-    def to_representation(self, obj):
-        result = super().to_representation(obj)
-        # If the info to build a link is in the context, add it
-        request = self.context.get('request')
-        tenant = self.context.get('tenant')
-        if request and tenant:
-            result.setdefault('links', {})['self'] = request.build_absolute_uri(
-                reverse('jasmin_cloud:volume_attachment_details', kwargs = {
-                    'tenant' : tenant,
-                    'attachment' : obj.id,
-                })
-            )
-        return result
-
-
 class MachineRefSerializer(serializers.Serializer):
     id = serializers.UUIDField(read_only = True)
 
@@ -187,31 +164,23 @@ Ref = collections.namedtuple('Ref', ['id'])
 
 
 class VolumeSerializer(VolumeRefSerializer):
-    name = serializers.CharField()
+    name = serializers.CharField(read_only = True)
     status = serializers.CharField(source = 'status.name', read_only = True)
-    size = serializers.IntegerField(min_value = 1)
-    attachments = VolumeAttachmentRefSerializer(many = True, read_only = True)
-
-    def to_representation(self, obj):
-        # Convert attachment ids to attachment refs before serializing
-        obj.attachments = [Ref(a) for a in obj.attachment_ids]
-        return super().to_representation(obj)
-
-
-class VolumeAttachmentSerializer(VolumeAttachmentRefSerializer):
-    machine = MachineRefSerializer(read_only = True)
-    machine_id = serializers.UUIDField(write_only = True)
-
-    volume = VolumeRefSerializer(read_only = True)
-    volume_id = serializers.UUIDField(write_only = True)
-
+    size = serializers.IntegerField(read_only = True)
+    machine = MachineRefSerializer(read_only = True, allow_null = True)
     device = serializers.CharField(read_only = True)
 
     def to_representation(self, obj):
-        # Convert raw ids to attachment refs before serializing
-        obj.machine = Ref(obj.machine_id)
-        obj.volume = Ref(obj.volume_id)
+        # Convert raw ids to refs before serializing
+        obj.machine = Ref(obj.machine_id) if obj.machine_id else None
         return super().to_representation(obj)
+
+class CreateVolumeSerializer(serializers.Serializer):
+    name = serializers.CharField(write_only = True)
+    size = serializers.IntegerField(write_only = True, min_value = 1)
+
+class UpdateVolumeSerializer(serializers.Serializer):
+    machine_id = serializers.UUIDField(write_only = True, allow_null = True)
 
 
 class MachineStatusSerializer(serializers.Serializer):
@@ -235,15 +204,15 @@ class MachineSerializer(MachineRefSerializer):
     internal_ip = serializers.IPAddressField(read_only = True)
     external_ip = serializers.IPAddressField(read_only = True)
     nat_allowed = serializers.BooleanField(read_only = True)
-    attachments = VolumeAttachmentRefSerializer(many = True, read_only = True)
+    attached_volumes = VolumeRefSerializer(many = True, read_only = True)
     owner = serializers.CharField(read_only = True)
     created = serializers.DateTimeField(read_only = True)
 
     def to_representation(self, obj):
-        # Convert raw ids to attachment refs before serializing
+        # Convert raw ids to refs before serializing
         obj.image = Ref(obj.image_id)
         obj.size = Ref(obj.size_id)
-        obj.attachments = [Ref(a) for a in obj.attachment_ids]
+        obj.attached_volumes = [Ref(v) for v in obj.attached_volume_ids]
         result = super().to_representation(obj)
         # If the info to build a link is in the context, add it
         request = self.context.get('request')
@@ -279,7 +248,7 @@ class ExternalIPSerializer(serializers.Serializer):
     machine_id = serializers.UUIDField(write_only = True, allow_null = True)
 
     def to_representation(self, obj):
-        # Convert raw ids to attachment refs before serializing
+        # Convert raw ids to refs before serializing
         obj.machine = Ref(obj.machine_id) if obj.machine_id else None
         result = super().to_representation(obj)
         # If the info to build a link is in the context, add it

@@ -378,6 +378,7 @@ class ScopedSession(base.ScopedSession):
         self._log("Fetching flavor with id '%s'", id)
         return self._from_sdk_flavor(self.connection.compute.get_flavor(id))
 
+    @functools.lru_cache()
     def _tenant_network(self):
         """
         Returns the ID of the tenant network connected to the tenant router.
@@ -415,7 +416,6 @@ class ScopedSession(base.ScopedSession):
     }
 
     @convert_sdk_exceptions
-    @functools.lru_cache()
     def find_machine(self, id):
         """
         See :py:meth:`.base.ScopedSession.find_machine`.
@@ -462,7 +462,7 @@ class ScopedSession(base.ScopedSession):
             ip_of_type('fixed'),
             ip_of_type('floating'),
             nat_allowed,
-            tuple(a['id'] for a in sdk_server['os-extended-volumes:volumes_attached']),
+            tuple(v['id'] for v in sdk_server['os-extended-volumes:volumes_attached']),
             sdk_server['user_id'],
             dateutil.parser.parse(sdk_server['created'])
         )
@@ -590,6 +590,7 @@ class ScopedSession(base.ScopedSession):
         self._log("Allocated new floating ip '%s'", fip.floating_ip_address)
         return self._from_sdk_floatingip(fip)
 
+    @convert_sdk_exceptions
     def find_external_ip(self, ip):
         """
         See :py:meth:`.base.ScopedSession.find_external_ip`.
@@ -678,13 +679,18 @@ class ScopedSession(base.ScopedSession):
             sdk_volume.status.lower(),
             dto.Volume.Status.OTHER
         )
+        try:
+            attachment = sdk_volume.attachments[0]
+        except IndexError:
+            attachment = None
         return dto.Volume(
             sdk_volume.id,
             # If there is no name, use part of the ID
             sdk_volume.name or sdk_volume.id[:13],
             status,
             sdk_volume.size,
-            tuple(a['id'] for a in sdk_volume.attachments)
+            attachment['server_id'] if attachment else None,
+            attachment['device'] if attachment else None
         )
 
     @convert_sdk_exceptions
@@ -698,7 +704,6 @@ class ScopedSession(base.ScopedSession):
         return tuple(self._from_sdk_volume(v) for v in volumes)
 
     @convert_sdk_exceptions
-    @functools.lru_cache()
     def find_volume(self, id):
         """
         See :py:meth:`.base.ScopedSession.find_volume`.
@@ -724,88 +729,43 @@ class ScopedSession(base.ScopedSession):
         volume = volume if isinstance(volume, dto.Volume) else self.find_volume(volume)
         if volume.status not in [dto.Volume.Status.AVAILABLE, dto.Volume.Status.ERROR]:
             raise errors.InvalidOperationError(
-                "Cannot delete volume with status '{}'.".format(volume.status.name)
+                "Cannot delete volume with status {}.".format(volume.status.name)
             )
         self._log("Deleting volume '%s'", volume.id)
         self.connection.block_store.delete_volume(volume.id)
         return True
 
-    def _from_sdk_attachment(self, server_id, sdk_attachment):
-        return dto.VolumeAttachment(
-            sdk_attachment.id,
-            server_id,
-            sdk_attachment.volume_id,
-            sdk_attachment.device
-        )
-
     @convert_sdk_exceptions
-    def volume_attachments(self):
+    def attach_volume(self, volume, machine):
         """
-        See :py:meth:`.base.ScopedSession.volume_attachments`.
+        See :py:meth:`.base.ScopedSession.attach_volume`.
         """
-        self._log('Fetching volume attachments')
-        # The SDK only allows fetching the attachments for a machine
-        # So unfortunately, we need to fetch all the machines first
-        # However, we only the need the IDs, so don't use machines()
-        servers = list(self.connection.compute.servers())
-        self._log('Fetching attachments for %s servers', len(servers))
-        attachments = [
-            (s.id, a)
-            for s in servers
-            for a in self.connection.compute.volume_attachments(s.id)
-        ]
-        self._log('Found %s attachments', len(attachments))
-        return tuple(self._from_sdk_attachment(s, a) for s, a in attachments)
-
-    @convert_sdk_exceptions
-    @functools.lru_cache()
-    def find_volume_attachment(self, id):
-        """
-        See :py:meth:`.base.ScopedSession.find_volume_attachment`.
-        """
-        self._log("Fetching volume attachment with id '%s'", id)
-        # The SDK only allows fetching the attachments for a machine
-        # So unfortunately, we need to fetch all the machines first in order to
-        # search through the machines until we find the volume
-        # However, we only the need the IDs, so don't use machines()
-        servers = list(self.connection.compute.servers())
-        self._log("Checking %s servers for attachment '%s'", len(servers), id)
-        for server in servers:
-            for attachment in self.connection.compute.volume_attachments(server.id):
-                if attachment.id == id:
-                    return self._from_sdk_attachment(server.id, attachment)
-        raise errors.ObjectNotFoundError(
-            "Could not find volume attachment with id '{}'".format(id)
-        )
-
-    @convert_sdk_exceptions
-    def create_volume_attachment(self, machine, volume):
-        """
-        See :py:meth:`.base.ScopedSession.create_volume_attachment`.
-        """
-        machine = machine.id if isinstance(machine, dto.Machine) else machine
         volume = volume if isinstance(volume, dto.Volume) else self.find_volume(volume)
+        machine = machine.id if isinstance(machine, dto.Machine) else machine
+        # If the volume is already attached to the machine there is nothing to do
+        if volume.machine_id == machine:
+            return volume
+        # The volume must be available before attaching
         if volume.status != dto.Volume.Status.AVAILABLE:
             raise errors.InvalidOperationError(
-                "Volume status must be 'AVAILABLE' before attaching."
+                "Volume must be AVAILABLE before attaching."
             )
         self._log("Attaching volume '%s' to server '%s'", volume.id, machine)
-        attachment = self.connection.compute.create_volume_attachment(
+        self.connection.compute.create_volume_attachment(
             machine,
             volume_id = volume.id
         )
-        return self._from_sdk_attachment(machine, attachment)
+        return self.find_volume(volume.id)
 
     @convert_sdk_exceptions
-    def delete_volume_attachment(self, attachment):
+    def detach_volume(self, volume):
         """
-        See :py:meth:`.base.ScopedSession.delete_volume_attachment`.
+        See :py:meth:`.base.ScopedSession.detach_volume`.
         """
-        # Unfortunately, we can only delete the attachment if we know which server
-        # it is for
-        # So if we have not been given an attachment object, we need to retrieve it
-        if not isinstance(attachment, dto.VolumeAttachment):
-            attachment = self.find_volume_attachment(attachment)
-        self._log("Deleting volume attachment '%s'", attachment.id)
-        self.connection.compute.delete_volume_attachment(attachment.id, attachment.machine_id)
-        return True
+        volume = volume if isinstance(volume, dto.Volume) else self.find_volume(volume)
+        # If the volume is already detached, we are done
+        if not volume.machine_id:
+            return volume
+        self._log("Detaching volume '%s' from '%s'", volume.id, volume.machine_id)
+        self.connection.compute.delete_volume_attachment(volume.id, volume.machine_id)
+        return self.find_volume(volume.id)
