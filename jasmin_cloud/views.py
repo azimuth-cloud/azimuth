@@ -326,8 +326,15 @@ def machine_details(request, tenant, machine):
     """
     session = request.session['unscoped_session'].scoped_session(tenant)
     if request.method == 'DELETE':
-        session.delete_machine(machine)
-        return response.Response()
+        deleted = session.delete_machine(machine)
+        if deleted:
+            serializer = serializers.MachineSerializer(
+                deleted,
+                context = { 'request' : request, 'tenant' : tenant }
+            )
+            return response.Response(serializer.data)
+        else:
+            return response.Response()
     else:
         serializer = serializers.MachineSerializer(
             session.find_machine(machine),
@@ -344,9 +351,8 @@ def machine_start(request, tenant, machine):
     Start (power on) the specified machine.
     """
     session = request.session['unscoped_session'].scoped_session(tenant)
-    session.start_machine(machine)
     serializer = serializers.MachineSerializer(
-        session.find_machine(machine),
+        session.start_machine(machine),
         context = { 'request' : request, 'tenant' : tenant }
     )
     return response.Response(serializer.data)
@@ -360,9 +366,8 @@ def machine_stop(request, tenant, machine):
     Stop (power off) the specified machine.
     """
     session = request.session['unscoped_session'].scoped_session(tenant)
-    session.stop_machine(machine)
     serializer = serializers.MachineSerializer(
-        session.find_machine(machine),
+        session.stop_machine(machine),
         context = { 'request' : request, 'tenant' : tenant }
     )
     return response.Response(serializer.data)
@@ -376,9 +381,8 @@ def machine_restart(request, tenant, machine):
     Restart (power cycle) the specified machine.
     """
     session = request.session['unscoped_session'].scoped_session(tenant)
-    session.restart_machine(machine)
     serializer = serializers.MachineSerializer(
-        session.find_machine(machine),
+        session.restart_machine(machine),
         context = { 'request' : request, 'tenant' : tenant }
     )
     return response.Response(serializer.data)
@@ -522,8 +526,15 @@ def volume_details(request, tenant, volume):
         )
         return response.Response(output_serializer.data)
     elif request.method == 'DELETE':
-        session.delete_volume(volume)
-        return response.Response()
+        deleted = session.delete_volume(volume)
+        if deleted:
+            serializer = serializers.VolumeSerializer(
+                deleted,
+                context = { 'request' : request, 'tenant' : tenant }
+            )
+            return response.Response(serializer.data)
+        else:
+            return response.Response()
     else:
         serializer = serializers.VolumeSerializer(
             session.find_volume(volume),

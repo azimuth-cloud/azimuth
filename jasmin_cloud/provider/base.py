@@ -245,7 +245,8 @@ class ScopedSession:
             machine: The machine. Can be a machine id or a :py:class:`~.dto.Machine`.
 
         Returns:
-            ``True`` on success (should raise on failure).
+            The updated :py:class:`~.dto.Machine` if it has transitioned to a
+            deleting status, or ``None`` if it has already been deleted.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
@@ -366,7 +367,8 @@ class ScopedSession:
             volume: The volume to delete. Can be a volume id or a :py:class:`~.dto.Volume`.
 
         Returns:
-            ``True`` on success (should raise on failure).
+            The updated :py:class:`~.dto.Volume` if it has transitioned to a
+            deleting status, or ``None`` if it has already been deleted.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)

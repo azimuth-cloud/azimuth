@@ -548,10 +548,13 @@ class ScopedSession(base.ScopedSession):
         """
         See :py:meth:`.base.ScopedSession.delete_machine`.
         """
-        machine = machine if isinstance(machine, dto.Machine) else self.find_machine(machine)
-        self._log("Deleting machine '%s'", machine.id)
-        self.connection.compute.delete_server(machine.id)
-        return True
+        machine = machine.id if isinstance(machine, dto.Machine) else machine
+        self._log("Deleting machine '%s'", machine)
+        self.connection.compute.delete_server(machine)
+        try:
+            return self.find_machine(machine)
+        except errors.ObjectNotFoundError:
+            return None
 
     def _from_sdk_floatingip(self, sdk_floatingip):
         """
@@ -733,7 +736,10 @@ class ScopedSession(base.ScopedSession):
             )
         self._log("Deleting volume '%s'", volume.id)
         self.connection.block_store.delete_volume(volume.id)
-        return True
+        try:
+            return self.find_volume(volume.id)
+        except errors.ObjectNotFoundError:
+            return None
 
     @convert_sdk_exceptions
     def attach_volume(self, volume, machine):
