@@ -15,7 +15,7 @@ if __name__ == "__main__":
         name = 'jasmin-cloud',
         version = versioneer.get_version(),
         cmdclass = versioneer.get_cmdclass(),
-        description = 'API server for management of projects in the JASMIN Cloud.',
+        description = 'API for management of tenancies in the JASMIN Cloud.',
         long_description = README,
         classifiers = [
             "Programming Language :: Python",
@@ -38,7 +38,6 @@ if __name__ == "__main__":
             'django',
             'djangorestframework',
             'psycopg2',
-            'django-picklefield',
             'jasmin-django-utils',
             'jasmin-ldap',
         ],
