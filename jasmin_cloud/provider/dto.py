@@ -28,7 +28,8 @@ class Quota(namedtuple('Quota', ['resource', 'units', 'allocated', 'used'])):
     """
 
 
-class Image(namedtuple('Image', ['id', 'name', 'is_public', 'nat_allowed', 'size'])):
+class Image(namedtuple('Image', ['id', 'vm_type', 'name',
+                                       'is_public', 'nat_allowed', 'size'])):
     """
     Represents an image available to a tenancy.
 
@@ -36,6 +37,10 @@ class Image(namedtuple('Image', ['id', 'name', 'is_public', 'nat_allowed', 'size
 
     Attributes:
         id: The id of the image.
+        vm_type: The VM-type of the image. This is passed to the activator script
+                 when a machine is provisioned from the template, potentially
+                 allowing multiple types of machine to be provisioned from the
+                 same soft-linked image.
         name: The human-readable name of the image.
         is_public: Indicates if the image is public or private.
         nat_allowed: Indicates if NAT is allowed for machines deployed from the image.

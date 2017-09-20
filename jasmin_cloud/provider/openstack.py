@@ -2,7 +2,7 @@
 This module contains the provider implementation for OpenStack.
 """
 
-import functools, logging, base64, hashlib
+import functools, logging, base64, hashlib, textwrap, uuid
 
 import dateutil.parser
 import requests
@@ -204,18 +204,30 @@ class UnscopedSession(base.UnscopedSession):
         """
         See :py:meth:`.base.UnscopedSession.scoped_session`.
         """
-        tenancy = tenancy.id if isinstance(tenancy, dto.Tenancy) else tenancy
-        logger.info('[%s] [%s] Creating scoped session', self.username, tenancy)
+        # Make sure we have a tenancy object
+        # If we were given an ID, just do this by fetching all the tenancies and
+        # searching them, rather than fetching by id. Either way it is one HTTP
+        # request, which is the time-consuming bit, and we don't have to repeat
+        # all the error handling :-P
+        if not isinstance(tenancy, dto.Tenancy):
+            try:
+                tenancy = next(t for t in self.tenancies() if t.id == tenancy)
+            except StopIteration:
+                raise errors.ObjectNotFoundError(
+                    'Could not find tenancy with ID {}'.format(tenancy)
+                )
+        logger.info('[%s] [%s] Creating scoped session', self.username, tenancy.name)
         prof = profile.Profile()
         prof.set_version('identity', 'v3')
         try:
             return ScopedSession(
                 self.username,
-                tenancy,
+                tenancy.id,
+                tenancy.name,
                 connection.Connection(
                     auth_url = self.auth_url,
                     profile = prof,
-                    project_id = tenancy,
+                    project_id = tenancy.id,
                     auth_plugin = 'token',
                     token = self.token,
                     verify = self.verify_ssl
@@ -226,7 +238,7 @@ class UnscopedSession(base.UnscopedSession):
             # not found to avoid revealing details about valid tenancies
             if e.status_code in { 401, 403 }:
                 raise errors.ObjectNotFoundError(
-                    'Could not find tenancy with ID {}'.format(tenancy)
+                    'Could not find tenancy with ID {}'.format(tenancy.id)
                 )
             else:
                 raise e
@@ -238,20 +250,22 @@ class ScopedSession(base.ScopedSession):
 
     Args:
         username: The username of the OpenStack user.
-        tenancy: The tenancy id.
+        tenancy_id: The tenancy id.
+        tenancy_name: The name of the tenancy.
         connection: An ``openstack.connection.Connection`` for the tenancy.
     """
     provider_name = 'openstack'
 
-    def __init__(self, username, tenancy, connection):
+    def __init__(self, username, tenancy_id, tenancy_name, connection):
         self.username = username
-        self.tenancy = tenancy
+        self.tenancy_id = tenancy_id
+        self.tenancy_name = tenancy_name
         self.connection = connection
 
     def _log(self, message, *args, level = logging.INFO, **kwargs):
         logger.info(
             '[%s] [%s] ' + message,
-            self.username, self.tenancy, *args, **kwargs
+            self.username, self.tenancy_name, *args, **kwargs
         )
 
     @convert_sdk_exceptions
@@ -286,7 +300,7 @@ class ScopedSession(base.ScopedSession):
         # For block storage and floating IPs, use the API directly
         network_ep = self.connection.session.get_endpoint(service_type = 'network')
         network_quotas = self.connection.session.get(
-            network_ep + '/quotas/' + self.tenancy
+            network_ep + '/quotas/' + self.tenancy_id
         ).json()
         quotas.append(
             dto.Quota(
@@ -318,12 +332,15 @@ class ScopedSession(base.ScopedSession):
         """
         Converts an OpenStack SDK image object into a :py:class:`.dto.Image`.
         """
+        metadata = sdk_image.metadata or {}
         return dto.Image(
             sdk_image.id,
+            # Read the vm_type from image metadata
+            metadata.get('jasmin:host_type', 'UNKNOWN'),
             sdk_image.name,
             sdk_image.visibility == 'public',
             # Unless specifically disallowed by a flag, NAT is allowed
-            bool(int((sdk_image.metadata or {}).get('jasmin:nat_allowed', '1'))),
+            bool(int(metadata.get('jasmin:nat_allowed', '1'))),
             # The image size is specified in bytes. Convert to MB.
             float(sdk_image.size) / 1024.0 / 1024.0
         )
@@ -482,6 +499,17 @@ class ScopedSession(base.ScopedSession):
                 public_key = ssh_key
             )
 
+    # This cloud-init script will ensure that the activator is called on startup
+    # Use textwrap.dedent to remove the indentation on the multiline string
+    # lstrip removes the leading newline
+    _CLOUD_INIT_TEMPLATE = textwrap.dedent("""
+    #cloud-config
+    warnings:
+      dsid_missing_source: off
+    runcmd:
+      - [ '/bin/bash', '/usr/local/bin/os-activator.sh', '{ssh_key}', '{tenancy}', '{vm_type}', '{uuid}' ]
+    """).lstrip()
+
     @convert_sdk_exceptions
     def create_machine(self, name, image, size, ssh_key = None):
         """
@@ -500,11 +528,21 @@ class ScopedSession(base.ScopedSession):
             raise errors.ImproperlyConfiguredError('Could not find tenancy network')
         # Get the keypair to inject
         keypair = self._get_or_create_keypair(ssh_key) if ssh_key else None
+        # Interpolate values into the cloud-init script template
+        cloud_init_script = self._CLOUD_INIT_TEMPLATE.format(
+            ssh_key = ssh_key or '',
+            tenancy = self.tenancy_name,
+            vm_type = image.vm_type,
+            uuid = uuid.uuid4().hex
+        )
         server = self.connection.compute.create_server(
             name = name,
             image_id = image.id,
             flavor_id = size,
             networks = [{ 'uuid' : network.id }],
+            # user_data should be base64 encoded, but a string (not bytes)
+            # Hence the encode and decode
+            user_data = base64.b64encode(cloud_init_script.encode('utf-8')).decode('utf-8'),
             # Set the nat_allowed metadata based on the image
             metadata = { 'jasmin:nat_allowed' : '1' if image.nat_allowed else '0' },
             # The SDK doesn't like it if None is given for keypair, but behaves
