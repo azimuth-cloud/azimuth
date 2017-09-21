@@ -3,12 +3,12 @@
 API for administration of projects in the JASMIN Cloud.
 
 
-## Documentation
+## Documentation
 
 Documentation for `jasmin-cloud` is available on the
 [Github Pages site for the cedadev organisation](http://cedadev.github.io/jasmin-cloud/).
 
-### Building the documentation
+### Building the documentation
 
 In order for [Sphinx autodoc](http://www.sphinx-doc.org/en/stable/ext/autodoc.html)
 to work correctly, [Sphinx](http://www.sphinx-doc.org/) must run in a context where
