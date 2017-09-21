@@ -143,7 +143,7 @@ class ScopedSession:
         Lists the machines in the tenancy.
 
         Returns:
-            An iterable of :py:class:`~.dto.Machine`s.
+            An iterable of :py:class:`~.dto.Machine`\ s.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
@@ -258,7 +258,7 @@ class ScopedSession:
         tenancy.
 
         Returns:
-            An iterable of :py:class:`~.dto.ExternalIp`s.
+            An iterable of :py:class:`~.dto.ExternalIp`\ s.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
@@ -324,7 +324,7 @@ class ScopedSession:
         Lists the volumes currently available to the tenancy.
 
         Returns:
-            An iterable of :py:class:`~.dto.Volume`s.
+            An iterable of :py:class:`~.dto.Volume`\ s.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
