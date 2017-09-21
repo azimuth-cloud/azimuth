@@ -1,535 +1,543 @@
 """
-This module contains Pyramid view callables for the JASMIN cloud portal.
+Django views for the ``jasmin_cloud`` app.
 """
 
-__author__ = "Matt Pryor"
-__copyright__ = "Copyright 2015 UK Science and Technology Facilities Council"
+import logging, functools
 
-import logging
+from django.urls import reverse
+from django.utils.safestring import mark_safe
+from django.utils.encoding import smart_text
+from django.contrib.auth import authenticate as dj_authenticate, login, logout
 
-from pyramid.view import view_config, forbidden_view_config, notfound_view_config
-from pyramid.security import remember, forget
-from pyramid.session import check_csrf_token
-from pyramid.httpexceptions import HTTPForbidden, HTTPSeeOther, HTTPBadRequest
+from docutils import core
 
-from . import cloudservices
-from .cloudservices import NATPolicy
-from .cloudservices.vcloud import VCloudSession
-from .util import validate_ssh_key
+from rest_framework.utils import formatting
+from rest_framework import (
+    compat, decorators, permissions, response, status,
+    exceptions as drf_exceptions, views as drf_views
+)
+
+from . import serializers
+from .provider import errors as provider_errors
+from .settings import cloud_settings
 
 
-_log = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 
-################################################################################
-## Exception views
-##
-##   Executed if an exception occurs during regular view handling
-################################################################################
-
-def _exception_redirect(request):
+def get_view_description(view_cls, html = False):
     """
-    Returns a redirect to the most specific page accessible to the current user:
+    Alternative django-rest-framework ``VIEW_DESCRIPTION_FUNCTION`` that allows
+    RestructuredText to be used instead of Markdown.
 
-      * Current org machines page if user is logged in and has an active session
-        for the org in the URL
-      * Dashboard if user is logged in but doesn't belong to org in URL
-      * Login page if user is not logged in
+    This allows docstrings to be used in the DRF-generated HTML views and in
+    Sphinx-generated API views.
     """
-    if request.authenticated_user:
-        if request.current_org:
-            # Try to get the session for the org in the URL
-            try:
-                request.cloud_sessions.get_session(request.current_org)
-                return HTTPSeeOther(location = request.route_path('machines'))
-            except (KeyError, cloudservices.CloudServiceError):
-                pass
-        return HTTPSeeOther(location = request.route_path('dashboard'))
-    else:
-        return HTTPSeeOther(location = request.route_path('login'))
+    description = view_cls.__doc__ or ''
+    description = formatting.dedent(smart_text(description))
+    if html:
+        # from https://wiki.python.org/moin/ReStructuredText -- we use the
+        # third recipe to get just the HTML parts corresponding to the ReST
+        # docstring:
+        parts = core.publish_parts(source=description, writer_name='html')
+        html = parts['body_pre_docinfo'] + parts['fragment']
+        # have to use mark_safe so our HTML will get explicitly marked as
+        # safe and will be correctly rendered
+        return mark_safe(html)
+    return description
 
 
-@forbidden_view_config()
-def forbidden(request):
+def convert_provider_exceptions(view):
     """
-    Handler for 403 forbidden errors.
-
-    Shows a suitable error on the most specific page possible.
+    Decorator that converts errors from :py:mod:`.provider.errors` into appropriate
+    HTTP responses or Django REST framework errors.
     """
-    if request.authenticated_user:
-        request.session.flash('Insufficient permissions', 'error')
-    else:
-        request.session.flash('Log in to access this resource', 'error')
-    return _exception_redirect(request)
-
-
-@notfound_view_config()
-def notfound(request):
-    """
-    Handler for 404 not found errors.
-
-    Shows a suitable error on the most specific page possible.
-    """
-    request.session.flash('Resource not found', 'error')
-    return _exception_redirect(request)
-
-
-@view_config(context = cloudservices.CloudServiceError)
-def cloud_service_error(ctx, request):
-    """
-    Handler for cloud service errors.
-
-    If the error is an "expected" error (e.g. not found, permissions), then convert
-    to the HTTP equivalent.
-
-    Otherwise, show a suitable error on the most specific page possible and log
-    the complete error for sysadmins.
-    """
-    if isinstance(ctx, (cloudservices.AuthenticationError,
-                        cloudservices.PermissionsError)):
-        return forbidden(request)
-    if isinstance(ctx, cloudservices.NoSuchResourceError):
-        return notfound(request)
-    request.session.flash(str(ctx), 'error')
-    _log.error('Unhandled cloud service error', exc_info=(type(ctx), ctx, ctx.__traceback__))
-    return _exception_redirect(request)
-
-
-################################################################################
-## Regular views
-##
-##   Executed when the request matches a route
-################################################################################
-
-@view_config(route_name = 'home',
-             request_method = 'GET',
-             renderer = 'templates/home.jinja2')
-def home(request):
-    """
-    Handler for GET requests to ``/``.
-
-    If the user is logged in, redirect to the dashboard, otherwise show a splash page.
-    """
-    if request.authenticated_user:
-        return HTTPSeeOther(location = request.route_url('dashboard'))
-    return {}
-
-
-@view_config(route_name = 'faqs',
-             request_method = 'GET',
-             renderer = 'templates/faqs.jinja2')
-def faqs(request):
-    """
-    Handler for GET requests to ``/faqs``.
-
-    Just renders a static Jinja2 template.
-    """
-    return {}
-
-
-@view_config(route_name = 'login',
-             request_method = ('GET', 'POST'),
-             renderer = 'templates/login.jinja2')
-def login(request):
-    """
-    Handler for ``/login``.
-
-    GET request
-        Show a login form.
-
-    POST request
-        Attempt to authenticate the user.
-
-        If authentication is successful, try to start a vCloud Director session
-        for each organisation that the user belongs to.
-
-        Redirect to the dashboard on success, otherwise show the login form with
-        errors.
-    """
-    if request.method == 'POST':
-        # When we get a POST request, clear any existing cloud sessions
-        request.cloud_sessions.clear()
-        # Try to authenticate the user
-        username = request.params['username']
-        password = request.params['password']
-        if request.users.authenticate(username, password):
-            # Try to create a session for each of the user's orgs
-            for org in request.memberships.orgs_for_user(username):
-                request.cloud_sessions.start_session(
-                    org,
-                    VCloudSession,
-                    request.registry.settings['vcloud.endpoint'],
-                    '{}@{}'.format(username, org),
-                    password
-                )
-            # When a user logs in successfully, force a refresh of the CSRF token
-            request.session.new_csrf_token()
-            return HTTPSeeOther(location = request.route_url('dashboard'),
-                                headers  = remember(request, username))
-        else:
-            _log.warning('Failed login attempt from {} with username {}'.format(request.client_addr, username))
-            request.session.flash('Invalid credentials', 'error')
-    return {}
-
-
-@view_config(route_name = 'logout')
-def logout(request):
-    """
-    Handler for ``/logout``.
-
-    If the user is logged in, forget them and redirect to splash page.
-    """
-    request.cloud_sessions.clear()
-    request.session.flash('Logged out successfully', 'success')
-    return HTTPSeeOther(location = request.route_url('home'),
-                        headers = forget(request))
-
-
-@view_config(route_name = 'dashboard',
-             request_method = 'GET',
-             renderer = 'templates/dashboard.jinja2', permission = 'view')
-def dashboard(request):
-    """
-    Handler for GET requests to ``/dashboard``.
-
-    The user must be authenticated to reach here, which means that there should be
-    a cloud session or an error for each organisation that the user belongs to.
-
-    Shows a list of organisations for the user. If a session for the organisation
-    is open, the the number of machines in the org is shown. If there was an error
-    opening the org session, the error is shown.
-    """
-    return {
-        'org_names' : list(sorted(request.cloud_sessions.sessions.keys())),
-        'machine_counts' : {
-            org : sess.count_machines()
-              for org, sess in request.cloud_sessions.sessions.items()
-              if isinstance(sess, cloudservices.Session)
-        },
-        'errors' : {
-            org : str(sess)
-              for org, sess in request.cloud_sessions.sessions.items()
-              if isinstance(sess, cloudservices.CloudServiceError)
-        }
-    }
-
-
-@view_config(route_name = 'org_home', request_method = 'GET', permission = 'org_view')
-def org_home(request):
-    """
-    Handler for GET requests to ``/{org}``.
-
-    The user must be authenticated for the organisation in the URL to reach here.
-
-    Just redirect the user to ``/{org}/machines``.
-    """
-    return HTTPSeeOther(location = request.route_url('machines'))
-
-
-@view_config(route_name = 'users',
-             request_method = 'GET',
-             renderer = 'templates/users.jinja2', permission = 'org_view')
-def users(request):
-    """
-    Handler for GET requests to ``/{org}/users``.
-
-    The user must be authenticated for the organisation in the URL to reach here.
-
-    Show the users belonging to the organisation in the URL.
-    """
-    # Get the users for the org
-    member_ids = request.memberships.members_for_org(request.current_org)
-    # Convert the usernames to user objects
-    return { 'users' : [request.users.find_by_username(uid) for uid in member_ids] }
-
-
-@view_config(route_name = 'catalogue',
-             request_method = 'GET',
-             renderer = 'templates/catalogue.jinja2', permission = 'org_view')
-def catalogue(request):
-    """
-    Handler for GET requests to ``/{org}/catalogue``.
-
-    The user must be authenticated for the organisation in the URL to reach here.
-
-    Show the catalogue items available to the organisation in the URL.
-    """
-    # Get the available catalogue items
-    # Sort the items so that the public items appear first, and then by name
-    items = request.active_cloud_session.list_images()
-    return { 'items' : sorted(items, key = lambda i: (not i.is_public, i.name)) }
-
-
-@view_config(route_name = 'catalogue_new',
-             request_method = ('GET', 'POST'),
-             renderer = 'templates/catalogue_new.jinja2', permission = 'org_edit')
-def catalogue_new(request):
-    """
-    Handler for ``/{org}/catalogue/new/{id}``
-
-    The user must be authenticated for the organisation in the URL to reach here.
-
-    ``{id}`` is the uuid of the machine to use as a template.
-
-    GET request
-        Show a form to gather information required to create a new catalogue item.
-
-    POST request
-        Attempt to create a new catalogue item using the provided information.
-
-        On success, redirect the user to ``/{org}/catalogue`` with a success message.
-
-        On a duplicate name error, show the form with an error message.
-    """
-    # Get the cloud session for the current org
-    cloud_session = request.active_cloud_session
-    # Check if the session has permission to create templates
-    if not cloud_session.has_permission('CAN_CREATE_TEMPLATES'):
-        raise HTTPForbidden()
-    # Get the machine details from the id
-    machine = cloud_session.get_machine(request.matchdict['id'])
-    # On a POST request, we must try to create the catalogue item
-    if request.method == 'POST':
-        # All POST requests need a csrf token
-        check_csrf_token(request)
-        item_info = {
-            'name'          : request.params.get('name', ''),
-            'description'   : request.params.get('description', ''),
-        }
+    @functools.wraps(view)
+    def wrapper(*args, **kwargs):
         try:
-            # Create the catalogue item
-            cloud_session.image_from_machine(
-                machine.id, item_info['name'], item_info['description']
+            return view(*args, **kwargs)
+        # For provider errors that don't map to authentication/not found errors,
+        # return suitable responses
+        except provider_errors.UnsupportedOperationError as exc:
+            return response.Response(
+                { 'detail' : str(exc), 'code' : 'unsupported_operation'},
+                status = status.HTTP_501_NOT_IMPLEMENTED
             )
-            request.session.flash('Catalogue item created successfully', 'success')
-        except cloudservices.DuplicateNameError:
-            request.session.flash('There are errors with one or more fields', 'error')
-            return {
-                'machine' : machine,
-                'item'    : item_info,
-                'errors'  : { 'name' : ['Catalogue item name is already in use'] }
+        except provider_errors.QuotaExceededError as exc:
+            return response.Response(
+                { 'detail' : str(exc), 'code' : 'quota_exceeded'},
+                status = status.HTTP_409_CONFLICT
+            )
+        except provider_errors.InvalidOperationError as exc:
+            return response.Response(
+                { 'detail' : str(exc), 'code' : 'invalid_operation'},
+                status = status.HTTP_409_CONFLICT
+            )
+        except provider_errors.BadInputError as exc:
+            return response.Response(
+                { 'detail' : str(exc), 'code' : 'bad_input'},
+                status = status.HTTP_400_BAD_REQUEST
+            )
+        except provider_errors.OperationTimedOutError as exc:
+            return response.Response(
+                { 'detail' : str(exc), 'code' : 'operation_timed_out'},
+                status = status.HTTP_504_GATEWAY_TIMEOUT
+            )
+        # For authentication/not found errors, raise the DRF equivalent
+        except provider_errors.AuthenticationError as exc:
+            raise drf_exceptions.AuthenticationFailed(str(exc))
+        except provider_errors.PermissionDeniedError as exc:
+            raise drf_exceptions.PermissionDenied(str(exc))
+        except provider_errors.ObjectNotFoundError as exc:
+            raise drf_exceptions.NotFound(str(exc))
+        except provider_errors.Error as exc:
+            log.exception('Unexpected provider error occurred')
+            return response.Response(
+                { 'detail' : str(exc) },
+                status = status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    return wrapper
+
+
+@decorators.api_view(['POST'])
+@convert_provider_exceptions
+def authenticate(request):
+    """
+    This view attempts to authenticate the user using the given username and
+    password. If authentication is successful, a session is started for the user.
+
+    Example request payload::
+
+        {
+            "username" : "jbloggs",
+            "password" : "mysecurepassword"
+        }
+    """
+    serializer = serializers.LoginSerializer(data = request.data)
+    serializer.is_valid(raise_exception = True)
+    username = serializer.validated_data['username']
+    password = serializer.validated_data['password']
+    user = dj_authenticate(request, username = username, password = password)
+    if user is None:
+        raise drf_exceptions.AuthenticationFailed('Invalid username or password.')
+    if not user.is_active:
+        raise drf_exceptions.AuthenticationFailed('User is not active.')
+    login(request, user)
+    # Just return a 200 OK response
+    return response.Response({
+        'username' : user.username,
+        'links' : {
+            'tenancies' : request.build_absolute_uri(reverse('jasmin_cloud:tenancies'))
+        }
+    })
+
+
+@decorators.api_view(['GET', 'DELETE'])
+@decorators.permission_classes([permissions.IsAuthenticated])
+@convert_provider_exceptions
+def session(request):
+    """
+    On ``GET`` requests, return information about the current session.
+
+    On ``DELETE`` requests, destroy the current session.
+    """
+    if request.method == 'DELETE':
+        logout(request)
+        return response.Response()
+    else:
+        # Before claiming to be successful, first ping the current cloud session
+        _ = request.session['unscoped_session'].tenancies()
+        return response.Response({
+            'username' : request.user.username,
+            'links' : {
+                'tenancies' : request.build_absolute_uri(reverse('jasmin_cloud:tenancies'))
             }
-        return HTTPSeeOther(location = request.route_url('catalogue'))
-    # Only a get request should get this far
-    return {
-        'machine'       : machine,
-        'item' : {
-            'name'          : '',
-            'description'   : '',
-        },
-        'errors' : {}
-    }
+        })
 
 
-@view_config(route_name = 'catalogue_delete',
-             request_method = 'POST', permission = 'org_edit')
-def catalogue_delete(request):
+@decorators.api_view(['GET'])
+@decorators.permission_classes([permissions.IsAuthenticated])
+@convert_provider_exceptions
+def tenancies(request):
     """
-    Handler for ``/{org}/catalogue/delete/{id}``
-
-    The user must be authenticated for the organisation in the URL to reach here.
-
-    Attempts to delete a catalogue item and redirects to the catalogue page with
-    a success message.
-
-    ``{id}`` is the id of the catalogue item to delete.
+    Returns the tenancies available to the authenticated user.
     """
-    # Request must pass a CSRF test
-    check_csrf_token(request)
-    request.active_cloud_session.delete_image(request.matchdict['id'])
-    request.session.flash('Catalogue item deleted', 'success')
-    return HTTPSeeOther(location = request.route_url('catalogue'))
+    session = request.session['unscoped_session']
+    serializer = serializers.TenancySerializer(
+        session.tenancies(),
+        many = True,
+        context = { 'request' : request }
+    )
+    return response.Response(serializer.data)
 
 
-@view_config(route_name = 'machines',
-             request_method = 'GET',
-             renderer = 'templates/machines.jinja2', permission = 'org_view')
-def machines(request):
+@decorators.api_view(['GET'])
+@decorators.permission_classes([permissions.IsAuthenticated])
+@convert_provider_exceptions
+def quotas(request, tenant):
     """
-    Handler for GET requests to ``/{org}/machines``.
-
-    The user must be authenticated for the organisation in the URL to reach here.
-
-    Show the machines available to the organisation in the URL.
+    Returns information about the quotas available to the tenant.
     """
-    return { 'machines'  : request.active_cloud_session.list_machines() }
+    session = request.session['unscoped_session'].scoped_session(tenant)
+    serializer = serializers.QuotaSerializer(
+        session.quotas(),
+        many = True,
+        context = { 'request' : request, 'tenant' : tenant }
+    )
+    return response.Response(serializer.data)
 
 
-@view_config(route_name = 'new_machine',
-             request_method = ('GET', 'POST'),
-             renderer = 'templates/new_machine.jinja2', permission = 'org_edit')
-def new_machine(request):
+@decorators.api_view(['GET'])
+@decorators.permission_classes([permissions.IsAuthenticated])
+@convert_provider_exceptions
+def images(request, tenant):
     """
-    Handler for ``/{org}/machine/new/{id}``.
+    Returns the images available to the specified tenancy.
 
-    The user must be authenticated for the organisation in the URL to reach here.
+    The image attributes are:
 
-    ``{id}`` is the id of the catalogue item to use for the new machine.
-
-    GET request
-        Show a form to gather information required for provisioning.
-
-    POST request
-        Attempt to provision a machine with the given details.
-
-        If the provisioning is successful, redirect the user to ``/{org}/machines``
-        with a success message.
-
-        If the provisioning fails with an error that the user can correct, show
-        the form with an error message.
-
-        If the provisioning fails with a cloud error, show an error on ``/{org}/machines``.
+    * ``id``: The id of the image.
+    * ``name``: The human-readable name of the image.
+    * ``is_public``: Indicates if the image is public or private.
+    * ``nat_allowed``: Indicates if NAT is allowed for machines deployed from the image.
     """
-    # Try to load the catalogue item
-    item = request.active_cloud_session.get_image(request.matchdict['id'])
-    # If we have a POST request, try and provision a machine with the info
-    if request.method == 'POST':
-        # For a POST request, the request must pass a CSRF test
-        check_csrf_token(request)
-        machine_info = {
-            'template'    : item,
-            'name'        : request.params.get('name', ''),
-            'description' : request.params.get('description', ''),
-            'expose'      : request.params.get('expose', 'false'),
-            'ssh_key'     : request.params.get('ssh_key', ''),
-            'errors'      : {}
+    session = request.session['unscoped_session'].scoped_session(tenant)
+    serializer = serializers.ImageSerializer(
+        session.images(),
+        many = True,
+        context = { 'request' : request, 'tenant' : tenant }
+    )
+    return response.Response(serializer.data)
+
+
+@decorators.api_view(['GET'])
+@decorators.permission_classes([permissions.IsAuthenticated])
+@convert_provider_exceptions
+def image_details(request, tenant, image):
+    """
+    Returns the details for the specified image.
+
+    The image attributes are:
+
+    * ``id``: The id of the image.
+    * ``name``: The human-readable name of the image.
+    * ``is_public``: Indicates if the image is public or private.
+    * ``nat_allowed``: Indicates if NAT is allowed for machines deployed from the image.
+    """
+    session = request.session['unscoped_session'].scoped_session(tenant)
+    serializer = serializers.ImageSerializer(
+        session.find_image(image),
+        context = { 'request' : request, 'tenant' : tenant }
+    )
+    return response.Response(serializer.data)
+
+
+@decorators.api_view(['GET'])
+@decorators.permission_classes([permissions.IsAuthenticated])
+@convert_provider_exceptions
+def sizes(request, tenant):
+    """
+    Returns the machine sizes available to the specified tenancy.
+
+    The size attributes are:
+
+    * ``id``: The id of the size.
+    * ``name``: The human-readable name of the size.
+    * ``cpus``: The number of CPUs.
+    * ``ram``: The amount of RAM (in MB).
+    """
+    session = request.session['unscoped_session'].scoped_session(tenant)
+    serializer = serializers.SizeSerializer(
+        session.sizes(),
+        many = True,
+        context = { 'request' : request, 'tenant' : tenant }
+    )
+    return response.Response(serializer.data)
+
+
+@decorators.api_view(['GET'])
+@decorators.permission_classes([permissions.IsAuthenticated])
+@convert_provider_exceptions
+def size_details(request, tenant, size):
+    """
+    Returns the details for the specified machine size.
+
+    The size attributes are:
+
+    * ``id``: The id of the size.
+    * ``name``: The human-readable name of the size.
+    * ``cpus``: The number of CPUs.
+    * ``ram``: The amount of RAM (in MB).
+    """
+    session = request.session['unscoped_session'].scoped_session(tenant)
+    serializer = serializers.SizeSerializer(
+        session.find_size(size),
+        context = { 'request' : request, 'tenant' : tenant }
+    )
+    return response.Response(serializer.data)
+
+
+@decorators.api_view(['GET', 'POST'])
+@decorators.permission_classes([permissions.IsAuthenticated])
+@convert_provider_exceptions
+def machines(request, tenant):
+    """
+    On ``GET`` requests, return the machines deployed in the specified tenancy.
+
+    On ``POST`` requests, create a new machine. The request body should look like::
+
+        {
+            "name" : "test-machine",
+            "image_id" : "<uuid of image>",
+            "size_id" : "<id of size>"
         }
-        # Check that the SSH key is valid
-        try:
-            machine_info['ssh_key'] = validate_ssh_key(machine_info['ssh_key'])
-        except ValueError as e:
-            request.session.flash('There are errors with one or more fields', 'error')
-            machine_info['errors']['ssh_key'] = [str(e)]
-            return machine_info
-        try:
-            machine = request.active_cloud_session.provision_machine(
-                item.id, machine_info['name'],
-                machine_info['description'], machine_info['ssh_key'],
-                machine_info['expose'] == 'true'
+    """
+    session = request.session['unscoped_session'].scoped_session(tenant)
+    if request.method == 'POST':
+        input_serializer = serializers.MachineSerializer(data = request.data)
+        input_serializer.is_valid(raise_exception = True)
+        output_serializer = serializers.MachineSerializer(
+            session.create_machine(
+                input_serializer.validated_data['name'],
+                input_serializer.validated_data['image_id'],
+                input_serializer.validated_data['size_id'],
+                cloud_settings.SSH_KEY_STORE.get_key(request.user.username)
+            ),
+            context = { 'request' : request, 'tenant' : tenant }
+        )
+        return response.Response(output_serializer.data, status = status.HTTP_201_CREATED)
+    else:
+        serializer = serializers.MachineSerializer(
+            session.machines(),
+            many = True,
+            context = { 'request' : request, 'tenant' : tenant }
+        )
+        return response.Response(serializer.data)
+
+
+@decorators.api_view(['GET', 'DELETE'])
+@decorators.permission_classes([permissions.IsAuthenticated])
+@convert_provider_exceptions
+def machine_details(request, tenant, machine):
+    """
+    On ``GET`` requests, return the details for the specified machine.
+
+    On ``DELETE`` requests, delete the specified machine.
+    """
+    session = request.session['unscoped_session'].scoped_session(tenant)
+    if request.method == 'DELETE':
+        deleted = session.delete_machine(machine)
+        if deleted:
+            serializer = serializers.MachineSerializer(
+                deleted,
+                context = { 'request' : request, 'tenant' : tenant }
             )
-            request.session.flash('Machine provisioned successfully', 'success')
-            if machine.external_ip:
-                request.session.flash('Inbound access from internet enabled', 'success')
-        except cloudservices.DuplicateNameError:
-            # If there is an error with a duplicate name, the user can correct that
-            request.session.flash('There are errors with one or more fields', 'error')
-            machine_info['errors']['name'] = ['Machine name is already in use']
-            return machine_info
-        except cloudservices.InvalidMachineNameError as e:
-            # If the machine name is invalid, the user can correct that
-            request.session.flash('There are errors with one or more fields', 'error')
-            machine_info['errors']['name'] = [str(e)]
-            return machine_info
-        except cloudservices.NetworkingError:
-            # Networking doesn't happen until the machine has been provisioned
-            # So we report that provisioning was successful before propagating
-            request.session.flash('Machine provisioned successfully', 'success')
-            raise
-        # If we get this far, redirect to machines
-        return HTTPSeeOther(location = request.route_url('machines'))
-    # Only get requests should get this far
-    return {
-        'template'    : item,
-        'name'        : '',
-        'description' : '',
-        # The default value for expose is based on the NAT policy
-        'expose'      : 'true' if item.nat_policy == NATPolicy.ALWAYS else 'false',
-        # Use the current user's SSH key as the default
-        'ssh_key'     : request.authenticated_user.get('ssh_key', ''),
-        'errors'      : {}
-    }
+            return response.Response(serializer.data)
+        else:
+            return response.Response()
+    else:
+        serializer = serializers.MachineSerializer(
+            session.find_machine(machine),
+            context = { 'request' : request, 'tenant' : tenant }
+        )
+        return response.Response(serializer.data)
 
 
-@view_config(route_name = 'machine_reconfigure',
-             request_method = 'POST', permission = 'org_edit')
-def machine_reconfigure(request):
+@decorators.api_view(['POST'])
+@decorators.permission_classes([permissions.IsAuthenticated])
+@convert_provider_exceptions
+def machine_start(request, tenant, machine):
     """
-    Handler for POST requests to ``/{org}/machine/{id}/reconfigure``.
-
-    The user must be authenticated for the organisation in the URL to reach here.
-
-    Attempt to reconfigure the specified machine with the given amount of CPU
-    and RAM.
+    Start (power on) the specified machine.
     """
-    # Request must pass a CSRF test
-    check_csrf_token(request)
-    try:
-        cpus = int(request.params['cpus'])
-        ram = int(request.params['ram'])
-        if cpus < 1 or ram < 1:
-            raise ValueError('CPU and RAM must be at least 1')
-    except (ValueError, KeyError):
-        # If the user has used the UI without modification, this should never happen
-        request.session.flash('Error with inputs', 'error')
-        return HTTPSeeOther(location = request.route_url('machines'))
-    # Reconfigure the machine
-    machine_id = request.matchdict['id']
-    request.active_cloud_session.reconfigure_machine(machine_id, cpus, ram)
-    request.session.flash('Machine reconfigured successfully', 'success')
-    return HTTPSeeOther(location = request.route_url('machines'))
+    session = request.session['unscoped_session'].scoped_session(tenant)
+    serializer = serializers.MachineSerializer(
+        session.start_machine(machine),
+        context = { 'request' : request, 'tenant' : tenant }
+    )
+    return response.Response(serializer.data)
 
 
-@view_config(route_name = 'machine_add_disk',
-             request_method = 'POST', permission = 'org_edit')
-def machine_add_disk(request):
+@decorators.api_view(['POST'])
+@decorators.permission_classes([permissions.IsAuthenticated])
+@convert_provider_exceptions
+def machine_stop(request, tenant, machine):
     """
-    Handler for POST requests to ``/{org}/machine/{id}/add_disk``.
-
-    The user must be authenticated for the organisation in the URL to reach here.
-
-    Attempt to add a hard disk of the specified size to the machine.
+    Stop (power off) the specified machine.
     """
-    # Request must pass a CSRF test
-    check_csrf_token(request)
-    # Check if the session has permission to create templates
-    if not request.active_cloud_session.has_permission('CAN_ADD_DISK'):
-        raise HTTPForbidden()
-    try:
-        disk_size = int(request.params['disk-size'])
-        if disk_size < 1:
-            raise ValueError('Disk size must be at least 1')
-    except (ValueError, KeyError):
-        # If the user has used the UI without modification, this should never happen
-        request.session.flash('Error with inputs', 'error')
-        return HTTPSeeOther(location = request.route_url('machines'))
-    # Reconfigure the machine
-    machine_id = request.matchdict['id']
-    request.active_cloud_session.add_disk_to_machine(machine_id, disk_size)
-    request.session.flash('Disk added successfully', 'success')
-    return HTTPSeeOther(location = request.route_url('machines'))
+    session = request.session['unscoped_session'].scoped_session(tenant)
+    serializer = serializers.MachineSerializer(
+        session.stop_machine(machine),
+        context = { 'request' : request, 'tenant' : tenant }
+    )
+    return response.Response(serializer.data)
 
 
-@view_config(route_name = 'machine_action',
-             request_method = 'POST', permission = 'org_edit')
-def machine_action(request):
+@decorators.api_view(['POST'])
+@decorators.permission_classes([permissions.IsAuthenticated])
+@convert_provider_exceptions
+def machine_restart(request, tenant, machine):
     """
-    Handler for POST requests to ``/{org}/machine/{id}/action``.
-
-    The user must be authenticated for the organisation in the URL to reach here.
-
-    Attempt to perform the specified action and redirect to ``/{org}/machines``
-    with a success message.
+    Restart (power cycle) the specified machine.
     """
-    # Request must pass a CSRF test
-    check_csrf_token(request)
-    action = getattr(request.active_cloud_session,
-                     '{}_machine'.format(request.params['action']), None)
-    if not callable(action):
-        raise HTTPBadRequest()
-    action(request.matchdict['id'])
-    request.session.flash('Action completed successfully', 'success')
-    return HTTPSeeOther(location = request.route_url('machines'))
+    session = request.session['unscoped_session'].scoped_session(tenant)
+    serializer = serializers.MachineSerializer(
+        session.restart_machine(machine),
+        context = { 'request' : request, 'tenant' : tenant }
+    )
+    return response.Response(serializer.data)
 
 
-@view_config(route_name = 'markdown_preview',
-             request_method = 'POST', xhr = True, permission = 'view',
-             renderer = 'templates/markdown_preview.jinja2')
-def markdown_preview(request):
+@decorators.api_view(['GET', 'POST'])
+@decorators.permission_classes([permissions.IsAuthenticated])
+@convert_provider_exceptions
+def external_ips(request, tenant):
     """
-    Handler for POST requests via XMLHttpRequest to ``/markdown_preview``.
+    On ``GET`` requests, return a list of external IP addresses that are
+    allocated to the tenancy.
 
-    The user must be authenticated to reach here.
+    On ``POST`` requests, allocate a new external IP address for the tenancy from
+    a pool. This functionality is not available for all providers. The request
+    body is ignored. The returned response will be the allocated IP::
 
-    Renders the specified markdown to HTML using the same filter used in templates.
+        {
+            "external_ip" : "172.28.128.4",
+            "internal_ip" : null
+        }
     """
-    return { 'value' : request.params['markdown'] }
+    session = request.session['unscoped_session'].scoped_session(tenant)
+    if request.method == 'POST':
+        serializer = serializers.ExternalIPSerializer(session.allocate_external_ip())
+        return response.Response(serializer.data, status = status.HTTP_201_CREATED)
+    else:
+        serializer = serializers.ExternalIPSerializer(
+            session.external_ips(),
+            many = True,
+            context = { 'request' : request, 'tenant' : tenant }
+        )
+        return response.Response(serializer.data)
+
+
+@decorators.api_view(['GET', 'PUT'])
+@decorators.permission_classes([permissions.IsAuthenticated])
+@convert_provider_exceptions
+def external_ip_details(request, tenant, ip):
+    """
+    On ``GET`` requests, return the details for the external IP address.
+
+    On ``PUT`` requests, attach the specified machine to the external IP address.
+    If the machine_id is ``null``, the external IP address will be detached from
+    the machine it is currently attached to.
+    The request body should contain the machine ID::
+
+        { "machine_id" : "<machine id>" }
+    """
+    session = request.session['unscoped_session'].scoped_session(tenant)
+    if request.method == 'PUT':
+        input_serializer = serializers.ExternalIPSerializer(data = request.data)
+        input_serializer.is_valid(raise_exception = True)
+        machine_id = input_serializer.validated_data['machine_id']
+        if machine_id:
+            ip = session.attach_external_ip(ip, str(machine_id))
+        else:
+            ip = session.detach_external_ip(ip)
+        output_serializer = serializers.ExternalIPSerializer(
+            ip,
+            context = { 'request' : request, 'tenant' : tenant }
+        )
+        return response.Response(output_serializer.data)
+    else:
+        serializer = serializers.ExternalIPSerializer(
+            session.find_external_ip(ip),
+            context = { 'request' : request, 'tenant' : tenant }
+        )
+        return response.Response(serializer.data)
+
+
+@decorators.api_view(['GET', 'POST'])
+@decorators.permission_classes([permissions.IsAuthenticated])
+@convert_provider_exceptions
+def volumes(request, tenant):
+    """
+    On ``GET`` requests, return a list of the volumes for the tenancy.
+
+    On ``POST`` requests, create a new volume. The request body should look like::
+
+        {
+            "name" : "volume-name",
+            "size" : 20
+        }
+
+    The size of the volume is given in GB.
+    """
+    session = request.session['unscoped_session'].scoped_session(tenant)
+    if request.method == 'POST':
+        input_serializer = serializers.CreateVolumeSerializer(data = request.data)
+        input_serializer.is_valid(raise_exception = True)
+        output_serializer = serializers.VolumeSerializer(
+            session.create_volume(
+                input_serializer.validated_data['name'],
+                input_serializer.validated_data['size']
+            ),
+            context = { 'request' : request, 'tenant' : tenant }
+        )
+        return response.Response(output_serializer.data, status = status.HTTP_201_CREATED)
+    else:
+        serializer = serializers.VolumeSerializer(
+            session.volumes(),
+            many = True,
+            context = { 'request' : request, 'tenant' : tenant }
+        )
+        return response.Response(serializer.data)
+
+
+@decorators.api_view(['GET', 'PUT', 'DELETE'])
+@decorators.permission_classes([permissions.IsAuthenticated])
+@convert_provider_exceptions
+def volume_details(request, tenant, volume):
+    """
+    On ``GET`` requests, return the details for the specified volume.
+
+    On ``PUT`` requests, update the attachment status of the specified volume
+    depending on the given ``machine_id``.
+
+    To attach a volume to a machine, just give the machine id::
+
+        { "machine_id" : "<uuid of machine>" }
+
+    To detach a volume, just give ``null`` as the the machine id::
+
+        { "machine_id" : null }
+
+    On ``DELETE`` requests, delete the specified volume.
+    """
+    session = request.session['unscoped_session'].scoped_session(tenant)
+    if request.method == 'PUT':
+        input_serializer = serializers.UpdateVolumeSerializer(data = request.data)
+        input_serializer.is_valid(raise_exception = True)
+        machine_id = input_serializer.validated_data['machine_id']
+        if machine_id:
+            volume = session.attach_volume(volume, str(machine_id))
+        else:
+            volume = session.detach_volume(volume)
+        output_serializer = serializers.VolumeSerializer(
+            volume,
+            context = { 'request' : request, 'tenant' : tenant }
+        )
+        return response.Response(output_serializer.data)
+    elif request.method == 'DELETE':
+        deleted = session.delete_volume(volume)
+        if deleted:
+            serializer = serializers.VolumeSerializer(
+                deleted,
+                context = { 'request' : request, 'tenant' : tenant }
+            )
+            return response.Response(serializer.data)
+        else:
+            return response.Response()
+    else:
+        serializer = serializers.VolumeSerializer(
+            session.find_volume(volume),
+            context = { 'request' : request, 'tenant' : tenant }
+        )
+        return response.Response(serializer.data)
