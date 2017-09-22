@@ -1,0 +1,697 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>jasmin_cloud package &mdash; jasmin-cloud v1.0.5+26.g4c88c66 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../genindex.html"/>
+        <link rel="search" title="Search" href="../search.html"/>
+    <link rel="top" title="jasmin-cloud v1.0.5+26.g4c88c66 documentation" href="../index.html"/>
+        <link rel="next" title="jasmin_cloud.keystore package" href="jasmin_cloud.keystore.html"/>
+        <link rel="prev" title="The JASMIN Cloud API" href="../api.html"/> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> jasmin-cloud
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                v1.0.5+26.g4c88c66
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../api.html">The JASMIN Cloud API</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">jasmin_cloud package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="jasmin_cloud.keystore.html">jasmin_cloud.keystore package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="jasmin_cloud.provider.html">jasmin_cloud.provider package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-jasmin_cloud.authentication">jasmin_cloud.authentication module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-jasmin_cloud.serializers">jasmin_cloud.serializers module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-jasmin_cloud.settings">jasmin_cloud.settings module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-jasmin_cloud.urls">jasmin_cloud.urls module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-jasmin_cloud.views">jasmin_cloud.views module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-jasmin_cloud">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">jasmin-cloud</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+      <li>jasmin_cloud package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/package/jasmin_cloud.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="jasmin-cloud-package">
+<h1>jasmin_cloud package<a class="headerlink" href="#jasmin-cloud-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="jasmin_cloud.keystore.html">jasmin_cloud.keystore package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="jasmin_cloud.keystore.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="jasmin_cloud.keystore.html#module-jasmin_cloud.keystore.base">jasmin_cloud.keystore.base module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="jasmin_cloud.keystore.html#module-jasmin_cloud.keystore.ldap">jasmin_cloud.keystore.ldap module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="jasmin_cloud.keystore.html#module-jasmin_cloud.keystore">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="jasmin_cloud.provider.html">jasmin_cloud.provider package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="jasmin_cloud.provider.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="jasmin_cloud.provider.html#module-jasmin_cloud.provider.base">jasmin_cloud.provider.base module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="jasmin_cloud.provider.html#module-jasmin_cloud.provider.dto">jasmin_cloud.provider.dto module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="jasmin_cloud.provider.html#module-jasmin_cloud.provider.errors">jasmin_cloud.provider.errors module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="jasmin_cloud.provider.html#module-jasmin_cloud.provider.openstack">jasmin_cloud.provider.openstack module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="jasmin_cloud.provider.html#module-jasmin_cloud.provider">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-jasmin_cloud.authentication">
+<span id="jasmin-cloud-authentication-module"></span><h2>jasmin_cloud.authentication module<a class="headerlink" href="#module-jasmin_cloud.authentication" title="Permalink to this headline">¶</a></h2>
+<p>Authentication helpers and backends for the <code class="docutils literal"><span class="pre">jasmin_cloud</span></code> Django app.</p>
+<dl class="class">
+<dt id="jasmin_cloud.authentication.ProviderBackend">
+<em class="property">class </em><code class="descclassname">jasmin_cloud.authentication.</code><code class="descname">ProviderBackend</code><a class="headerlink" href="#jasmin_cloud.authentication.ProviderBackend" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.contrib.auth.backends.ModelBackend</span></code></p>
+<p>Authentication backend that uses the configured <a class="reference internal" href="jasmin_cloud.provider.html#jasmin_cloud.provider.base.Provider" title="jasmin_cloud.provider.base.Provider"><code class="xref py py-class docutils literal"><span class="pre">Provider</span></code></a>
+for authentication.</p>
+<p>We use the model backend, but rather than checking passwords in the database
+we use the provider. The authenticated <a class="reference internal" href="jasmin_cloud.provider.html#jasmin_cloud.provider.base.UnscopedSession" title="jasmin_cloud.provider.base.UnscopedSession"><code class="xref py py-class docutils literal"><span class="pre">UnscopedSession</span></code></a>
+is saved in the session to be retrieved later.</p>
+<dl class="method">
+<dt id="jasmin_cloud.authentication.ProviderBackend.authenticate">
+<code class="descname">authenticate</code><span class="sig-paren">(</span><em>request</em>, <em>username=None</em>, <em>password=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.authentication.ProviderBackend.authenticate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-jasmin_cloud.serializers">
+<span id="jasmin-cloud-serializers-module"></span><h2>jasmin_cloud.serializers module<a class="headerlink" href="#module-jasmin_cloud.serializers" title="Permalink to this headline">¶</a></h2>
+<p>Django REST framework serializers for the <code class="docutils literal"><span class="pre">jasmin_cloud</span></code> app.</p>
+<p>These serializers marshall objects from the <a class="reference internal" href="jasmin_cloud.provider.html#module-jasmin_cloud.provider.dto" title="jasmin_cloud.provider.dto"><code class="xref py py-mod docutils literal"><span class="pre">provider.dto</span></code></a> package.</p>
+<dl class="class">
+<dt id="jasmin_cloud.serializers.LoginSerializer">
+<em class="property">class </em><code class="descclassname">jasmin_cloud.serializers.</code><code class="descname">LoginSerializer</code><span class="sig-paren">(</span><em>instance=None</em>, <em>data=&lt;class 'rest_framework.fields.empty'&gt;</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.serializers.LoginSerializer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">rest_framework.serializers.Serializer</span></code></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="jasmin_cloud.serializers.TenancySerializer">
+<em class="property">class </em><code class="descclassname">jasmin_cloud.serializers.</code><code class="descname">TenancySerializer</code><span class="sig-paren">(</span><em>instance=None</em>, <em>data=&lt;class 'rest_framework.fields.empty'&gt;</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.serializers.TenancySerializer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">rest_framework.serializers.Serializer</span></code></p>
+<dl class="method">
+<dt id="jasmin_cloud.serializers.TenancySerializer.to_representation">
+<code class="descname">to_representation</code><span class="sig-paren">(</span><em>obj</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.serializers.TenancySerializer.to_representation" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="jasmin_cloud.serializers.QuotaSerializer">
+<em class="property">class </em><code class="descclassname">jasmin_cloud.serializers.</code><code class="descname">QuotaSerializer</code><span class="sig-paren">(</span><em>instance=None</em>, <em>data=&lt;class 'rest_framework.fields.empty'&gt;</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.serializers.QuotaSerializer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">rest_framework.serializers.Serializer</span></code></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="jasmin_cloud.serializers.ImageRefSerializer">
+<em class="property">class </em><code class="descclassname">jasmin_cloud.serializers.</code><code class="descname">ImageRefSerializer</code><span class="sig-paren">(</span><em>instance=None</em>, <em>data=&lt;class 'rest_framework.fields.empty'&gt;</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.serializers.ImageRefSerializer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">rest_framework.serializers.Serializer</span></code></p>
+<dl class="method">
+<dt id="jasmin_cloud.serializers.ImageRefSerializer.to_representation">
+<code class="descname">to_representation</code><span class="sig-paren">(</span><em>obj</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.serializers.ImageRefSerializer.to_representation" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="jasmin_cloud.serializers.SizeRefSerializer">
+<em class="property">class </em><code class="descclassname">jasmin_cloud.serializers.</code><code class="descname">SizeRefSerializer</code><span class="sig-paren">(</span><em>instance=None</em>, <em>data=&lt;class 'rest_framework.fields.empty'&gt;</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.serializers.SizeRefSerializer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">rest_framework.serializers.Serializer</span></code></p>
+<dl class="method">
+<dt id="jasmin_cloud.serializers.SizeRefSerializer.to_representation">
+<code class="descname">to_representation</code><span class="sig-paren">(</span><em>obj</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.serializers.SizeRefSerializer.to_representation" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="jasmin_cloud.serializers.VolumeRefSerializer">
+<em class="property">class </em><code class="descclassname">jasmin_cloud.serializers.</code><code class="descname">VolumeRefSerializer</code><span class="sig-paren">(</span><em>instance=None</em>, <em>data=&lt;class 'rest_framework.fields.empty'&gt;</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.serializers.VolumeRefSerializer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">rest_framework.serializers.Serializer</span></code></p>
+<dl class="method">
+<dt id="jasmin_cloud.serializers.VolumeRefSerializer.to_representation">
+<code class="descname">to_representation</code><span class="sig-paren">(</span><em>obj</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.serializers.VolumeRefSerializer.to_representation" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="jasmin_cloud.serializers.MachineRefSerializer">
+<em class="property">class </em><code class="descclassname">jasmin_cloud.serializers.</code><code class="descname">MachineRefSerializer</code><span class="sig-paren">(</span><em>instance=None</em>, <em>data=&lt;class 'rest_framework.fields.empty'&gt;</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.serializers.MachineRefSerializer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">rest_framework.serializers.Serializer</span></code></p>
+<dl class="method">
+<dt id="jasmin_cloud.serializers.MachineRefSerializer.to_representation">
+<code class="descname">to_representation</code><span class="sig-paren">(</span><em>obj</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.serializers.MachineRefSerializer.to_representation" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="jasmin_cloud.serializers.ImageSerializer">
+<em class="property">class </em><code class="descclassname">jasmin_cloud.serializers.</code><code class="descname">ImageSerializer</code><span class="sig-paren">(</span><em>instance=None</em>, <em>data=&lt;class 'rest_framework.fields.empty'&gt;</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.serializers.ImageSerializer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#jasmin_cloud.serializers.ImageRefSerializer" title="jasmin_cloud.serializers.ImageRefSerializer"><code class="xref py py-class docutils literal"><span class="pre">jasmin_cloud.serializers.ImageRefSerializer</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="jasmin_cloud.serializers.SizeSerializer">
+<em class="property">class </em><code class="descclassname">jasmin_cloud.serializers.</code><code class="descname">SizeSerializer</code><span class="sig-paren">(</span><em>instance=None</em>, <em>data=&lt;class 'rest_framework.fields.empty'&gt;</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.serializers.SizeSerializer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#jasmin_cloud.serializers.SizeRefSerializer" title="jasmin_cloud.serializers.SizeRefSerializer"><code class="xref py py-class docutils literal"><span class="pre">jasmin_cloud.serializers.SizeRefSerializer</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="jasmin_cloud.serializers.Ref">
+<em class="property">class </em><code class="descclassname">jasmin_cloud.serializers.</code><code class="descname">Ref</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.serializers.Ref" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">tuple</span></code></p>
+<dl class="attribute">
+<dt id="jasmin_cloud.serializers.Ref.id">
+<code class="descname">id</code><a class="headerlink" href="#jasmin_cloud.serializers.Ref.id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="jasmin_cloud.serializers.VolumeSerializer">
+<em class="property">class </em><code class="descclassname">jasmin_cloud.serializers.</code><code class="descname">VolumeSerializer</code><span class="sig-paren">(</span><em>instance=None</em>, <em>data=&lt;class 'rest_framework.fields.empty'&gt;</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.serializers.VolumeSerializer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#jasmin_cloud.serializers.VolumeRefSerializer" title="jasmin_cloud.serializers.VolumeRefSerializer"><code class="xref py py-class docutils literal"><span class="pre">jasmin_cloud.serializers.VolumeRefSerializer</span></code></a></p>
+<dl class="method">
+<dt id="jasmin_cloud.serializers.VolumeSerializer.to_representation">
+<code class="descname">to_representation</code><span class="sig-paren">(</span><em>obj</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.serializers.VolumeSerializer.to_representation" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="jasmin_cloud.serializers.CreateVolumeSerializer">
+<em class="property">class </em><code class="descclassname">jasmin_cloud.serializers.</code><code class="descname">CreateVolumeSerializer</code><span class="sig-paren">(</span><em>instance=None</em>, <em>data=&lt;class 'rest_framework.fields.empty'&gt;</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.serializers.CreateVolumeSerializer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">rest_framework.serializers.Serializer</span></code></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="jasmin_cloud.serializers.UpdateVolumeSerializer">
+<em class="property">class </em><code class="descclassname">jasmin_cloud.serializers.</code><code class="descname">UpdateVolumeSerializer</code><span class="sig-paren">(</span><em>instance=None</em>, <em>data=&lt;class 'rest_framework.fields.empty'&gt;</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.serializers.UpdateVolumeSerializer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">rest_framework.serializers.Serializer</span></code></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="jasmin_cloud.serializers.MachineStatusSerializer">
+<em class="property">class </em><code class="descclassname">jasmin_cloud.serializers.</code><code class="descname">MachineStatusSerializer</code><span class="sig-paren">(</span><em>instance=None</em>, <em>data=&lt;class 'rest_framework.fields.empty'&gt;</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.serializers.MachineStatusSerializer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">rest_framework.serializers.Serializer</span></code></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="jasmin_cloud.serializers.MachineSerializer">
+<em class="property">class </em><code class="descclassname">jasmin_cloud.serializers.</code><code class="descname">MachineSerializer</code><span class="sig-paren">(</span><em>instance=None</em>, <em>data=&lt;class 'rest_framework.fields.empty'&gt;</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.serializers.MachineSerializer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#jasmin_cloud.serializers.MachineRefSerializer" title="jasmin_cloud.serializers.MachineRefSerializer"><code class="xref py py-class docutils literal"><span class="pre">jasmin_cloud.serializers.MachineRefSerializer</span></code></a></p>
+<dl class="method">
+<dt id="jasmin_cloud.serializers.MachineSerializer.to_representation">
+<code class="descname">to_representation</code><span class="sig-paren">(</span><em>obj</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.serializers.MachineSerializer.to_representation" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="jasmin_cloud.serializers.ExternalIPSerializer">
+<em class="property">class </em><code class="descclassname">jasmin_cloud.serializers.</code><code class="descname">ExternalIPSerializer</code><span class="sig-paren">(</span><em>instance=None</em>, <em>data=&lt;class 'rest_framework.fields.empty'&gt;</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.serializers.ExternalIPSerializer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">rest_framework.serializers.Serializer</span></code></p>
+<dl class="method">
+<dt id="jasmin_cloud.serializers.ExternalIPSerializer.to_representation">
+<code class="descname">to_representation</code><span class="sig-paren">(</span><em>obj</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.serializers.ExternalIPSerializer.to_representation" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-jasmin_cloud.settings">
+<span id="jasmin-cloud-settings-module"></span><h2>jasmin_cloud.settings module<a class="headerlink" href="#module-jasmin_cloud.settings" title="Permalink to this headline">¶</a></h2>
+<p>Settings helpers for the <code class="docutils literal"><span class="pre">jasmin_cloud</span></code> Django app.</p>
+<dl class="class">
+<dt id="jasmin_cloud.settings.JasminCloudSettings">
+<em class="property">class </em><code class="descclassname">jasmin_cloud.settings.</code><code class="descname">JasminCloudSettings</code><span class="sig-paren">(</span><em>name</em>, <em>user_settings</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.settings.JasminCloudSettings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">jasmin_django_utils.appsettings.SettingsObject</span></code></p>
+<p>Settings object for the <code class="docutils literal"><span class="pre">JASMIN_CLOUD</span></code> setting.</p>
+<dl class="attribute">
+<dt id="jasmin_cloud.settings.JasminCloudSettings.PROVIDER">
+<code class="descname">PROVIDER</code><a class="headerlink" href="#jasmin_cloud.settings.JasminCloudSettings.PROVIDER" title="Permalink to this definition">¶</a></dt>
+<dd><p>Property descriptor for an ‘object factory’ setting of the form:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s1">&#39;FACTORY&#39;</span><span class="p">:</span> <span class="s1">&#39;dotted.path.to.factory.function&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;PARAMS&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;PARAM1&#39;</span><span class="p">:</span> <span class="s1">&#39;value for param 1&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal"><span class="pre">FACTORY</span></code> can either be a constructor or a dedicated factory function.</p>
+<p>Keys in <code class="docutils literal"><span class="pre">PARAMS</span></code> are lower-cased and used as <code class="docutils literal"><span class="pre">kwargs</span></code> for the factory.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.settings.JasminCloudSettings.SSH_KEY_STORE">
+<code class="descname">SSH_KEY_STORE</code><a class="headerlink" href="#jasmin_cloud.settings.JasminCloudSettings.SSH_KEY_STORE" title="Permalink to this definition">¶</a></dt>
+<dd><p>Property descriptor for an ‘object factory’ setting of the form:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s1">&#39;FACTORY&#39;</span><span class="p">:</span> <span class="s1">&#39;dotted.path.to.factory.function&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;PARAMS&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;PARAM1&#39;</span><span class="p">:</span> <span class="s1">&#39;value for param 1&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal"><span class="pre">FACTORY</span></code> can either be a constructor or a dedicated factory function.</p>
+<p>Keys in <code class="docutils literal"><span class="pre">PARAMS</span></code> are lower-cased and used as <code class="docutils literal"><span class="pre">kwargs</span></code> for the factory.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-jasmin_cloud.urls">
+<span id="jasmin-cloud-urls-module"></span><h2>jasmin_cloud.urls module<a class="headerlink" href="#module-jasmin_cloud.urls" title="Permalink to this headline">¶</a></h2>
+<p>URL definitions for the <code class="docutils literal"><span class="pre">jasmin_cloud</span></code> Django app.</p>
+</div>
+<div class="section" id="module-jasmin_cloud.views">
+<span id="jasmin-cloud-views-module"></span><h2>jasmin_cloud.views module<a class="headerlink" href="#module-jasmin_cloud.views" title="Permalink to this headline">¶</a></h2>
+<p>Django views for the <code class="docutils literal"><span class="pre">jasmin_cloud</span></code> app.</p>
+<dl class="function">
+<dt id="jasmin_cloud.views.get_view_description">
+<code class="descclassname">jasmin_cloud.views.</code><code class="descname">get_view_description</code><span class="sig-paren">(</span><em>view_cls</em>, <em>html=False</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.views.get_view_description" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alternative django-rest-framework <code class="docutils literal"><span class="pre">VIEW_DESCRIPTION_FUNCTION</span></code> that allows
+RestructuredText to be used instead of Markdown.</p>
+<p>This allows docstrings to be used in the DRF-generated HTML views and in
+Sphinx-generated API views.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="jasmin_cloud.views.convert_provider_exceptions">
+<code class="descclassname">jasmin_cloud.views.</code><code class="descname">convert_provider_exceptions</code><span class="sig-paren">(</span><em>view</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.views.convert_provider_exceptions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decorator that converts errors from <a class="reference internal" href="jasmin_cloud.provider.html#module-jasmin_cloud.provider.errors" title="jasmin_cloud.provider.errors"><code class="xref py py-mod docutils literal"><span class="pre">provider.errors</span></code></a> into appropriate
+HTTP responses or Django REST framework errors.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="jasmin_cloud.views.authenticate">
+<code class="descclassname">jasmin_cloud.views.</code><code class="descname">authenticate</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.views.authenticate" title="Permalink to this definition">¶</a></dt>
+<dd><p>This view attempts to authenticate the user using the given username and
+password. If authentication is successful, a session is started for the user.</p>
+<p>Example request payload:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;username&quot;</span> <span class="p">:</span> <span class="s2">&quot;jbloggs&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;password&quot;</span> <span class="p">:</span> <span class="s2">&quot;mysecurepassword&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="jasmin_cloud.views.session">
+<code class="descclassname">jasmin_cloud.views.</code><code class="descname">session</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.views.session" title="Permalink to this definition">¶</a></dt>
+<dd><p>On <code class="docutils literal"><span class="pre">GET</span></code> requests, return information about the current session.</p>
+<p>On <code class="docutils literal"><span class="pre">DELETE</span></code> requests, destroy the current session.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="jasmin_cloud.views.tenancies">
+<code class="descclassname">jasmin_cloud.views.</code><code class="descname">tenancies</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.views.tenancies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the tenancies available to the authenticated user.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="jasmin_cloud.views.quotas">
+<code class="descclassname">jasmin_cloud.views.</code><code class="descname">quotas</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.views.quotas" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns information about the quotas available to the tenant.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="jasmin_cloud.views.images">
+<code class="descclassname">jasmin_cloud.views.</code><code class="descname">images</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.views.images" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the images available to the specified tenancy.</p>
+<p>The image attributes are:</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">id</span></code>: The id of the image.</li>
+<li><code class="docutils literal"><span class="pre">name</span></code>: The human-readable name of the image.</li>
+<li><code class="docutils literal"><span class="pre">is_public</span></code>: Indicates if the image is public or private.</li>
+<li><code class="docutils literal"><span class="pre">nat_allowed</span></code>: Indicates if NAT is allowed for machines deployed from the image.</li>
+</ul>
+</dd></dl>
+
+<dl class="function">
+<dt id="jasmin_cloud.views.image_details">
+<code class="descclassname">jasmin_cloud.views.</code><code class="descname">image_details</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.views.image_details" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the details for the specified image.</p>
+<p>The image attributes are:</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">id</span></code>: The id of the image.</li>
+<li><code class="docutils literal"><span class="pre">name</span></code>: The human-readable name of the image.</li>
+<li><code class="docutils literal"><span class="pre">is_public</span></code>: Indicates if the image is public or private.</li>
+<li><code class="docutils literal"><span class="pre">nat_allowed</span></code>: Indicates if NAT is allowed for machines deployed from the image.</li>
+</ul>
+</dd></dl>
+
+<dl class="function">
+<dt id="jasmin_cloud.views.sizes">
+<code class="descclassname">jasmin_cloud.views.</code><code class="descname">sizes</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.views.sizes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the machine sizes available to the specified tenancy.</p>
+<p>The size attributes are:</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">id</span></code>: The id of the size.</li>
+<li><code class="docutils literal"><span class="pre">name</span></code>: The human-readable name of the size.</li>
+<li><code class="docutils literal"><span class="pre">cpus</span></code>: The number of CPUs.</li>
+<li><code class="docutils literal"><span class="pre">ram</span></code>: The amount of RAM (in MB).</li>
+</ul>
+</dd></dl>
+
+<dl class="function">
+<dt id="jasmin_cloud.views.size_details">
+<code class="descclassname">jasmin_cloud.views.</code><code class="descname">size_details</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.views.size_details" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the details for the specified machine size.</p>
+<p>The size attributes are:</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">id</span></code>: The id of the size.</li>
+<li><code class="docutils literal"><span class="pre">name</span></code>: The human-readable name of the size.</li>
+<li><code class="docutils literal"><span class="pre">cpus</span></code>: The number of CPUs.</li>
+<li><code class="docutils literal"><span class="pre">ram</span></code>: The amount of RAM (in MB).</li>
+</ul>
+</dd></dl>
+
+<dl class="function">
+<dt id="jasmin_cloud.views.machines">
+<code class="descclassname">jasmin_cloud.views.</code><code class="descname">machines</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.views.machines" title="Permalink to this definition">¶</a></dt>
+<dd><p>On <code class="docutils literal"><span class="pre">GET</span></code> requests, return the machines deployed in the specified tenancy.</p>
+<p>On <code class="docutils literal"><span class="pre">POST</span></code> requests, create a new machine. The request body should look like:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;name&quot;</span> <span class="p">:</span> <span class="s2">&quot;test-machine&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;image_id&quot;</span> <span class="p">:</span> <span class="s2">&quot;&lt;uuid of image&gt;&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;size_id&quot;</span> <span class="p">:</span> <span class="s2">&quot;&lt;id of size&gt;&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="jasmin_cloud.views.machine_details">
+<code class="descclassname">jasmin_cloud.views.</code><code class="descname">machine_details</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.views.machine_details" title="Permalink to this definition">¶</a></dt>
+<dd><p>On <code class="docutils literal"><span class="pre">GET</span></code> requests, return the details for the specified machine.</p>
+<p>On <code class="docutils literal"><span class="pre">DELETE</span></code> requests, delete the specified machine.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="jasmin_cloud.views.machine_start">
+<code class="descclassname">jasmin_cloud.views.</code><code class="descname">machine_start</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.views.machine_start" title="Permalink to this definition">¶</a></dt>
+<dd><p>Start (power on) the specified machine.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="jasmin_cloud.views.machine_stop">
+<code class="descclassname">jasmin_cloud.views.</code><code class="descname">machine_stop</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.views.machine_stop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stop (power off) the specified machine.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="jasmin_cloud.views.machine_restart">
+<code class="descclassname">jasmin_cloud.views.</code><code class="descname">machine_restart</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.views.machine_restart" title="Permalink to this definition">¶</a></dt>
+<dd><p>Restart (power cycle) the specified machine.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="jasmin_cloud.views.external_ips">
+<code class="descclassname">jasmin_cloud.views.</code><code class="descname">external_ips</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.views.external_ips" title="Permalink to this definition">¶</a></dt>
+<dd><p>On <code class="docutils literal"><span class="pre">GET</span></code> requests, return a list of external IP addresses that are
+allocated to the tenancy.</p>
+<p>On <code class="docutils literal"><span class="pre">POST</span></code> requests, allocate a new external IP address for the tenancy from
+a pool. This functionality is not available for all providers. The request
+body is ignored. The returned response will be the allocated IP:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;external_ip&quot;</span> <span class="p">:</span> <span class="s2">&quot;172.28.128.4&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;internal_ip&quot;</span> <span class="p">:</span> <span class="n">null</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="jasmin_cloud.views.external_ip_details">
+<code class="descclassname">jasmin_cloud.views.</code><code class="descname">external_ip_details</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.views.external_ip_details" title="Permalink to this definition">¶</a></dt>
+<dd><p>On <code class="docutils literal"><span class="pre">GET</span></code> requests, return the details for the external IP address.</p>
+<p>On <code class="docutils literal"><span class="pre">PUT</span></code> requests, attach the specified machine to the external IP address.
+If the machine_id is <code class="docutils literal"><span class="pre">null</span></code>, the external IP address will be detached from
+the machine it is currently attached to.
+The request body should contain the machine ID:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="p">{</span> <span class="s2">&quot;machine_id&quot;</span> <span class="p">:</span> <span class="s2">&quot;&lt;machine id&gt;&quot;</span> <span class="p">}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="jasmin_cloud.views.volumes">
+<code class="descclassname">jasmin_cloud.views.</code><code class="descname">volumes</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.views.volumes" title="Permalink to this definition">¶</a></dt>
+<dd><p>On <code class="docutils literal"><span class="pre">GET</span></code> requests, return a list of the volumes for the tenancy.</p>
+<p>On <code class="docutils literal"><span class="pre">POST</span></code> requests, create a new volume. The request body should look like:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;name&quot;</span> <span class="p">:</span> <span class="s2">&quot;volume-name&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;size&quot;</span> <span class="p">:</span> <span class="mi">20</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The size of the volume is given in GB.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="jasmin_cloud.views.volume_details">
+<code class="descclassname">jasmin_cloud.views.</code><code class="descname">volume_details</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.views.volume_details" title="Permalink to this definition">¶</a></dt>
+<dd><p>On <code class="docutils literal"><span class="pre">GET</span></code> requests, return the details for the specified volume.</p>
+<p>On <code class="docutils literal"><span class="pre">PUT</span></code> requests, update the attachment status of the specified volume
+depending on the given <code class="docutils literal"><span class="pre">machine_id</span></code>.</p>
+<p>To attach a volume to a machine, just give the machine id:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="p">{</span> <span class="s2">&quot;machine_id&quot;</span> <span class="p">:</span> <span class="s2">&quot;&lt;uuid of machine&gt;&quot;</span> <span class="p">}</span>
+</pre></div>
+</div>
+<p>To detach a volume, just give <code class="docutils literal"><span class="pre">null</span></code> as the the machine id:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="p">{</span> <span class="s2">&quot;machine_id&quot;</span> <span class="p">:</span> <span class="n">null</span> <span class="p">}</span>
+</pre></div>
+</div>
+<p>On <code class="docutils literal"><span class="pre">DELETE</span></code> requests, delete the specified volume.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-jasmin_cloud">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-jasmin_cloud" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="jasmin_cloud.keystore.html" class="btn btn-neutral float-right" title="jasmin_cloud.keystore package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="../api.html" class="btn btn-neutral" title="The JASMIN Cloud API" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Science and Technology Facilities Council (STFC).
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'v1.0.5+26.g4c88c66',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

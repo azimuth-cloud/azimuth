@@ -55,8 +55,5 @@ target/
 # pyenv version file
 .python-version
 
-# Sphinx build
-docs/build
-
 # Settings
 jasmin_cloud_site/settings.py

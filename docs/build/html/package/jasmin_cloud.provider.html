@@ -1,0 +1,1480 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>jasmin_cloud.provider package &mdash; jasmin-cloud v1.0.5+26.g4c88c66 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../genindex.html"/>
+        <link rel="search" title="Search" href="../search.html"/>
+    <link rel="top" title="jasmin-cloud v1.0.5+26.g4c88c66 documentation" href="../index.html"/>
+        <link rel="up" title="jasmin_cloud package" href="jasmin_cloud.html"/>
+        <link rel="prev" title="jasmin_cloud.keystore package" href="jasmin_cloud.keystore.html"/> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> jasmin-cloud
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                v1.0.5+26.g4c88c66
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../api.html">The JASMIN Cloud API</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="jasmin_cloud.html">jasmin_cloud package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="jasmin_cloud.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="jasmin_cloud.keystore.html">jasmin_cloud.keystore package</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">jasmin_cloud.provider package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-jasmin_cloud.provider.base">jasmin_cloud.provider.base module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-jasmin_cloud.provider.dto">jasmin_cloud.provider.dto module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-jasmin_cloud.provider.errors">jasmin_cloud.provider.errors module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-jasmin_cloud.provider.openstack">jasmin_cloud.provider.openstack module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-jasmin_cloud.provider">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="jasmin_cloud.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="jasmin_cloud.html#module-jasmin_cloud.authentication">jasmin_cloud.authentication module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="jasmin_cloud.html#module-jasmin_cloud.serializers">jasmin_cloud.serializers module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="jasmin_cloud.html#module-jasmin_cloud.settings">jasmin_cloud.settings module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="jasmin_cloud.html#module-jasmin_cloud.urls">jasmin_cloud.urls module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="jasmin_cloud.html#module-jasmin_cloud.views">jasmin_cloud.views module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="jasmin_cloud.html#module-jasmin_cloud">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">jasmin-cloud</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="jasmin_cloud.html">jasmin_cloud package</a> &raquo;</li>
+        
+      <li>jasmin_cloud.provider package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/package/jasmin_cloud.provider.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="jasmin-cloud-provider-package">
+<h1>jasmin_cloud.provider package<a class="headerlink" href="#jasmin-cloud-provider-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-jasmin_cloud.provider.base">
+<span id="jasmin-cloud-provider-base-module"></span><h2>jasmin_cloud.provider.base module<a class="headerlink" href="#module-jasmin_cloud.provider.base" title="Permalink to this headline">¶</a></h2>
+<p>This module defines the interface for a cloud provider.</p>
+<dl class="class">
+<dt id="jasmin_cloud.provider.base.Provider">
+<em class="property">class </em><code class="descclassname">jasmin_cloud.provider.base.</code><code class="descname">Provider</code><a class="headerlink" href="#jasmin_cloud.provider.base.Provider" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>Class for a cloud provider.</p>
+<dl class="method">
+<dt id="jasmin_cloud.provider.base.Provider.authenticate">
+<code class="descname">authenticate</code><span class="sig-paren">(</span><em>username</em>, <em>password</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.base.Provider.authenticate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a new unscoped session for this provider using the given credentials.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>username</strong> – The username to authenticate with.</li>
+<li><strong>password</strong> – The password to authenticate with.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">An <a class="reference internal" href="#jasmin_cloud.provider.base.UnscopedSession" title="jasmin_cloud.provider.base.UnscopedSession"><code class="xref py py-class docutils literal"><span class="pre">UnscopedSession</span></code></a> for the user.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="jasmin_cloud.provider.base.UnscopedSession">
+<em class="property">class </em><code class="descclassname">jasmin_cloud.provider.base.</code><code class="descname">UnscopedSession</code><a class="headerlink" href="#jasmin_cloud.provider.base.UnscopedSession" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>Class for an authenticated session with a cloud provider. It is unscoped in
+the sense that is not bound to a particular tenancy.</p>
+<p>Implementations should be serialisable using pickle.</p>
+<dl class="method">
+<dt id="jasmin_cloud.provider.base.UnscopedSession.tenancies">
+<code class="descname">tenancies</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.base.UnscopedSession.tenancies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the tenancies available to the authenticated user.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">An iterable of <a class="reference internal" href="#jasmin_cloud.provider.dto.Tenancy" title="jasmin_cloud.provider.dto.Tenancy"><code class="xref py py-class docutils literal"><span class="pre">Tenancy</span></code></a> objects.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.base.UnscopedSession.scoped_session">
+<code class="descname">scoped_session</code><span class="sig-paren">(</span><em>tenancy</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.base.UnscopedSession.scoped_session" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a scoped session for the given tenancy.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tenancy</strong> – The tenancy to get a scoped session for. Can be a tenancy id
+or a <a class="reference internal" href="#jasmin_cloud.provider.dto.Tenancy" title="jasmin_cloud.provider.dto.Tenancy"><code class="xref py py-class docutils literal"><span class="pre">Tenancy</span></code></a> object.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A <a class="reference internal" href="#jasmin_cloud.provider.base.ScopedSession" title="jasmin_cloud.provider.base.ScopedSession"><code class="xref py py-class docutils literal"><span class="pre">ScopedSession</span></code></a> for the tenancy.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="jasmin_cloud.provider.base.ScopedSession">
+<em class="property">class </em><code class="descclassname">jasmin_cloud.provider.base.</code><code class="descname">ScopedSession</code><a class="headerlink" href="#jasmin_cloud.provider.base.ScopedSession" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>Class for a tenancy-scoped session.</p>
+<dl class="method">
+<dt id="jasmin_cloud.provider.base.ScopedSession.quotas">
+<code class="descname">quotas</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.base.ScopedSession.quotas" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns quota information for the tenancy.</p>
+<p>Quota information for the following resources should always be present:</p>
+<blockquote>
+<div><ul class="simple">
+<li><code class="docutils literal"><span class="pre">cpus</span></code>: The vCPUs available to the tenancy.</li>
+<li><code class="docutils literal"><span class="pre">ram</span></code>: The RAM available to the tenancy.</li>
+<li><code class="docutils literal"><span class="pre">external_ips</span></code>: The external IPs available to the tenancy.</li>
+<li><code class="docutils literal"><span class="pre">storage</span></code>: The storage available to the tenancy.</li>
+</ul>
+</div></blockquote>
+<p>Some implementations may also include:</p>
+<blockquote>
+<div><ul class="simple">
+<li><code class="docutils literal"><span class="pre">machines</span></code>: The number of machines in the tenancy.</li>
+<li><code class="docutils literal"><span class="pre">volumes</span></code>: The number of volumes in the tenancy.</li>
+</ul>
+</div></blockquote>
+<p>The absence of these resources indicates that there is no specific limit.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">An iterable of <a class="reference internal" href="#jasmin_cloud.provider.dto.Quota" title="jasmin_cloud.provider.dto.Quota"><code class="xref py py-class docutils literal"><span class="pre">Quota</span></code></a> objects.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.base.ScopedSession.images">
+<code class="descname">images</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.base.ScopedSession.images" title="Permalink to this definition">¶</a></dt>
+<dd><p>Lists the images available to the tenancy.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">An iterable of <a class="reference internal" href="#jasmin_cloud.provider.dto.Image" title="jasmin_cloud.provider.dto.Image"><code class="xref py py-class docutils literal"><span class="pre">Image</span></code></a> objects.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.base.ScopedSession.find_image">
+<code class="descname">find_image</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.base.ScopedSession.find_image" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds an image by id.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>id</strong> – The id of the image to find.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">An <a class="reference internal" href="#jasmin_cloud.provider.dto.Image" title="jasmin_cloud.provider.dto.Image"><code class="xref py py-class docutils literal"><span class="pre">Image</span></code></a> object.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.base.ScopedSession.sizes">
+<code class="descname">sizes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.base.ScopedSession.sizes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Lists the machine sizes available to the tenancy.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">An iterable of <a class="reference internal" href="#jasmin_cloud.provider.dto.Size" title="jasmin_cloud.provider.dto.Size"><code class="xref py py-class docutils literal"><span class="pre">Size</span></code></a> objects.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.base.ScopedSession.find_size">
+<code class="descname">find_size</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.base.ScopedSession.find_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds a size by id.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>id</strong> – The id of the size to find.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A <a class="reference internal" href="#jasmin_cloud.provider.dto.Size" title="jasmin_cloud.provider.dto.Size"><code class="xref py py-class docutils literal"><span class="pre">Size</span></code></a> object.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.base.ScopedSession.machines">
+<code class="descname">machines</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.base.ScopedSession.machines" title="Permalink to this definition">¶</a></dt>
+<dd><p>Lists the machines in the tenancy.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">An iterable of <a class="reference internal" href="#jasmin_cloud.provider.dto.Machine" title="jasmin_cloud.provider.dto.Machine"><code class="xref py py-class docutils literal"><span class="pre">Machine</span></code></a>s.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.base.ScopedSession.find_machine">
+<code class="descname">find_machine</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.base.ScopedSession.find_machine" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds a machine by id.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>id</strong> – The id of the machine to find.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A <a class="reference internal" href="#jasmin_cloud.provider.dto.Machine" title="jasmin_cloud.provider.dto.Machine"><code class="xref py py-class docutils literal"><span class="pre">Machine</span></code></a> object.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.base.ScopedSession.create_machine">
+<code class="descname">create_machine</code><span class="sig-paren">(</span><em>name</em>, <em>image</em>, <em>size</em>, <em>ssh_key</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.base.ScopedSession.create_machine" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a new machine in the tenancy.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>name</strong> – The name of the machine.</li>
+<li><strong>image</strong> – The image to use. Can be an image id or a <a class="reference internal" href="#jasmin_cloud.provider.dto.Image" title="jasmin_cloud.provider.dto.Image"><code class="xref py py-class docutils literal"><span class="pre">Image</span></code></a>.</li>
+<li><strong>size</strong> – The size to use. Can be a size id or a <a class="reference internal" href="#jasmin_cloud.provider.dto.Size" title="jasmin_cloud.provider.dto.Size"><code class="xref py py-class docutils literal"><span class="pre">Size</span></code></a>.</li>
+<li><strong>ssh_key</strong> – The SSH key to inject into the machine.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">The created <a class="reference internal" href="#jasmin_cloud.provider.dto.Machine" title="jasmin_cloud.provider.dto.Machine"><code class="xref py py-class docutils literal"><span class="pre">Machine</span></code></a>.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.base.ScopedSession.resize_machine">
+<code class="descname">resize_machine</code><span class="sig-paren">(</span><em>machine</em>, <em>size</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.base.ScopedSession.resize_machine" title="Permalink to this definition">¶</a></dt>
+<dd><p>Change the size of a machine.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>machine</strong> – The machine. Can be a machine id or a <a class="reference internal" href="#jasmin_cloud.provider.dto.Machine" title="jasmin_cloud.provider.dto.Machine"><code class="xref py py-class docutils literal"><span class="pre">Machine</span></code></a>.</li>
+<li><strong>size</strong> – The size to use. Can be a size id or a <a class="reference internal" href="#jasmin_cloud.provider.dto.Size" title="jasmin_cloud.provider.dto.Size"><code class="xref py py-class docutils literal"><span class="pre">Size</span></code></a>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">The updated <a class="reference internal" href="#jasmin_cloud.provider.dto.Machine" title="jasmin_cloud.provider.dto.Machine"><code class="xref py py-class docutils literal"><span class="pre">Machine</span></code></a>.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.base.ScopedSession.start_machine">
+<code class="descname">start_machine</code><span class="sig-paren">(</span><em>machine</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.base.ScopedSession.start_machine" title="Permalink to this definition">¶</a></dt>
+<dd><p>Start the specified machine.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>machine</strong> – The machine. Can be a machine id or a <a class="reference internal" href="#jasmin_cloud.provider.dto.Machine" title="jasmin_cloud.provider.dto.Machine"><code class="xref py py-class docutils literal"><span class="pre">Machine</span></code></a>.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The updated <a class="reference internal" href="#jasmin_cloud.provider.dto.Machine" title="jasmin_cloud.provider.dto.Machine"><code class="xref py py-class docutils literal"><span class="pre">Machine</span></code></a>.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.base.ScopedSession.stop_machine">
+<code class="descname">stop_machine</code><span class="sig-paren">(</span><em>machine</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.base.ScopedSession.stop_machine" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stop the specified machine.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>machine</strong> – The machine. Can be a machine id or a <a class="reference internal" href="#jasmin_cloud.provider.dto.Machine" title="jasmin_cloud.provider.dto.Machine"><code class="xref py py-class docutils literal"><span class="pre">Machine</span></code></a>.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The updated <a class="reference internal" href="#jasmin_cloud.provider.dto.Machine" title="jasmin_cloud.provider.dto.Machine"><code class="xref py py-class docutils literal"><span class="pre">Machine</span></code></a>.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.base.ScopedSession.restart_machine">
+<code class="descname">restart_machine</code><span class="sig-paren">(</span><em>machine</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.base.ScopedSession.restart_machine" title="Permalink to this definition">¶</a></dt>
+<dd><p>Restart the specified machine.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>machine</strong> – The machine. Can be a machine id or a <a class="reference internal" href="#jasmin_cloud.provider.dto.Machine" title="jasmin_cloud.provider.dto.Machine"><code class="xref py py-class docutils literal"><span class="pre">Machine</span></code></a>.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The updated <a class="reference internal" href="#jasmin_cloud.provider.dto.Machine" title="jasmin_cloud.provider.dto.Machine"><code class="xref py py-class docutils literal"><span class="pre">Machine</span></code></a>.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.base.ScopedSession.delete_machine">
+<code class="descname">delete_machine</code><span class="sig-paren">(</span><em>machine</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.base.ScopedSession.delete_machine" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete the specified machine.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>machine</strong> – The machine. Can be a machine id or a <a class="reference internal" href="#jasmin_cloud.provider.dto.Machine" title="jasmin_cloud.provider.dto.Machine"><code class="xref py py-class docutils literal"><span class="pre">Machine</span></code></a>.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The updated <a class="reference internal" href="#jasmin_cloud.provider.dto.Machine" title="jasmin_cloud.provider.dto.Machine"><code class="xref py py-class docutils literal"><span class="pre">Machine</span></code></a> if it has transitioned to a
+deleting status, or <code class="docutils literal"><span class="pre">None</span></code> if it has already been deleted.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.base.ScopedSession.external_ips">
+<code class="descname">external_ips</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.base.ScopedSession.external_ips" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the external IP addresses that are currently allocated to the
+tenancy.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">An iterable of <a class="reference internal" href="#jasmin_cloud.provider.dto.ExternalIp" title="jasmin_cloud.provider.dto.ExternalIp"><code class="xref py py-class docutils literal"><span class="pre">ExternalIp</span></code></a>s.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.base.ScopedSession.find_external_ip">
+<code class="descname">find_external_ip</code><span class="sig-paren">(</span><em>ip</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.base.ScopedSession.find_external_ip" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds external IP details by IP address.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">A <a class="reference internal" href="#jasmin_cloud.provider.dto.ExternalIp" title="jasmin_cloud.provider.dto.ExternalIp"><code class="xref py py-class docutils literal"><span class="pre">ExternalIp</span></code></a> object.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.base.ScopedSession.allocate_external_ip">
+<code class="descname">allocate_external_ip</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.base.ScopedSession.allocate_external_ip" title="Permalink to this definition">¶</a></dt>
+<dd><p>Allocates a new external IP address for the tenancy from a pool and returns
+it.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The allocated <a class="reference internal" href="#jasmin_cloud.provider.dto.ExternalIp" title="jasmin_cloud.provider.dto.ExternalIp"><code class="xref py py-class docutils literal"><span class="pre">ExternalIp</span></code></a> (should raise on failure).</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.base.ScopedSession.attach_external_ip">
+<code class="descname">attach_external_ip</code><span class="sig-paren">(</span><em>ip</em>, <em>machine</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.base.ScopedSession.attach_external_ip" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attaches an external IP to a machine.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>ip</strong> – The IP address to attach. Can be an external IP address as a string
+or a <a class="reference internal" href="#jasmin_cloud.provider.dto.ExternalIp" title="jasmin_cloud.provider.dto.ExternalIp"><code class="xref py py-class docutils literal"><span class="pre">ExternalIp</span></code></a>.</li>
+<li><strong>machine</strong> – The machine. Can be a machine id or a <a class="reference internal" href="#jasmin_cloud.provider.dto.Machine" title="jasmin_cloud.provider.dto.Machine"><code class="xref py py-class docutils literal"><span class="pre">Machine</span></code></a>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">The updated <a class="reference internal" href="#jasmin_cloud.provider.dto.ExternalIp" title="jasmin_cloud.provider.dto.ExternalIp"><code class="xref py py-class docutils literal"><span class="pre">ExternalIp</span></code></a> object (should raise on failure).</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.base.ScopedSession.detach_external_ip">
+<code class="descname">detach_external_ip</code><span class="sig-paren">(</span><em>ip</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.base.ScopedSession.detach_external_ip" title="Permalink to this definition">¶</a></dt>
+<dd><p>Detaches the given external IP from whichever machine it is currently
+attached to.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>ip</strong> – The IP address to detach. Can be an external IP address as a string
+or a <a class="reference internal" href="#jasmin_cloud.provider.dto.ExternalIp" title="jasmin_cloud.provider.dto.ExternalIp"><code class="xref py py-class docutils literal"><span class="pre">ExternalIp</span></code></a>.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The updated <a class="reference internal" href="#jasmin_cloud.provider.dto.ExternalIp" title="jasmin_cloud.provider.dto.ExternalIp"><code class="xref py py-class docutils literal"><span class="pre">ExternalIp</span></code></a> object (should raise on failure).</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.base.ScopedSession.volumes">
+<code class="descname">volumes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.base.ScopedSession.volumes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Lists the volumes currently available to the tenancy.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">An iterable of <a class="reference internal" href="#jasmin_cloud.provider.dto.Volume" title="jasmin_cloud.provider.dto.Volume"><code class="xref py py-class docutils literal"><span class="pre">Volume</span></code></a>s.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.base.ScopedSession.find_volume">
+<code class="descname">find_volume</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.base.ScopedSession.find_volume" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds a volume by id.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>id</strong> – The id of the volume to find.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A <a class="reference internal" href="#jasmin_cloud.provider.dto.Volume" title="jasmin_cloud.provider.dto.Volume"><code class="xref py py-class docutils literal"><span class="pre">Volume</span></code></a> object.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.base.ScopedSession.create_volume">
+<code class="descname">create_volume</code><span class="sig-paren">(</span><em>name</em>, <em>size</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.base.ScopedSession.create_volume" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a new volume in the tenancy.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>name</strong> – The name of the volume.</li>
+<li><strong>size</strong> – The size of the volume in GB.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A <a class="reference internal" href="#jasmin_cloud.provider.dto.Volume" title="jasmin_cloud.provider.dto.Volume"><code class="xref py py-class docutils literal"><span class="pre">Volume</span></code></a> object.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.base.ScopedSession.delete_volume">
+<code class="descname">delete_volume</code><span class="sig-paren">(</span><em>volume</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.base.ScopedSession.delete_volume" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete the specified volume.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>volume</strong> – The volume to delete. Can be a volume id or a <a class="reference internal" href="#jasmin_cloud.provider.dto.Volume" title="jasmin_cloud.provider.dto.Volume"><code class="xref py py-class docutils literal"><span class="pre">Volume</span></code></a>.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The updated <a class="reference internal" href="#jasmin_cloud.provider.dto.Volume" title="jasmin_cloud.provider.dto.Volume"><code class="xref py py-class docutils literal"><span class="pre">Volume</span></code></a> if it has transitioned to a
+deleting status, or <code class="docutils literal"><span class="pre">None</span></code> if it has already been deleted.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.base.ScopedSession.attach_volume">
+<code class="descname">attach_volume</code><span class="sig-paren">(</span><em>volume</em>, <em>machine</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.base.ScopedSession.attach_volume" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attaches the specified volume to the specified machine.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>volume</strong> – The volume to attach. Can be a volume id or a <a class="reference internal" href="#jasmin_cloud.provider.dto.Volume" title="jasmin_cloud.provider.dto.Volume"><code class="xref py py-class docutils literal"><span class="pre">Volume</span></code></a>.</li>
+<li><strong>machine</strong> – The machine. Can be a machine id or a <a class="reference internal" href="#jasmin_cloud.provider.dto.Machine" title="jasmin_cloud.provider.dto.Machine"><code class="xref py py-class docutils literal"><span class="pre">Machine</span></code></a>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">The updated <a class="reference internal" href="#jasmin_cloud.provider.dto.Volume" title="jasmin_cloud.provider.dto.Volume"><code class="xref py py-class docutils literal"><span class="pre">Volume</span></code></a>.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.base.ScopedSession.detach_volume">
+<code class="descname">detach_volume</code><span class="sig-paren">(</span><em>volume</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.base.ScopedSession.detach_volume" title="Permalink to this definition">¶</a></dt>
+<dd><p>Detaches the specified volume from the machine it is attached to.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>volume</strong> – The volume to detach. Can be a volume id or a <a class="reference internal" href="#jasmin_cloud.provider.dto.Volume" title="jasmin_cloud.provider.dto.Volume"><code class="xref py py-class docutils literal"><span class="pre">Volume</span></code></a>.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The updated <a class="reference internal" href="#jasmin_cloud.provider.dto.Volume" title="jasmin_cloud.provider.dto.Volume"><code class="xref py py-class docutils literal"><span class="pre">Volume</span></code></a>.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-jasmin_cloud.provider.dto">
+<span id="jasmin-cloud-provider-dto-module"></span><h2>jasmin_cloud.provider.dto module<a class="headerlink" href="#module-jasmin_cloud.provider.dto" title="Permalink to this headline">¶</a></h2>
+<p>This module defines data-transfer objects used by providers.</p>
+<dl class="class">
+<dt id="jasmin_cloud.provider.dto.Tenancy">
+<em class="property">class </em><code class="descclassname">jasmin_cloud.provider.dto.</code><code class="descname">Tenancy</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Tenancy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#jasmin_cloud.provider.dto.Tenancy" title="jasmin_cloud.provider.dto.Tenancy"><code class="xref py py-class docutils literal"><span class="pre">jasmin_cloud.provider.dto.Tenancy</span></code></a></p>
+<p>Represents a tenancy/organisation on a cloud provider.</p>
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Tenancy.id">
+<code class="descname">id</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Tenancy.id" title="Permalink to this definition">¶</a></dt>
+<dd><p>The id of the tenancy.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Tenancy.name">
+<code class="descname">name</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Tenancy.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>The human-readable name of the tenancy.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="jasmin_cloud.provider.dto.Quota">
+<em class="property">class </em><code class="descclassname">jasmin_cloud.provider.dto.</code><code class="descname">Quota</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Quota" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#jasmin_cloud.provider.dto.Quota" title="jasmin_cloud.provider.dto.Quota"><code class="xref py py-class docutils literal"><span class="pre">jasmin_cloud.provider.dto.Quota</span></code></a></p>
+<p>Represents a quota available to a tenancy.</p>
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Quota.resource">
+<code class="descname">resource</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Quota.resource" title="Permalink to this definition">¶</a></dt>
+<dd><p>The resource that the quota is for.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Quota.units">
+<code class="descname">units</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Quota.units" title="Permalink to this definition">¶</a></dt>
+<dd><p>The units of the quota. For a unit-less quota, use <code class="docutils literal"><span class="pre">None</span></code>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Quota.allocated">
+<code class="descname">allocated</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Quota.allocated" title="Permalink to this definition">¶</a></dt>
+<dd><p>The amount of the resource that has been allocated.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Quota.used">
+<code class="descname">used</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Quota.used" title="Permalink to this definition">¶</a></dt>
+<dd><p>The amount of the resource that has been used.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="jasmin_cloud.provider.dto.Image">
+<em class="property">class </em><code class="descclassname">jasmin_cloud.provider.dto.</code><code class="descname">Image</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Image" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#jasmin_cloud.provider.dto.Image" title="jasmin_cloud.provider.dto.Image"><code class="xref py py-class docutils literal"><span class="pre">jasmin_cloud.provider.dto.Image</span></code></a></p>
+<p>Represents an image available to a tenancy.</p>
+<p>Can be combined with a <a class="reference internal" href="#jasmin_cloud.provider.dto.Size" title="jasmin_cloud.provider.dto.Size"><code class="xref py py-class docutils literal"><span class="pre">Size</span></code></a> to create a new <a class="reference internal" href="#jasmin_cloud.provider.dto.Machine" title="jasmin_cloud.provider.dto.Machine"><code class="xref py py-class docutils literal"><span class="pre">Machine</span></code></a>.</p>
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Image.id">
+<code class="descname">id</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Image.id" title="Permalink to this definition">¶</a></dt>
+<dd><p>The id of the image.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Image.vm_type">
+<code class="descname">vm_type</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Image.vm_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>The VM-type of the image. This is passed to the activator script
+when a machine is provisioned from the template, potentially
+allowing multiple types of machine to be provisioned from the
+same soft-linked image.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Image.name">
+<code class="descname">name</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Image.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>The human-readable name of the image.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Image.is_public">
+<code class="descname">is_public</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Image.is_public" title="Permalink to this definition">¶</a></dt>
+<dd><p>Indicates if the image is public or private.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Image.nat_allowed">
+<code class="descname">nat_allowed</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Image.nat_allowed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Indicates if NAT is allowed for machines deployed from the image.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Image.size">
+<code class="descname">size</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Image.size" title="Permalink to this definition">¶</a></dt>
+<dd><p>The size of the image (in MB). Can be a float for more precision.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="jasmin_cloud.provider.dto.Size">
+<em class="property">class </em><code class="descclassname">jasmin_cloud.provider.dto.</code><code class="descname">Size</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#jasmin_cloud.provider.dto.Size" title="jasmin_cloud.provider.dto.Size"><code class="xref py py-class docutils literal"><span class="pre">jasmin_cloud.provider.dto.Size</span></code></a></p>
+<p>Represents a machine size available to a tenancy.</p>
+<p>A size is a specification of the number of virtaul CPUs and RAM available to
+a machine.</p>
+<p>Can be combined with an <a class="reference internal" href="#jasmin_cloud.provider.dto.Image" title="jasmin_cloud.provider.dto.Image"><code class="xref py py-class docutils literal"><span class="pre">Image</span></code></a> to create a new <a class="reference internal" href="#jasmin_cloud.provider.dto.Machine" title="jasmin_cloud.provider.dto.Machine"><code class="xref py py-class docutils literal"><span class="pre">Machine</span></code></a>.</p>
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Size.id">
+<code class="descname">id</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Size.id" title="Permalink to this definition">¶</a></dt>
+<dd><p>The id of the size.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Size.name">
+<code class="descname">name</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Size.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>The human-readable name of the size.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Size.cpus">
+<code class="descname">cpus</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Size.cpus" title="Permalink to this definition">¶</a></dt>
+<dd><p>The number of CPUs.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Size.ram">
+<code class="descname">ram</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Size.ram" title="Permalink to this definition">¶</a></dt>
+<dd><p>The amount of RAM (in MB).</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Size.disk">
+<code class="descname">disk</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Size.disk" title="Permalink to this definition">¶</a></dt>
+<dd><p>The size of the image’s disk (in GB).
+Can be -1 to indicate no root disk size limit.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="jasmin_cloud.provider.dto.Machine">
+<em class="property">class </em><code class="descclassname">jasmin_cloud.provider.dto.</code><code class="descname">Machine</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Machine" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#jasmin_cloud.provider.dto.Machine" title="jasmin_cloud.provider.dto.Machine"><code class="xref py py-class docutils literal"><span class="pre">jasmin_cloud.provider.dto.Machine</span></code></a></p>
+<p>Represents a machine in a tenancy.</p>
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Machine.id">
+<code class="descname">id</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Machine.id" title="Permalink to this definition">¶</a></dt>
+<dd><p>The id of the machine.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Machine.name">
+<code class="descname">name</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Machine.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>The human-readable name of the machine.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Machine.image_id">
+<code class="descname">image_id</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Machine.image_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>The id of the image used to deploy the machine.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Machine.size_id">
+<code class="descname">size_id</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Machine.size_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>The of the size of the machine.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Machine.status">
+<code class="descname">status</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Machine.status" title="Permalink to this definition">¶</a></dt>
+<dd><p>The <a class="reference internal" href="#jasmin_cloud.provider.dto.Machine.Status" title="jasmin_cloud.provider.dto.Machine.Status"><code class="xref py py-class docutils literal"><span class="pre">Status</span></code></a> of the machine.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Machine.power_state">
+<code class="descname">power_state</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Machine.power_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>The power state of the machine as a string.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Machine.task">
+<code class="descname">task</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Machine.task" title="Permalink to this definition">¶</a></dt>
+<dd><p>String representation of any task that is currently executing.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Machine.internal_ip">
+<code class="descname">internal_ip</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Machine.internal_ip" title="Permalink to this definition">¶</a></dt>
+<dd><p>The internal IPv4 address of the machine.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Machine.external_ip">
+<code class="descname">external_ip</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Machine.external_ip" title="Permalink to this definition">¶</a></dt>
+<dd><p>The external IPv4 address of the machine.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Machine.nat_allowed">
+<code class="descname">nat_allowed</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Machine.nat_allowed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Indicates if NAT is allowed for the machine.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Machine.attached_volume_ids">
+<code class="descname">attached_volume_ids</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Machine.attached_volume_ids" title="Permalink to this definition">¶</a></dt>
+<dd><p>A tuple of ids of attached volumes for the machine.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Machine.owner">
+<code class="descname">owner</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Machine.owner" title="Permalink to this definition">¶</a></dt>
+<dd><p>The username of the user who deployed the machine.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Machine.created">
+<code class="descname">created</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Machine.created" title="Permalink to this definition">¶</a></dt>
+<dd><p>The <cite>datetime</cite> at which the machine was deployed.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="jasmin_cloud.provider.dto.Machine.Status">
+<em class="property">class </em><code class="descname">Status</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Machine.Status" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">jasmin_cloud.provider.dto.Status</span></code></p>
+<p>Represents a machine status.</p>
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Machine.Status.type">
+<code class="descname">type</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Machine.Status.type" title="Permalink to this definition">¶</a></dt>
+<dd><p>The <a class="reference internal" href="#jasmin_cloud.provider.dto.Machine.Status.Type" title="jasmin_cloud.provider.dto.Machine.Status.Type"><code class="xref py py-class docutils literal"><span class="pre">Type</span></code></a> of the status.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Machine.Status.name">
+<code class="descname">name</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Machine.Status.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>A short string representation of the status.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Machine.Status.details">
+<code class="descname">details</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Machine.Status.details" title="Permalink to this definition">¶</a></dt>
+<dd><p>A string representing any details of the status, e.g. an error.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="jasmin_cloud.provider.dto.Machine.Status.Type">
+<em class="property">class </em><code class="descname">Type</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Machine.Status.Type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">enum.Enum</span></code></p>
+<p>Enum representing the possible status types.</p>
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Machine.Status.Type.BUILD">
+<code class="descname">BUILD</code><em class="property"> = 'BUILD'</em><a class="headerlink" href="#jasmin_cloud.provider.dto.Machine.Status.Type.BUILD" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Machine.Status.Type.ACTIVE">
+<code class="descname">ACTIVE</code><em class="property"> = 'ACTIVE'</em><a class="headerlink" href="#jasmin_cloud.provider.dto.Machine.Status.Type.ACTIVE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Machine.Status.Type.ERROR">
+<code class="descname">ERROR</code><em class="property"> = 'ERROR'</em><a class="headerlink" href="#jasmin_cloud.provider.dto.Machine.Status.Type.ERROR" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Machine.Status.Type.OTHER">
+<code class="descname">OTHER</code><em class="property"> = 'OTHER'</em><a class="headerlink" href="#jasmin_cloud.provider.dto.Machine.Status.Type.OTHER" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="jasmin_cloud.provider.dto.Volume">
+<em class="property">class </em><code class="descclassname">jasmin_cloud.provider.dto.</code><code class="descname">Volume</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Volume" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#jasmin_cloud.provider.dto.Volume" title="jasmin_cloud.provider.dto.Volume"><code class="xref py py-class docutils literal"><span class="pre">jasmin_cloud.provider.dto.Volume</span></code></a></p>
+<p>Represents a volume attached to a machine.</p>
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Volume.id">
+<code class="descname">id</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Volume.id" title="Permalink to this definition">¶</a></dt>
+<dd><p>The id of the volume.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Volume.name">
+<code class="descname">name</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Volume.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>The name of the volume.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Volume.status">
+<code class="descname">status</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Volume.status" title="Permalink to this definition">¶</a></dt>
+<dd><p>The <a class="reference internal" href="#jasmin_cloud.provider.dto.Volume.Status" title="jasmin_cloud.provider.dto.Volume.Status"><code class="xref py py-class docutils literal"><span class="pre">Status</span></code></a> of the volume.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Volume.size">
+<code class="descname">size</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Volume.size" title="Permalink to this definition">¶</a></dt>
+<dd><p>The size of the volume in GB.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Volume.machine_id">
+<code class="descname">machine_id</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Volume.machine_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>The id of the machine the volume is attached to, or <code class="docutils literal"><span class="pre">None</span></code>
+if the volume is not attached.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Volume.device">
+<code class="descname">device</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Volume.device" title="Permalink to this definition">¶</a></dt>
+<dd><p>The device that the volume is attached on, or <code class="docutils literal"><span class="pre">None</span></code> if the
+volume is not attached.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="jasmin_cloud.provider.dto.Volume.Status">
+<em class="property">class </em><code class="descname">Status</code><a class="headerlink" href="#jasmin_cloud.provider.dto.Volume.Status" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">enum.Enum</span></code></p>
+<p>Enum representing the possible volume statuses.</p>
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Volume.Status.CREATING">
+<code class="descname">CREATING</code><em class="property"> = 'CREATING'</em><a class="headerlink" href="#jasmin_cloud.provider.dto.Volume.Status.CREATING" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Volume.Status.AVAILABLE">
+<code class="descname">AVAILABLE</code><em class="property"> = 'AVAILABLE'</em><a class="headerlink" href="#jasmin_cloud.provider.dto.Volume.Status.AVAILABLE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Volume.Status.ATTACHING">
+<code class="descname">ATTACHING</code><em class="property"> = 'ATTACHING'</em><a class="headerlink" href="#jasmin_cloud.provider.dto.Volume.Status.ATTACHING" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Volume.Status.DETACHING">
+<code class="descname">DETACHING</code><em class="property"> = 'DETACHING'</em><a class="headerlink" href="#jasmin_cloud.provider.dto.Volume.Status.DETACHING" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Volume.Status.IN_USE">
+<code class="descname">IN_USE</code><em class="property"> = 'IN_USE'</em><a class="headerlink" href="#jasmin_cloud.provider.dto.Volume.Status.IN_USE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Volume.Status.DELETING">
+<code class="descname">DELETING</code><em class="property"> = 'DELETING'</em><a class="headerlink" href="#jasmin_cloud.provider.dto.Volume.Status.DELETING" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Volume.Status.ERROR">
+<code class="descname">ERROR</code><em class="property"> = 'ERROR'</em><a class="headerlink" href="#jasmin_cloud.provider.dto.Volume.Status.ERROR" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.Volume.Status.OTHER">
+<code class="descname">OTHER</code><em class="property"> = 'OTHER'</em><a class="headerlink" href="#jasmin_cloud.provider.dto.Volume.Status.OTHER" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="jasmin_cloud.provider.dto.ExternalIp">
+<em class="property">class </em><code class="descclassname">jasmin_cloud.provider.dto.</code><code class="descname">ExternalIp</code><a class="headerlink" href="#jasmin_cloud.provider.dto.ExternalIp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#jasmin_cloud.provider.dto.ExternalIp" title="jasmin_cloud.provider.dto.ExternalIp"><code class="xref py py-class docutils literal"><span class="pre">jasmin_cloud.provider.dto.ExternalIp</span></code></a></p>
+<p>Represents an externally visible IP address.</p>
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.ExternalIp.external_ip">
+<code class="descname">external_ip</code><a class="headerlink" href="#jasmin_cloud.provider.dto.ExternalIp.external_ip" title="Permalink to this definition">¶</a></dt>
+<dd><p>The externally visible IP address.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.dto.ExternalIp.machine_id">
+<code class="descname">machine_id</code><a class="headerlink" href="#jasmin_cloud.provider.dto.ExternalIp.machine_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>The ID of the machine to which the external IP address is
+mapped, or <code class="docutils literal"><span class="pre">None</span></code> if it is not mapped.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-jasmin_cloud.provider.errors">
+<span id="jasmin-cloud-provider-errors-module"></span><h2>jasmin_cloud.provider.errors module<a class="headerlink" href="#module-jasmin_cloud.provider.errors" title="Permalink to this headline">¶</a></h2>
+<p>This module defines the exceptions that can be thrown by a cloud provider.</p>
+<dl class="exception">
+<dt id="jasmin_cloud.provider.errors.Error">
+<em class="property">exception </em><code class="descclassname">jasmin_cloud.provider.errors.</code><code class="descname">Error</code><a class="headerlink" href="#jasmin_cloud.provider.errors.Error" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">Exception</span></code></p>
+<p>Base class for all other errors in this module.</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="jasmin_cloud.provider.errors.BadInputError">
+<em class="property">exception </em><code class="descclassname">jasmin_cloud.provider.errors.</code><code class="descname">BadInputError</code><a class="headerlink" href="#jasmin_cloud.provider.errors.BadInputError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#jasmin_cloud.provider.errors.Error" title="jasmin_cloud.provider.errors.Error"><code class="xref py py-class docutils literal"><span class="pre">jasmin_cloud.provider.errors.Error</span></code></a>, <code class="xref py py-class docutils literal"><span class="pre">RuntimeError</span></code></p>
+<p>Raised when the input to a create or update is invalid. Invalid input to a
+find should raise <a class="reference internal" href="#jasmin_cloud.provider.errors.ObjectNotFoundError" title="jasmin_cloud.provider.errors.ObjectNotFoundError"><code class="xref py py-class docutils literal"><span class="pre">ObjectNotFoundError</span></code></a>.</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="jasmin_cloud.provider.errors.UnsupportedOperationError">
+<em class="property">exception </em><code class="descclassname">jasmin_cloud.provider.errors.</code><code class="descname">UnsupportedOperationError</code><a class="headerlink" href="#jasmin_cloud.provider.errors.UnsupportedOperationError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#jasmin_cloud.provider.errors.Error" title="jasmin_cloud.provider.errors.Error"><code class="xref py py-class docutils literal"><span class="pre">jasmin_cloud.provider.errors.Error</span></code></a>, <code class="xref py py-class docutils literal"><span class="pre">NotImplementedError</span></code></p>
+<p>Raised when the requested operation is not supported by a provider.</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="jasmin_cloud.provider.errors.InvalidOperationError">
+<em class="property">exception </em><code class="descclassname">jasmin_cloud.provider.errors.</code><code class="descname">InvalidOperationError</code><a class="headerlink" href="#jasmin_cloud.provider.errors.InvalidOperationError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#jasmin_cloud.provider.errors.Error" title="jasmin_cloud.provider.errors.Error"><code class="xref py py-class docutils literal"><span class="pre">jasmin_cloud.provider.errors.Error</span></code></a>, <code class="xref py py-class docutils literal"><span class="pre">RuntimeError</span></code></p>
+<p>Raised when an operation is invalid for the current state of the target.</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="jasmin_cloud.provider.errors.QuotaExceededError">
+<em class="property">exception </em><code class="descclassname">jasmin_cloud.provider.errors.</code><code class="descname">QuotaExceededError</code><a class="headerlink" href="#jasmin_cloud.provider.errors.QuotaExceededError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#jasmin_cloud.provider.errors.InvalidOperationError" title="jasmin_cloud.provider.errors.InvalidOperationError"><code class="xref py py-class docutils literal"><span class="pre">jasmin_cloud.provider.errors.InvalidOperationError</span></code></a></p>
+<p>Raised when a quota is exceeded.</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="jasmin_cloud.provider.errors.ImproperlyConfiguredError">
+<em class="property">exception </em><code class="descclassname">jasmin_cloud.provider.errors.</code><code class="descname">ImproperlyConfiguredError</code><a class="headerlink" href="#jasmin_cloud.provider.errors.ImproperlyConfiguredError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#jasmin_cloud.provider.errors.Error" title="jasmin_cloud.provider.errors.Error"><code class="xref py py-class docutils literal"><span class="pre">jasmin_cloud.provider.errors.Error</span></code></a>, <code class="xref py py-class docutils literal"><span class="pre">RuntimeError</span></code></p>
+<p>Raised when a tenancy is not configured as expected/required.</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="jasmin_cloud.provider.errors.ObjectNotFoundError">
+<em class="property">exception </em><code class="descclassname">jasmin_cloud.provider.errors.</code><code class="descname">ObjectNotFoundError</code><a class="headerlink" href="#jasmin_cloud.provider.errors.ObjectNotFoundError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#jasmin_cloud.provider.errors.Error" title="jasmin_cloud.provider.errors.Error"><code class="xref py py-class docutils literal"><span class="pre">jasmin_cloud.provider.errors.Error</span></code></a>, <code class="xref py py-class docutils literal"><span class="pre">RuntimeError</span></code></p>
+<p>Raised when an object requested by ID is not found.</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="jasmin_cloud.provider.errors.AuthenticationError">
+<em class="property">exception </em><code class="descclassname">jasmin_cloud.provider.errors.</code><code class="descname">AuthenticationError</code><a class="headerlink" href="#jasmin_cloud.provider.errors.AuthenticationError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#jasmin_cloud.provider.errors.Error" title="jasmin_cloud.provider.errors.Error"><code class="xref py py-class docutils literal"><span class="pre">jasmin_cloud.provider.errors.Error</span></code></a>, <code class="xref py py-class docutils literal"><span class="pre">RuntimeError</span></code></p>
+<p>Raised when authentication fails when accessing a resource.</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="jasmin_cloud.provider.errors.PermissionDeniedError">
+<em class="property">exception </em><code class="descclassname">jasmin_cloud.provider.errors.</code><code class="descname">PermissionDeniedError</code><a class="headerlink" href="#jasmin_cloud.provider.errors.PermissionDeniedError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#jasmin_cloud.provider.errors.Error" title="jasmin_cloud.provider.errors.Error"><code class="xref py py-class docutils literal"><span class="pre">jasmin_cloud.provider.errors.Error</span></code></a>, <code class="xref py py-class docutils literal"><span class="pre">RuntimeError</span></code></p>
+<p>Raised when permission is denied while accessing a resource.</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="jasmin_cloud.provider.errors.CommunicationError">
+<em class="property">exception </em><code class="descclassname">jasmin_cloud.provider.errors.</code><code class="descname">CommunicationError</code><a class="headerlink" href="#jasmin_cloud.provider.errors.CommunicationError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#jasmin_cloud.provider.errors.Error" title="jasmin_cloud.provider.errors.Error"><code class="xref py py-class docutils literal"><span class="pre">jasmin_cloud.provider.errors.Error</span></code></a>, <code class="xref py py-class docutils literal"><span class="pre">RuntimeError</span></code></p>
+<p>Raised when an unexpected communication problem occurs.</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="jasmin_cloud.provider.errors.OperationTimedOutError">
+<em class="property">exception </em><code class="descclassname">jasmin_cloud.provider.errors.</code><code class="descname">OperationTimedOutError</code><a class="headerlink" href="#jasmin_cloud.provider.errors.OperationTimedOutError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#jasmin_cloud.provider.errors.Error" title="jasmin_cloud.provider.errors.Error"><code class="xref py py-class docutils literal"><span class="pre">jasmin_cloud.provider.errors.Error</span></code></a>, <code class="xref py py-class docutils literal"><span class="pre">RuntimeError</span></code></p>
+<p>Raised when an operation takes too long to wait for.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-jasmin_cloud.provider.openstack">
+<span id="jasmin-cloud-provider-openstack-module"></span><h2>jasmin_cloud.provider.openstack module<a class="headerlink" href="#module-jasmin_cloud.provider.openstack" title="Permalink to this headline">¶</a></h2>
+<p>This module contains the provider implementation for OpenStack.</p>
+<dl class="class">
+<dt id="jasmin_cloud.provider.openstack.Provider">
+<em class="property">class </em><code class="descclassname">jasmin_cloud.provider.openstack.</code><code class="descname">Provider</code><span class="sig-paren">(</span><em>auth_url</em>, <em>domain='Default'</em>, <em>verify_ssl=True</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.openstack.Provider" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#jasmin_cloud.provider.base.Provider" title="jasmin_cloud.provider.base.Provider"><code class="xref py py-class docutils literal"><span class="pre">jasmin_cloud.provider.base.Provider</span></code></a></p>
+<p>Provider implementation for OpenStack.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>auth_url</strong> – The Keystone v3 authentication URL.</li>
+<li><strong>domain</strong> – The domain to authenticate with.</li>
+<li><strong>verify_ssl</strong> – If <code class="docutils literal"><span class="pre">True</span></code> (the default), verify SSL certificates. If <code class="docutils literal"><span class="pre">False</span></code>
+SSL certificates are not verified.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.openstack.Provider.provider_name">
+<code class="descname">provider_name</code><em class="property"> = 'openstack'</em><a class="headerlink" href="#jasmin_cloud.provider.openstack.Provider.provider_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.openstack.Provider.authenticate">
+<code class="descname">authenticate</code><span class="sig-paren">(</span><em>username</em>, <em>password</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.openstack.Provider.authenticate" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#jasmin_cloud.provider.base.Provider.authenticate" title="jasmin_cloud.provider.base.Provider.authenticate"><code class="xref py py-meth docutils literal"><span class="pre">base.Provider.authenticate()</span></code></a>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="jasmin_cloud.provider.openstack.convert_sdk_exceptions">
+<code class="descclassname">jasmin_cloud.provider.openstack.</code><code class="descname">convert_sdk_exceptions</code><span class="sig-paren">(</span><em>f</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.openstack.convert_sdk_exceptions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decorator that converts OpenStack SDK exceptions into errors from <a class="reference internal" href="#module-jasmin_cloud.provider.errors" title="jasmin_cloud.provider.errors"><code class="xref py py-mod docutils literal"><span class="pre">errors</span></code></a>.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="jasmin_cloud.provider.openstack.UnscopedSession">
+<em class="property">class </em><code class="descclassname">jasmin_cloud.provider.openstack.</code><code class="descname">UnscopedSession</code><span class="sig-paren">(</span><em>auth_url</em>, <em>username</em>, <em>token</em>, <em>verify_ssl=True</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.openstack.UnscopedSession" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#jasmin_cloud.provider.base.UnscopedSession" title="jasmin_cloud.provider.base.UnscopedSession"><code class="xref py py-class docutils literal"><span class="pre">jasmin_cloud.provider.base.UnscopedSession</span></code></a></p>
+<p>Unscoped session implementation for OpenStack.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>auth_url</strong> – The Keystone v2.0 authentication URL.</li>
+<li><strong>username</strong> – The username of the OpenStack user.</li>
+<li><strong>token</strong> – An unscoped user token for the OpenStack user.</li>
+<li><strong>verify_ssl</strong> – If <code class="docutils literal"><span class="pre">True</span></code> (the default), verify SSL certificates. If <code class="docutils literal"><span class="pre">False</span></code>
+SSL certificates are not verified.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.openstack.UnscopedSession.provider_name">
+<code class="descname">provider_name</code><em class="property"> = 'openstack'</em><a class="headerlink" href="#jasmin_cloud.provider.openstack.UnscopedSession.provider_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.openstack.UnscopedSession.tenancies">
+<code class="descname">tenancies</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.openstack.UnscopedSession.tenancies" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#jasmin_cloud.provider.base.UnscopedSession.tenancies" title="jasmin_cloud.provider.base.UnscopedSession.tenancies"><code class="xref py py-meth docutils literal"><span class="pre">base.UnscopedSession.tenancies()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.openstack.UnscopedSession.scoped_session">
+<code class="descname">scoped_session</code><span class="sig-paren">(</span><em>tenancy</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.openstack.UnscopedSession.scoped_session" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#jasmin_cloud.provider.base.UnscopedSession.scoped_session" title="jasmin_cloud.provider.base.UnscopedSession.scoped_session"><code class="xref py py-meth docutils literal"><span class="pre">base.UnscopedSession.scoped_session()</span></code></a>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="jasmin_cloud.provider.openstack.ScopedSession">
+<em class="property">class </em><code class="descclassname">jasmin_cloud.provider.openstack.</code><code class="descname">ScopedSession</code><span class="sig-paren">(</span><em>username</em>, <em>tenancy_id</em>, <em>tenancy_name</em>, <em>connection</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.openstack.ScopedSession" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#jasmin_cloud.provider.base.ScopedSession" title="jasmin_cloud.provider.base.ScopedSession"><code class="xref py py-class docutils literal"><span class="pre">jasmin_cloud.provider.base.ScopedSession</span></code></a></p>
+<p>Tenancy-scoped session implementation for OpenStack.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>username</strong> – The username of the OpenStack user.</li>
+<li><strong>tenancy_id</strong> – The tenancy id.</li>
+<li><strong>tenancy_name</strong> – The name of the tenancy.</li>
+<li><strong>connection</strong> – An <code class="docutils literal"><span class="pre">openstack.connection.Connection</span></code> for the tenancy.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="jasmin_cloud.provider.openstack.ScopedSession.provider_name">
+<code class="descname">provider_name</code><em class="property"> = 'openstack'</em><a class="headerlink" href="#jasmin_cloud.provider.openstack.ScopedSession.provider_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.openstack.ScopedSession.quotas">
+<code class="descname">quotas</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.openstack.ScopedSession.quotas" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#jasmin_cloud.provider.base.ScopedSession.quotas" title="jasmin_cloud.provider.base.ScopedSession.quotas"><code class="xref py py-meth docutils literal"><span class="pre">base.ScopedSession.quotas()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.openstack.ScopedSession.images">
+<code class="descname">images</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.openstack.ScopedSession.images" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#jasmin_cloud.provider.base.ScopedSession.images" title="jasmin_cloud.provider.base.ScopedSession.images"><code class="xref py py-meth docutils literal"><span class="pre">base.ScopedSession.images()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.openstack.ScopedSession.find_image">
+<code class="descname">find_image</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.openstack.ScopedSession.find_image" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#jasmin_cloud.provider.base.ScopedSession.find_image" title="jasmin_cloud.provider.base.ScopedSession.find_image"><code class="xref py py-meth docutils literal"><span class="pre">base.ScopedSession.find_image()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.openstack.ScopedSession.sizes">
+<code class="descname">sizes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.openstack.ScopedSession.sizes" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#jasmin_cloud.provider.base.ScopedSession.sizes" title="jasmin_cloud.provider.base.ScopedSession.sizes"><code class="xref py py-meth docutils literal"><span class="pre">base.ScopedSession.sizes()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.openstack.ScopedSession.find_size">
+<code class="descname">find_size</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.openstack.ScopedSession.find_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#jasmin_cloud.provider.base.ScopedSession.find_size" title="jasmin_cloud.provider.base.ScopedSession.find_size"><code class="xref py py-meth docutils literal"><span class="pre">base.ScopedSession.find_size()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.openstack.ScopedSession.machines">
+<code class="descname">machines</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.openstack.ScopedSession.machines" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#jasmin_cloud.provider.base.ScopedSession.machines" title="jasmin_cloud.provider.base.ScopedSession.machines"><code class="xref py py-meth docutils literal"><span class="pre">base.ScopedSession.machines()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.openstack.ScopedSession.find_machine">
+<code class="descname">find_machine</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.openstack.ScopedSession.find_machine" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#jasmin_cloud.provider.base.ScopedSession.find_machine" title="jasmin_cloud.provider.base.ScopedSession.find_machine"><code class="xref py py-meth docutils literal"><span class="pre">base.ScopedSession.find_machine()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.openstack.ScopedSession.create_machine">
+<code class="descname">create_machine</code><span class="sig-paren">(</span><em>name</em>, <em>image</em>, <em>size</em>, <em>ssh_key=None</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.openstack.ScopedSession.create_machine" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#jasmin_cloud.provider.base.ScopedSession.create_machine" title="jasmin_cloud.provider.base.ScopedSession.create_machine"><code class="xref py py-meth docutils literal"><span class="pre">base.ScopedSession.create_machine()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.openstack.ScopedSession.start_machine">
+<code class="descname">start_machine</code><span class="sig-paren">(</span><em>machine</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.openstack.ScopedSession.start_machine" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#jasmin_cloud.provider.base.ScopedSession.start_machine" title="jasmin_cloud.provider.base.ScopedSession.start_machine"><code class="xref py py-meth docutils literal"><span class="pre">base.ScopedSession.start_machine()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.openstack.ScopedSession.stop_machine">
+<code class="descname">stop_machine</code><span class="sig-paren">(</span><em>machine</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.openstack.ScopedSession.stop_machine" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#jasmin_cloud.provider.base.ScopedSession.stop_machine" title="jasmin_cloud.provider.base.ScopedSession.stop_machine"><code class="xref py py-meth docutils literal"><span class="pre">base.ScopedSession.stop_machine()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.openstack.ScopedSession.restart_machine">
+<code class="descname">restart_machine</code><span class="sig-paren">(</span><em>machine</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.openstack.ScopedSession.restart_machine" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#jasmin_cloud.provider.base.ScopedSession.restart_machine" title="jasmin_cloud.provider.base.ScopedSession.restart_machine"><code class="xref py py-meth docutils literal"><span class="pre">base.ScopedSession.restart_machine()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.openstack.ScopedSession.delete_machine">
+<code class="descname">delete_machine</code><span class="sig-paren">(</span><em>machine</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.openstack.ScopedSession.delete_machine" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#jasmin_cloud.provider.base.ScopedSession.delete_machine" title="jasmin_cloud.provider.base.ScopedSession.delete_machine"><code class="xref py py-meth docutils literal"><span class="pre">base.ScopedSession.delete_machine()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.openstack.ScopedSession.external_ips">
+<code class="descname">external_ips</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.openstack.ScopedSession.external_ips" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#jasmin_cloud.provider.base.ScopedSession.external_ips" title="jasmin_cloud.provider.base.ScopedSession.external_ips"><code class="xref py py-meth docutils literal"><span class="pre">base.ScopedSession.external_ips()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.openstack.ScopedSession.allocate_external_ip">
+<code class="descname">allocate_external_ip</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.openstack.ScopedSession.allocate_external_ip" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#jasmin_cloud.provider.base.ScopedSession.allocate_external_ip" title="jasmin_cloud.provider.base.ScopedSession.allocate_external_ip"><code class="xref py py-meth docutils literal"><span class="pre">base.ScopedSession.allocate_external_ip()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.openstack.ScopedSession.find_external_ip">
+<code class="descname">find_external_ip</code><span class="sig-paren">(</span><em>ip</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.openstack.ScopedSession.find_external_ip" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#jasmin_cloud.provider.base.ScopedSession.find_external_ip" title="jasmin_cloud.provider.base.ScopedSession.find_external_ip"><code class="xref py py-meth docutils literal"><span class="pre">base.ScopedSession.find_external_ip()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.openstack.ScopedSession.attach_external_ip">
+<code class="descname">attach_external_ip</code><span class="sig-paren">(</span><em>ip</em>, <em>machine</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.openstack.ScopedSession.attach_external_ip" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#jasmin_cloud.provider.base.ScopedSession.attach_external_ip" title="jasmin_cloud.provider.base.ScopedSession.attach_external_ip"><code class="xref py py-meth docutils literal"><span class="pre">base.ScopedSession.attach_external_ip()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.openstack.ScopedSession.detach_external_ip">
+<code class="descname">detach_external_ip</code><span class="sig-paren">(</span><em>ip</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.openstack.ScopedSession.detach_external_ip" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#jasmin_cloud.provider.base.ScopedSession.detach_external_ip" title="jasmin_cloud.provider.base.ScopedSession.detach_external_ip"><code class="xref py py-meth docutils literal"><span class="pre">base.ScopedSession.detach_external_ip()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.openstack.ScopedSession.volumes">
+<code class="descname">volumes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.openstack.ScopedSession.volumes" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#jasmin_cloud.provider.base.ScopedSession.volumes" title="jasmin_cloud.provider.base.ScopedSession.volumes"><code class="xref py py-meth docutils literal"><span class="pre">base.ScopedSession.volumes()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.openstack.ScopedSession.find_volume">
+<code class="descname">find_volume</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.openstack.ScopedSession.find_volume" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#jasmin_cloud.provider.base.ScopedSession.find_volume" title="jasmin_cloud.provider.base.ScopedSession.find_volume"><code class="xref py py-meth docutils literal"><span class="pre">base.ScopedSession.find_volume()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.openstack.ScopedSession.create_volume">
+<code class="descname">create_volume</code><span class="sig-paren">(</span><em>name</em>, <em>size</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.openstack.ScopedSession.create_volume" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#jasmin_cloud.provider.base.ScopedSession.create_volume" title="jasmin_cloud.provider.base.ScopedSession.create_volume"><code class="xref py py-meth docutils literal"><span class="pre">base.ScopedSession.create_volume()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.openstack.ScopedSession.delete_volume">
+<code class="descname">delete_volume</code><span class="sig-paren">(</span><em>volume</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.openstack.ScopedSession.delete_volume" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#jasmin_cloud.provider.base.ScopedSession.delete_volume" title="jasmin_cloud.provider.base.ScopedSession.delete_volume"><code class="xref py py-meth docutils literal"><span class="pre">base.ScopedSession.delete_volume()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.openstack.ScopedSession.attach_volume">
+<code class="descname">attach_volume</code><span class="sig-paren">(</span><em>volume</em>, <em>machine</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.openstack.ScopedSession.attach_volume" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#jasmin_cloud.provider.base.ScopedSession.attach_volume" title="jasmin_cloud.provider.base.ScopedSession.attach_volume"><code class="xref py py-meth docutils literal"><span class="pre">base.ScopedSession.attach_volume()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="jasmin_cloud.provider.openstack.ScopedSession.detach_volume">
+<code class="descname">detach_volume</code><span class="sig-paren">(</span><em>volume</em><span class="sig-paren">)</span><a class="headerlink" href="#jasmin_cloud.provider.openstack.ScopedSession.detach_volume" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#jasmin_cloud.provider.base.ScopedSession.detach_volume" title="jasmin_cloud.provider.base.ScopedSession.detach_volume"><code class="xref py py-meth docutils literal"><span class="pre">base.ScopedSession.detach_volume()</span></code></a>.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-jasmin_cloud.provider">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-jasmin_cloud.provider" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="jasmin_cloud.keystore.html" class="btn btn-neutral" title="jasmin_cloud.keystore package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Science and Technology Facilities Council (STFC).
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'v1.0.5+26.g4c88c66',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
