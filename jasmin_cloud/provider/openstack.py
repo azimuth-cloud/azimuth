@@ -402,12 +402,13 @@ class ScopedSession(base.ScopedSession):
         Assumes a single router with a single tenant network connected.
         Return ``None`` if the tenant network cannot be located.
         """
-        port = next(self.connection.network.ports(device_owner = 'network:router_interface'))
-        if port:
-            return self.connection.network.find_network(port.network_id)
+        try:
+            port = next(self.connection.network.ports(device_owner = 'network:router_interface'))
+        except StopIteration:
+            raise errors.ImproperlyConfiguredError('Could not find tenancy network')
         else:
-            return None
-
+            return self.connection.network.find_network(port.network_id)
+        
     @convert_sdk_exceptions
     def machines(self):
         """
@@ -524,8 +525,6 @@ class ScopedSession(base.ScopedSession):
         self._log("Creating machine '%s' (image: %s, size: %s)", name, image.name, size)
         # Get the network id to use
         network = self._tenant_network()
-        if not network:
-            raise errors.ImproperlyConfiguredError('Could not find tenancy network')
         # Get the keypair to inject
         keypair = self._get_or_create_keypair(ssh_key) if ssh_key else None
         # Interpolate values into the cloud-init script template
@@ -657,8 +656,6 @@ class ScopedSession(base.ScopedSession):
         self._log("Attaching floating ip '%s' to server '%s'", ip, machine.id)
         # Get the port that attaches the machine to the tenant network
         tenant_net = self._tenant_network()
-        if not tenant_net:
-            raise errors.ImproperlyConfiguredError('Could not find tenancy network.')
         port = next(
             self.connection.network.ports(device_id = machine.id,
                                           network_id = tenant_net.id),
