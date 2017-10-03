@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+        <title>{% if page.title %}{{ page.title }} | {% endif %}{{ site.title }}</title>
+        <link rel="shortcut icon" href="{{ site.baseurl }}/assets/jasmin_theme/img/favicon.ico" />
+
+        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
+        <link rel="stylesheet" href="{{ site.baseurl }}/assets/jasmin_theme/css/bootstrap-theme.css" />
+        <link rel="stylesheet" href="{{ site.baseurl }}/assets/jasmin_theme/css/jasmin.css" />
+        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    </head>
+
+    <body>
+        <div class="container-fluid">
+            <nav class="navbar navbar-default navbar-fixed-top" role="navigation">
+                <div class="container">
+                    <div class="navbar-header">
+                        <button type="button" class="navbar-toggle collapsed"
+                                data-toggle="collapse" data-target=".navbar-collapse" aria-expanded="false">
+                            <span class="sr-only">Toggle Navigation</span>
+                            <span class="icon-bar"></span>
+                            <span class="icon-bar"></span>
+                            <span class="icon-bar"></span>
+                        </button>
+                        <a class="navbar-brand" href="{{ site.baseurl }}">{{ site.title }}</a>
+
+                        <div class="navbar-collapse collapse"></div>
+                    </div>
+                </div>
+            </nav>
+
+            <div id="content-main" class="container">{{ content }}</div>
+        </div>
+
+        <footer>
+            <div class="container">
+                <div class="row">
+                    <div id="nerc-logo" class="col-sm-6">
+                        <a href="http://www.nerc.ac.uk" title="NERC">
+                            <img src="{{ site.baseurl }}/assets/jasmin_theme/img/nerc-long-logo-261.png"
+                                 title="NERC logo" height="53" width="261" alt="NERC logo" />
+                        </a>
+                    </div>
+                    <div id="stfc-logo" class="col-sm-6">
+                        <a href="http://www.stfc.ac.uk" title="STFC">
+                            <img src="{{ site.baseurl }}/assets/jasmin_theme/img/STFCMediumColourTrans.png"
+                                 title="STFC logo" height="57" width="261" alt="STFC logo" />
+                        </a>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <p class="site-info">
+                            Copyright &copy; 2017 <a href="http://www.stfc.ac.uk">STFC</a> |
+                            All Rights Reserved |
+                            <a href="https://accounts.jasmin.ac.uk/account/accessibility/" target="_blank">Accessibility</a> |
+                            <a href="https://accounts.jasmin.ac.uk/account/privacy/" target="_blank">Privacy</a> |
+                            <a href="https://accounts.jasmin.ac.uk/account/support/" target="_blank">Support</a> |
+                            <a href="https://accounts.jasmin.ac.uk/account/conditions/" target="_blank">Terms and Conditions</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </footer>
+
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    </body>
+</html>
