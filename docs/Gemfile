@@ -2,6 +2,3 @@ source 'https://rubygems.org'
 
 # Use jekyll for Github pages
 gem 'github-pages', group: :jekyll_plugins
-
-# Include the jekyll theme
-gem "jasmin-theme-jekyll", :git => "https://github.com/cedadev/jasmin-theme-jekyll.git", :submodules => true
