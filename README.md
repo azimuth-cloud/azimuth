@@ -5,4 +5,4 @@ the JASMIN Cloud.
 
 ## Documentation
 
-Documentation for `jasmin-cloud` can be found on the project wiki.
+Documentation for `jasmin-cloud` can be found on the [project wiki](https://github.com/cedadev/jasmin-cloud/wiki).
