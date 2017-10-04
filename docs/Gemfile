@@ -1,4 +1,0 @@
-source 'https://rubygems.org'
-
-# Use jekyll for Github pages
-gem 'github-pages', group: :jekyll_plugins
