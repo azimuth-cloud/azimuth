@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import os, re
+import os
 from setuptools import setup, find_packages
 
 import versioneer
