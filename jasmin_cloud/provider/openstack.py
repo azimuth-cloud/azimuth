@@ -408,7 +408,7 @@ class ScopedSession(base.ScopedSession):
             raise errors.ImproperlyConfiguredError('Could not find tenancy network')
         else:
             return self.connection.network.find_network(port.network_id)
-        
+
     @convert_sdk_exceptions
     def machines(self):
         """
@@ -449,7 +449,13 @@ class ScopedSession(base.ScopedSession):
         try:
             nat_allowed = bool(int(sdk_server['metadata']['jasmin:nat_allowed']))
         except (TypeError, KeyError):
-            nat_allowed = self.find_image(sdk_server['image']['id']).nat_allowed
+            try:
+                image = self.find_image(sdk_server['image']['id'])
+            except errors.ObjectNotFoundError:
+                # If the image is not available anymore, assume nat is allowed
+                nat_allowed = True
+            else:
+                nat_allowed = image.nat_allowed
         status = sdk_server['status']
         fault = sdk_server.get('fault', {}).get('message', None)
         task = sdk_server.get('OS-EXT-STS:task_state', None)
