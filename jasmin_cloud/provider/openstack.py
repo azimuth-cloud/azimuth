@@ -6,9 +6,10 @@ import functools, logging, base64, hashlib, textwrap, uuid
 
 import dateutil.parser
 import requests
-from openstack import connection, profile, exceptions
+from openstack import connection, config, exceptions
 
 from . import base, errors, dto
+from jasmin_cloud_site import __version__
 
 
 logger = logging.getLogger(__name__)
@@ -110,11 +111,11 @@ def convert_sdk_exceptions(f):
             raise errors.ObjectNotFoundError(message)
         except exceptions.HttpException as e:
             message = _replace_resource_names(e.details)
-            if e.http_status == 400:
+            if e.status_code == 400:
                 raise errors.BadInputError(message)
-            elif e.http_status == 401:
+            elif e.status_code == 401:
                 raise errors.AuthenticationError('Your session has expired')
-            elif e.http_status == 403:
+            elif e.status_code == 403:
                 # Some quota exceeded errors get reported as permission denied (WHY???!!!)
                 # So report them as quota exceeded instead
                 if 'quota exceeded' in message.lower():
@@ -123,9 +124,9 @@ def convert_sdk_exceptions(f):
                         'Please check your tenancy quotas.'
                     )
                 raise errors.PermissionDeniedError('Permission denied')
-            elif e.http_status == 404:
+            elif e.status_code == 404:
                 raise errors.ObjectNotFoundError(message)
-            elif e.http_status == 409:
+            elif e.status_code == 409:
                 # 409 (Conflict) has a lot of different sub-errors depending on
                 # the actual error text
                 if 'quota exceeded' in message.lower():
@@ -217,21 +218,26 @@ class UnscopedSession(base.UnscopedSession):
                     'Could not find tenancy with ID {}'.format(tenancy)
                 )
         logger.info('[%s] [%s] Creating scoped session', self.username, tenancy.name)
-        prof = profile.Profile()
-        prof.set_version('identity', 'v3')
+        conf = config.OpenStackConfig(
+            app_name = 'jasmin-cloud-api',
+            app_version = __version__,
+            load_yaml_config = False
+        ).get_one_cloud(
+            auth_type = 'token',
+            auth = dict(
+                auth_url = self.auth_url,
+                token = self.token,
+                project_id = tenancy.id
+            ),
+#            interface = 'internal',
+            verify = False
+        )
         try:
             return ScopedSession(
                 self.username,
                 tenancy.id,
                 tenancy.name,
-                connection.Connection(
-                    auth_url = self.auth_url,
-                    profile = prof,
-                    project_id = tenancy.id,
-                    auth_plugin = 'token',
-                    token = self.token,
-                    verify = self.verify_ssl
-                )
+                connection.from_config(cloud_config = conf)
             )
         except exceptions.HttpException as e:
             # If creating the session fails with an auth error, convert that to
@@ -300,7 +306,7 @@ class ScopedSession(base.ScopedSession):
         # For block storage and floating IPs, use the API directly
         network_ep = self.connection.session.get_endpoint(service_type = 'network')
         network_quotas = self.connection.session.get(
-            network_ep + '/quotas/' + self.tenancy_id
+            network_ep + '/v2.0/quotas/' + self.tenancy_id
         ).json()
         quotas.append(
             dto.Quota(
@@ -382,7 +388,8 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.sizes`.
         """
         self._log('Fetching available flavors')
-        flavors = list(self.connection.compute.flavors(is_disabled = False))
+        all_flavors = self.connection.compute.flavors()
+        flavors = list(f for f in all_flavors if not f.is_disabled)
         self._log('Found %s flavors', len(flavors))
         return tuple(self._from_sdk_flavor(f) for f in flavors)
 
