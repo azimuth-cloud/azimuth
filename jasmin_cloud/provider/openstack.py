@@ -22,15 +22,17 @@ class Provider(base.Provider):
     Args:
         auth_url: The Keystone v3 authentication URL.
         domain: The domain to authenticate with.
+        interface: The OpenStack interface to connect using (default ``public``).
         verify_ssl: If ``True`` (the default), verify SSL certificates. If ``False``
                     SSL certificates are not verified.
     """
     provider_name = 'openstack'
 
-    def __init__(self, auth_url, domain = 'Default', verify_ssl = True):
+    def __init__(self, auth_url, domain = 'Default', interface = 'public', verify_ssl = True):
         # Strip any trailing slashes from the auth URL
         self.auth_url = auth_url.rstrip('/')
         self.domain = domain
+        self.interface = interface
         self.verify_ssl = verify_ssl
 
     def authenticate(self, username, password):
@@ -75,9 +77,13 @@ class Provider(base.Provider):
             raise errors.CommunicationError('Error with HTTP connection')
         try:
             logger.info('[%s] Creating unscoped session', username)
-            # The token is in a header
             return UnscopedSession(
-                self.auth_url, username, res.headers['X-Subject-Token'], self.verify_ssl
+                self.auth_url,
+                username,
+                # The token is in a header
+                res.headers['X-Subject-Token'],
+                self.interface,
+                self.verify_ssl
             )
         except KeyError:
             raise errors.CommunicationError('Unable to extract token from response')
@@ -151,15 +157,17 @@ class UnscopedSession(base.UnscopedSession):
         auth_url: The Keystone v2.0 authentication URL.
         username: The username of the OpenStack user.
         token: An unscoped user token for the OpenStack user.
+        interface: The OpenStack interface to connect using (default ``public``).
         verify_ssl: If ``True`` (the default), verify SSL certificates. If ``False``
                     SSL certificates are not verified.
     """
     provider_name = 'openstack'
 
-    def __init__(self, auth_url, username, token, verify_ssl = True):
+    def __init__(self, auth_url, username, token, interface = 'public', verify_ssl = True):
         self.auth_url = auth_url
         self.username = username
         self.token = token
+        self.interface = interface
         self.verify_ssl = verify_ssl
 
     def __repr__(self):
@@ -229,7 +237,7 @@ class UnscopedSession(base.UnscopedSession):
                 token = self.token,
                 project_id = tenancy.id
             ),
-#            interface = 'internal',
+            interface = self.interface,
             verify = False
         )
         try:
@@ -237,7 +245,8 @@ class UnscopedSession(base.UnscopedSession):
                 self.username,
                 tenancy.id,
                 tenancy.name,
-                connection.from_config(cloud_config = conf)
+                connection.from_config(cloud_config = conf),
+                self.interface
             )
         except exceptions.HttpException as e:
             # If creating the session fails with an auth error, convert that to
@@ -259,14 +268,16 @@ class ScopedSession(base.ScopedSession):
         tenancy_id: The tenancy id.
         tenancy_name: The name of the tenancy.
         connection: An ``openstack.connection.Connection`` for the tenancy.
+        interface: The OpenStack interface to connect using (default ``public``).
     """
     provider_name = 'openstack'
 
-    def __init__(self, username, tenancy_id, tenancy_name, connection):
+    def __init__(self, username, tenancy_id, tenancy_name, connection, interface = 'public'):
         self.username = username
         self.tenancy_id = tenancy_id
         self.tenancy_name = tenancy_name
         self.connection = connection
+        self.interface = interface
 
     def _log(self, message, *args, level = logging.INFO, **kwargs):
         logger.info(
@@ -304,7 +315,10 @@ class ScopedSession(base.ScopedSession):
             ),
         ]
         # For block storage and floating IPs, use the API directly
-        network_ep = self.connection.session.get_endpoint(service_type = 'network')
+        network_ep = self.connection.session.get_endpoint(
+            service_type = 'network',
+            interface = self.interface
+        )
         network_quotas = self.connection.session.get(
             network_ep + '/v2.0/quotas/' + self.tenancy_id
         ).json()
@@ -316,7 +330,10 @@ class ScopedSession(base.ScopedSession):
                 len(list(self.connection.network.ips()))
             )
         )
-        volume_ep = self.connection.session.get_endpoint(service_type = 'volume')
+        volume_ep = self.connection.session.get_endpoint(
+            service_type = 'volume',
+            interface = self.interface
+        )
         volume_limits = self.connection.session.get(volume_ep + '/limits').json()
         quotas.extend([
             dto.Quota(
@@ -424,12 +441,11 @@ class ScopedSession(base.ScopedSession):
         # There doesn't seem to be a way to get the fault info for a server through
         # the OpenStack SDK. So we use the API directly.
         self._log('Fetching available servers')
-        compute_ep = self.connection.session.get_endpoint(service_type = 'compute')
-        servers = self.connection.session.get(compute_ep + '/servers').json()['servers']
+        servers = list(self.connection.compute.servers())
         self._log('Found %s servers', len(servers))
         # The API only returns objects with a name and an ID
         # So fetch the full server for each machine
-        return tuple(self.find_machine(s['id']) for s in servers)
+        return tuple(self.find_machine(s.id) for s in servers)
 
     _POWER_STATES = {
         0 : 'Unknown',
@@ -448,7 +464,10 @@ class ScopedSession(base.ScopedSession):
         # There doesn't seem to be a way to get the fault info for a server through
         # the OpenStack SDK. So we use the API directly.
         self._log("Fetching server with id '%s'", id)
-        compute_ep = self.connection.session.get_endpoint(service_type = 'compute')
+        compute_ep = self.connection.session.get_endpoint(
+            service_type = 'compute',
+            interface = self.interface
+        )
         response = self.connection.session.get(compute_ep + '/servers/' + id)
         sdk_server = response.json()['server']
         # Try to get nat_allowed from the machine metadata
