@@ -7,6 +7,7 @@ import functools, logging, base64, hashlib, textwrap, uuid
 import dateutil.parser
 import requests
 from openstack import connection, config, exceptions
+from keystoneauth1 import exceptions as keystone_exceptions
 
 from . import base, errors, dto
 from jasmin_cloud_site import __version__
@@ -23,17 +24,22 @@ class Provider(base.Provider):
         auth_url: The Keystone v3 authentication URL.
         domain: The domain to authenticate with.
         interface: The OpenStack interface to connect using (default ``public``).
+        secondary_network_id: The UUID of a second network to connect to new machines
+                              when available. OPTIONAL, default ``None``.
+                              If the network is not given or not available to a
+                              tenancy, a second network is not connected.
         verify_ssl: If ``True`` (the default), verify SSL certificates. If ``False``
                     SSL certificates are not verified.
     """
     provider_name = 'openstack'
 
-    def __init__(self, auth_url, domain = 'Default', interface = 'public', verify_ssl = True):
+    def __init__(self, auth_url, **kwargs):
         # Strip any trailing slashes from the auth URL
         self.auth_url = auth_url.rstrip('/')
-        self.domain = domain
-        self.interface = interface
-        self.verify_ssl = verify_ssl
+        self.domain = kwargs.get('domain', 'Default')
+        self.interface = kwargs.get('interface', 'public')
+        self.secondary_network_id = kwargs.get('secondary_network_id', None)
+        self.verify_ssl = kwargs.get('verify_ssl', True)
 
     def authenticate(self, username, password):
         """
@@ -82,8 +88,9 @@ class Provider(base.Provider):
                 username,
                 # The token is in a header
                 res.headers['X-Subject-Token'],
-                self.interface,
-                self.verify_ssl
+                interface = self.interface,
+                secondary_network_id = self.secondary_network_id,
+                verify_ssl = self.verify_ssl
             )
         except KeyError:
             raise errors.CommunicationError('Unable to extract token from response')
@@ -115,13 +122,21 @@ def convert_sdk_exceptions(f):
         except exceptions.ResourceNotFound as e:
             message = _replace_resource_names(e.details.replace('404 Not Found: ', ''))
             raise errors.ObjectNotFoundError(message)
-        except exceptions.HttpException as e:
-            message = _replace_resource_names(e.details)
-            if e.status_code == 400:
+        except (exceptions.HttpException, keystone_exceptions.http.HttpError) as e:
+            # Status code is in one of two attributes
+            if hasattr(e, 'status_code'):
+                # This is an SDK exception
+                status_code = e.status_code
+                message = _replace_resource_names(e.details)
+            else:
+                # This is a raw session exception
+                status_code = e.http_status
+                message = e.message
+            if status_code == 400:
                 raise errors.BadInputError(message)
-            elif e.status_code == 401:
+            elif status_code == 401:
                 raise errors.AuthenticationError('Your session has expired')
-            elif e.status_code == 403:
+            elif status_code == 403:
                 # Some quota exceeded errors get reported as permission denied (WHY???!!!)
                 # So report them as quota exceeded instead
                 if 'quota exceeded' in message.lower():
@@ -130,9 +145,9 @@ def convert_sdk_exceptions(f):
                         'Please check your tenancy quotas.'
                     )
                 raise errors.PermissionDeniedError('Permission denied')
-            elif e.status_code == 404:
+            elif status_code == 404:
                 raise errors.ObjectNotFoundError(message)
-            elif e.status_code == 409:
+            elif status_code == 409:
                 # 409 (Conflict) has a lot of different sub-errors depending on
                 # the actual error text
                 if 'quota exceeded' in message.lower():
@@ -143,7 +158,7 @@ def convert_sdk_exceptions(f):
                 raise errors.InvalidOperationError(message)
             else:
                 raise errors.CommunicationError('Error communicating with OpenStack API')
-        except exceptions.SDKException as e:
+        except (exceptions.SDKException, keystone_exceptions.base.ClientException) as e:
             logger.exception('Unknown error in OpenStack SDK')
             raise errors.Error('Unknown error in OpenStack SDK')
     return wrapper
@@ -158,17 +173,22 @@ class UnscopedSession(base.UnscopedSession):
         username: The username of the OpenStack user.
         token: An unscoped user token for the OpenStack user.
         interface: The OpenStack interface to connect using (default ``public``).
+        secondary_network_id: The UUID of a second network to connect to new machines
+                              when available. OPTIONAL, default ``None``.
+                              If the network is not given or not available to a
+                              tenancy, a second network is not connected.
         verify_ssl: If ``True`` (the default), verify SSL certificates. If ``False``
                     SSL certificates are not verified.
     """
     provider_name = 'openstack'
 
-    def __init__(self, auth_url, username, token, interface = 'public', verify_ssl = True):
+    def __init__(self, auth_url, username, token, **kwargs):
         self.auth_url = auth_url
         self.username = username
         self.token = token
-        self.interface = interface
-        self.verify_ssl = verify_ssl
+        self.interface = kwargs.get('interface', 'public')
+        self.secondary_network_id = kwargs.get('secondary_network_id', None)
+        self.verify_ssl = kwargs.get('verify_ssl', True)
 
     def __repr__(self):
         return "openstack.UnscopedSession({}, {}, {})".format(
@@ -238,7 +258,7 @@ class UnscopedSession(base.UnscopedSession):
                 project_id = tenancy.id
             ),
             interface = self.interface,
-            verify = False
+            verify = self.verify_ssl
         )
         try:
             return ScopedSession(
@@ -246,7 +266,8 @@ class UnscopedSession(base.UnscopedSession):
                 tenancy.id,
                 tenancy.name,
                 connection.from_config(cloud_config = conf),
-                self.interface
+                interface = self.interface,
+                secondary_network_id = self.secondary_network_id
             )
         except exceptions.HttpException as e:
             # If creating the session fails with an auth error, convert that to
@@ -268,16 +289,21 @@ class ScopedSession(base.ScopedSession):
         tenancy_id: The tenancy id.
         tenancy_name: The name of the tenancy.
         connection: An ``openstack.connection.Connection`` for the tenancy.
+        secondary_network_id: The UUID of a second network to connect to new machines
+                              when available. OPTIONAL, default ``None``.
+                              If the network is not given or not available to a
+                              tenancy, a second network is not connected.
         interface: The OpenStack interface to connect using (default ``public``).
     """
     provider_name = 'openstack'
 
-    def __init__(self, username, tenancy_id, tenancy_name, connection, interface = 'public'):
+    def __init__(self, username, tenancy_id, tenancy_name, connection, **kwargs):
         self.username = username
         self.tenancy_id = tenancy_id
         self.tenancy_name = tenancy_name
         self.connection = connection
-        self.interface = interface
+        self.secondary_network_id = kwargs.get('secondary_network_id', None)
+        self.interface = kwargs.get('interface', 'public')
 
     def _log(self, message, *args, level = logging.INFO, **kwargs):
         logger.info(
@@ -485,7 +511,8 @@ class ScopedSession(base.ScopedSession):
         status = sdk_server['status']
         fault = sdk_server.get('fault', {}).get('message', None)
         task = sdk_server.get('OS-EXT-STS:task_state', None)
-        # Find IP addresses
+        # Find IP addresses specifically on the tenant network that is connected
+        # to the router
         network = self._tenant_network()
         # Function to get the first IP of a particular type on the tenant network
         def ip_of_type(ip_type):
@@ -555,8 +582,12 @@ class ScopedSession(base.ScopedSession):
             raise errors.BadInputError('Invalid image provided')
         size = size.id if isinstance(size, dto.Size) else size
         self._log("Creating machine '%s' (image: %s, size: %s)", name, image.name, size)
-        # Get the network id to use
-        network = self._tenant_network()
+        # Get the networks to use
+        networks = [{ 'uuid' : self._tenant_network().id }]
+        if self.secondary_network_id:
+            # If the network exists, add it
+            if self.connection.network.find_network(self.secondary_network_id) is not None:
+                networks.append({ 'uuid': self.secondary_network_id })
         # Get the keypair to inject
         keypair = self._get_or_create_keypair(ssh_key) if ssh_key else None
         # Interpolate values into the cloud-init script template
@@ -570,7 +601,7 @@ class ScopedSession(base.ScopedSession):
             name = name,
             image_id = image.id,
             flavor_id = size,
-            networks = [{ 'uuid' : network.id }],
+            networks = networks,
             # user_data should be base64 encoded, but a string (not bytes)
             # Hence the encode and decode
             user_data = base64.b64encode(cloud_init_script.encode('utf-8')).decode('utf-8'),
