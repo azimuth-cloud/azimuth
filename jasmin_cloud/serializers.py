@@ -13,7 +13,7 @@ from rest_framework import serializers
 
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
-    password = serializers.CharField(style = { 'input_type' : 'password' })
+    password = serializers.CharField(style = { 'input_type': 'password' })
 
 
 class TenancySerializer(serializers.Serializer):
@@ -26,34 +26,34 @@ class TenancySerializer(serializers.Serializer):
         request = self.context.get('request')
         if request:
             result.setdefault('links', {}).update({
-                'quotas' : request.build_absolute_uri(
+                'quotas': request.build_absolute_uri(
                     reverse('jasmin_cloud:quotas', kwargs = {
-                        'tenant' : obj.id,
+                        'tenant': obj.id,
                     })
                 ),
-                'images' : request.build_absolute_uri(
+                'images': request.build_absolute_uri(
                     reverse('jasmin_cloud:images', kwargs = {
-                        'tenant' : obj.id,
+                        'tenant': obj.id,
                     })
                 ),
-                'sizes' : request.build_absolute_uri(
+                'sizes': request.build_absolute_uri(
                     reverse('jasmin_cloud:sizes', kwargs = {
-                        'tenant' : obj.id,
+                        'tenant': obj.id,
                     })
                 ),
-                'volumes' : request.build_absolute_uri(
+                'volumes': request.build_absolute_uri(
                     reverse('jasmin_cloud:volumes', kwargs = {
-                        'tenant' : obj.id,
+                        'tenant': obj.id,
                     })
                 ),
-                'external_ips' : request.build_absolute_uri(
+                'external_ips': request.build_absolute_uri(
                     reverse('jasmin_cloud:external_ips', kwargs = {
-                        'tenant' : obj.id,
+                        'tenant': obj.id,
                     })
                 ),
-                'machines' : request.build_absolute_uri(
+                'machines': request.build_absolute_uri(
                     reverse('jasmin_cloud:machines', kwargs = {
-                        'tenant' : obj.id,
+                        'tenant': obj.id,
                     })
                 ),
             })
@@ -78,8 +78,8 @@ class ImageRefSerializer(serializers.Serializer):
         if request and tenant:
             result.setdefault('links', {})['self'] = request.build_absolute_uri(
                 reverse('jasmin_cloud:image_details', kwargs = {
-                    'tenant' : tenant,
-                    'image' : obj.id,
+                    'tenant': tenant,
+                    'image': obj.id,
                 })
             )
         return result
@@ -96,8 +96,8 @@ class SizeRefSerializer(serializers.Serializer):
         if request and tenant:
             result.setdefault('links', {})['self'] = request.build_absolute_uri(
                 reverse('jasmin_cloud:size_details', kwargs = {
-                    'tenant' : tenant,
-                    'size' : obj.id,
+                    'tenant': tenant,
+                    'size': obj.id,
                 })
             )
         return result
@@ -114,8 +114,8 @@ class VolumeRefSerializer(serializers.Serializer):
         if request and tenant:
             result.setdefault('links', {})['self'] = request.build_absolute_uri(
                 reverse('jasmin_cloud:volume_details', kwargs = {
-                    'tenant' : tenant,
-                    'volume' : obj.id,
+                    'tenant': tenant,
+                    'volume': obj.id,
                 })
             )
         return result
@@ -131,10 +131,10 @@ class MachineRefSerializer(serializers.Serializer):
         tenant = self.context.get('tenant')
         if request and tenant:
             result.setdefault('links', {}).update({
-                'self' : request.build_absolute_uri(
+                'self': request.build_absolute_uri(
                     reverse('jasmin_cloud:machine_details', kwargs = {
-                        'tenant' : tenant,
-                        'machine' : obj.id,
+                        'tenant': tenant,
+                        'machine': obj.id,
                     })
                 ),
             })
@@ -219,22 +219,22 @@ class MachineSerializer(MachineRefSerializer):
         tenant = self.context.get('tenant')
         if request and tenant:
             result.setdefault('links', {}).update({
-                'start' : request.build_absolute_uri(
+                'start': request.build_absolute_uri(
                     reverse('jasmin_cloud:machine_start', kwargs = {
-                        'tenant' : tenant,
-                        'machine' : obj.id,
+                        'tenant': tenant,
+                        'machine': obj.id,
                     })
                 ),
-                'stop' : request.build_absolute_uri(
+                'stop': request.build_absolute_uri(
                     reverse('jasmin_cloud:machine_stop', kwargs = {
-                        'tenant' : tenant,
-                        'machine' : obj.id,
+                        'tenant': tenant,
+                        'machine': obj.id,
                     })
                 ),
-                'restart' : request.build_absolute_uri(
+                'restart': request.build_absolute_uri(
                     reverse('jasmin_cloud:machine_restart', kwargs = {
-                        'tenant' : tenant,
-                        'machine' : obj.id,
+                        'tenant': tenant,
+                        'machine': obj.id,
                     })
                 ),
             })
@@ -257,8 +257,8 @@ class ExternalIPSerializer(serializers.Serializer):
         if request and tenant:
             result.setdefault('links', {})['self'] = request.build_absolute_uri(
                 reverse('jasmin_cloud:external_ip_details', kwargs = {
-                    'tenant' : tenant,
-                    'ip' : obj.external_ip,
+                    'tenant': tenant,
+                    'ip': obj.external_ip,
                 })
             )
         return result

@@ -2,11 +2,15 @@
 This module contains the provider implementation for OpenStack.
 """
 
-import functools, logging, base64, hashlib, textwrap, uuid
+import functools
+import logging
+import base64
+import hashlib
 
 import dateutil.parser
 import requests
-from openstack import connection, config, exceptions
+from openstack import connection, config, exceptions, resource
+from openstack.image.v2.image import Image as BaseImage
 from keystoneauth1 import exceptions as keystone_exceptions
 
 from . import base, errors, dto
@@ -22,10 +26,10 @@ class Provider(base.Provider):
 
     Args:
         auth_url: The Keystone v3 authentication URL.
-        domain: The domain to authenticate with.
+        domain: The domain to authenticate with (default ``Default``).
         interface: The OpenStack interface to connect using (default ``public``).
         secondary_network_id: The UUID of a second network to connect to new machines
-                              when available. OPTIONAL, default ``None``.
+                              when available (default ``None``).
                               If the network is not given or not available to a
                               tenancy, a second network is not connected.
         verify_ssl: If ``True`` (the default), verify SSL certificates. If ``False``
@@ -205,7 +209,7 @@ class UnscopedSession(base.UnscopedSession):
         # So we use the API directly
         res = requests.get(
             self.auth_url + '/auth/projects',
-            headers = { 'X-Auth-Token' : self.token },
+            headers = { 'X-Auth-Token': self.token },
             verify = self.verify_ssl
         )
         try:
@@ -377,19 +381,27 @@ class ScopedSession(base.ScopedSession):
         ])
         return quotas
 
+    class Image(BaseImage):
+        """
+        Custom image resource with custom properties defined.
+
+        The OpenStack SDK seems to make it impossible to consume custom properties
+        without doing this...
+        """
+        jasmin_type = resource.Body('jasmin_type')
+        jasmin_nat_allowed = resource.Body('jasmin_nat_allowed')
+
     def _from_sdk_image(self, sdk_image):
         """
         Converts an OpenStack SDK image object into a :py:class:`.dto.Image`.
         """
-        metadata = sdk_image.metadata or {}
         return dto.Image(
             sdk_image.id,
-            # Read the vm_type from image metadata
-            metadata.get('jasmin:host_type', 'UNKNOWN'),
+            getattr(sdk_image, 'jasmin_type', 'UNKNOWN'),
             sdk_image.name,
             sdk_image.visibility == 'public',
             # Unless specifically disallowed by a flag, NAT is allowed
-            bool(int(metadata.get('jasmin:nat_allowed', '1'))),
+            bool(int(getattr(sdk_image, 'jasmin_nat_allowed', '1'))),
             # The image size is specified in bytes. Convert to MB.
             float(sdk_image.size) / 1024.0 / 1024.0
         )
@@ -400,7 +412,8 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.images`.
         """
         self._log('Fetching available images')
-        images = list(self.connection.image.images(status = 'active'))
+        # Fetch from the SDK using our custom image resource
+        images = list(self.connection.image._list(self.Image, status = 'active'))
         self._log('Found %s images', len(images))
         return tuple(self._from_sdk_image(i) for i in images)
 
@@ -411,7 +424,8 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.find_image`.
         """
         self._log("Fetching image with id '%s'", id)
-        return self._from_sdk_image(self.connection.image.get_image(id))
+        # Fetch from the SDK using our custom image resource
+        return self._from_sdk_image(self.connection.image._get(self.Image, id))
 
     def _from_sdk_flavor(self, sdk_flavor):
         """
@@ -474,12 +488,12 @@ class ScopedSession(base.ScopedSession):
         return tuple(self.find_machine(s.id) for s in servers)
 
     _POWER_STATES = {
-        0 : 'Unknown',
-        1 : 'Running',
-        3 : 'Paused',
-        4 : 'Shut down',
-        6 : 'Crashed',
-        7 : 'Suspended',
+        0: 'Unknown',
+        1: 'Running',
+        3: 'Paused',
+        4: 'Shut down',
+        6: 'Crashed',
+        7: 'Suspended',
     }
 
     @convert_sdk_exceptions
@@ -499,7 +513,7 @@ class ScopedSession(base.ScopedSession):
         # Try to get nat_allowed from the machine metadata
         # If the nat_allowed metadata is not present, try to get it from the image
         try:
-            nat_allowed = bool(int(sdk_server['metadata']['jasmin:nat_allowed']))
+            nat_allowed = bool(int(sdk_server['metadata']['jasmin_nat_allowed']))
         except (TypeError, KeyError):
             try:
                 image = self.find_image(sdk_server['image']['id'])
@@ -559,17 +573,6 @@ class ScopedSession(base.ScopedSession):
                 public_key = ssh_key
             )
 
-    # This cloud-init script will ensure that the activator is called on startup
-    # Use textwrap.dedent to remove the indentation on the multiline string
-    # lstrip removes the leading newline
-    _CLOUD_INIT_TEMPLATE = textwrap.dedent("""
-    #cloud-config
-    warnings:
-      dsid_missing_source: off
-    runcmd:
-      - [ '/bin/bash', '/usr/local/bin/os-activator.sh', '{ssh_key}', '{tenancy}', '{vm_type}', '{uuid}' ]
-    """).lstrip()
-
     @convert_sdk_exceptions
     def create_machine(self, name, image, size, ssh_key = None):
         """
@@ -583,7 +586,7 @@ class ScopedSession(base.ScopedSession):
         size = size.id if isinstance(size, dto.Size) else size
         self._log("Creating machine '%s' (image: %s, size: %s)", name, image.name, size)
         # Get the networks to use
-        networks = [{ 'uuid' : self._tenant_network().id }]
+        networks = [{ 'uuid': self._tenant_network().id }]
         if self.secondary_network_id:
             # If the network exists, add it
             if self.connection.network.find_network(self.secondary_network_id) is not None:
@@ -591,22 +594,17 @@ class ScopedSession(base.ScopedSession):
         # Get the keypair to inject
         keypair = self._get_or_create_keypair(ssh_key) if ssh_key else None
         # Interpolate values into the cloud-init script template
-        cloud_init_script = self._CLOUD_INIT_TEMPLATE.format(
-            ssh_key = ssh_key or '',
-            tenancy = self.tenancy_name,
-            vm_type = image.vm_type,
-            uuid = uuid.uuid4().hex
-        )
         server = self.connection.compute.create_server(
             name = name,
             image_id = image.id,
             flavor_id = size,
             networks = networks,
-            # user_data should be base64 encoded, but a string (not bytes)
-            # Hence the encode and decode
-            user_data = base64.b64encode(cloud_init_script.encode('utf-8')).decode('utf-8'),
-            # Set the nat_allowed metadata based on the image
-            metadata = { 'jasmin:nat_allowed' : '1' if image.nat_allowed else '0' },
+            # Set the instance metadata
+            metadata = {
+                'jasmin_nat_allowed': '1' if image.nat_allowed else '0',
+                'jasmin_type': image.vm_type,
+                'jasmin_organisation': self.tenancy_name,
+            },
             # The SDK doesn't like it if None is given for keypair, but behaves
             # correctly if it is not given at all
             **({ 'key_name': keypair.name } if keypair else {})

@@ -37,10 +37,9 @@ class Image(namedtuple('Image', ['id', 'vm_type', 'name',
 
     Attributes:
         id: The id of the image.
-        vm_type: The VM-type of the image. This is passed to the activator script
-                 when a machine is provisioned from the template, potentially
-                 allowing multiple types of machine to be provisioned from the
-                 same soft-linked image.
+        vm_type: The VM-type of the image. When a machine is provisioned using
+                 the image this is passed to the machine, allowing it to configure
+                 itself appropriately.
         name: The human-readable name of the image.
         is_public: Indicates if the image is public or private.
         nat_allowed: Indicates if NAT is allowed for machines deployed from the image.

@@ -13,8 +13,7 @@ from docutils import core
 
 from rest_framework.utils import formatting
 from rest_framework import (
-    compat, decorators, permissions, response, status,
-    exceptions as drf_exceptions, views as drf_views
+    decorators, permissions, response, status, exceptions as drf_exceptions
 )
 
 from . import serializers
@@ -60,27 +59,27 @@ def convert_provider_exceptions(view):
         # return suitable responses
         except provider_errors.UnsupportedOperationError as exc:
             return response.Response(
-                { 'detail' : str(exc), 'code' : 'unsupported_operation'},
+                { 'detail': str(exc), 'code': 'unsupported_operation'},
                 status = status.HTTP_501_NOT_IMPLEMENTED
             )
         except provider_errors.QuotaExceededError as exc:
             return response.Response(
-                { 'detail' : str(exc), 'code' : 'quota_exceeded'},
+                { 'detail': str(exc), 'code': 'quota_exceeded'},
                 status = status.HTTP_409_CONFLICT
             )
         except provider_errors.InvalidOperationError as exc:
             return response.Response(
-                { 'detail' : str(exc), 'code' : 'invalid_operation'},
+                { 'detail': str(exc), 'code': 'invalid_operation'},
                 status = status.HTTP_409_CONFLICT
             )
         except provider_errors.BadInputError as exc:
             return response.Response(
-                { 'detail' : str(exc), 'code' : 'bad_input'},
+                { 'detail': str(exc), 'code': 'bad_input'},
                 status = status.HTTP_400_BAD_REQUEST
             )
         except provider_errors.OperationTimedOutError as exc:
             return response.Response(
-                { 'detail' : str(exc), 'code' : 'operation_timed_out'},
+                { 'detail': str(exc), 'code': 'operation_timed_out'},
                 status = status.HTTP_504_GATEWAY_TIMEOUT
             )
         # For authentication/not found errors, raise the DRF equivalent
@@ -93,7 +92,7 @@ def convert_provider_exceptions(view):
         except provider_errors.Error as exc:
             log.exception('Unexpected provider error occurred')
             return response.Response(
-                { 'detail' : str(exc) },
+                { 'detail': str(exc) },
                 status = status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     return wrapper
@@ -109,8 +108,8 @@ def authenticate(request):
     Example request payload::
 
         {
-            "username" : "jbloggs",
-            "password" : "mysecurepassword"
+            "username": "jbloggs",
+            "password": "mysecurepassword"
         }
     """
     serializer = serializers.LoginSerializer(data = request.data)
@@ -125,9 +124,9 @@ def authenticate(request):
     login(request, user)
     # Just return a 200 OK response
     return response.Response({
-        'username' : user.username,
-        'links' : {
-            'tenancies' : request.build_absolute_uri(reverse('jasmin_cloud:tenancies'))
+        'username': user.username,
+        'links': {
+            'tenancies': request.build_absolute_uri(reverse('jasmin_cloud:tenancies'))
         }
     })
 
@@ -148,9 +147,9 @@ def session(request):
         # Before claiming to be successful, first ping the current cloud session
         _ = request.session['unscoped_session'].tenancies()
         return response.Response({
-            'username' : request.user.username,
-            'links' : {
-                'tenancies' : request.build_absolute_uri(reverse('jasmin_cloud:tenancies'))
+            'username': request.user.username,
+            'links': {
+                'tenancies': request.build_absolute_uri(reverse('jasmin_cloud:tenancies'))
             }
         })
 
@@ -166,7 +165,7 @@ def tenancies(request):
     serializer = serializers.TenancySerializer(
         session.tenancies(),
         many = True,
-        context = { 'request' : request }
+        context = { 'request': request }
     )
     return response.Response(serializer.data)
 
@@ -182,7 +181,7 @@ def quotas(request, tenant):
     serializer = serializers.QuotaSerializer(
         session.quotas(),
         many = True,
-        context = { 'request' : request, 'tenant' : tenant }
+        context = { 'request': request, 'tenant': tenant }
     )
     return response.Response(serializer.data)
 
@@ -205,7 +204,7 @@ def images(request, tenant):
     serializer = serializers.ImageSerializer(
         session.images(),
         many = True,
-        context = { 'request' : request, 'tenant' : tenant }
+        context = { 'request': request, 'tenant': tenant }
     )
     return response.Response(serializer.data)
 
@@ -227,7 +226,7 @@ def image_details(request, tenant, image):
     session = request.session['unscoped_session'].scoped_session(tenant)
     serializer = serializers.ImageSerializer(
         session.find_image(image),
-        context = { 'request' : request, 'tenant' : tenant }
+        context = { 'request': request, 'tenant': tenant }
     )
     return response.Response(serializer.data)
 
@@ -250,7 +249,7 @@ def sizes(request, tenant):
     serializer = serializers.SizeSerializer(
         session.sizes(),
         many = True,
-        context = { 'request' : request, 'tenant' : tenant }
+        context = { 'request': request, 'tenant': tenant }
     )
     return response.Response(serializer.data)
 
@@ -272,7 +271,7 @@ def size_details(request, tenant, size):
     session = request.session['unscoped_session'].scoped_session(tenant)
     serializer = serializers.SizeSerializer(
         session.find_size(size),
-        context = { 'request' : request, 'tenant' : tenant }
+        context = { 'request': request, 'tenant': tenant }
     )
     return response.Response(serializer.data)
 
@@ -287,9 +286,9 @@ def machines(request, tenant):
     On ``POST`` requests, create a new machine. The request body should look like::
 
         {
-            "name" : "test-machine",
-            "image_id" : "<uuid of image>",
-            "size_id" : "<id of size>"
+            "name": "test-machine",
+            "image_id": "<uuid of image>",
+            "size_id": "<id of size>"
         }
     """
     session = request.session['unscoped_session'].scoped_session(tenant)
@@ -303,14 +302,14 @@ def machines(request, tenant):
                 input_serializer.validated_data['size_id'],
                 cloud_settings.SSH_KEY_STORE.get_key(request.user.username)
             ),
-            context = { 'request' : request, 'tenant' : tenant }
+            context = { 'request': request, 'tenant': tenant }
         )
         return response.Response(output_serializer.data, status = status.HTTP_201_CREATED)
     else:
         serializer = serializers.MachineSerializer(
             session.machines(),
             many = True,
-            context = { 'request' : request, 'tenant' : tenant }
+            context = { 'request': request, 'tenant': tenant }
         )
         return response.Response(serializer.data)
 
@@ -330,7 +329,7 @@ def machine_details(request, tenant, machine):
         if deleted:
             serializer = serializers.MachineSerializer(
                 deleted,
-                context = { 'request' : request, 'tenant' : tenant }
+                context = { 'request': request, 'tenant': tenant }
             )
             return response.Response(serializer.data)
         else:
@@ -338,7 +337,7 @@ def machine_details(request, tenant, machine):
     else:
         serializer = serializers.MachineSerializer(
             session.find_machine(machine),
-            context = { 'request' : request, 'tenant' : tenant }
+            context = { 'request': request, 'tenant': tenant }
         )
         return response.Response(serializer.data)
 
@@ -353,7 +352,7 @@ def machine_start(request, tenant, machine):
     session = request.session['unscoped_session'].scoped_session(tenant)
     serializer = serializers.MachineSerializer(
         session.start_machine(machine),
-        context = { 'request' : request, 'tenant' : tenant }
+        context = { 'request': request, 'tenant': tenant }
     )
     return response.Response(serializer.data)
 
@@ -368,7 +367,7 @@ def machine_stop(request, tenant, machine):
     session = request.session['unscoped_session'].scoped_session(tenant)
     serializer = serializers.MachineSerializer(
         session.stop_machine(machine),
-        context = { 'request' : request, 'tenant' : tenant }
+        context = { 'request': request, 'tenant': tenant }
     )
     return response.Response(serializer.data)
 
@@ -383,7 +382,7 @@ def machine_restart(request, tenant, machine):
     session = request.session['unscoped_session'].scoped_session(tenant)
     serializer = serializers.MachineSerializer(
         session.restart_machine(machine),
-        context = { 'request' : request, 'tenant' : tenant }
+        context = { 'request': request, 'tenant': tenant }
     )
     return response.Response(serializer.data)
 
@@ -401,8 +400,8 @@ def external_ips(request, tenant):
     body is ignored. The returned response will be the allocated IP::
 
         {
-            "external_ip" : "172.28.128.4",
-            "internal_ip" : null
+            "external_ip": "172.28.128.4",
+            "internal_ip": null
         }
     """
     session = request.session['unscoped_session'].scoped_session(tenant)
@@ -413,7 +412,7 @@ def external_ips(request, tenant):
         serializer = serializers.ExternalIPSerializer(
             session.external_ips(),
             many = True,
-            context = { 'request' : request, 'tenant' : tenant }
+            context = { 'request': request, 'tenant': tenant }
         )
         return response.Response(serializer.data)
 
@@ -430,7 +429,7 @@ def external_ip_details(request, tenant, ip):
     the machine it is currently attached to.
     The request body should contain the machine ID::
 
-        { "machine_id" : "<machine id>" }
+        { "machine_id": "<machine id>" }
     """
     session = request.session['unscoped_session'].scoped_session(tenant)
     if request.method == 'PUT':
@@ -443,13 +442,13 @@ def external_ip_details(request, tenant, ip):
             ip = session.detach_external_ip(ip)
         output_serializer = serializers.ExternalIPSerializer(
             ip,
-            context = { 'request' : request, 'tenant' : tenant }
+            context = { 'request': request, 'tenant': tenant }
         )
         return response.Response(output_serializer.data)
     else:
         serializer = serializers.ExternalIPSerializer(
             session.find_external_ip(ip),
-            context = { 'request' : request, 'tenant' : tenant }
+            context = { 'request': request, 'tenant': tenant }
         )
         return response.Response(serializer.data)
 
@@ -464,8 +463,8 @@ def volumes(request, tenant):
     On ``POST`` requests, create a new volume. The request body should look like::
 
         {
-            "name" : "volume-name",
-            "size" : 20
+            "name": "volume-name",
+            "size": 20
         }
 
     The size of the volume is given in GB.
@@ -479,14 +478,14 @@ def volumes(request, tenant):
                 input_serializer.validated_data['name'],
                 input_serializer.validated_data['size']
             ),
-            context = { 'request' : request, 'tenant' : tenant }
+            context = { 'request': request, 'tenant': tenant }
         )
         return response.Response(output_serializer.data, status = status.HTTP_201_CREATED)
     else:
         serializer = serializers.VolumeSerializer(
             session.volumes(),
             many = True,
-            context = { 'request' : request, 'tenant' : tenant }
+            context = { 'request': request, 'tenant': tenant }
         )
         return response.Response(serializer.data)
 
@@ -503,11 +502,11 @@ def volume_details(request, tenant, volume):
 
     To attach a volume to a machine, just give the machine id::
 
-        { "machine_id" : "<uuid of machine>" }
+        { "machine_id": "<uuid of machine>" }
 
     To detach a volume, just give ``null`` as the the machine id::
 
-        { "machine_id" : null }
+        { "machine_id": null }
 
     On ``DELETE`` requests, delete the specified volume.
     """
@@ -522,7 +521,7 @@ def volume_details(request, tenant, volume):
             volume = session.detach_volume(volume)
         output_serializer = serializers.VolumeSerializer(
             volume,
-            context = { 'request' : request, 'tenant' : tenant }
+            context = { 'request': request, 'tenant': tenant }
         )
         return response.Response(output_serializer.data)
     elif request.method == 'DELETE':
@@ -530,7 +529,7 @@ def volume_details(request, tenant, volume):
         if deleted:
             serializer = serializers.VolumeSerializer(
                 deleted,
-                context = { 'request' : request, 'tenant' : tenant }
+                context = { 'request': request, 'tenant': tenant }
             )
             return response.Response(serializer.data)
         else:
@@ -538,6 +537,6 @@ def volume_details(request, tenant, volume):
     else:
         serializer = serializers.VolumeSerializer(
             session.find_volume(volume),
-            context = { 'request' : request, 'tenant' : tenant }
+            context = { 'request': request, 'tenant': tenant }
         )
         return response.Response(serializer.data)
