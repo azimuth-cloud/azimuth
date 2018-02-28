@@ -11,6 +11,7 @@ import dateutil.parser
 import requests
 from openstack import connection, config, exceptions, resource
 from openstack.image.v2.image import Image as BaseImage
+from openstack.compute.v2 import server
 from keystoneauth1 import exceptions as keystone_exceptions
 
 from . import base, errors, dto
@@ -473,19 +474,21 @@ class ScopedSession(base.ScopedSession):
         else:
             return self.connection.network.find_network(port.network_id)
 
-    @convert_sdk_exceptions
-    def machines(self):
+    class Server(server.Server):
         """
-        See :py:meth:`.base.ScopedSession.machines`.
+        Custom server resource with fault property.
         """
-        # There doesn't seem to be a way to get the fault info for a server through
-        # the OpenStack SDK. So we use the API directly.
-        self._log('Fetching available servers')
-        servers = list(self.connection.compute.servers())
-        self._log('Found %s servers', len(servers))
-        # The API only returns objects with a name and an ID
-        # So fetch the full server for each machine
-        return tuple(self.find_machine(s.id) for s in servers)
+        fault = resource.Body('fault', type = dict)
+
+    class ServerDetail(server.ServerDetail):
+        """
+        Custom server detail resource with fault property.
+
+        ``ServerDetail`` extends ``Server`` but with a different API endpoint
+        (``/servers/detail``) that only works when listing. The ``Server``
+        endpoint (``/servers``) only returns id and name for each server.
+        """
+        fault = resource.Body('fault', type = dict)
 
     _POWER_STATES = {
         0: 'Unknown',
@@ -496,35 +499,25 @@ class ScopedSession(base.ScopedSession):
         7: 'Suspended',
     }
 
-    @convert_sdk_exceptions
-    def find_machine(self, id):
+    def _from_sdk_server(self, sdk_server):
         """
         See :py:meth:`.base.ScopedSession.find_machine`.
         """
-        # There doesn't seem to be a way to get the fault info for a server through
-        # the OpenStack SDK. So we use the API directly.
-        self._log("Fetching server with id '%s'", id)
-        compute_ep = self.connection.session.get_endpoint(
-            service_type = 'compute',
-            interface = self.interface
-        )
-        response = self.connection.session.get(compute_ep + '/servers/' + id)
-        sdk_server = response.json()['server']
         # Try to get nat_allowed from the machine metadata
         # If the nat_allowed metadata is not present, try to get it from the image
         try:
-            nat_allowed = bool(int(sdk_server['metadata']['jasmin_nat_allowed']))
+            nat_allowed = bool(int(sdk_server.metadata['jasmin_nat_allowed']))
         except (TypeError, KeyError):
             try:
-                image = self.find_image(sdk_server['image']['id'])
+                image = self.find_image(sdk_server.image['id'])
             except errors.ObjectNotFoundError:
                 # If the image is not available anymore, assume nat is allowed
                 nat_allowed = True
             else:
                 nat_allowed = image.nat_allowed
-        status = sdk_server['status']
-        fault = sdk_server.get('fault', {}).get('message', None)
-        task = sdk_server.get('OS-EXT-STS:task_state', None)
+        status = sdk_server.status
+        fault = (sdk_server.fault or {}).get('message', None)
+        task = sdk_server.task_state
         # Find IP addresses specifically on the tenant network that is connected
         # to the router
         network = self._tenant_network()
@@ -533,30 +526,50 @@ class ScopedSession(base.ScopedSession):
             return next(
                 (
                     a['addr']
-                    for a in sdk_server['addresses'].get(network.name, [])
+                    for a in sdk_server.addresses.get(network.name, [])
                     if a['version'] == 4 and a['OS-EXT-IPS:type'] == ip_type
                 ),
                 None
             )
         return dto.Machine(
-            sdk_server['id'],
-            sdk_server['name'],
-            sdk_server['image']['id'],
-            sdk_server['flavor']['id'],
+            sdk_server.id,
+            sdk_server.name,
+            sdk_server.image['id'],
+            sdk_server.flavor['id'],
             dto.Machine.Status(
                 getattr(dto.Machine.Status.Type, status, dto.Machine.Status.Type.OTHER),
                 status,
                 _replace_resource_names(fault) if fault else None
             ),
-            self._POWER_STATES[sdk_server['OS-EXT-STS:power_state']],
+            self._POWER_STATES[sdk_server.power_state],
             task.capitalize() if task else None,
             ip_of_type('fixed'),
             ip_of_type('floating'),
             nat_allowed,
-            tuple(v['id'] for v in sdk_server['os-extended-volumes:volumes_attached']),
-            sdk_server['user_id'],
-            dateutil.parser.parse(sdk_server['created'])
+            tuple(v['id'] for v in sdk_server.attached_volumes),
+            sdk_server.user_id,
+            dateutil.parser.parse(sdk_server.created_at)
         )
+
+    @convert_sdk_exceptions
+    def machines(self):
+        """
+        See :py:meth:`.base.ScopedSession.machines`.
+        """
+        self._log('Fetching available servers')
+        # In order to get fault info, we need to use a custom resource definition
+        servers = list(self.connection.compute._list(self.ServerDetail))
+        self._log('Found %s servers', len(servers))
+        return tuple(self._from_sdk_server(s) for s in servers)
+
+    @convert_sdk_exceptions
+    def find_machine(self, id):
+        """
+        See :py:meth:`.base.ScopedSession.find_machine`.
+        """
+        # In order to get fault info, we need to use a custom resource definition
+        self._log("Fetching server with id '%s'", id)
+        return self._from_sdk_server(self.connection.compute._get(self.Server, id))
 
     def _get_or_create_keypair(self, ssh_key):
         # Keypairs are immutable, i.e. once created cannot be changed
