@@ -398,11 +398,11 @@ class ScopedSession(base.ScopedSession):
         """
         return dto.Image(
             sdk_image.id,
-            getattr(sdk_image, 'jasmin_type', 'UNKNOWN'),
+            sdk_image.jasmin_type or 'UNKNOWN',
             sdk_image.name,
             sdk_image.visibility == 'public',
             # Unless specifically disallowed by a flag, NAT is allowed
-            bool(int(getattr(sdk_image, 'jasmin_nat_allowed', '1'))),
+            bool(int(sdk_image.jasmin_nat_allowed or '1')),
             # The image size is specified in bytes. Convert to MB.
             float(sdk_image.size) / 1024.0 / 1024.0
         )
