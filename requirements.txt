@@ -3,10 +3,10 @@ certifi==2018.1.18
 chardet==3.0.4
 decorator==4.2.1
 deprecation==2.0
-Django==2.0.2
+Django==2.0.3
 djangorestframework==3.7.7
 docutils==0.14
-dogpile.cache==0.6.4
+dogpile.cache==0.6.5
 idna==2.6
 iso8601==0.1.12
 -e git+https://github.com/cedadev/jasmin-django-utils.git@4b1b140abca73d5001a74cf9647a17e7f72c9219#egg=jasmin_django_utils
@@ -18,14 +18,14 @@ keystoneauth1==3.4.0
 ldap3==2.4.1
 munch==2.2.0
 netifaces==0.10.6
-openstacksdk==0.11.3
+openstacksdk==0.12.0
 os-service-types==1.2.0
-packaging==16.8
+packaging==17.1
 pbr==3.1.1
 psycopg2==2.7.4
 pyasn1==0.4.2
 pyparsing==2.2.0
-python-dateutil==2.6.1
+python-dateutil==2.7.2
 pytz==2018.3
 PyYAML==3.12
 requests==2.18.4
