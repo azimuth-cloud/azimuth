@@ -177,12 +177,12 @@ def quotas(request, tenant):
     """
     Returns information about the quotas available to the tenant.
     """
-    session = request.session['unscoped_session'].scoped_session(tenant)
-    serializer = serializers.QuotaSerializer(
-        session.quotas(),
-        many = True,
-        context = { 'request': request, 'tenant': tenant }
-    )
+    with request.session['unscoped_session'].scoped_session(tenant) as session:
+        serializer = serializers.QuotaSerializer(
+            session.quotas(),
+            many = True,
+            context = { 'request': request, 'tenant': tenant }
+        )
     return response.Response(serializer.data)
 
 
@@ -200,12 +200,12 @@ def images(request, tenant):
     * ``is_public``: Indicates if the image is public or private.
     * ``nat_allowed``: Indicates if NAT is allowed for machines deployed from the image.
     """
-    session = request.session['unscoped_session'].scoped_session(tenant)
-    serializer = serializers.ImageSerializer(
-        session.images(),
-        many = True,
-        context = { 'request': request, 'tenant': tenant }
-    )
+    with request.session['unscoped_session'].scoped_session(tenant) as session:
+        serializer = serializers.ImageSerializer(
+            session.images(),
+            many = True,
+            context = { 'request': request, 'tenant': tenant }
+        )
     return response.Response(serializer.data)
 
 
@@ -223,11 +223,11 @@ def image_details(request, tenant, image):
     * ``is_public``: Indicates if the image is public or private.
     * ``nat_allowed``: Indicates if NAT is allowed for machines deployed from the image.
     """
-    session = request.session['unscoped_session'].scoped_session(tenant)
-    serializer = serializers.ImageSerializer(
-        session.find_image(image),
-        context = { 'request': request, 'tenant': tenant }
-    )
+    with request.session['unscoped_session'].scoped_session(tenant) as session:
+        serializer = serializers.ImageSerializer(
+            session.find_image(image),
+            context = { 'request': request, 'tenant': tenant }
+        )
     return response.Response(serializer.data)
 
 
@@ -245,12 +245,12 @@ def sizes(request, tenant):
     * ``cpus``: The number of CPUs.
     * ``ram``: The amount of RAM (in MB).
     """
-    session = request.session['unscoped_session'].scoped_session(tenant)
-    serializer = serializers.SizeSerializer(
-        session.sizes(),
-        many = True,
-        context = { 'request': request, 'tenant': tenant }
-    )
+    with request.session['unscoped_session'].scoped_session(tenant) as session:
+        serializer = serializers.SizeSerializer(
+            session.sizes(),
+            many = True,
+            context = { 'request': request, 'tenant': tenant }
+        )
     return response.Response(serializer.data)
 
 
@@ -268,11 +268,11 @@ def size_details(request, tenant, size):
     * ``cpus``: The number of CPUs.
     * ``ram``: The amount of RAM (in MB).
     """
-    session = request.session['unscoped_session'].scoped_session(tenant)
-    serializer = serializers.SizeSerializer(
-        session.find_size(size),
-        context = { 'request': request, 'tenant': tenant }
-    )
+    with request.session['unscoped_session'].scoped_session(tenant) as session:
+        serializer = serializers.SizeSerializer(
+            session.find_size(size),
+            context = { 'request': request, 'tenant': tenant }
+        )
     return response.Response(serializer.data)
 
 
@@ -291,26 +291,27 @@ def machines(request, tenant):
             "size_id": "<id of size>"
         }
     """
-    session = request.session['unscoped_session'].scoped_session(tenant)
     if request.method == 'POST':
         input_serializer = serializers.MachineSerializer(data = request.data)
         input_serializer.is_valid(raise_exception = True)
-        output_serializer = serializers.MachineSerializer(
-            session.create_machine(
-                input_serializer.validated_data['name'],
-                input_serializer.validated_data['image_id'],
-                input_serializer.validated_data['size_id'],
-                cloud_settings.SSH_KEY_STORE.get_key(request.user.username)
-            ),
-            context = { 'request': request, 'tenant': tenant }
-        )
+        with request.session['unscoped_session'].scoped_session(tenant) as session:
+            output_serializer = serializers.MachineSerializer(
+                session.create_machine(
+                    input_serializer.validated_data['name'],
+                    input_serializer.validated_data['image_id'],
+                    input_serializer.validated_data['size_id'],
+                    cloud_settings.SSH_KEY_STORE.get_key(request.user.username)
+                ),
+                context = { 'request': request, 'tenant': tenant }
+            )
         return response.Response(output_serializer.data, status = status.HTTP_201_CREATED)
     else:
-        serializer = serializers.MachineSerializer(
-            session.machines(),
-            many = True,
-            context = { 'request': request, 'tenant': tenant }
-        )
+        with request.session['unscoped_session'].scoped_session(tenant) as session:
+            serializer = serializers.MachineSerializer(
+                session.machines(),
+                many = True,
+                context = { 'request': request, 'tenant': tenant }
+            )
         return response.Response(serializer.data)
 
 
@@ -323,9 +324,9 @@ def machine_details(request, tenant, machine):
 
     On ``DELETE`` requests, delete the specified machine.
     """
-    session = request.session['unscoped_session'].scoped_session(tenant)
     if request.method == 'DELETE':
-        deleted = session.delete_machine(machine)
+        with request.session['unscoped_session'].scoped_session(tenant) as session:
+            deleted = session.delete_machine(machine)
         if deleted:
             serializer = serializers.MachineSerializer(
                 deleted,
@@ -335,10 +336,11 @@ def machine_details(request, tenant, machine):
         else:
             return response.Response()
     else:
-        serializer = serializers.MachineSerializer(
-            session.find_machine(machine),
-            context = { 'request': request, 'tenant': tenant }
-        )
+        with request.session['unscoped_session'].scoped_session(tenant) as session:
+            serializer = serializers.MachineSerializer(
+                session.find_machine(machine),
+                context = { 'request': request, 'tenant': tenant }
+            )
         return response.Response(serializer.data)
 
 
@@ -349,11 +351,11 @@ def machine_start(request, tenant, machine):
     """
     Start (power on) the specified machine.
     """
-    session = request.session['unscoped_session'].scoped_session(tenant)
-    serializer = serializers.MachineSerializer(
-        session.start_machine(machine),
-        context = { 'request': request, 'tenant': tenant }
-    )
+    with request.session['unscoped_session'].scoped_session(tenant) as session:
+        serializer = serializers.MachineSerializer(
+            session.start_machine(machine),
+            context = { 'request': request, 'tenant': tenant }
+        )
     return response.Response(serializer.data)
 
 
@@ -364,11 +366,11 @@ def machine_stop(request, tenant, machine):
     """
     Stop (power off) the specified machine.
     """
-    session = request.session['unscoped_session'].scoped_session(tenant)
-    serializer = serializers.MachineSerializer(
-        session.stop_machine(machine),
-        context = { 'request': request, 'tenant': tenant }
-    )
+    with request.session['unscoped_session'].scoped_session(tenant) as session:
+        serializer = serializers.MachineSerializer(
+            session.stop_machine(machine),
+            context = { 'request': request, 'tenant': tenant }
+        )
     return response.Response(serializer.data)
 
 
@@ -379,11 +381,11 @@ def machine_restart(request, tenant, machine):
     """
     Restart (power cycle) the specified machine.
     """
-    session = request.session['unscoped_session'].scoped_session(tenant)
-    serializer = serializers.MachineSerializer(
-        session.restart_machine(machine),
-        context = { 'request': request, 'tenant': tenant }
-    )
+    with request.session['unscoped_session'].scoped_session(tenant) as session:
+        serializer = serializers.MachineSerializer(
+            session.restart_machine(machine),
+            context = { 'request': request, 'tenant': tenant }
+        )
     return response.Response(serializer.data)
 
 
@@ -404,16 +406,17 @@ def external_ips(request, tenant):
             "internal_ip": null
         }
     """
-    session = request.session['unscoped_session'].scoped_session(tenant)
     if request.method == 'POST':
-        serializer = serializers.ExternalIPSerializer(session.allocate_external_ip())
+        with request.session['unscoped_session'].scoped_session(tenant) as session:
+            serializer = serializers.ExternalIPSerializer(session.allocate_external_ip())
         return response.Response(serializer.data, status = status.HTTP_201_CREATED)
     else:
-        serializer = serializers.ExternalIPSerializer(
-            session.external_ips(),
-            many = True,
-            context = { 'request': request, 'tenant': tenant }
-        )
+        with request.session['unscoped_session'].scoped_session(tenant) as session:
+            serializer = serializers.ExternalIPSerializer(
+                session.external_ips(),
+                many = True,
+                context = { 'request': request, 'tenant': tenant }
+            )
         return response.Response(serializer.data)
 
 
@@ -431,25 +434,26 @@ def external_ip_details(request, tenant, ip):
 
         { "machine_id": "<machine id>" }
     """
-    session = request.session['unscoped_session'].scoped_session(tenant)
     if request.method == 'PUT':
         input_serializer = serializers.ExternalIPSerializer(data = request.data)
         input_serializer.is_valid(raise_exception = True)
         machine_id = input_serializer.validated_data['machine_id']
-        if machine_id:
-            ip = session.attach_external_ip(ip, str(machine_id))
-        else:
-            ip = session.detach_external_ip(ip)
+        with request.session['unscoped_session'].scoped_session(tenant) as session:
+            if machine_id:
+                ip = session.attach_external_ip(ip, str(machine_id))
+            else:
+                ip = session.detach_external_ip(ip)
         output_serializer = serializers.ExternalIPSerializer(
             ip,
             context = { 'request': request, 'tenant': tenant }
         )
         return response.Response(output_serializer.data)
     else:
-        serializer = serializers.ExternalIPSerializer(
-            session.find_external_ip(ip),
-            context = { 'request': request, 'tenant': tenant }
-        )
+        with request.session['unscoped_session'].scoped_session(tenant) as session:
+            serializer = serializers.ExternalIPSerializer(
+                session.find_external_ip(ip),
+                context = { 'request': request, 'tenant': tenant }
+            )
         return response.Response(serializer.data)
 
 
@@ -469,24 +473,25 @@ def volumes(request, tenant):
 
     The size of the volume is given in GB.
     """
-    session = request.session['unscoped_session'].scoped_session(tenant)
     if request.method == 'POST':
         input_serializer = serializers.CreateVolumeSerializer(data = request.data)
         input_serializer.is_valid(raise_exception = True)
-        output_serializer = serializers.VolumeSerializer(
-            session.create_volume(
-                input_serializer.validated_data['name'],
-                input_serializer.validated_data['size']
-            ),
-            context = { 'request': request, 'tenant': tenant }
-        )
+        with request.session['unscoped_session'].scoped_session(tenant) as session:
+            output_serializer = serializers.VolumeSerializer(
+                session.create_volume(
+                    input_serializer.validated_data['name'],
+                    input_serializer.validated_data['size']
+                ),
+                context = { 'request': request, 'tenant': tenant }
+            )
         return response.Response(output_serializer.data, status = status.HTTP_201_CREATED)
     else:
-        serializer = serializers.VolumeSerializer(
-            session.volumes(),
-            many = True,
-            context = { 'request': request, 'tenant': tenant }
-        )
+        with request.session['unscoped_session'].scoped_session(tenant) as session:
+            serializer = serializers.VolumeSerializer(
+                session.volumes(),
+                many = True,
+                context = { 'request': request, 'tenant': tenant }
+            )
         return response.Response(serializer.data)
 
 
@@ -510,22 +515,23 @@ def volume_details(request, tenant, volume):
 
     On ``DELETE`` requests, delete the specified volume.
     """
-    session = request.session['unscoped_session'].scoped_session(tenant)
     if request.method == 'PUT':
         input_serializer = serializers.UpdateVolumeSerializer(data = request.data)
         input_serializer.is_valid(raise_exception = True)
         machine_id = input_serializer.validated_data['machine_id']
-        if machine_id:
-            volume = session.attach_volume(volume, str(machine_id))
-        else:
-            volume = session.detach_volume(volume)
+        with request.session['unscoped_session'].scoped_session(tenant) as session:
+            if machine_id:
+                volume = session.attach_volume(volume, str(machine_id))
+            else:
+                volume = session.detach_volume(volume)
         output_serializer = serializers.VolumeSerializer(
             volume,
             context = { 'request': request, 'tenant': tenant }
         )
         return response.Response(output_serializer.data)
     elif request.method == 'DELETE':
-        deleted = session.delete_volume(volume)
+        with request.session['unscoped_session'].scoped_session(tenant) as session:
+            deleted = session.delete_volume(volume)
         if deleted:
             serializer = serializers.VolumeSerializer(
                 deleted,
@@ -535,8 +541,9 @@ def volume_details(request, tenant, volume):
         else:
             return response.Response()
     else:
-        serializer = serializers.VolumeSerializer(
-            session.find_volume(volume),
-            context = { 'request': request, 'tenant': tenant }
-        )
+        with request.session['unscoped_session'].scoped_session(tenant) as session:
+            serializer = serializers.VolumeSerializer(
+                session.find_volume(volume),
+                context = { 'request': request, 'tenant': tenant }
+            )
         return response.Response(serializer.data)

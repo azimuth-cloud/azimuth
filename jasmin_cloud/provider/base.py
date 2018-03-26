@@ -402,3 +402,27 @@ class ScopedSession:
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
+
+    def close(self):
+        """
+        Closes the session and performs any cleanup.
+        """
+        # This is a NOOP by default
+
+    def __enter__(self):
+        """
+        Called when entering a context manager block.
+        """
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """
+        Called when exiting a context manager block. Ensures that close is called.
+        """
+        self.close()
+
+    def __del__(self):
+        """
+        Ensures that close is called when the session is garbage collected.
+        """
+        self.close()

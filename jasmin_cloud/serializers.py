@@ -189,7 +189,7 @@ class MachineStatusSerializer(serializers.Serializer):
     details = serializers.CharField(read_only = True)
 
 class MachineSerializer(MachineRefSerializer):
-    name = serializers.RegexField('^[a-z0-9\.\-_]+$')
+    name = serializers.CharField()
 
     image = ImageRefSerializer(read_only = True)
     image_id = serializers.UUIDField(write_only = True)

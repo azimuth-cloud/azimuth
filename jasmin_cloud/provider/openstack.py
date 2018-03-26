@@ -884,3 +884,10 @@ class ScopedSession(base.ScopedSession):
         self._log("Detaching volume '%s' from '%s'", volume.id, volume.machine_id)
         self.connection.compute.delete_volume_attachment(volume.id, volume.machine_id)
         return self.find_volume(volume.id)
+
+    def close(self):
+        """
+        See :py:meth:`.base.ScopedSession.close`.
+        """
+        # Make sure the underlying requests session is closed
+        self.connection.session.session.close()
