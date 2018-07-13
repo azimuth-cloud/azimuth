@@ -538,8 +538,8 @@ class ScopedSession(base.ScopedSession):
         return dto.Machine(
             sdk_server.id,
             sdk_server.name,
-            image.id if image else None,
-            size.id if size else None,
+            image,
+            size,
             dto.Machine.Status(
                 getattr(dto.Machine.Status.Type, status, dto.Machine.Status.Type.OTHER),
                 status,

@@ -66,7 +66,7 @@ class Size(namedtuple('Size', ['id', 'name', 'cpus', 'ram', 'disk'])):
     """
 
 
-class Machine(namedtuple('Machine', ['id', 'name', 'image_id', 'size_id',
+class Machine(namedtuple('Machine', ['id', 'name', 'image', 'size',
                                      'status', 'power_state', 'task',
                                      'internal_ip', 'external_ip', 'nat_allowed',
                                      'attached_volume_ids', 'owner', 'created'])):
@@ -76,8 +76,8 @@ class Machine(namedtuple('Machine', ['id', 'name', 'image_id', 'size_id',
     Attributes:
         id: The id of the machine.
         name: The human-readable name of the machine.
-        image_id: The id of the image used to deploy the machine.
-        size_id: The of the size of the machine.
+        image: The image used to deploy the machine.
+        size: The the size of the machine.
         status: The :py:class:`Status` of the machine.
         power_state: The power state of the machine as a string.
         task: String representation of any task that is currently executing.

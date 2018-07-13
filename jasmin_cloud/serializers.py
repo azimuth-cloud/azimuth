@@ -67,42 +67,6 @@ class QuotaSerializer(serializers.Serializer):
     used = serializers.IntegerField(read_only = True)
 
 
-class ImageRefSerializer(serializers.Serializer):
-    id = serializers.UUIDField(read_only = True)
-
-    def to_representation(self, obj):
-        result = super().to_representation(obj)
-        # If the info to build a link is in the context, add it
-        request = self.context.get('request')
-        tenant = self.context.get('tenant')
-        if request and tenant:
-            result.setdefault('links', {})['self'] = request.build_absolute_uri(
-                reverse('jasmin_cloud:image_details', kwargs = {
-                    'tenant': tenant,
-                    'image': obj.id,
-                })
-            )
-        return result
-
-
-class SizeRefSerializer(serializers.Serializer):
-    id = serializers.RegexField('^[a-z0-9-]+$', read_only = True)
-
-    def to_representation(self, obj):
-        result = super().to_representation(obj)
-        # If the info to build a link is in the context, add it
-        request = self.context.get('request')
-        tenant = self.context.get('tenant')
-        if request and tenant:
-            result.setdefault('links', {})['self'] = request.build_absolute_uri(
-                reverse('jasmin_cloud:size_details', kwargs = {
-                    'tenant': tenant,
-                    'size': obj.id,
-                })
-            )
-        return result
-
-
 class VolumeRefSerializer(serializers.Serializer):
     id = serializers.UUIDField(read_only = True)
 
@@ -141,7 +105,8 @@ class MachineRefSerializer(serializers.Serializer):
         return result
 
 
-class ImageSerializer(ImageRefSerializer):
+class ImageSerializer(serializers.Serializer):
+    id = serializers.UUIDField(read_only = True)
     name = serializers.CharField(read_only = True)
     is_public = serializers.BooleanField(read_only = True)
     nat_allowed = serializers.BooleanField(read_only = True)
@@ -152,12 +117,41 @@ class ImageSerializer(ImageRefSerializer):
         read_only = True
     )
 
+    def to_representation(self, obj):
+        result = super().to_representation(obj)
+        # If the info to build a link is in the context, add it
+        request = self.context.get('request')
+        tenant = self.context.get('tenant')
+        if request and tenant:
+            result.setdefault('links', {})['self'] = request.build_absolute_uri(
+                reverse('jasmin_cloud:image_details', kwargs = {
+                    'tenant': tenant,
+                    'image': obj.id,
+                })
+            )
+        return result
 
-class SizeSerializer(SizeRefSerializer):
+
+class SizeSerializer(serializers.Serializer):
+    id = serializers.RegexField('^[a-z0-9-]+$', read_only = True)
     name = serializers.CharField(read_only = True)
     cpus = serializers.IntegerField(read_only = True)
     ram = serializers.IntegerField(read_only = True)
     disk = serializers.IntegerField(read_only = True)
+
+    def to_representation(self, obj):
+        result = super().to_representation(obj)
+        # If the info to build a link is in the context, add it
+        request = self.context.get('request')
+        tenant = self.context.get('tenant')
+        if request and tenant:
+            result.setdefault('links', {})['self'] = request.build_absolute_uri(
+                reverse('jasmin_cloud:size_details', kwargs = {
+                    'tenant': tenant,
+                    'size': obj.id,
+                })
+            )
+        return result
 
 
 Ref = collections.namedtuple('Ref', ['id'])
@@ -191,10 +185,10 @@ class MachineStatusSerializer(serializers.Serializer):
 class MachineSerializer(MachineRefSerializer):
     name = serializers.CharField()
 
-    image = ImageRefSerializer(read_only = True)
+    image = ImageSerializer(read_only = True)
     image_id = serializers.UUIDField(write_only = True)
 
-    size = SizeRefSerializer(read_only = True)
+    size = SizeSerializer(read_only = True)
     size_id = serializers.RegexField('^[a-z0-9-]+$', write_only = True)
 
     status = MachineStatusSerializer(read_only = True)
@@ -209,9 +203,7 @@ class MachineSerializer(MachineRefSerializer):
     created = serializers.DateTimeField(read_only = True)
 
     def to_representation(self, obj):
-        # Convert raw ids to refs before serializing
-        obj.image = Ref(obj.image_id) if obj.image_id else None
-        obj.size = Ref(obj.size_id) if obj.size_id else None
+        # Convert volume ids to refs before serializing
         obj.attached_volumes = [Ref(v) for v in obj.attached_volume_ids]
         result = super().to_representation(obj)
         # If the info to build a link is in the context, add it
