@@ -503,18 +503,22 @@ class ScopedSession(base.ScopedSession):
         """
         See :py:meth:`.base.ScopedSession.find_machine`.
         """
+        # Make sure we can find the image and flavor specified
+        try:
+            image = self.find_image(sdk_server.image['id'])
+        except (KeyError, errors.ObjectNotFoundError):
+            image = None
+        try:
+            size = self.find_size(sdk_server.flavor['id'])
+        except (KeyError, errors.ObjectNotFoundError):
+            size = None
         # Try to get nat_allowed from the machine metadata
-        # If the nat_allowed metadata is not present, try to get it from the image
+        # If the nat_allowed metadata is not present, use the image
+        # If the image does not exist anymore, assume it is allowed
         try:
             nat_allowed = bool(int(sdk_server.metadata['jasmin_nat_allowed']))
-        except (TypeError, KeyError):
-            try:
-                image = self.find_image(sdk_server.image['id'])
-            except errors.ObjectNotFoundError:
-                # If the image is not available anymore, assume nat is allowed
-                nat_allowed = True
-            else:
-                nat_allowed = image.nat_allowed
+        except (KeyError, TypeError):
+            nat_allowed = image.nat_allowed if image else True
         status = sdk_server.status
         fault = (sdk_server.fault or {}).get('message', None)
         task = sdk_server.task_state
@@ -534,8 +538,8 @@ class ScopedSession(base.ScopedSession):
         return dto.Machine(
             sdk_server.id,
             sdk_server.name,
-            sdk_server.image['id'],
-            sdk_server.flavor['id'],
+            image.id if image else None,
+            size.id if size else None,
             dto.Machine.Status(
                 getattr(dto.Machine.Status.Type, status, dto.Machine.Status.Type.OTHER),
                 status,

@@ -57,3 +57,5 @@ target/
 
 # Settings
 jasmin_cloud_site/settings.py
+
+.vscode

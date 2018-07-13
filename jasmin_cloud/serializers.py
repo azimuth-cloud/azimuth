@@ -210,8 +210,8 @@ class MachineSerializer(MachineRefSerializer):
 
     def to_representation(self, obj):
         # Convert raw ids to refs before serializing
-        obj.image = Ref(obj.image_id)
-        obj.size = Ref(obj.size_id)
+        obj.image = Ref(obj.image_id) if obj.image_id else None
+        obj.size = Ref(obj.size_id) if obj.size_id else None
         obj.attached_volumes = [Ref(v) for v in obj.attached_volume_ids]
         result = super().to_representation(obj)
         # If the info to build a link is in the context, add it
