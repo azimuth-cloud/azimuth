@@ -142,9 +142,10 @@ def convert_sdk_exceptions(f):
             elif status_code == 401:
                 raise errors.AuthenticationError('Your session has expired')
             elif status_code == 403:
-                # Some quota exceeded errors get reported as permission denied (WHY???!!!)
-                # So report them as quota exceeded instead
-                if 'quota exceeded' in message.lower():
+                print(e)
+                # Some quota exceeded errors get reported as permission denied (WHY???!!!)
+                # So report them as quota exceeded instead
+                if 'exceeded' in message.lower():
                     raise errors.QuotaExceededError(
                         'Requested operation would exceed at least one quota. '
                         'Please check your tenancy quotas.'
@@ -153,9 +154,9 @@ def convert_sdk_exceptions(f):
             elif status_code == 404:
                 raise errors.ObjectNotFoundError(message)
             elif status_code == 409:
-                # 409 (Conflict) has a lot of different sub-errors depending on
-                # the actual error text
-                if 'quota exceeded' in message.lower():
+                # 409 (Conflict) has a lot of different sub-errors depending on
+                # the actual error text
+                if 'exceeded' in message.lower():
                     raise errors.QuotaExceededError(
                         'Requested operation would exceed at least one quota. '
                         'Please check your tenancy quotas.'
