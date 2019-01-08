@@ -3,8 +3,6 @@
 import os
 from setuptools import setup, find_packages
 
-import versioneer
-
 
 here = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(here, 'README.md')) as f:
@@ -13,8 +11,8 @@ with open(os.path.join(here, 'README.md')) as f:
 if __name__ == "__main__":
     setup(
         name = 'jasmin-cloud',
-        version = versioneer.get_version(),
-        cmdclass = versioneer.get_cmdclass(),
+        setup_requires = ['setuptools_scm'],
+        use_scm_version = True,
         description = 'API for management of tenancies in the JASMIN Cloud.',
         long_description = README,
         classifiers = [
@@ -38,7 +36,7 @@ if __name__ == "__main__":
             'django',
             'djangorestframework',
             'psycopg2',
-            'jasmin-django-utils',
+            'django-settings-object',
             'jasmin-ldap',
         ],
     )
