@@ -36,7 +36,7 @@ if __name__ == "__main__":
             'django',
             'djangorestframework',
             'psycopg2',
-            'jasmin-django-utils',
+            'django-settings-object',
             'jasmin-ldap',
         ],
     )
