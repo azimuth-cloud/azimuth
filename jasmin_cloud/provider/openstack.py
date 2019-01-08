@@ -39,7 +39,7 @@ class Provider(base.Provider):
     provider_name = 'openstack'
 
     def __init__(self, auth_url, **kwargs):
-        # Strip any trailing slashes from the auth URL
+        # Strip any trailing slashes from the auth URL
         self.auth_url = auth_url.rstrip('/')
         self.domain = kwargs.get('domain', 'Default')
         self.interface = kwargs.get('interface', 'public')
@@ -54,9 +54,9 @@ class Provider(base.Provider):
             '[%s] Authenticating with OpenStack at %s',
             username, self.auth_url
         )
-        # Getting an unscoped token and then retrieving tenancies later seems to
-        # be **really** hard to do through the SDK.
-        # So we use the API directly
+        # Getting an unscoped token and then retrieving tenancies later seems to
+        # be **really** hard to do through the SDK.
+        # So we use the API directly
         res = requests.post(
             self.auth_url + '/auth/tokens',
             json = {
@@ -91,7 +91,7 @@ class Provider(base.Provider):
             return UnscopedSession(
                 self.auth_url,
                 username,
-                # The token is in a header
+                # The token is in a header
                 res.headers['X-Subject-Token'],
                 interface = self.interface,
                 secondary_network_id = self.secondary_network_id,
@@ -128,13 +128,13 @@ def convert_sdk_exceptions(f):
             message = _replace_resource_names(e.details.replace('404 Not Found: ', ''))
             raise errors.ObjectNotFoundError(message)
         except (exceptions.HttpException, keystone_exceptions.http.HttpError) as e:
-            # Status code is in one of two attributes
+            # Status code is in one of two attributes
             if hasattr(e, 'status_code'):
-                # This is an SDK exception
+                # This is an SDK exception
                 status_code = e.status_code
                 message = _replace_resource_names(e.details)
             else:
-                # This is a raw session exception
+                # This is a raw session exception
                 status_code = e.http_status
                 message = e.message
             if status_code == 400:
@@ -142,7 +142,6 @@ def convert_sdk_exceptions(f):
             elif status_code == 401:
                 raise errors.AuthenticationError('Your session has expired')
             elif status_code == 403:
-                print(e)
                 # Some quota exceeded errors get reported as permission denied (WHY???!!!)
                 # So report them as quota exceeded instead
                 if 'exceeded' in message.lower():
@@ -206,9 +205,9 @@ class UnscopedSession(base.UnscopedSession):
         See :py:meth:`.base.UnscopedSession.tenancies`.
         """
         logger.info('[%s] Fetching available tenancies', self.username)
-        # Getting an unscoped token and then retrieving tenancies later seems to
-        # be **really** hard to do through the SDK.
-        # So we use the API directly
+        # Getting an unscoped token and then retrieving tenancies later seems to
+        # be **really** hard to do through the SDK.
+        # So we use the API directly
         res = requests.get(
             self.auth_url + '/auth/projects',
             headers = { 'X-Auth-Token': self.token },
@@ -240,8 +239,8 @@ class UnscopedSession(base.UnscopedSession):
         See :py:meth:`.base.UnscopedSession.scoped_session`.
         """
         # Make sure we have a tenancy object
-        # If we were given an ID, just do this by fetching all the tenancies and
-        # searching them, rather than fetching by id. Either way it is one HTTP
+        # If we were given an ID, just do this by fetching all the tenancies and
+        # searching them, rather than fetching by id. Either way it is one HTTP
         # request, which is the time-consuming bit, and we don't have to repeat
         # all the error handling :-P
         if not isinstance(tenancy, dto.Tenancy):
@@ -276,8 +275,8 @@ class UnscopedSession(base.UnscopedSession):
                 secondary_network_id = self.secondary_network_id
             )
         except exceptions.HttpException as e:
-            # If creating the session fails with an auth error, convert that to
-            # not found to avoid revealing details about valid tenancies
+            # If creating the session fails with an auth error, convert that to
+            # not found to avoid revealing details about valid tenancies
             if e.status_code in { 401, 403 }:
                 raise errors.ObjectNotFoundError(
                     'Could not find tenancy with ID {}'.format(tenancy.id)
@@ -323,8 +322,8 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.quotas`.
         """
         self._log('Fetching tenancy quotas')
-        # Compute provides a way to fetch this information through the SDK, but
-        # the floating IP quota obtained through it is rubbish...
+        # Compute provides a way to fetch this information through the SDK, but
+        # the floating IP quota obtained through it is rubbish...
         compute_limits = self.connection.compute.get_limits().absolute
         quotas = [
             dto.Quota(
@@ -346,13 +345,10 @@ class ScopedSession(base.ScopedSession):
                 compute_limits.instances_used
             ),
         ]
-        # For block storage and floating IPs, use the API directly
-        network_ep = self.connection.session.get_endpoint(
-            service_type = 'network',
-            interface = self.interface
-        )
+        # For block storage and floating IPs, use the API directly
+        network_ep = self.connection.network.get_endpoint(interface = self.interface)
         network_quotas = self.connection.session.get(
-            network_ep + '/v2.0/quotas/' + self.tenancy_id
+            network_ep + '/quotas/' + self.tenancy_id
         ).json()
         quotas.append(
             dto.Quota(
@@ -362,10 +358,7 @@ class ScopedSession(base.ScopedSession):
                 len(list(self.connection.network.ips()))
             )
         )
-        volume_ep = self.connection.session.get_endpoint(
-            service_type = 'volume',
-            interface = self.interface
-        )
+        volume_ep = self.connection.volume.get_endpoint(interface = self.interface)
         volume_limits = self.connection.session.get(volume_ep + '/limits').json()
         quotas.extend([
             dto.Quota(
@@ -404,7 +397,7 @@ class ScopedSession(base.ScopedSession):
             sdk_image.visibility == 'public',
             # Unless specifically disallowed by a flag, NAT is allowed
             bool(int(sdk_image.jasmin_nat_allowed or '1')),
-            # The image size is specified in bytes. Convert to MB.
+            # The image size is specified in bytes. Convert to MB.
             float(sdk_image.size) / 1024.0 / 1024.0
         )
 
@@ -513,9 +506,9 @@ class ScopedSession(base.ScopedSession):
             size = self.find_size(sdk_server.flavor['id'])
         except (KeyError, errors.ObjectNotFoundError):
             size = None
-        # Try to get nat_allowed from the machine metadata
-        # If the nat_allowed metadata is not present, use the image
-        # If the image does not exist anymore, assume it is allowed
+        # Try to get nat_allowed from the machine metadata
+        # If the nat_allowed metadata is not present, use the image
+        # If the image does not exist anymore, assume it is allowed
         try:
             nat_allowed = bool(int(sdk_server.metadata['jasmin_nat_allowed']))
         except (KeyError, TypeError):
@@ -524,9 +517,9 @@ class ScopedSession(base.ScopedSession):
         fault = (sdk_server.fault or {}).get('message', None)
         task = sdk_server.task_state
         # Find IP addresses specifically on the tenant network that is connected
-        # to the router
+        # to the router
         network = self._tenant_network()
-        # Function to get the first IP of a particular type on the tenant network
+        # Function to get the first IP of a particular type on the tenant network
         def ip_of_type(ip_type):
             return next(
                 (
@@ -577,10 +570,10 @@ class ScopedSession(base.ScopedSession):
         return self._from_sdk_server(self.connection.compute._get(self.Server, id))
 
     def _get_or_create_keypair(self, ssh_key):
-        # Keypairs are immutable, i.e. once created cannot be changed
-        # We create keys with names of the form "<username>-<fingerprint>", which
-        # allows for us to recognise when a user has changed their key and create
-        # a new one
+        # Keypairs are immutable, i.e. once created cannot be changed
+        # We create keys with names of the form "<username>-<fingerprint>", which
+        # allows for us to recognise when a user has changed their key and create
+        # a new one
         fingerprint = hashlib.md5(base64.b64decode(ssh_key.split()[1])).hexdigest()
         key_name = '{}-{}'.format(self.username, fingerprint)
         try:
@@ -596,35 +589,35 @@ class ScopedSession(base.ScopedSession):
         """
         See :py:meth:`.base.ScopedSession.create_machine`.
         """
-        # Convert the ObjectNotFound into an InvalidOperation
+        # Convert the ObjectNotFound into an InvalidOperation
         try:
             image = image if isinstance(image, dto.Image) else self.find_image(image)
         except errors.ObjectNotFoundError:
             raise errors.BadInputError('Invalid image provided')
         size = size.id if isinstance(size, dto.Size) else size
         self._log("Creating machine '%s' (image: %s, size: %s)", name, image.name, size)
-        # Get the networks to use
+        # Get the networks to use
         networks = [{ 'uuid': self._tenant_network().id }]
         if self.secondary_network_id:
-            # If the network exists, add it
+            # If the network exists, add it
             if self.connection.network.find_network(self.secondary_network_id) is not None:
                 networks.append({ 'uuid': self.secondary_network_id })
-        # Get the keypair to inject
+        # Get the keypair to inject
         keypair = self._get_or_create_keypair(ssh_key) if ssh_key else None
-        # Interpolate values into the cloud-init script template
+        # Interpolate values into the cloud-init script template
         server = self.connection.compute.create_server(
             name = name,
             image_id = image.id,
             flavor_id = size,
             networks = networks,
-            # Set the instance metadata
+            # Set the instance metadata
             metadata = {
                 'jasmin_nat_allowed': '1' if image.nat_allowed else '0',
                 'jasmin_type': image.vm_type,
                 'jasmin_organisation': self.tenancy_name,
             },
-            # The SDK doesn't like it if None is given for keypair, but behaves
-            # correctly if it is not given at all
+            # The SDK doesn't like it if None is given for keypair, but behaves
+            # correctly if it is not given at all
             **({ 'key_name': keypair.name } if keypair else {})
         )
         return self.find_machine(server.id)
@@ -699,12 +692,12 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.allocate_external_ip`.
         """
         self._log("Allocating new floating ip")
-        # Get the external network being used by the tenancy router
+        # Get the external network being used by the tenancy router
         router = next(self.connection.network.routers(), None)
         if not router:
             raise errors.ImproperlyConfiguredError('Could not find tenancy router.')
         extnet = router.external_gateway_info['network_id']
-        # Create a new floating IP on that network
+        # Create a new floating IP on that network
         fip = self.connection.network.create_ip(floating_network_id = extnet)
         self._log("Allocated new floating ip '%s'", fip.floating_ip_address)
         return self._from_sdk_floatingip(fip)
@@ -727,13 +720,13 @@ class ScopedSession(base.ScopedSession):
         """
         machine = machine if isinstance(machine, dto.Machine) else self.find_machine(machine)
         ip = ip.external_ip if isinstance(ip, dto.ExternalIp) else ip
-        # If NATing is not allowed for the machine, bail
+        # If NATing is not allowed for the machine, bail
         if not machine.nat_allowed:
             raise errors.InvalidOperationError(
                 'Machine is not allowed to have an external IP address.'
             )
         self._log("Attaching floating ip '%s' to server '%s'", ip, machine.id)
-        # Get the port that attaches the machine to the tenant network
+        # Get the port that attaches the machine to the tenant network
         tenant_net = self._tenant_network()
         port = next(
             self.connection.network.ports(device_id = machine.id,
@@ -744,11 +737,11 @@ class ScopedSession(base.ScopedSession):
             raise errors.ImproperlyConfiguredError(
                 'Machine is not connected to tenancy network.'
             )
-        # If there is already a floating IP associated with the port, detach it
+        # If there is already a floating IP associated with the port, detach it
         current = next(self.connection.network.ips(port_id = port.id), None)
         if current:
             self.connection.network.update_ip(current, port_id = None)
-        # Find the floating IP instance for the given address
+        # Find the floating IP instance for the given address
         fip = next(self.connection.network.ips(floating_ip_address = ip), None)
         if not fip:
             raise errors.ObjectNotFoundError("Could not find external IP '{}'".format(ip))
@@ -764,7 +757,7 @@ class ScopedSession(base.ScopedSession):
         """
         ip = ip.external_ip if isinstance(ip, dto.ExternalIp) else ip
         self._log("Detaching floating ip '%s'", ip)
-        # Find the floating IP instance for the given address
+        # Find the floating IP instance for the given address
         fip = next(self.connection.network.ips(floating_ip_address = ip), None)
         if not fip:
             raise errors.ObjectNotFoundError("Could not find external IP '{}'".format(ip))
@@ -776,6 +769,7 @@ class ScopedSession(base.ScopedSession):
     _VOLUME_STATUSES = {
         'creating': dto.Volume.Status.CREATING,
         'available': dto.Volume.Status.AVAILABLE,
+        'reserved': dto.Volume.Status.ATTACHING,
         'attaching': dto.Volume.Status.ATTACHING,
         'detaching': dto.Volume.Status.DETACHING,
         'in-use': dto.Volume.Status.IN_USE,
@@ -791,7 +785,7 @@ class ScopedSession(base.ScopedSession):
         """
         Converts an OpenStack SDK volume object into a :py:class:`.dto.Volume`.
         """
-        # Work out the volume status
+        # Work out the volume status
         status = self._VOLUME_STATUSES.get(
             sdk_volume.status.lower(),
             dto.Volume.Status.OTHER
@@ -802,7 +796,7 @@ class ScopedSession(base.ScopedSession):
             attachment = None
         return dto.Volume(
             sdk_volume.id,
-            # If there is no name, use part of the ID
+            # If there is no name, use part of the ID
             sdk_volume.name or sdk_volume.id[:13],
             status,
             sdk_volume.size,
@@ -862,7 +856,7 @@ class ScopedSession(base.ScopedSession):
         """
         volume = volume if isinstance(volume, dto.Volume) else self.find_volume(volume)
         machine = machine.id if isinstance(machine, dto.Machine) else machine
-        # If the volume is already attached to the machine there is nothing to do
+        # If the volume is already attached to the machine there is nothing to do
         if volume.machine_id == machine:
             return volume
         # The volume must be available before attaching
@@ -883,7 +877,7 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.detach_volume`.
         """
         volume = volume if isinstance(volume, dto.Volume) else self.find_volume(volume)
-        # If the volume is already detached, we are done
+        # If the volume is already detached, we are done
         if not volume.machine_id:
             return volume
         self._log("Detaching volume '%s' from '%s'", volume.id, volume.machine_id)
@@ -894,5 +888,5 @@ class ScopedSession(base.ScopedSession):
         """
         See :py:meth:`.base.ScopedSession.close`.
         """
-        # Make sure the underlying requests session is closed
+        # Make sure the underlying requests session is closed
         self.connection.session.session.close()
