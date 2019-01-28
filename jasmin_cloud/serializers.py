@@ -1,7 +1,5 @@
 """
-Django REST framework serializers for the ``jasmin_cloud`` app.
-
-These serializers marshall objects from the :py:mod:`.provider.dto` package.
+Django REST framework serializers for objects from the :py:mod:`~.cloud.dto` package.
 """
 
 import collections
@@ -53,6 +51,16 @@ class TenancySerializer(serializers.Serializer):
                 ),
                 'machines': request.build_absolute_uri(
                     reverse('jasmin_cloud:machines', kwargs = {
+                        'tenant': obj.id,
+                    })
+                ),
+                'cluster_types': request.build_absolute_uri(
+                    reverse('jasmin_cloud:cluster_types', kwargs = {
+                        'tenant': obj.id,
+                    })
+                ),
+                'clusters': request.build_absolute_uri(
+                    reverse('jasmin_cloud:clusters', kwargs = {
                         'tenant': obj.id,
                     })
                 ),
@@ -165,7 +173,7 @@ class VolumeSerializer(VolumeRefSerializer):
     device = serializers.CharField(read_only = True)
 
     def to_representation(self, obj):
-        # Convert raw ids to refs before serializing
+        # Convert raw ids to refs before serializing
         obj.machine = Ref(obj.machine_id) if obj.machine_id else None
         return super().to_representation(obj)
 
@@ -203,7 +211,7 @@ class MachineSerializer(MachineRefSerializer):
     created = serializers.DateTimeField(read_only = True)
 
     def to_representation(self, obj):
-        # Convert volume ids to refs before serializing
+        # Convert volume ids to refs before serializing
         obj.attached_volumes = [Ref(v) for v in obj.attached_volume_ids]
         result = super().to_representation(obj)
         # If the info to build a link is in the context, add it
@@ -240,7 +248,7 @@ class ExternalIPSerializer(serializers.Serializer):
     machine_id = serializers.UUIDField(write_only = True, allow_null = True)
 
     def to_representation(self, obj):
-        # Convert raw ids to refs before serializing
+        # Convert raw ids to refs before serializing
         obj.machine = Ref(obj.machine_id) if obj.machine_id else None
         result = super().to_representation(obj)
         # If the info to build a link is in the context, add it

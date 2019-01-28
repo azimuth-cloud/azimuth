@@ -1,49 +1,22 @@
 """
-Django views for the ``jasmin_cloud`` app.
+Django views for interacting with the configured cloud provider.
 """
 
 import logging, functools
 
 from django.urls import reverse
-from django.utils.safestring import mark_safe
-from django.utils.encoding import smart_text
 from django.contrib.auth import authenticate as dj_authenticate, login, logout
 
-from docutils import core
-
-from rest_framework.utils import formatting
 from rest_framework import (
     decorators, permissions, response, status, exceptions as drf_exceptions
 )
 
-from . import serializers
-from .provider import errors as provider_errors
-from .settings import cloud_settings
+from .. import serializers
+from ..provider import errors as provider_errors
+from ..settings import cloud_settings
 
 
 log = logging.getLogger(__name__)
-
-
-def get_view_description(view_cls, html = False):
-    """
-    Alternative django-rest-framework ``VIEW_DESCRIPTION_FUNCTION`` that allows
-    RestructuredText to be used instead of Markdown.
-
-    This allows docstrings to be used in the DRF-generated HTML views and in
-    Sphinx-generated API views.
-    """
-    description = view_cls.__doc__ or ''
-    description = formatting.dedent(smart_text(description))
-    if html:
-        # from https://wiki.python.org/moin/ReStructuredText -- we use the
-        # third recipe to get just the HTML parts corresponding to the ReST
-        # docstring:
-        parts = core.publish_parts(source=description, writer_name='html')
-        html = parts['body_pre_docinfo'] + parts['fragment']
-        # have to use mark_safe so our HTML will get explicitly marked as
-        # safe and will be correctly rendered
-        return mark_safe(html)
-    return description
 
 
 def convert_provider_exceptions(view):
@@ -55,8 +28,8 @@ def convert_provider_exceptions(view):
     def wrapper(*args, **kwargs):
         try:
             return view(*args, **kwargs)
-        # For provider errors that don't map to authentication/not found errors,
-        # return suitable responses
+        # For provider errors that don't map to authentication/not found errors,
+        # return suitable responses
         except provider_errors.UnsupportedOperationError as exc:
             return response.Response(
                 { 'detail': str(exc), 'code': 'unsupported_operation'},
@@ -82,7 +55,7 @@ def convert_provider_exceptions(view):
                 { 'detail': str(exc), 'code': 'operation_timed_out'},
                 status = status.HTTP_504_GATEWAY_TIMEOUT
             )
-        # For authentication/not found errors, raise the DRF equivalent
+        # For authentication/not found errors, raise the DRF equivalent
         except provider_errors.AuthenticationError as exc:
             raise drf_exceptions.AuthenticationFailed(str(exc))
         except provider_errors.PermissionDeniedError as exc:
@@ -122,7 +95,6 @@ def authenticate(request):
     if not user.is_active:
         raise drf_exceptions.AuthenticationFailed('User is not active.')
     login(request, user)
-    # Just return a 200 OK response
     return response.Response({
         'username': user.username,
         'links': {
@@ -144,7 +116,7 @@ def session(request):
         logout(request)
         return response.Response()
     else:
-        # Before claiming to be successful, first ping the current cloud session
+        # Before claiming to be successful, first ping the current cloud session
         _ = request.session['unscoped_session'].tenancies()
         return response.Response({
             'username': request.user.username,

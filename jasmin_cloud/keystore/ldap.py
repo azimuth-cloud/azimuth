@@ -19,8 +19,8 @@ class LdapKeyStore(KeyStore):
         password: The password to use to connect.
     """
     def __init__(self, primary, base_dn, replicas = [], user = '', password = ''):
-        # Just store the parameters for the connection. We will create the
-        # connection when required.
+        # Just store the parameters for the connection. We will create the
+        # connection when required.
         self.primary = primary
         self.replicas = replicas
         self.user = user
@@ -31,14 +31,13 @@ class LdapKeyStore(KeyStore):
         """
         See :py:meth:`.base.KeyStore.get_key`.
         """
-        query = Query(
-            Connection.create(
-                ServerPool(self.primary, self.replicas),
-                user = self.user, password = self.password
-            ),
-            self.base_dn
+        connection = Connection.create(
+            ServerPool(self.primary, self.replicas),
+            user = self.user, password = self.password
         )
-        return next(
-            iter(query.filter(cn = username).one().get('sshPublicKey', [])),
-            None
-        )
+        with connection:
+            query = Query(connection, self.base_dn)
+            return next(
+                iter(query.filter(cn = username).one().get('sshPublicKey', [])),
+                None
+            )
