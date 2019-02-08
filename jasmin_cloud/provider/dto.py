@@ -147,3 +147,37 @@ class ExternalIp(namedtuple('ExternalIp', ['external_ip', 'machine_id'])):
         machine_id: The ID of the machine to which the external IP address is
                     mapped, or ``None`` if it is not mapped.
     """
+
+
+class ClusterType(namedtuple('ClusterType', ['name', 'human_name',
+                                             'description', 'parameters'])):
+    """
+    Represents a cluster type.
+
+    Attributes:
+        name: The name of the cluster type.
+        parameters: A list of :py:class:`Parameter`s required to create
+                    an instance of the cluster type.
+    """
+    class Parameter(namedtuple('Parameter', ['name', 'type',
+                                             'human_name', 'description'])):
+        """
+        Represents a parameter required by a cluster type.
+
+        Attributes:
+            name: The name of the parameter.
+            type: A string type name.
+            human_name: A short human-readable name for the parameter.
+            description: A longer description of the parameter.
+        """
+
+
+class Cluster(namedtuple('Cluster', ['name', 'type', 'parameter_values'])):
+    """
+    Represents a cluster.
+
+    Attributes:
+        name: The name of the cluster.
+        type: The name of the :py:class:`ClusterType` of the cluster.
+        parameter_values: Dictionary containing the current parameter values.
+    """

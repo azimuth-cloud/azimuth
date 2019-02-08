@@ -31,7 +31,6 @@ if __name__ == "__main__":
         install_requires = [
             'docutils',
             'python-dateutil',
-            'requests',
             'openstacksdk',
             'django',
             'djangorestframework',

@@ -24,14 +24,45 @@ class Provider:
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
+    def from_token(self, token):
+        """
+        Creates an unscoped session from the given token as returned from the
+        ``token`` method of the corresponding :py:class:`UnscopedSession`.
+
+        Args:
+            token: The token to use.
+
+        Returns:
+            A :py:class:`UnscopedSession`.
+        """
+        raise NotImplementedError
+
 
 class UnscopedSession:
     """
     Class for an authenticated session with a cloud provider. It is unscoped in
     the sense that is not bound to a particular tenancy.
-
-    Implementations should be serialisable using pickle.
     """
+    def token(self):
+        """
+        Returns the token for this session.
+
+        The returned token should be consumable by the ``from_token`` method of the
+        corresponding :py:class:`Provider`.
+
+        Returns:
+            A string token.
+        """
+        raise NotImplementedError
+
+    def username(self):
+        """
+        Returns the username for this session.
+
+        Returns:
+            A string username.
+        """
+
     def tenancies(self):
         """
         Get the tenancies available to the authenticated user.
@@ -57,6 +88,30 @@ class UnscopedSession:
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
+
+    def close(self):
+        """
+        Closes the session and performs any cleanup.
+        """
+        # This is a NOOP by default
+
+    def __enter__(self):
+        """
+        Called when entering a context manager block.
+        """
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """
+        Called when exiting a context manager block. Ensures that close is called.
+        """
+        self.close()
+
+    def __del__(self):
+        """
+        Ensures that close is called when the session is garbage collected.
+        """
+        self.close()
 
 
 class ScopedSession:
@@ -403,11 +458,111 @@ class ScopedSession:
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
+    def cluster_types(self):
+        """
+        Lists the available cluster types.
+
+        Returns:
+            An iterable of :py:class:`~.dto.ClusterType`s.
+        """
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
+
+    def find_cluster_type(self, name):
+        """
+        Find a cluster type by name.
+
+        Args:
+            name: The name of the cluster type.
+
+        Returns:
+            A :py:class:`~.dto.ClusterType`.
+        """
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
+
+    def clusters(self):
+        """
+        List the clusters that are deployed.
+
+        Returns:
+            An iterable of :py:class:`~.dto.Cluster`s.
+        """
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
+
+    def find_cluster(self, name):
+        """
+        Find a cluster by name.
+
+        Args:
+            name: The name of the cluster.
+
+        Returns:
+            A :py:class:`~.dto.Cluster`.
+        """
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
+
+    def create_cluster(self, name, cluster_type, params):
+        """
+        Creates a new cluster with the given name, type and parameters.
+
+        Args:
+            name: The name of the cluster.
+            cluster_type: The cluster type. Can be a name or a
+                          :py:class:`~.dto.ClusterType`.
+            params: Dictionary of parameters values as required by the
+                    cluster type.
+
+        Returns:
+            A :py:class:`~.dto.Cluster`.
+        """
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
+
+    def update_cluster(self, name, params):
+        """
+        Updates an existing named cluster with the given parameters.
+
+        Args:
+            name: The name of the cluster.
+            cluster_type: The cluster type. Can be a name or a
+                          :py:class:`~.dto.ClusterType`.
+            params: Dictionary of parameters values as required by the
+                    cluster type.
+
+        Returns:
+            The updated :py:class:`~.dto.Cluster`.
+        """
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
+
+    def delete_cluster(self, name):
+        """
+        Deletes an existing named cluster.
+
+        Args:
+            name: The name of the cluster.
+
+        Returns:
+            The deleted :py:class:`~.dto.Cluster`.
+        """
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
+
     def close(self):
         """
         Closes the session and performs any cleanup.
         """
-        # This is a NOOP by default
+        # This is a NOOP by default
 
     def __enter__(self):
         """

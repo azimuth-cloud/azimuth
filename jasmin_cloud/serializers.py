@@ -262,3 +262,61 @@ class ExternalIPSerializer(serializers.Serializer):
                 })
             )
         return result
+
+
+class ClusterTypeParameterSerializer(serializers.Serializer):
+    name = serializers.CharField(read_only = True)
+    type = serializers.CharField(read_only = True)
+    human_name = serializers.CharField(read_only = True)
+    description = serializers.CharField(read_only = True)
+
+
+class ClusterTypeSerializer(serializers.Serializer):
+    name = serializers.CharField(read_only = True)
+    human_name = serializers.CharField(read_only = True)
+    description = serializers.CharField(read_only = True)
+    parameters = ClusterTypeParameterSerializer(many = True, read_only = True)
+
+    def to_representation(self, obj):
+        result = super().to_representation(obj)
+        # If the info to build a link is in the context, add it
+        request = self.context.get('request')
+        tenant = self.context.get('tenant')
+        if request and tenant:
+            result.setdefault('links', {})['self'] = request.build_absolute_uri(
+                reverse('jasmin_cloud:cluster_type_details', kwargs = {
+                    'tenant': tenant,
+                    'cluster_type': obj.name,
+                })
+            )
+        return result
+
+
+class ClusterSerializer(serializers.Serializer):
+    name = serializers.CharField(read_only = True)
+    type = ClusterTypeSerializer(read_only = True)
+    parameter_values = serializers.JSONField(read_only = True)
+
+    def to_representation(self, obj):
+        result = super().to_representation(obj)
+        # If the info to build a link is in the context, add it
+        request = self.context.get('request')
+        tenant = self.context.get('tenant')
+        if request and tenant:
+            result.setdefault('links', {})['self'] = request.build_absolute_uri(
+                reverse('jasmin_cloud:cluster_details', kwargs = {
+                    'tenant': tenant,
+                    'cluster': obj.name,
+                })
+            )
+        return result
+
+
+class CreateClusterSerializer(serializers.Serializer):
+    name = serializers.CharField(write_only = True)
+    type = serializers.CharField(write_only = True)
+    parameter_values = serializers.JSONField(write_only = True)
+
+
+class UpdateClusterSerializer(serializers.Serializer):
+    parameter_values = serializers.JSONField(write_only = True)
