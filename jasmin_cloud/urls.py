@@ -47,7 +47,10 @@ urlpatterns = [
         ])),
         path('clusters/', include([
             path('', views.clusters, name = 'clusters'),
-            path('<slug:cluster>/', views.cluster_details, name = 'cluster_details'),
+            path('<slug:cluster>/', include([
+                path('', views.cluster_details, name = 'cluster_details'),
+                path('patch/', views.cluster_patch, name = 'cluster_patch'),
+            ])),
         ]))
     ])),
 ]

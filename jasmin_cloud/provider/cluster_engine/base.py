@@ -54,12 +54,12 @@ class ClusterManager:
         """
         raise NotImplementedError
 
-    def find_cluster(self, name):
+    def find_cluster(self, id):
         """
-        Find a cluster by name.
+        Find a cluster by id.
 
         Args:
-            name: The name of the cluster.
+            id: The id of the cluster.
 
         Returns:
             A :py:class:`~..dto.Cluster`.
@@ -72,9 +72,8 @@ class ClusterManager:
 
         Args:
             name: The name of the cluster.
-            cluster_type: The cluster type. Can be a name or a
-                          :py:class:`~..dto.ClusterType`.
-            params: Dictionary of parameters values as required by the
+            cluster_type: The :py:class:`~..dto.ClusterType`.
+            params: Dictionary of parameter values as required by the
                     cluster type.
 
         Returns:
@@ -82,14 +81,13 @@ class ClusterManager:
         """
         raise NotImplementedError
 
-    def update_cluster(self, name, params):
+    def update_cluster(self, cluster, params):
         """
-        Updates an existing named cluster with the given parameters.
+        Updates an existing cluster with the given parameters.
 
         Args:
-            name: The name of the cluster.
-            cluster_type: The cluster type. Can be a name or a
-                          :py:class:`~..dto.ClusterType`.
+            cluster: The cluster to update.
+                     Can be an id or a :py:class:`~..dto.Cluster`.
             params: Dictionary of parameters values as required by the
                     cluster type.
 
@@ -98,12 +96,26 @@ class ClusterManager:
         """
         raise NotImplementedError
 
-    def delete_cluster(self, name):
+    def patch_cluster(self, cluster):
         """
-        Deletes an existing named cluster.
+        Patches the given existing cluster.
 
         Args:
-            name: The name of the cluster.
+            cluster: The cluster to patch.
+                     Can be an id or a :py:class:`~..dto.Cluster`.
+
+        Returns:
+            The :py:class:`~..dto.Cluster` being patched.
+        """
+        raise NotImplementedError
+
+    def delete_cluster(self, cluster):
+        """
+        Deletes an existing cluster.
+
+        Args:
+            cluster: The cluster to delete.
+                     Can be an id or a :py:class:`~..dto.Cluster`.
 
         Returns:
             The deleted :py:class:`~..dto.Cluster`.

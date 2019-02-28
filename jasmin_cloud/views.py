@@ -626,13 +626,16 @@ def clusters(request, tenant):
     On ``POST`` requests, create a new cluster.
     """
     if request.method == 'POST':
-        input_serializer = serializers.CreateClusterSerializer(data = request.data)
-        input_serializer.is_valid(raise_exception = True)
         with request.auth.scoped_session(tenant) as session:
+            input_serializer = serializers.CreateClusterSerializer(
+                data = request.data,
+                context = { 'session': session }
+            )
+            input_serializer.is_valid(raise_exception = True)
             cluster = session.create_cluster(
                 input_serializer.validated_data['name'],
-                input_serializer.validated_data['type'],
-                input_serializer.validated_data.get('parameter_values', {})
+                input_serializer.validated_data['cluster_type'],
+                input_serializer.validated_data['parameter_values']
             )
         output_serializer = serializers.ClusterSerializer(
             cluster,
@@ -662,9 +665,13 @@ def cluster_details(request, tenant, cluster):
     On ``DELETE`` requests, delete the named cluster.
     """
     if request.method == 'PUT':
-        input_serializer = serializers.UpdateClusterSerializer(data = request.data)
-        input_serializer.is_valid(raise_exception = True)
         with request.auth.scoped_session(tenant) as session:
+            cluster = session.find_cluster(cluster)
+            input_serializer = serializers.UpdateClusterSerializer(
+                data = request.data,
+                context = dict(session = session, cluster = cluster)
+            )
+            input_serializer.is_valid(raise_exception = True)
             updated = session.update_cluster(
                 cluster,
                 input_serializer.validated_data['parameter_values']
@@ -692,3 +699,19 @@ def cluster_details(request, tenant, cluster):
                 context = { 'request': request, 'tenant': tenant }
             )
         return response.Response(serializer.data)
+
+
+@decorators.api_view(['POST'])
+@decorators.permission_classes([permissions.IsAuthenticated])
+@require_provider_session
+@convert_provider_exceptions
+def cluster_patch(request, tenant, cluster):
+    """
+    Patch the given cluster.
+    """
+    with request.auth.scoped_session(tenant) as session:
+        serializer = serializers.ClusterSerializer(
+            session.patch_cluster(cluster),
+            context = { 'request': request, 'tenant': tenant }
+        )
+    return response.Response(serializer.data)

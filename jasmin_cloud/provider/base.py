@@ -2,7 +2,7 @@
 This module defines the interface for a cloud provider.
 """
 
-from . import errors
+from . import dto, errors, validation
 
 
 class Provider:
@@ -494,12 +494,12 @@ class ScopedSession:
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def find_cluster(self, name):
+    def find_cluster(self, id):
         """
-        Find a cluster by name.
+        Find a cluster by id.
 
         Args:
-            name: The name of the cluster.
+            id: The id of the cluster.
 
         Returns:
             A :py:class:`~.dto.Cluster`.
@@ -508,15 +508,41 @@ class ScopedSession:
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
+    def validate_cluster_params(self, cluster_type, params, prev_params = {}):
+        """
+        Validates the given parameter values against the given cluster type.
+
+        Args:
+            cluster_type: The cluster type to validate against.
+                          Can be a name or a :py:class:`~.dto.ClusterType`.
+            params: Dictionary of parameters to validate.
+            prev_params: The previous parameters if applicable.
+                         Used to validate immutability constraints.
+
+        Returns:
+            The validated parameters.
+
+        Raises:
+            If validation fails, a :py:class:`~.errors.ValidationError` is raised.
+        """
+        if not isinstance(cluster_type, dto.ClusterType):
+            cluster_type = self.find_cluster_type(cluster_type)
+        validator = validation.build_validator(
+            self,
+            cluster_type.parameters,
+            prev_params
+        )
+        return validator(params)
+
     def create_cluster(self, name, cluster_type, params):
         """
         Creates a new cluster with the given name, type and parameters.
 
         Args:
             name: The name of the cluster.
-            cluster_type: The cluster type. Can be a name or a
-                          :py:class:`~.dto.ClusterType`.
-            params: Dictionary of parameters values as required by the
+            cluster_type: The cluster type.
+                          Can be a name or a :py:class:`~.dto.ClusterType`.
+            params: Dictionary of parameter values as required by the
                     cluster type.
 
         Returns:
@@ -526,14 +552,13 @@ class ScopedSession:
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def update_cluster(self, name, params):
+    def update_cluster(self, cluster, params):
         """
-        Updates an existing named cluster with the given parameters.
+        Updates an existing cluster with the given parameters.
 
         Args:
-            name: The name of the cluster.
-            cluster_type: The cluster type. Can be a name or a
-                          :py:class:`~.dto.ClusterType`.
+            cluster: The cluster to update.
+                     Can be an id or a :py:class:`~.dto.Cluster`.
             params: Dictionary of parameters values as required by the
                     cluster type.
 
@@ -544,12 +569,28 @@ class ScopedSession:
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def delete_cluster(self, name):
+    def patch_cluster(self, cluster):
         """
-        Deletes an existing named cluster.
+        Patches an existing cluster.
 
         Args:
-            name: The name of the cluster.
+            cluster: The cluster to update.
+                     Can be an id or a :py:class:`~.dto.Cluster`.
+
+        Returns:
+            The :py:class:`~.dto.Cluster` being patched.
+        """
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
+
+    def delete_cluster(self, cluster):
+        """
+        Deletes an existing cluster.
+
+        Args:
+            cluster: The cluster to update.
+                     Can be an id or a :py:class:`~.dto.Cluster`.
 
         Returns:
             The deleted :py:class:`~.dto.Cluster`.

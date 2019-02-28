@@ -31,9 +31,11 @@ class ProviderBackend(backends.ModelBackend):
             user = UserModel.objects.get(username = username)
         except UserModel.DoesNotExist:
             user = UserModel.objects.create_user(username = username)
-        if self.user_can_authenticate(user):
-            request.session['provider_token'] = session.token()
-            return user
+        # Make sure the session is closed after use
+        with session:
+            if self.user_can_authenticate(user):
+                request.session['provider_token'] = session.token()
+                return user
 
 
 class ProviderBasicAuthentication(authentication.BasicAuthentication):

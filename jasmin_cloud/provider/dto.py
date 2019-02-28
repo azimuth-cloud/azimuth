@@ -29,7 +29,7 @@ class Quota(namedtuple('Quota', ['resource', 'units', 'allocated', 'used'])):
 
 
 class Image(namedtuple('Image', ['id', 'vm_type', 'name',
-                                       'is_public', 'nat_allowed', 'size'])):
+                                 'is_public', 'nat_allowed', 'size'])):
     """
     Represents an image available to a tenancy.
 
@@ -149,35 +149,122 @@ class ExternalIp(namedtuple('ExternalIp', ['external_ip', 'machine_id'])):
     """
 
 
-class ClusterType(namedtuple('ClusterType', ['name', 'human_name',
-                                             'description', 'parameters'])):
+class ClusterType(namedtuple('ClusterType', ['name',
+                                             'label',
+                                             'description',
+                                             'parameters'])):
     """
     Represents a cluster type.
 
     Attributes:
         name: The name of the cluster type.
-        parameters: A list of :py:class:`Parameter`s required to create
-                    an instance of the cluster type.
+        label: A human-readable label for the cluster type.
+        description: A description of the cluster type.
+        parameters: A tuple of :py:class:`Parameter`s for the cluster type.
     """
-    class Parameter(namedtuple('Parameter', ['name', 'type',
-                                             'human_name', 'description'])):
+    class Parameter(namedtuple('Parameter', ['name', 'label', 'description',
+                                             'kind', 'options',
+                                             'immutable',
+                                             'required',
+                                             'default'])):
         """
         Represents a parameter required by a cluster type.
 
         Attributes:
             name: The name of the parameter.
-            type: A string type name.
-            human_name: A short human-readable name for the parameter.
-            description: A longer description of the parameter.
+            label: A human-readable label for the parameter.
+            description: A description of the parameter.
+            kind: The kind of the parameter.
+            options: A dictionary of kind-specific options for the parameter.
+            immutable: Indicates if the option is immutable, i.e. cannot be
+                       updated.
+            required: Indicates if the parameter is required.
+            default: A default value for the parameter.
         """
 
+    @classmethod
+    def from_dict(cls, cluster_type_spec):
+        """
+        Returns a new cluster type from the given dictionary specification.
 
-class Cluster(namedtuple('Cluster', ['name', 'type', 'parameter_values'])):
+        Args:
+            cluster_type_spec: The cluster type specification as a ``dict``.
+
+        Returns:
+            A :py:class:`ClusterType`.
+        """
+        return cls(
+            cluster_type_spec['name'],
+            cluster_type_spec.get('label', cluster_type_spec['name']),
+            cluster_type_spec.get('description'),
+            tuple(
+                cls.Parameter(
+                    param['name'],
+                    param.get('label', param['name']),
+                    param.get('description'),
+                    param['kind'],
+                    param.get('options', {}),
+                    param.get('immutable', False),
+                    param.get('required', True),
+                    param.get('default', None)
+                )
+                for param in cluster_type_spec.get('parameters', [])
+            )
+        )
+
+    @classmethod
+    def from_json(cls, path):
+        """
+        Returns a new cluster type from the given JSON file.
+
+        Args:
+            path: Path to a JSON file.
+
+        Returns:
+            A :py:class:`ClusterType`.
+        """
+        import json
+        with open(path) as fh:
+            return cls.from_dict(json.load(fh))
+
+    @classmethod
+    def from_yaml(cls, path):
+        """
+        Returns a new cluster type from the given YAML file.
+
+        Args:
+            path: Path to a YAML file.
+
+        Returns:
+            A :py:class:`ClusterType`.
+        """
+        import yaml
+        with open(path) as fh:
+            return cls.from_dict(yaml.safe_load(fh))
+
+
+class Cluster(namedtuple('Cluster', ['id', 'name', 'cluster_type',
+                                     'status', 'parameter_values',
+                                     'created', 'updated', 'patched'])):
     """
     Represents a cluster.
 
     Attributes:
+        id: The id of the cluster.
         name: The name of the cluster.
-        type: The name of the :py:class:`ClusterType` of the cluster.
+        cluster_type: The name of the :py:class:`ClusterType` of the cluster.
+        status: The :py:class:`Status` of the cluster.
         parameter_values: Dictionary containing the current parameter values.
+        created: The `datetime` at which the cluster was created.
+        updated: The `datetime` at which the cluster was updated.
+        patched: The `datetime` at which the cluster was last patched.
     """
+    @enum.unique
+    class Status(enum.Enum):
+        """
+        Enum for the possible cluster statuses.
+        """
+        CONFIGURING = 'CONFIGURING'
+        READY = 'READY'
+        DELETING = 'DELETING'
+        ERROR = 'ERROR'

@@ -128,6 +128,7 @@ class Provider(base.Provider):
         try:
             _ = conn.authorize()
         except exceptions.HttpException as e:
+            conn.close()
             if e.status_code == 401:
                 raise errors.AuthenticationError('Invalid username or password.')
             raise
@@ -156,6 +157,7 @@ class Provider(base.Provider):
         try:
             _ = conn.authorize()
         except exceptions.HttpException as e:
+            conn.close()
             if e.status_code == 401:
                 raise errors.AuthenticationError('Your session has expired.')
             raise
@@ -303,7 +305,7 @@ class UnscopedSession(base.UnscopedSession):
         See :py:meth:`.base.UnscopedSession.close`.
         """
         # Make sure the underlying requests session is closed
-        self._connection.session.session.close()
+        self._connection.close()
 
 
 class ScopedSession(base.ScopedSession):
@@ -946,12 +948,12 @@ class ScopedSession(base.ScopedSession):
                 'Clusters are not supported for this tenancy.'
             )
 
-    def find_cluster(self, name):
+    def find_cluster(self, id):
         """
         See :py:meth:`.base.ScopedSession.find_cluster`.
         """
         if self._cluster_manager:
-            return self._cluster_manager.find_cluster(name)
+            return self._cluster_manager.find_cluster(id)
         else:
             raise errors.UnsupportedOperationError(
                 'Clusters are not supported for this tenancy.'
@@ -962,29 +964,53 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.create_cluster`.
         """
         if self._cluster_manager:
-            return self._cluster_manager.create_cluster(name, cluster_type, params)
+            return self._cluster_manager.create_cluster(
+                name,
+                cluster_type,
+                self.validate_cluster_params(cluster_type, params)
+            )
         else:
             raise errors.UnsupportedOperationError(
                 'Clusters are not supported for this tenancy.'
             )
 
-    def update_cluster(self, name, params):
+    def update_cluster(self, cluster, params):
         """
         See :py:meth:`.base.ScopedSession.update_cluster`.
         """
         if self._cluster_manager:
-            return self._cluster_manager.update_cluster(name, params)
+            if not isinstance(cluster, dto.Cluster):
+                cluster = self.find_cluster(cluster)
+            return self._cluster_manager.update_cluster(
+                cluster,
+                self.validate_cluster_params(
+                    cluster.cluster_type,
+                    params,
+                    cluster.parameter_values
+                )
+            )
         else:
             raise errors.UnsupportedOperationError(
                 'Clusters are not supported for this tenancy.'
             )
 
-    def delete_cluster(self, name):
+    def patch_cluster(self, cluster):
+        """
+        See :py:meth:`.base.ScopedSession.patch_cluster`.
+        """
+        if self._cluster_manager:
+            return self._cluster_manager.patch_cluster(cluster)
+        else:
+            raise errors.UnsupportedOperationError(
+                'Clusters are not supported for this tenancy.'
+            )
+
+    def delete_cluster(self, cluster):
         """
         See :py:meth:`.base.ScopedSession.delete_cluster`.
         """
         if self._cluster_manager:
-            return self._cluster_manager.delete_cluster(name)
+            return self._cluster_manager.delete_cluster(cluster)
         else:
             raise errors.UnsupportedOperationError(
                 'Clusters are not supported for this tenancy.'
@@ -995,4 +1021,4 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.close`.
         """
         # Make sure the underlying requests session is closed
-        self._connection.session.session.close()
+        self._connection.close()

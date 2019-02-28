@@ -37,5 +37,7 @@ if __name__ == "__main__":
             'psycopg2',
             'django-settings-object',
             'jasmin-ldap',
+            'pyyaml',
+            'voluptuous',
         ],
     )
