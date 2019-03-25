@@ -534,7 +534,7 @@ class ScopedSession:
         )
         return validator(params)
 
-    def create_cluster(self, name, cluster_type, params):
+    def create_cluster(self, name, cluster_type, params, ssh_key):
         """
         Creates a new cluster with the given name, type and parameters.
 
@@ -544,6 +544,7 @@ class ScopedSession:
                           Can be a name or a :py:class:`~.dto.ClusterType`.
             params: Dictionary of parameter values as required by the
                     cluster type.
+            ssh_key: The SSH public key for access to cluster nodes.
 
         Returns:
             A :py:class:`~.dto.Cluster`.

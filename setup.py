@@ -39,5 +39,6 @@ if __name__ == "__main__":
             'jasmin-ldap',
             'pyyaml',
             'voluptuous',
+            'requests',
         ],
     )

@@ -58,7 +58,7 @@ def convert_provider_exceptions(view):
         except provider_errors.UnsupportedOperationError as exc:
             return response.Response(
                 { 'detail': str(exc), 'code': 'unsupported_operation'},
-                status = status.HTTP_501_NOT_IMPLEMENTED
+                status = status.HTTP_404_NOT_FOUND
             )
         except provider_errors.QuotaExceededError as exc:
             return response.Response(
@@ -635,7 +635,8 @@ def clusters(request, tenant):
             cluster = session.create_cluster(
                 input_serializer.validated_data['name'],
                 input_serializer.validated_data['cluster_type'],
-                input_serializer.validated_data['parameter_values']
+                input_serializer.validated_data['parameter_values'],
+                cloud_settings.SSH_KEY_STORE.get_key(request.user.username)
             )
         output_serializer = serializers.ClusterSerializer(
             cluster,

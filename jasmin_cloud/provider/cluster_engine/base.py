@@ -7,11 +7,12 @@ class Engine:
     """
     Base class for a cluster engine.
     """
-    def create_manager(self, tenancy):
+    def create_manager(self, username, tenancy):
         """
         Creates a cluster manager for the given tenancy.
 
         Args:
+            username: The username of the user.
             tenancy: The :py:class:`~..dto.Tenancy`.
 
         Returns:
@@ -66,7 +67,7 @@ class ClusterManager:
         """
         raise NotImplementedError
 
-    def create_cluster(self, name, cluster_type, params):
+    def create_cluster(self, name, cluster_type, params, **kwargs):
         """
         Creates a new cluster with the given name, type and parameters.
 
@@ -75,13 +76,14 @@ class ClusterManager:
             cluster_type: The :py:class:`~..dto.ClusterType`.
             params: Dictionary of parameter values as required by the
                     cluster type.
+            kwargs: Any additional arguments as required by implementations.
 
         Returns:
             A :py:class:`~..dto.Cluster`.
         """
         raise NotImplementedError
 
-    def update_cluster(self, cluster, params):
+    def update_cluster(self, cluster, params, **kwargs):
         """
         Updates an existing cluster with the given parameters.
 
@@ -90,34 +92,43 @@ class ClusterManager:
                      Can be an id or a :py:class:`~..dto.Cluster`.
             params: Dictionary of parameters values as required by the
                     cluster type.
+            kwargs: Any additional arguments as required by implementations.
 
         Returns:
             The updated :py:class:`~..dto.Cluster`.
         """
         raise NotImplementedError
 
-    def patch_cluster(self, cluster):
+    def patch_cluster(self, cluster, **kwargs):
         """
         Patches the given existing cluster.
 
         Args:
             cluster: The cluster to patch.
                      Can be an id or a :py:class:`~..dto.Cluster`.
+            kwargs: Any additional arguments as required by implementations.
 
         Returns:
             The :py:class:`~..dto.Cluster` being patched.
         """
         raise NotImplementedError
 
-    def delete_cluster(self, cluster):
+    def delete_cluster(self, cluster, **kwargs):
         """
         Deletes an existing cluster.
 
         Args:
             cluster: The cluster to delete.
                      Can be an id or a :py:class:`~..dto.Cluster`.
+            kwargs: Any additional arguments as required by implementations.
 
         Returns:
             The deleted :py:class:`~..dto.Cluster`.
         """
         raise NotImplementedError
+
+    def close(self):
+        """
+        Release any resources held by this cluster manager.
+        """
+        # By default, this is a NOOP

@@ -268,15 +268,10 @@ class UnscopedSession(base.UnscopedSession):
                     'Could not find tenancy with ID {}'.format(tenancy)
                 )
         logger.info('[%s] [%s] Creating scoped session', self._username, tenancy.name)
-        if self._cluster_engine:
-            cluster_manager = self._cluster_engine.create_manager(tenancy)
-        else:
-            cluster_manager = None
         try:
             return ScopedSession(
                 self._username,
-                tenancy.id,
-                tenancy.name,
+                tenancy,
                 connection.Connection(
                     auth_type = 'token',
                     auth = dict(
@@ -288,7 +283,7 @@ class UnscopedSession(base.UnscopedSession):
                     verify = self._connection.config.config['verify']
                 ),
                 secondary_network_id = self._secondary_network_id,
-                cluster_manager = cluster_manager
+                cluster_engine = self._cluster_engine
             )
         except exceptions.HttpException as e:
             # If creating the session fails with an auth error, convert that to
@@ -314,36 +309,33 @@ class ScopedSession(base.ScopedSession):
 
     Args:
         username: The username of the OpenStack user.
-        tenancy_id: The tenancy id.
-        tenancy_name: The name of the tenancy.
+        tenancy: The :py:class:`~.dto.Tenancy`.
         connection: An ``openstack.connection.Connection`` for the tenancy.
         secondary_network_id: The UUID of a second network to connect to new machines
                               when available. OPTIONAL, default ``None``.
                               If the network is not given or not available to a
                               tenancy, a second network is not connected.
-        cluster_manager: The :py:class:`~..cluster.base.ClusterManager` to use for clusters.
-                         If not given, clusters are disabled.
+        cluster_engine: The :py:class:`~.cluster_engine.base.ClusterEngine` to use for clusters.
+                        If not given, clusters are disabled.
     """
     provider_name = 'openstack'
 
     def __init__(self, username,
-                       tenancy_id,
-                       tenancy_name,
+                       tenancy,
                        connection,
                        secondary_network_id = None,
-                       cluster_manager = None):
+                       cluster_engine = None):
         self._username = username
-        self._tenancy_id = tenancy_id
-        self._tenancy_name = tenancy_name
+        self._tenancy = tenancy
         self._connection = connection
         self._secondary_network_id = secondary_network_id
-        self._cluster_manager = cluster_manager
+        self._cluster_engine = cluster_engine
 
     def _log(self, message, *args, level = logging.INFO, **kwargs):
         logger.log(
             level,
             '[%s] [%s] ' + message,
-            self._username, self._tenancy_name, *args, **kwargs
+            self._username, self._tenancy.name, *args, **kwargs
         )
 
     @convert_sdk_exceptions
@@ -379,7 +371,7 @@ class ScopedSession(base.ScopedSession):
         # For block storage and floating IPs, use the API directly
         network_ep = self._connection.network.get_endpoint(interface = interface)
         network_quotas = self._connection.session.get(
-            network_ep + '/quotas/' + self._tenancy_id
+            network_ep + '/quotas/' + self._tenancy.id
         ).json()
         quotas.append(
             dto.Quota(
@@ -645,7 +637,7 @@ class ScopedSession(base.ScopedSession):
             metadata = {
                 'jasmin_nat_allowed': '1' if image.nat_allowed else '0',
                 'jasmin_type': image.vm_type,
-                'jasmin_organisation': self._tenancy_name,
+                'jasmin_organisation': self._tenancy.name,
             },
             # The SDK doesn't like it if None is given for keypair, but behaves
             # correctly if it is not given at all
@@ -915,106 +907,133 @@ class ScopedSession(base.ScopedSession):
         self._connection.compute.delete_volume_attachment(volume.id, volume.machine_id)
         return self.find_volume(volume.id)
 
+    @property
+    def cluster_manager(self):
+        """
+        Returns the cluster manager for the tenancy.
+        """
+        if not self._cluster_engine:
+            raise errors.UnsupportedOperationError(
+                'Clusters are not supported for this tenancy.'
+            )
+        # Lazily instantiate the cluster manager the first time it is asked for.
+        if not hasattr(self, '_cluster_manager'):
+            self._cluster_manager = self._cluster_engine.create_manager(
+                self._username,
+                self._tenancy
+            )
+        return self._cluster_manager
+
     def cluster_types(self):
         """
         See :py:meth:`.base.ScopedSession.cluster_types`.
         """
-        if self._cluster_manager:
-            return self._cluster_manager.cluster_types()
-        else:
-            raise errors.UnsupportedOperationError(
-                'Clusters are not supported for this tenancy.'
-            )
+        return self.cluster_manager.cluster_types()
 
     def find_cluster_type(self, name):
         """
         See :py:meth:`.base.ScopedSession.find_cluster_type`.
         """
-        if self._cluster_manager:
-            return self._cluster_manager.find_cluster_type(name)
-        else:
-            raise errors.UnsupportedOperationError(
-                'Clusters are not supported for this tenancy.'
-            )
+        return self.cluster_manager.find_cluster_type(name)
+
+    def _remove_openstack_params(self, cluster):
+        params = dict(cluster.parameter_values)
+        for param in ('cluster_network', 'cluster_keypair'):
+            if param in params:
+                del params[param]
+        return cluster._replace(parameter_values = params)
 
     def clusters(self):
         """
         See :py:meth:`.base.ScopedSession.clusters`.
         """
-        if self._cluster_manager:
-            return self._cluster_manager.clusters()
-        else:
-            raise errors.UnsupportedOperationError(
-                'Clusters are not supported for this tenancy.'
-            )
+        return tuple(
+            self._remove_openstack_params(c)
+            for c in self.cluster_manager.clusters()
+        )
 
     def find_cluster(self, id):
         """
         See :py:meth:`.base.ScopedSession.find_cluster`.
         """
-        if self._cluster_manager:
-            return self._cluster_manager.find_cluster(id)
-        else:
-            raise errors.UnsupportedOperationError(
-                'Clusters are not supported for this tenancy.'
-            )
+        return self._remove_openstack_params(
+            self.cluster_manager.find_cluster(id)
+        )
 
-    def create_cluster(self, name, cluster_type, params):
+    def create_cluster(self, name, cluster_type, params, ssh_key):
         """
         See :py:meth:`.base.ScopedSession.create_cluster`.
         """
-        if self._cluster_manager:
-            return self._cluster_manager.create_cluster(
+        params = self.validate_cluster_params(cluster_type, params)
+        # Inject some OpenStack specific parameters
+        params.update(
+            cluster_network = self._tenant_network().name,
+            cluster_keypair = self._get_or_create_keypair(ssh_key).name
+        )
+        return self._remove_openstack_params(
+            self.cluster_manager.create_cluster(
                 name,
                 cluster_type,
-                self.validate_cluster_params(cluster_type, params)
+                params,
+                # Pass a fresh token as the credential
+                dict(
+                    project_id = self._connection.current_project.id,
+                    token = self._connection.authorize()
+                )
             )
-        else:
-            raise errors.UnsupportedOperationError(
-                'Clusters are not supported for this tenancy.'
-            )
+        )
 
     def update_cluster(self, cluster, params):
         """
         See :py:meth:`.base.ScopedSession.update_cluster`.
         """
-        if self._cluster_manager:
-            if not isinstance(cluster, dto.Cluster):
-                cluster = self.find_cluster(cluster)
-            return self._cluster_manager.update_cluster(
+        if not isinstance(cluster, dto.Cluster):
+            cluster = self.find_cluster(cluster)
+        return self._remove_openstack_params(
+            self.cluster_manager.update_cluster(
                 cluster,
                 self.validate_cluster_params(
                     cluster.cluster_type,
                     params,
                     cluster.parameter_values
+                ),
+                # Pass a fresh token as the credential
+                dict(
+                    project_id = self._connection.current_project.id,
+                    token = self._connection.authorize()
                 )
             )
-        else:
-            raise errors.UnsupportedOperationError(
-                'Clusters are not supported for this tenancy.'
-            )
+        )
 
     def patch_cluster(self, cluster):
         """
         See :py:meth:`.base.ScopedSession.patch_cluster`.
         """
-        if self._cluster_manager:
-            return self._cluster_manager.patch_cluster(cluster)
-        else:
-            raise errors.UnsupportedOperationError(
-                'Clusters are not supported for this tenancy.'
+        return self._remove_openstack_params(
+            self.cluster_manager.patch_cluster(
+                cluster,
+                # Pass a fresh token as the credential
+                dict(
+                    project_id = self._connection.current_project.id,
+                    token = self._connection.authorize()
+                )
             )
+        )
 
     def delete_cluster(self, cluster):
         """
         See :py:meth:`.base.ScopedSession.delete_cluster`.
         """
-        if self._cluster_manager:
-            return self._cluster_manager.delete_cluster(cluster)
-        else:
-            raise errors.UnsupportedOperationError(
-                'Clusters are not supported for this tenancy.'
+        return self._remove_openstack_params(
+            self.cluster_manager.delete_cluster(
+                cluster,
+                # Pass a fresh token as the credential
+                dict(
+                    project_id = self._connection.current_project.id,
+                    token = self._connection.authorize()
+                )
             )
+        )
 
     def close(self):
         """
@@ -1022,3 +1041,5 @@ class ScopedSession(base.ScopedSession):
         """
         # Make sure the underlying requests session is closed
         self._connection.close()
+        if hasattr(self, '_cluster_manager'):
+            self._cluster_manager.close()

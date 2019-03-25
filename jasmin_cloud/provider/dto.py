@@ -4,6 +4,12 @@ This module defines data-transfer objects used by providers.
 
 import enum
 from collections import namedtuple
+import json
+import re
+import io
+
+import yaml
+import requests
 
 
 class Tenancy(namedtuple('Tenancy', ['id', 'name'])):
@@ -183,20 +189,20 @@ class ClusterType(namedtuple('ClusterType', ['name',
         """
 
     @classmethod
-    def from_dict(cls, cluster_type_spec):
+    def from_dict(cls, name, spec):
         """
         Returns a new cluster type from the given dictionary specification.
 
         Args:
-            cluster_type_spec: The cluster type specification as a ``dict``.
+            spec: The cluster type specification as a ``dict``.
 
         Returns:
             A :py:class:`ClusterType`.
         """
         return cls(
-            cluster_type_spec['name'],
-            cluster_type_spec.get('label', cluster_type_spec['name']),
-            cluster_type_spec.get('description'),
+            name,
+            spec.get('label', name),
+            spec.get('description'),
             tuple(
                 cls.Parameter(
                     param['name'],
@@ -208,39 +214,47 @@ class ClusterType(namedtuple('ClusterType', ['name',
                     param.get('required', True),
                     param.get('default', None)
                 )
-                for param in cluster_type_spec.get('parameters', [])
+                for param in spec.get('parameters', [])
             )
         )
 
     @classmethod
-    def from_json(cls, path):
+    def _open(cls, path):
+        if re.match(r'https?://', path):
+            response = requests.get(path)
+            return io.StringIO(response.text)
+        else:
+            return open(path)
+
+    @classmethod
+    def from_json(cls, name, path):
         """
         Returns a new cluster type from the given JSON file.
 
         Args:
-            path: Path to a JSON file.
+            name: The name of the cluster type.
+            path: Path to or URL of a JSON specification file.
 
         Returns:
             A :py:class:`ClusterType`.
         """
-        import json
-        with open(path) as fh:
-            return cls.from_dict(json.load(fh))
+        with cls._open(path) as fh:
+            return cls.from_dict(name, json.load(fh))
 
     @classmethod
-    def from_yaml(cls, path):
+    def from_yaml(cls, name, path):
         """
         Returns a new cluster type from the given YAML file.
 
         Args:
-            path: Path to a YAML file.
+            name: The name of the cluster type.
+            path: Path to or URL of a YAML specification file.
 
         Returns:
             A :py:class:`ClusterType`.
         """
-        import yaml
-        with open(path) as fh:
-            return cls.from_dict(yaml.safe_load(fh))
+        with cls._open(path) as fh:
+            return cls.from_dict(name, yaml.safe_load(fh))
 
 
 class Cluster(namedtuple('Cluster', ['id', 'name', 'cluster_type',
