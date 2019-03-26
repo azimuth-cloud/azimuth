@@ -9,6 +9,10 @@ import voluptuous as v, voluptuous.humanize as vh
 from . import errors
 
 
+#: Sentinel object for no previous value
+NO_PREVIOUS = object()
+
+
 def build_validator(session, parameter_spec, prev_params = {}):
     """
     Builds and returns a validator function for the given parameter spec
@@ -37,9 +41,10 @@ def build_validator(session, parameter_spec, prev_params = {}):
         else:
             key = key_class(param.name)
         # Combine kind-specific and immutability constraints
+        prev_value = prev_params.get(param.name, NO_PREVIOUS)
         spec[key] = v.All(
-            kind_constraint(session, param.kind, param.options),
-            immutability_constraint(param, prev_params)
+            kind_constraint(session, param.kind, param.options, prev_value),
+            immutability_constraint(param, prev_value)
         )
     return use_schema(v.Schema(spec))
 
@@ -63,27 +68,32 @@ def use_schema(schema):
     return validate
 
 
-def immutability_constraint(param, prev_params):
+def immutability_constraint(param, prev_value):
     def immutable(value):
         # If the parameter is not immutable, any value is fine
         if not param.immutable:
             return value
-        # If the parameter is not in the previous params, any value is fine
-        if param.name not in prev_params:
+        # If there is no previous value, any value is fine
+        if prev_value is NO_PREVIOUS:
             return value
         # If we get this far, the previous and new values must match
-        if prev_params[param.name] == value:
+        if prev_value == value:
             return value
         else:
             raise v.Invalid('This parameter cannot be changed.')
     return immutable
 
 
-def kind_constraint(session, kind, options = {}):
+def kind_constraint(session, kind, options, prev_value):
     """
     Returns a schema constraint for the given kind and options.
     """
-    return getattr(kind_constraint, kind)(session, options)
+    constraint = getattr(kind_constraint, kind)
+    # Try to call with 3 args - if it fails with a TypeError, try with 2
+    try:
+        return constraint(session, options, prev_value)
+    except TypeError:
+        return constraint(session, options)
 
 
 def register_constraint(kind):
@@ -128,7 +138,7 @@ def integer_constraint(session, options):
     return v.All(v.Any(int, str), v.Coerce(int), *number_constraints(options))
 
 
-@register_constraint("float")
+@register_constraint("number")
 def float_constraint(session, options):
     return v.All(v.Coerce(float), *number_constraints(options))
 
@@ -187,10 +197,11 @@ def cloud_machine_constraint(session, options):
 
 
 @register_constraint("cloud.ip")
-def cloud_ip_constraint(session, options):
-    # Require that the IP be available for attaching
+def cloud_ip_constraint(session, options, prev_value):
+    # If the given IP matches the previous value, that is OK
+    # Otherwise, require that the IP be available for attaching
     def ip_available(ip):
-        if ip.machine_id is not None:
+        if prev_value == ip or ip.machine_id is None:
             return ip
         else:
             raise v.Invalid('External IP is not available.')

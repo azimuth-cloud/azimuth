@@ -912,15 +912,19 @@ class ScopedSession(base.ScopedSession):
         """
         Returns the cluster manager for the tenancy.
         """
-        if not self._cluster_engine:
-            raise errors.UnsupportedOperationError(
-                'Clusters are not supported for this tenancy.'
-            )
         # Lazily instantiate the cluster manager the first time it is asked for.
         if not hasattr(self, '_cluster_manager'):
-            self._cluster_manager = self._cluster_engine.create_manager(
-                self._username,
-                self._tenancy
+            if self._cluster_engine:
+                self._cluster_manager = self._cluster_engine.create_manager(
+                    self._username,
+                    self._tenancy
+                )
+            else:
+                self._cluster_manager = None
+        # If there is still no cluster manager, clusters are not supported
+        if not self._cluster_manager:
+            raise errors.UnsupportedOperationError(
+                'Clusters are not supported for this tenancy.'
             )
         return self._cluster_manager
 
@@ -1041,5 +1045,5 @@ class ScopedSession(base.ScopedSession):
         """
         # Make sure the underlying requests session is closed
         self._connection.close()
-        if hasattr(self, '_cluster_manager'):
+        if getattr(self, '_cluster_manager', None):
             self._cluster_manager.close()

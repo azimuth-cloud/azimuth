@@ -223,20 +223,20 @@ class ClusterManager(base.ClusterManager):
                     )
             else:
                 status = dto.Cluster.Status.ERROR
-        # The updated time is the start time of the last successful job
+        # The updated time is the finish time of the last successful job
         try:
             func = lambda j: j.status == 'successful'
-            updated = next(iter(filter(func, jobs))).started
+            updated = next(iter(filter(func, jobs))).finished
         except StopIteration:
             updated = inventory.created
-        # The patched time is the start time of the last successful job
+        # The patched time is the finish time of the last successful job
         # with the "cluster_upgrade_system_packages" variable set to true
         try:
             func = lambda j: (
                 j.status == 'successful' and
                 json.loads(j.extra_vars).get('cluster_upgrade_system_packages', False)
             )
-            patched = next(iter(filter(func, jobs))).started
+            patched = next(iter(filter(func, jobs))).finished
         except StopIteration:
             patched = inventory.created
         return dto.Cluster(
