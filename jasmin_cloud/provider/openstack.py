@@ -954,7 +954,7 @@ class ScopedSession(base.ScopedSession):
             cluster.name,
             ignore_missing = True
         )
-        stack_tags = tuple(getattr(stack, 'tags', []))
+        stack_tags = tuple(getattr(stack, 'tags', None) or [])
         return cluster._replace(
             parameter_values = params,
             tags = cluster.tags + stack_tags
