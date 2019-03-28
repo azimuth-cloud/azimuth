@@ -20,7 +20,7 @@ class Engine(base.Engine):
         self._cluster_types = cluster_types
         self._clusters_file = clusters_file
 
-    def create_manager(self, tenancy):
+    def create_manager(self, username, tenancy):
         """
         Creates a cluster manager for the given tenancy.
 
@@ -72,7 +72,7 @@ class ClusterManager(base.ClusterManager):
         except StopIteration:
             raise errors.ObjectNotFoundError("Could not find cluster '{}'".format(id))
 
-    def create_cluster(self, name, cluster_type, params):
+    def create_cluster(self, name, cluster_type, params, *args, **kwargs):
         with open(self._clusters_file) as fh:
             clusters = json.load(fh)
         id = str(uuid.uuid4())
@@ -90,7 +90,7 @@ class ClusterManager(base.ClusterManager):
             json.dump(clusters, fh, indent = 2)
         return self.find_cluster(id)
 
-    def update_cluster(self, cluster, params):
+    def update_cluster(self, cluster, params, *args, **kwargs):
         cluster = cluster.id if isinstance(cluster, dto.Cluster) else cluster
         with open(self._clusters_file) as fh:
             clusters = json.load(fh)
@@ -108,7 +108,7 @@ class ClusterManager(base.ClusterManager):
             json.dump(clusters, fh, indent = 2)
         return self.find_cluster(cluster)
 
-    def patch_cluster(self, cluster):
+    def patch_cluster(self, cluster, *args, **kwargs):
         cluster = cluster.id if isinstance(cluster, dto.Cluster) else cluster
         with open(self._clusters_file) as fh:
             clusters = json.load(fh)
@@ -125,7 +125,7 @@ class ClusterManager(base.ClusterManager):
             json.dump(clusters, fh, indent = 2)
         return self.find_cluster(cluster)
 
-    def delete_cluster(self, cluster):
+    def delete_cluster(self, cluster, *args, **kwargs):
         cluster = cluster if isinstance(cluster, dto.Cluster) else self.find_cluster(cluster)
         with open(self._clusters_file) as fh:
             clusters = json.load(fh)

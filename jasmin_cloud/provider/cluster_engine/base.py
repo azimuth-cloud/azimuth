@@ -67,7 +67,7 @@ class ClusterManager:
         """
         raise NotImplementedError
 
-    def create_cluster(self, name, cluster_type, params, **kwargs):
+    def create_cluster(self, name, cluster_type, params, *args, **kwargs):
         """
         Creates a new cluster with the given name, type and parameters.
 
@@ -76,6 +76,7 @@ class ClusterManager:
             cluster_type: The :py:class:`~..dto.ClusterType`.
             params: Dictionary of parameter values as required by the
                     cluster type.
+            args: Any additional arguments as required by implementations.
             kwargs: Any additional arguments as required by implementations.
 
         Returns:
@@ -83,7 +84,7 @@ class ClusterManager:
         """
         raise NotImplementedError
 
-    def update_cluster(self, cluster, params, **kwargs):
+    def update_cluster(self, cluster, params, *args, **kwargs):
         """
         Updates an existing cluster with the given parameters.
 
@@ -92,6 +93,7 @@ class ClusterManager:
                      Can be an id or a :py:class:`~..dto.Cluster`.
             params: Dictionary of parameters values as required by the
                     cluster type.
+            args: Any additional arguments as required by implementations.
             kwargs: Any additional arguments as required by implementations.
 
         Returns:
@@ -99,13 +101,14 @@ class ClusterManager:
         """
         raise NotImplementedError
 
-    def patch_cluster(self, cluster, **kwargs):
+    def patch_cluster(self, cluster, *args, **kwargs):
         """
         Patches the given existing cluster.
 
         Args:
             cluster: The cluster to patch.
                      Can be an id or a :py:class:`~..dto.Cluster`.
+            args: Any additional arguments as required by implementations.
             kwargs: Any additional arguments as required by implementations.
 
         Returns:
@@ -113,13 +116,14 @@ class ClusterManager:
         """
         raise NotImplementedError
 
-    def delete_cluster(self, cluster, **kwargs):
+    def delete_cluster(self, cluster, *args, **kwargs):
         """
         Deletes an existing cluster.
 
         Args:
             cluster: The cluster to delete.
                      Can be an id or a :py:class:`~..dto.Cluster`.
+            args: Any additional arguments as required by implementations.
             kwargs: Any additional arguments as required by implementations.
 
         Returns:
