@@ -258,7 +258,7 @@ class ClusterType(namedtuple('ClusterType', ['name',
 
 
 class Cluster(namedtuple('Cluster', ['id', 'name', 'cluster_type',
-                                     'status', 'parameter_values',
+                                     'status', 'parameter_values', 'tags',
                                      'created', 'updated', 'patched'])):
     """
     Represents a cluster.
@@ -269,6 +269,7 @@ class Cluster(namedtuple('Cluster', ['id', 'name', 'cluster_type',
         cluster_type: The name of the :py:class:`ClusterType` of the cluster.
         status: The :py:class:`Status` of the cluster.
         parameter_values: Dictionary containing the current parameter values.
+        tags: A tuple of tags describing the cluster.
         created: The `datetime` at which the cluster was created.
         updated: The `datetime` at which the cluster was updated.
         patched: The `datetime` at which the cluster was last patched.

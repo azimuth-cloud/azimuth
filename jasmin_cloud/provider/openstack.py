@@ -940,19 +940,32 @@ class ScopedSession(base.ScopedSession):
         """
         return self.cluster_manager.find_cluster_type(name)
 
-    def _remove_openstack_params(self, cluster):
+    def _fixup_cluster(self, cluster):
+        """
+        Fix up the cluster with any OpenStack-specific changes.
+        """
+        # Remove injected parameters from the cluster params
         params = dict(cluster.parameter_values)
         for param in ('cluster_network', 'cluster_keypair'):
             if param in params:
                 del params[param]
-        return cluster._replace(parameter_values = params)
+        # Add any tags attached to the stack
+        stack = self._connection.orchestration.find_stack(
+            cluster.name,
+            ignore_missing = True
+        )
+        stack_tags = tuple(getattr(stack, 'tags', []))
+        return cluster._replace(
+            parameter_values = params,
+            tags = cluster.tags + stack_tags
+        )
 
     def clusters(self):
         """
         See :py:meth:`.base.ScopedSession.clusters`.
         """
         return tuple(
-            self._remove_openstack_params(c)
+            self._fixup_cluster(c)
             for c in self.cluster_manager.clusters()
         )
 
@@ -960,7 +973,7 @@ class ScopedSession(base.ScopedSession):
         """
         See :py:meth:`.base.ScopedSession.find_cluster`.
         """
-        return self._remove_openstack_params(
+        return self._fixup_cluster(
             self.cluster_manager.find_cluster(id)
         )
 
@@ -974,7 +987,7 @@ class ScopedSession(base.ScopedSession):
             cluster_network = self._tenant_network().name,
             cluster_keypair = self._get_or_create_keypair(ssh_key).name
         )
-        return self._remove_openstack_params(
+        return self._fixup_cluster(
             self.cluster_manager.create_cluster(
                 name,
                 cluster_type,
@@ -993,7 +1006,7 @@ class ScopedSession(base.ScopedSession):
         """
         if not isinstance(cluster, dto.Cluster):
             cluster = self.find_cluster(cluster)
-        return self._remove_openstack_params(
+        return self._fixup_cluster(
             self.cluster_manager.update_cluster(
                 cluster,
                 self.validate_cluster_params(
@@ -1013,7 +1026,7 @@ class ScopedSession(base.ScopedSession):
         """
         See :py:meth:`.base.ScopedSession.patch_cluster`.
         """
-        return self._remove_openstack_params(
+        return self._fixup_cluster(
             self.cluster_manager.patch_cluster(
                 cluster,
                 # Pass a fresh token as the credential
@@ -1028,7 +1041,7 @@ class ScopedSession(base.ScopedSession):
         """
         See :py:meth:`.base.ScopedSession.delete_cluster`.
         """
-        return self._remove_openstack_params(
+        return self._fixup_cluster(
             self.cluster_manager.delete_cluster(
                 cluster,
                 # Pass a fresh token as the credential

@@ -246,6 +246,7 @@ class ClusterManager(base.ClusterManager):
             cluster_type,
             status,
             params,
+            (),
             dateutil.parser.parse(inventory.created),
             dateutil.parser.parse(updated),
             dateutil.parser.parse(patched)

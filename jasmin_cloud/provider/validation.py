@@ -201,7 +201,7 @@ def cloud_ip_constraint(session, options, prev_value):
     # If the given IP matches the previous value, that is OK
     # Otherwise, require that the IP be available for attaching
     def ip_available(ip):
-        if prev_value == ip or ip.machine_id is None:
+        if prev_value == ip.external_ip or ip.machine_id is None:
             return ip
         else:
             raise v.Invalid('External IP is not available.')
@@ -235,11 +235,16 @@ def cloud_volume_constraint(session, options):
 
 @register_constraint("cloud.cluster")
 def cloud_cluster_constraint(session, options):
+    def has_tag(cluster):
+        if 'tag' in options and options['tag'] not in cluster.tags:
+            raise v.Invalid("Cluster does not have tag '{}'.".format(options['tag']))
+        return cluster
     return v.All(
         v.Coerce(str),
         convert_not_found(
             lambda v: session.find_cluster(v),
             "Not a valid cluster."
         ),
+        has_tag,
         lambda c: c.id
     )
