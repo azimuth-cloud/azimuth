@@ -7,6 +7,7 @@ import functools
 import io
 import json
 import uuid
+import time
 
 import dateutil.parser
 
@@ -319,6 +320,16 @@ class ClusterManager(base.ClusterManager):
                 # If the cluster is not found, that means the inventory represents
                 # a deleted cluster, so delete it
                 self._connection.inventory.delete(inventory)
+                # Inventories don't always delete straight away, so try up to five times
+                remaining = 5
+                while remaining > 0:
+                    try:
+                        inventory = self._connection.inventory.fetch_one(inventory.id)
+                    except api.NotFound:
+                        break
+                    self._connection.inventory.cache_evict(inventory.id)
+                else:
+                    raise errors.OperationTimedOutError('Timed out while creating cluster.')
             else:
                 # If the cluster also exists, this is a bad request
                 raise errors.BadInputError("A cluster called '%s' aleady exists.", name)
