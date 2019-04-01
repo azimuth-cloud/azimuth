@@ -928,12 +928,14 @@ class ScopedSession(base.ScopedSession):
             )
         return self._cluster_manager
 
+    @convert_sdk_exceptions
     def cluster_types(self):
         """
         See :py:meth:`.base.ScopedSession.cluster_types`.
         """
         return self.cluster_manager.cluster_types()
 
+    @convert_sdk_exceptions
     def find_cluster_type(self, name):
         """
         See :py:meth:`.base.ScopedSession.find_cluster_type`.
@@ -960,6 +962,7 @@ class ScopedSession(base.ScopedSession):
             tags = cluster.tags + stack_tags
         )
 
+    @convert_sdk_exceptions
     def clusters(self):
         """
         See :py:meth:`.base.ScopedSession.clusters`.
@@ -969,6 +972,7 @@ class ScopedSession(base.ScopedSession):
             for c in self.cluster_manager.clusters()
         )
 
+    @convert_sdk_exceptions
     def find_cluster(self, id):
         """
         See :py:meth:`.base.ScopedSession.find_cluster`.
@@ -977,6 +981,7 @@ class ScopedSession(base.ScopedSession):
             self.cluster_manager.find_cluster(id)
         )
 
+    @convert_sdk_exceptions
     def create_cluster(self, name, cluster_type, params, ssh_key):
         """
         See :py:meth:`.base.ScopedSession.create_cluster`.
@@ -1000,6 +1005,7 @@ class ScopedSession(base.ScopedSession):
             )
         )
 
+    @convert_sdk_exceptions
     def update_cluster(self, cluster, params):
         """
         See :py:meth:`.base.ScopedSession.update_cluster`.
@@ -1022,6 +1028,7 @@ class ScopedSession(base.ScopedSession):
             )
         )
 
+    @convert_sdk_exceptions
     def patch_cluster(self, cluster):
         """
         See :py:meth:`.base.ScopedSession.patch_cluster`.
@@ -1037,6 +1044,7 @@ class ScopedSession(base.ScopedSession):
             )
         )
 
+    @convert_sdk_exceptions
     def delete_cluster(self, cluster):
         """
         See :py:meth:`.base.ScopedSession.delete_cluster`.
@@ -1052,6 +1060,7 @@ class ScopedSession(base.ScopedSession):
             )
         )
 
+    @convert_sdk_exceptions
     def close(self):
         """
         See :py:meth:`.base.ScopedSession.close`.
