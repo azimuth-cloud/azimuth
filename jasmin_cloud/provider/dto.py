@@ -158,6 +158,7 @@ class ExternalIp(namedtuple('ExternalIp', ['external_ip', 'machine_id'])):
 class ClusterType(namedtuple('ClusterType', ['name',
                                              'label',
                                              'description',
+                                             'logo',
                                              'parameters'])):
     """
     Represents a cluster type.
@@ -166,6 +167,7 @@ class ClusterType(namedtuple('ClusterType', ['name',
         name: The name of the cluster type.
         label: A human-readable label for the cluster type.
         description: A description of the cluster type.
+        logo: The URL or data URI of the logo for the cluster type.
         parameters: A tuple of :py:class:`Parameter`s for the cluster type.
     """
     class Parameter(namedtuple('Parameter', ['name', 'label', 'description',
@@ -203,6 +205,7 @@ class ClusterType(namedtuple('ClusterType', ['name',
             name,
             spec.get('label', name),
             spec.get('description'),
+            spec.get('logo'),
             tuple(
                 cls.Parameter(
                     param['name'],

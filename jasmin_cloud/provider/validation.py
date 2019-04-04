@@ -6,7 +6,7 @@ import functools
 
 import voluptuous as v, voluptuous.humanize as vh
 
-from . import errors
+from . import errors, dto
 
 
 #: Sentinel object for no previous value
@@ -234,17 +234,27 @@ def cloud_volume_constraint(session, options):
 
 
 @register_constraint("cloud.cluster")
-def cloud_cluster_constraint(session, options):
+def cloud_cluster_constraint(session, options, prev_value):
+    # Cluster values come in by name
+    def find_by_name(name):
+        try:
+            return next(c for c in session.clusters() if c.name == name)
+        except StopIteration:
+            raise v.Invalid("Not a valid cluster.")
     def has_tag(cluster):
         if 'tag' in options and options['tag'] not in cluster.tags:
             raise v.Invalid("Cluster does not have tag '{}'.".format(options['tag']))
         return cluster
+    # Only allow clusters that are in the READY state or were selected last time
+    def is_ready(cluster):
+        if cluster.name == prev_value or cluster.status is dto.Cluster.Status.READY:
+            return cluster
+        else:
+            raise v.Invalid("Cluster is not ready.")
     return v.All(
         v.Coerce(str),
-        convert_not_found(
-            lambda v: session.find_cluster(v),
-            "Not a valid cluster."
-        ),
+        find_by_name,
         has_tag,
-        lambda c: c.id
+        is_ready,
+        lambda c: c.name
     )
