@@ -208,22 +208,49 @@ class ClusterManager(base.ClusterManager):
             # There should be at least one job...
             status = dto.Cluster.Status.ERROR
         else:
-            if latest.status in {'new', 'pending', 'waiting', 'running'}:
+            task = None
+            error_message = None
+            if latest.status == 'successful':
+                if cluster_state == 'present':
+                    status = dto.Cluster.Status.READY
+                else:
+                    # If the last job was a successful delete, pretend
+                    # that the cluster doesn't exist any more
+                    raise errors.ObjectNotFoundError(
+                        "Could not find cluster with ID {}".format(id)
+                    )
+            elif latest.status == 'canceled':
+                status = dto.Cluster.Status.ERROR
+                error_message = 'Cluster configuration cancelled by an administrator.'
+            elif latest.status in {'failed', 'error'}:
+                status = dto.Cluster.Status.ERROR
+                # Try to retrieve an error from the failed task
+                events = latest.fetch_related(
+                    'job_events',
+                    event = 'runner_on_failed',
+                    order_by = '-created'
+                )
+                error_message = (
+                    next(iter(events), {})
+                        .get('event_data', {})
+                        .get('res', {})
+                        .get(
+                            'msg',
+                            'Error during cluster configuration. Please contact support.'
+                        )
+                )
+            else:
                 if cluster_state == 'present':
                     status = dto.Cluster.Status.CONFIGURING
                 else:
                     status = dto.Cluster.Status.DELETING
-            elif latest.status == 'successful':
-                # If the last job was a successful delete, pretend
-                # that the cluster doesn't exist any more
-                if cluster_state == 'present':
-                    status = dto.Cluster.Status.READY
-                else:
-                    raise errors.ObjectNotFoundError(
-                        "Could not find cluster with ID {}".format(id)
-                    )
-            else:
-                status = dto.Cluster.Status.ERROR
+                # Find the name of the currently executing task
+                events = latest.fetch_related(
+                    'job_events',
+                    event = 'playbook_on_task_start',
+                    order_by = '-created'
+                )
+                task = next(iter(events), {}).get('task')
         # The updated time is the finish time of the last successful job
         try:
             func = lambda j: j.status == 'successful'
@@ -245,6 +272,8 @@ class ClusterManager(base.ClusterManager):
             name,
             cluster_type,
             status,
+            task,
+            error_message,
             params,
             (),
             dateutil.parser.parse(inventory.created),

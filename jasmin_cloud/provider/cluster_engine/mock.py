@@ -58,6 +58,8 @@ class ClusterManager(base.ClusterManager):
                     c['name'],
                     c['cluster_type'],
                     dto.Cluster.Status[c['status']],
+                    None,
+                    None,
                     c['parameter_values'],
                     tuple(c.get('tags', [])),
                     dateutil.parser.parse(c['created']),

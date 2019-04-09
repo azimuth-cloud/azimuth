@@ -133,10 +133,10 @@ class Entity(dict):
         except KeyError:
             raise AttributeError("No such attribute '{}'".format(name))
 
-    def fetch_related(self, related):
+    def fetch_related(self, related, **params):
         # Use/populate the cache as required
         if not self.related_cache_has(related):
-            data = self._connection.api_get(self.related[related])
+            data = self._connection.api_get(self.related[related], params = params)
             if 'results' in data:
                 return self.related_cache_set(
                     related,

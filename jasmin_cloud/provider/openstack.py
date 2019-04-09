@@ -957,9 +957,29 @@ class ScopedSession(base.ScopedSession):
             ignore_missing = True
         )
         stack_tags = tuple(getattr(stack, 'tags', None) or [])
+        # Convert error messages based on known OpenStack error messages
+        if 'quota exceeded' in (cluster.error_message or '').lower():
+            if 'floatingip' in cluster.error_message.lower():
+                error_message = (
+                    'Could not find an external IP for deployment. '
+                    'Please ensure an external IP is available and try again.'
+                )
+            else:
+                error_message = (
+                    'Requested resources exceed at least one quota. '
+                    'Please check your tenancy quotas and try again.'
+                )
+        elif cluster.error_message:
+            error_message = (
+                'Error during cluster configuration. '
+                'Please contact support.'
+            )
+        else:
+            error_message = None
         return cluster._replace(
             parameter_values = params,
-            tags = cluster.tags + stack_tags
+            tags = cluster.tags + stack_tags,
+            error_message = error_message
         )
 
     @convert_sdk_exceptions
