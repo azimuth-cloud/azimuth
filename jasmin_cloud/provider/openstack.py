@@ -408,6 +408,9 @@ class ScopedSession(base.ScopedSession):
         """
         jasmin_type = resource.Body('jasmin_type')
         jasmin_nat_allowed = resource.Body('jasmin_nat_allowed')
+        # This flag indicates whether the image is a cluster image
+        # Cluster images are excluded from the image list
+        jasmin_cluster_image = resource.Body('jasmin_cluster_image')
 
     def _from_sdk_image(self, sdk_image):
         """
@@ -431,7 +434,12 @@ class ScopedSession(base.ScopedSession):
         """
         self._log('Fetching available images')
         # Fetch from the SDK using our custom image resource
-        images = list(self._connection.image._list(self.Image, status = 'active'))
+        # Exclude cluster images from the returned list
+        images = list(
+            image
+            for image in self._connection.image._list(self.Image, status = 'active')
+            if not int(image.jasmin_cluster_image or '0')
+        )
         self._log('Found %s images', len(images))
         return tuple(self._from_sdk_image(i) for i in images)
 
