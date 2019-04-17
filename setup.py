@@ -35,7 +35,7 @@ if __name__ == "__main__":
             'openstacksdk',
             'django',
             'djangorestframework',
-            'psycopg2',
+            'psycopg2-binary',
             'django-settings-object',
             'jasmin-ldap',
         ],
