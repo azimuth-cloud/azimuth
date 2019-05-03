@@ -73,6 +73,29 @@ def convert_sdk_exceptions(f):
     return wrapper
 
 
+def getattr_nested(obj, path, default):
+    if len(path) > 1:
+        part = path[0]
+        if hasattr(obj, part):
+            return getattr_nested(getattr(obj, part), path[1:], default)
+        else:
+            return default
+    else:
+        return getattr(obj, path[0], default)
+
+
+def close_openstack_connection(connection):
+    """
+    Closes the given ``openstacksdk.connection.Connection`` in a way that doesn't leave
+    dangling connections in the ``CLOSE_WAIT`` state.
+    """
+    # Close the connection itself
+    connection.close()
+    # Also close the underlying requests session, if one exists
+    # This seems to prevent the dangling connections
+    getattr_nested(connection, ('session', 'session', 'close'), lambda: None)()
+
+
 class Provider(base.Provider):
     """
     Provider implementation for OpenStack.
@@ -128,7 +151,7 @@ class Provider(base.Provider):
         try:
             _ = conn.authorize()
         except exceptions.HttpException as e:
-            conn.close()
+            close_openstack_connection(conn)
             if e.status_code == 401:
                 raise errors.AuthenticationError('Invalid username or password.')
             raise
@@ -157,8 +180,9 @@ class Provider(base.Provider):
         try:
             _ = conn.authorize()
         except exceptions.HttpException as e:
-            conn.close()
-            if e.status_code == 401:
+            close_openstack_connection(conn)
+            # Failing to validate a token is a 404 for some reason
+            if e.status_code in {401, 404}:
                 raise errors.AuthenticationError('Your session has expired.')
             raise
         return UnscopedSession(
@@ -300,7 +324,7 @@ class UnscopedSession(base.UnscopedSession):
         See :py:meth:`.base.UnscopedSession.close`.
         """
         # Make sure the underlying requests session is closed
-        self._connection.close()
+        close_openstack_connection(self._connection)
 
 
 class ScopedSession(base.ScopedSession):
@@ -1093,7 +1117,8 @@ class ScopedSession(base.ScopedSession):
         """
         See :py:meth:`.base.ScopedSession.close`.
         """
-        # Make sure the underlying requests session is closed
-        self._connection.close()
+        # Make sure the underlying OpenStack connection is closed
+        close_openstack_connection(self._connection)
+        # Also close the cluster manager if one has been created
         if getattr(self, '_cluster_manager', None):
             self._cluster_manager.close()

@@ -68,13 +68,17 @@ class Engine(base.Engine):
             self._password,
             self._verify_ssl
         )
-        organisation = connection.organisation.fetch_one()
-        template_inventory = connection.inventory.fetch_one(
-            name = self._template_inventory
-        )
-        credential_type = connection.credential_type.fetch_one(
-            name = self._credential_type
-        )
+        try:
+            organisation = connection.organisation.fetch_one()
+            template_inventory = connection.inventory.fetch_one(
+                name = self._template_inventory
+            )
+            credential_type = connection.credential_type.fetch_one(
+                name = self._credential_type
+            )
+        except:
+            connection.close()
+            raise
         try:
             team = connection.team.fetch_one(name__iexact = tenancy.name)
             logger.info("Found AWX team '%s'", team.name)
@@ -88,6 +92,7 @@ class Engine(base.Engine):
             )
         except api.NotFound:
             logger.warn("Could not find AWX team '%s'", tenancy.name)
+            connection.close()
             return None
 
 
