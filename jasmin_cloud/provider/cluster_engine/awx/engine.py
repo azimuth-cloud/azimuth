@@ -207,14 +207,14 @@ class ClusterManager(base.ClusterManager):
             order_by = '-started'
         )
         # The status of the cluster is the status of the latest job
+        task = None
+        error_message = None
         try:
             latest = next(iter(jobs))
         except StopIteration:
             # There should be at least one job...
             status = dto.Cluster.Status.ERROR
         else:
-            task = None
-            error_message = None
             if latest.status == 'successful':
                 if cluster_state == 'present':
                     status = dto.Cluster.Status.READY

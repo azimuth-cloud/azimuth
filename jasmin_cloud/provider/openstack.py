@@ -988,6 +988,7 @@ class ScopedSession(base.ScopedSession):
             cluster.name,
             ignore_missing = True
         )
+        # We use this format because tags might exist on the stack but be None
         stack_tags = tuple(getattr(stack, 'tags', None) or [])
         # Convert error messages based on known OpenStack error messages
         if 'quota exceeded' in (cluster.error_message or '').lower():
@@ -1033,6 +1034,16 @@ class ScopedSession(base.ScopedSession):
             self.cluster_manager.find_cluster(id)
         )
 
+    def _cluster_credential(self):
+        # Making sure we get the public URL for identity is a bit contrived
+        session = self._connection.session
+        auth_ref = session.auth.get_auth_ref(session)
+        return dict(
+            auth_url = auth_ref.service_catalog.url_for('identity', 'public'),
+            project_id = self._connection.current_project.id,
+            token = self._connection.authorize()
+        )
+
     @convert_sdk_exceptions
     def create_cluster(self, name, cluster_type, params, ssh_key):
         """
@@ -1049,11 +1060,7 @@ class ScopedSession(base.ScopedSession):
                 name,
                 cluster_type,
                 params,
-                # Pass a fresh token as the credential
-                dict(
-                    project_id = self._connection.current_project.id,
-                    token = self._connection.authorize()
-                )
+                self._cluster_credential()
             )
         )
 
@@ -1072,11 +1079,7 @@ class ScopedSession(base.ScopedSession):
                     params,
                     cluster.parameter_values
                 ),
-                # Pass a fresh token as the credential
-                dict(
-                    project_id = self._connection.current_project.id,
-                    token = self._connection.authorize()
-                )
+                self._cluster_credential()
             )
         )
 
@@ -1088,11 +1091,7 @@ class ScopedSession(base.ScopedSession):
         return self._fixup_cluster(
             self.cluster_manager.patch_cluster(
                 cluster,
-                # Pass a fresh token as the credential
-                dict(
-                    project_id = self._connection.current_project.id,
-                    token = self._connection.authorize()
-                )
+                self._cluster_credential()
             )
         )
 
@@ -1104,11 +1103,7 @@ class ScopedSession(base.ScopedSession):
         return self._fixup_cluster(
             self.cluster_manager.delete_cluster(
                 cluster,
-                # Pass a fresh token as the credential
-                dict(
-                    project_id = self._connection.current_project.id,
-                    token = self._connection.authorize()
-                )
+                self._cluster_credential()
             )
         )
 

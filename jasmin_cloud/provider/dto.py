@@ -225,6 +225,7 @@ class ClusterType(namedtuple('ClusterType', ['name',
     def _open(cls, path):
         if re.match(r'https?://', path):
             response = requests.get(path)
+            response.raise_for_status()
             return io.StringIO(response.text)
         else:
             return open(path)
