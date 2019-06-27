@@ -144,7 +144,7 @@ class Provider(base.Provider):
                 password = password,
                 user_domain_name = self._domain
             ),
-            identity_interface = self._interface,
+            interface = self._interface,
             verify = self._verify_ssl
         )
         # Force the connection to validate the credentials
@@ -173,7 +173,7 @@ class Provider(base.Provider):
                 auth_url = self._auth_url,
                 token = token
             ),
-            identity_interface = self._interface,
+            interface = self._interface,
             verify = self._verify_ssl
         )
         # Force the connection to validate the token
@@ -303,7 +303,7 @@ class UnscopedSession(base.UnscopedSession):
                         token = self._token,
                         project_id = tenancy.id
                     ),
-                    identity_interface = self._connection.config.config['identity_interface'],
+                    interface = self._connection.config.config['interface'],
                     verify = self._connection.config.config['verify']
                 ),
                 secondary_network_id = self._secondary_network_id,
@@ -391,7 +391,7 @@ class ScopedSession(base.ScopedSession):
                 compute_limits.instances_used
             ),
         ]
-        interface = self._connection.config.config['identity_interface']
+        interface = self._connection.config.config['interface']
         # For block storage and floating IPs, use the API directly
         network_ep = self._connection.network.get_endpoint(interface = interface)
         network_quotas = self._connection.session.get(
