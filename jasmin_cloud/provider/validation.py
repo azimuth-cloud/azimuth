@@ -4,7 +4,7 @@ Module providing validation utilities for cloud providers.
 
 import functools
 
-import voluptuous as v, voluptuous.humanize as vh
+import voluptuous as v
 
 from . import errors, dto
 
@@ -141,6 +141,24 @@ def integer_constraint(session, options):
 @register_constraint("number")
 def float_constraint(session, options):
     return v.All(v.Coerce(float), *number_constraints(options))
+
+
+@register_constraint("boolean")
+def boolean_constraint(session, options):
+    # The built-in Boolean validator ends up casting any value to a bool
+    # We want to be stricter and actively reject anything except:
+    #   - bool
+    #   - 1 / 0
+    #   - "1" / "0"
+    #   - "true" / "false"
+    #   - "yes" / "no"
+    return v.Any(
+        # Don't use "bool" because that would result in a coercion which we don't want
+        v.In([True, False]),
+        # This covers 0/1 and "0"/"1"
+        v.All(int, v.In([0, 1]), bool),
+        v.All(str, v.In(["true", "false", "yes", "no"]), v.Boolean())
+    )
 
 
 @register_constraint("choice")
