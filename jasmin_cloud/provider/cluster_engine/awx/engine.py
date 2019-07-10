@@ -200,7 +200,6 @@ class ClusterManager(base.ClusterManager):
         # Extract the parameters that aren't really parameters
         name = params.pop('cluster_name')
         cluster_type = params.pop('cluster_type')
-        cluster_state = params.pop('cluster_state', 'present')
         # Get the jobs for the inventory
         jobs = self._connection.job.fetch_all(
             inventory = inventory.id,
@@ -215,12 +214,25 @@ class ClusterManager(base.ClusterManager):
             # There should be at least one job...
             status = dto.Cluster.Status.ERROR
         else:
+            # The cluster_state comes from the extra vars of the most recent job
+            cluster_state = json.loads(latest.extra_vars).get('cluster_state', 'present')
             if latest.status == 'successful':
                 if cluster_state == 'present':
                     status = dto.Cluster.Status.READY
                 else:
-                    # If the last job was a successful delete, pretend
-                    # that the cluster doesn't exist any more
+                    self._log("Inventory '%s' represents deleted cluster - removing", inventory.name)
+                    # If the last job was a successful delete, delete the inventory
+                    self._connection.inventory.delete(inventory)
+                    # Inventories don't always delete straight away, so try up to five times
+                    remaining = 5
+                    while remaining > 0:
+                        try:
+                            inventory = self._connection.inventory.fetch_one(inventory.id)
+                        except api.NotFound:
+                            break
+                        self._connection.inventory.cache_evict(inventory.id)
+                    else:
+                        raise errors.OperationTimedOutError('Timed out while removing inventory.')
                     raise errors.ObjectNotFoundError(
                         "Could not find cluster with ID {}".format(id)
                     )
@@ -261,7 +273,7 @@ class ClusterManager(base.ClusterManager):
             func = lambda j: j.status == 'successful'
             updated = next(iter(filter(func, jobs))).finished
         except StopIteration:
-            updated = inventory.created
+            updated = None
         # The patched time is the finish time of the last successful job
         # with the "cluster_upgrade_system_packages" variable set to true
         try:
@@ -271,7 +283,7 @@ class ClusterManager(base.ClusterManager):
             )
             patched = next(iter(filter(func, jobs))).finished
         except StopIteration:
-            patched = inventory.created
+            patched = None
         return dto.Cluster(
             inventory.id,
             name,
@@ -282,8 +294,8 @@ class ClusterManager(base.ClusterManager):
             params,
             (),
             dateutil.parser.parse(inventory.created),
-            dateutil.parser.parse(updated),
-            dateutil.parser.parse(patched)
+            dateutil.parser.parse(updated) if updated else None,
+            dateutil.parser.parse(patched) if patched else None
         )
 
     def _update_and_run_inventory(self, cluster_type,
@@ -351,20 +363,9 @@ class ClusterManager(base.ClusterManager):
             try:
                 _ = self.find_cluster(inventory.id)
             except errors.ObjectNotFoundError:
-                self._log("Inventory '%s' represents deleted cluster - removing", inventory_name)
-                # If the cluster is not found, that means the inventory represents
-                # a deleted cluster, so delete it
-                self._connection.inventory.delete(inventory)
-                # Inventories don't always delete straight away, so try up to five times
-                remaining = 5
-                while remaining > 0:
-                    try:
-                        inventory = self._connection.inventory.fetch_one(inventory.id)
-                    except api.NotFound:
-                        break
-                    self._connection.inventory.cache_evict(inventory.id)
-                else:
-                    raise errors.OperationTimedOutError('Timed out while creating cluster.')
+                # If the cluster is not found, that means the inventory will have
+                # been removed and we can continue
+                pass
             else:
                 # If the cluster also exists, this is a bad request
                 raise errors.BadInputError("A cluster called '%s' aleady exists.", name)
@@ -382,7 +383,10 @@ class ClusterManager(base.ClusterManager):
                 params,
                 cluster_name = name,
                 cluster_type = cluster_type
-            )
+            ),
+            # Cluster creation should include a patch
+            # There is no point in creating clusters that have known vulnerabilities!
+            extra_vars = dict(cluster_upgrade_system_packages = True)
         )
         return self.find_cluster(inventory.id)
 
@@ -447,13 +451,13 @@ class ClusterManager(base.ClusterManager):
                 'Cannot delete cluster with status {}'.format(cluster.status.name)
             )
         self._log("Deleting cluster '%s'", cluster.id)
-        # Update the inventory to have cluster_state = absent
+        # The job that is executed has cluster_state = absent in the extra vars
         inventory = self._connection.inventory.fetch_one(cluster.id)
         self._update_and_run_inventory(
             cluster.cluster_type,
             inventory,
             credential,
-            dict(cluster_state = 'absent')
+            extra_vars = dict(cluster_state = 'absent')
         )
         return self.find_cluster(inventory.id)
 
