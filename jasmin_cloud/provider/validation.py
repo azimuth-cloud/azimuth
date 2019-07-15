@@ -190,6 +190,10 @@ def cloud_size_constraint(session, options):
         if 'min_ram' in options and size.ram < options['min_ram']:
             raise v.Invalid('Size does not have enough RAM.')
         return size
+    def min_disk(size):
+        if 'min_disk' in options and size.disk < options['min_disk']:
+            raise v.Invalid('Size does not have enough disk.')
+        return size
     return v.All(
         v.Coerce(str),
         convert_not_found(
@@ -198,6 +202,7 @@ def cloud_size_constraint(session, options):
         ),
         min_cpus,
         min_ram,
+        min_disk,
         lambda s: s.id
     )
 

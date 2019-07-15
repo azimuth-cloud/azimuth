@@ -5,7 +5,7 @@ cffi==1.12.3
 chardet==3.0.4
 cryptography==2.7
 decorator==4.4.0
-Django==2.2.2
+Django==2.2.3
 -e git+https://github.com/cedadev/django-settings-object.git@0288a63cb77bb126fd530438871a0845a05789bc#egg=django_settings_object
 djangorestframework==3.9.4
 docutils==0.14
@@ -22,7 +22,7 @@ munch==2.3.2
 netifaces==0.10.9
 openstacksdk==0.26.0
 os-service-types==1.7.0
-pbr==5.3.1
+pbr==5.4.0
 psycopg2-binary==2.8.3
 pyasn1==0.4.5
 pycparser==2.19
