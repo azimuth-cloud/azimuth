@@ -7,7 +7,7 @@ cryptography==2.7
 decorator==4.4.0
 Django==2.2.3
 -e git+https://github.com/cedadev/django-settings-object.git@0288a63cb77bb126fd530438871a0845a05789bc#egg=django_settings_object
-djangorestframework==3.9.4
+djangorestframework==3.10.0
 docutils==0.14
 dogpile.cache==0.7.1
 idna==2.8
@@ -16,7 +16,7 @@ iso8601==0.1.12
 jmespath==0.9.4
 jsonpatch==1.23
 jsonpointer==2.0
-keystoneauth1==3.14.0
+keystoneauth1==3.15.0
 ldap3==2.6
 munch==2.3.2
 netifaces==0.10.9
