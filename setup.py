@@ -31,12 +31,14 @@ if __name__ == "__main__":
         install_requires = [
             'docutils',
             'python-dateutil',
-            'requests',
-            'openstacksdk',
+            'openstacksdk<0.27.0',  # 0.27 has a bug
             'django',
             'djangorestframework',
             'psycopg2-binary',
             'django-settings-object',
             'jasmin-ldap',
+            'pyyaml',
+            'voluptuous',
+            'requests',
         ],
     )

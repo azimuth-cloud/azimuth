@@ -8,7 +8,6 @@ import base64
 import hashlib
 
 import dateutil.parser
-import requests
 from openstack import connection, config, exceptions, resource
 from openstack.image.v2.image import Image as BaseImage
 from openstack.compute.v2 import server
@@ -19,101 +18,6 @@ from jasmin_cloud_site import __version__
 
 
 logger = logging.getLogger(__name__)
-
-
-class Provider(base.Provider):
-    """
-    Provider implementation for OpenStack.
-
-    Args:
-        auth_url: The Keystone v3 authentication URL.
-        domain: The domain to authenticate with (default ``Default``).
-        interface: The OpenStack interface to connect using (default ``public``).
-        secondary_network_id: The UUID of a second network to connect to new machines
-                              when available (default ``None``).
-                              If the network is not given or not available to a
-                              tenancy, a second network is not connected.
-        verify_ssl: If ``True`` (the default), verify SSL certificates. If ``False``
-                    SSL certificates are not verified.
-    """
-    provider_name = 'openstack'
-
-    def __init__(self, auth_url, **kwargs):
-        # Strip any trailing slashes from the auth URL
-        self.auth_url = auth_url.rstrip('/')
-        self.domain = kwargs.get('domain', 'Default')
-        self.interface = kwargs.get('interface', 'public')
-        self.secondary_network_id = kwargs.get('secondary_network_id', None)
-        self.verify_ssl = kwargs.get('verify_ssl', True)
-
-    def authenticate(self, username, password):
-        """
-        See :py:meth:`.base.Provider.authenticate`.
-        """
-        logger.info(
-            '[%s] Authenticating with OpenStack at %s',
-            username, self.auth_url
-        )
-        # Getting an unscoped token and then retrieving tenancies later seems to
-        # be **really** hard to do through the SDK.
-        # So we use the API directly
-        res = requests.post(
-            self.auth_url + '/auth/tokens',
-            json = {
-                "auth": {
-                    "identity": {
-                        "methods": [ "password" ],
-                        "password": {
-                            "user": {
-                                "name": username,
-                                "domain": {
-                                    "name": self.domain,
-                                },
-                                "password": password,
-                            },
-                        },
-                    },
-                },
-            },
-            verify = self.verify_ssl
-        )
-        try:
-            res.raise_for_status()
-        except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 401:
-                raise errors.AuthenticationError('Invalid username or password')
-            else:
-                raise errors.CommunicationError('Unexpected response from OpenStack')
-        except requests.exceptions.ConnectionError:
-            raise errors.CommunicationError('Error with HTTP connection')
-        try:
-            logger.info('[%s] Creating unscoped session', username)
-            return UnscopedSession(
-                self.auth_url,
-                username,
-                # The token is in a header
-                res.headers['X-Subject-Token'],
-                interface = self.interface,
-                secondary_network_id = self.secondary_network_id,
-                verify_ssl = self.verify_ssl
-            )
-        except KeyError:
-            raise errors.CommunicationError('Unable to extract token from response')
-
-
-_REPLACEMENTS = [
-    ('instance', 'machine'),
-    ('Instance', 'Machine'),
-    ('flavorRef', 'size'),
-    ('flavor', 'size'),
-    ('Flavor', 'Size')
-]
-def _replace_resource_names(message):
-    return functools.reduce(
-        lambda a, x: a.replace(x[0], x[1]),
-        _REPLACEMENTS,
-        message
-    )
 
 
 def convert_sdk_exceptions(f):
@@ -140,7 +44,7 @@ def convert_sdk_exceptions(f):
             if status_code == 400:
                 raise errors.BadInputError(message)
             elif status_code == 401:
-                raise errors.AuthenticationError('Your session has expired')
+                raise errors.AuthenticationError('Your session has expired.')
             elif status_code == 403:
                 # Some quota exceeded errors get reported as permission denied (WHY???!!!)
                 # So report them as quota exceeded instead
@@ -149,7 +53,7 @@ def convert_sdk_exceptions(f):
                         'Requested operation would exceed at least one quota. '
                         'Please check your tenancy quotas.'
                     )
-                raise errors.PermissionDeniedError('Permission denied')
+                raise errors.PermissionDeniedError('Permission denied.')
             elif status_code == 404:
                 raise errors.ObjectNotFoundError(message)
             elif status_code == 409:
@@ -162,11 +66,145 @@ def convert_sdk_exceptions(f):
                     )
                 raise errors.InvalidOperationError(message)
             else:
-                raise errors.CommunicationError('Error communicating with OpenStack API')
+                raise errors.CommunicationError('Error communicating with OpenStack API.')
         except (exceptions.SDKException, keystone_exceptions.base.ClientException) as e:
             logger.exception('Unknown error in OpenStack SDK')
-            raise errors.Error('Unknown error in OpenStack SDK')
+            raise errors.Error('Unknown error in OpenStack SDK.')
     return wrapper
+
+
+def getattr_nested(obj, path, default):
+    if len(path) > 1:
+        part = path[0]
+        if hasattr(obj, part):
+            return getattr_nested(getattr(obj, part), path[1:], default)
+        else:
+            return default
+    else:
+        return getattr(obj, path[0], default)
+
+
+def close_openstack_connection(connection):
+    """
+    Closes the given ``openstacksdk.connection.Connection`` in a way that doesn't leave
+    dangling connections in the ``CLOSE_WAIT`` state.
+    """
+    # Close the connection itself
+    connection.close()
+    # Also close the underlying requests session, if one exists
+    # This seems to prevent the dangling connections
+    getattr_nested(connection, ('session', 'session', 'close'), lambda: None)()
+
+
+class Provider(base.Provider):
+    """
+    Provider implementation for OpenStack.
+
+    Args:
+        auth_url: The Keystone v3 authentication URL.
+        domain: The domain to authenticate with (default ``Default``).
+        interface: The OpenStack interface to connect using (default ``public``).
+        secondary_network_id: The UUID of a second network to connect to new machines
+                              when available (default ``None``).
+                              If the network is not given or not available to a
+                              tenancy, a second network is not connected.
+        verify_ssl: If ``True`` (the default), verify SSL certificates. If ``False``
+                    SSL certificates are not verified.
+        cluster_engine: The :py:class:`~..cluster.base.Engine` to use for clusters.
+                        If not given, clusters are disabled.
+    """
+    provider_name = 'openstack'
+
+    def __init__(self, auth_url,
+                       domain = 'Default',
+                       interface = 'public',
+                       secondary_network_id = None,
+                       verify_ssl = True,
+                       cluster_engine = None):
+        # Strip any trailing slashes from the auth URL
+        self._auth_url = auth_url.rstrip('/')
+        self._domain = domain
+        self._interface = interface
+        self._secondary_network_id = secondary_network_id
+        self._verify_ssl = verify_ssl
+        self._cluster_engine = cluster_engine
+
+    @convert_sdk_exceptions
+    def authenticate(self, username, password):
+        """
+        See :py:meth:`.base.Provider.authenticate`.
+        """
+        logger.info('Authenticating user %s with OpenStack', username)
+        # Create an SDK connection using the username and password
+        conn = connection.Connection(
+            auth_type = 'password',
+            auth = dict(
+                auth_url = self._auth_url,
+                username = username,
+                password = password,
+                user_domain_name = self._domain
+            ),
+            interface = self._interface,
+            verify = self._verify_ssl
+        )
+        # Force the connection to validate the credentials
+        try:
+            _ = conn.authorize()
+        except exceptions.HttpException as e:
+            close_openstack_connection(conn)
+            if e.status_code == 401:
+                raise errors.AuthenticationError('Invalid username or password.')
+            raise
+        return UnscopedSession(
+            conn,
+            secondary_network_id = self._secondary_network_id,
+            cluster_engine = self._cluster_engine
+        )
+
+    @convert_sdk_exceptions
+    def from_token(self, token):
+        """
+        See :py:meth:`.base.Provider.from_token`.
+        """
+        logger.info('Authenticating token with OpenStack')
+        conn = connection.Connection(
+            auth_type = 'token',
+            auth = dict(
+                auth_url = self._auth_url,
+                token = token
+            ),
+            interface = self._interface,
+            verify = self._verify_ssl
+        )
+        # Force the connection to validate the token
+        try:
+            _ = conn.authorize()
+        except exceptions.HttpException as e:
+            close_openstack_connection(conn)
+            # Failing to validate a token is a 404 for some reason
+            if e.status_code in {401, 404}:
+                raise errors.AuthenticationError('Your session has expired.')
+            raise
+        return UnscopedSession(
+            conn,
+            secondary_network_id = self._secondary_network_id,
+            cluster_engine = self._cluster_engine
+        )
+
+
+_REPLACEMENTS = [
+    ('instance', 'machine'),
+    ('Instance', 'Machine'),
+    ('flavorRef', 'size'),
+    ('flavor', 'size'),
+    ('Flavor', 'Size')
+]
+def _replace_resource_names(message):
+    return functools.reduce(
+        lambda a, x: a.replace(x[0], x[1]),
+        _REPLACEMENTS,
+        message
+    )
 
 
 class UnscopedSession(base.UnscopedSession):
@@ -174,59 +212,62 @@ class UnscopedSession(base.UnscopedSession):
     Unscoped session implementation for OpenStack.
 
     Args:
-        auth_url: The Keystone v2.0 authentication URL.
-        username: The username of the OpenStack user.
-        token: An unscoped user token for the OpenStack user.
-        interface: The OpenStack interface to connect using (default ``public``).
+        connection: An unscoped ``openstack.connection.Connection``.
         secondary_network_id: The UUID of a second network to connect to new machines
                               when available. OPTIONAL, default ``None``.
                               If the network is not given or not available to a
                               tenancy, a second network is not connected.
-        verify_ssl: If ``True`` (the default), verify SSL certificates. If ``False``
-                    SSL certificates are not verified.
+        cluster_engine: The :py:class:`~..cluster.base.Engine` to use for clusters.
+                        If not given, clusters are disabled.
     """
     provider_name = 'openstack'
 
-    def __init__(self, auth_url, username, token, **kwargs):
-        self.auth_url = auth_url
-        self.username = username
-        self.token = token
-        self.interface = kwargs.get('interface', 'public')
-        self.secondary_network_id = kwargs.get('secondary_network_id', None)
-        self.verify_ssl = kwargs.get('verify_ssl', True)
-
-    def __repr__(self):
-        return "openstack.UnscopedSession({}, {}, {})".format(
-            repr(self.auth_url), repr(self.username), repr(self.token)
+    def __init__(self, connection,
+                       secondary_network_id = None,
+                       cluster_engine = None):
+        self._connection = connection
+        self._secondary_network_id = secondary_network_id
+        self._cluster_engine = cluster_engine
+        # Either pull an existing token out of the connection or create a new one
+        token = connection.config.config['auth'].get('token')
+        if token is not None:
+            self._token = token
+        else:
+            logger.info('Fetching token from OpenStack')
+            self._token = connection.authorize()
+        # Pull a username out of the connection as well
+        # We can't do this through the SDK proxies as we get "service catalog empty" errors
+        response = connection.session.get(
+            connection.config.config['auth']['auth_url'] + '/auth/tokens',
+            headers = { 'X-Subject-Token': self._token }
         )
+        self._username = response.json()['token']['user']['name']
 
+    def token(self):
+        """
+        See :py:meth:`.base.UnscopedSession.token`.
+        """
+        return self._token
+
+    def username(self):
+        """
+        See :py:meth:`.base.UnscopedSession.username`.
+        """
+        return self._username
+
+    @convert_sdk_exceptions
     def tenancies(self):
         """
         See :py:meth:`.base.UnscopedSession.tenancies`.
         """
-        logger.info('[%s] Fetching available tenancies', self.username)
+        logger.info('[%s] Fetching available tenancies', self._username)
         # Getting an unscoped token and then retrieving tenancies later seems to
-        # be **really** hard to do through the SDK.
-        # So we use the API directly
-        res = requests.get(
-            self.auth_url + '/auth/projects',
-            headers = { 'X-Auth-Token': self.token },
-            verify = self.verify_ssl
-        )
+        # be impossible to do through the SDK due to "service catalog empty" errors
+        auth_url = self._connection.config.config['auth']['auth_url']
+        response = self._connection.session.get(auth_url + '/auth/projects')
         try:
-            res.raise_for_status()
-        except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 401:
-                raise errors.AuthenticationError('Your session has expired')
-            elif e.response.status_code == 403:
-                raise errors.PermissionDeniedError('Permission denied')
-            else:
-                raise errors.CommunicationError('Unexpected response from OpenStack')
-        except requests.exceptions.ConnectionError:
-            raise errors.CommunicationError('Error with HTTP connection')
-        try:
-            projects = res.json()['projects']
-            logger.info('[%s] Found %s projects', self.username, len(projects))
+            projects = response.json()['projects']
+            logger.info('[%s] Found %s projects', self._username, len(projects))
             return tuple(dto.Tenancy(p['id'], p['name']) for p in projects if p['enabled'])
         except KeyError:
             raise errors.CommunicationError(
@@ -250,29 +291,23 @@ class UnscopedSession(base.UnscopedSession):
                 raise errors.ObjectNotFoundError(
                     'Could not find tenancy with ID {}'.format(tenancy)
                 )
-        logger.info('[%s] [%s] Creating scoped session', self.username, tenancy.name)
-        conf = config.OpenStackConfig(
-            app_name = 'jasmin-cloud-api',
-            app_version = __version__,
-            load_yaml_config = False
-        ).get_one_cloud(
-            auth_type = 'token',
-            auth = dict(
-                auth_url = self.auth_url,
-                token = self.token,
-                project_id = tenancy.id
-            ),
-            interface = self.interface,
-            verify = self.verify_ssl
-        )
+        logger.info('[%s] [%s] Creating scoped session', self._username, tenancy.name)
         try:
             return ScopedSession(
-                self.username,
-                tenancy.id,
-                tenancy.name,
-                connection.from_config(cloud_config = conf),
-                interface = self.interface,
-                secondary_network_id = self.secondary_network_id
+                self._username,
+                tenancy,
+                connection.Connection(
+                    auth_type = 'token',
+                    auth = dict(
+                        auth_url = self._connection.config.config['auth']['auth_url'],
+                        token = self._token,
+                        project_id = tenancy.id
+                    ),
+                    interface = self._connection.config.config['interface'],
+                    verify = self._connection.config.config['verify']
+                ),
+                secondary_network_id = self._secondary_network_id,
+                cluster_engine = self._cluster_engine
             )
         except exceptions.HttpException as e:
             # If creating the session fails with an auth error, convert that to
@@ -284,6 +319,13 @@ class UnscopedSession(base.UnscopedSession):
             else:
                 raise e
 
+    def close(self):
+        """
+        See :py:meth:`.base.UnscopedSession.close`.
+        """
+        # Make sure the underlying requests session is closed
+        close_openstack_connection(self._connection)
+
 
 class ScopedSession(base.ScopedSession):
     """
@@ -291,29 +333,33 @@ class ScopedSession(base.ScopedSession):
 
     Args:
         username: The username of the OpenStack user.
-        tenancy_id: The tenancy id.
-        tenancy_name: The name of the tenancy.
+        tenancy: The :py:class:`~.dto.Tenancy`.
         connection: An ``openstack.connection.Connection`` for the tenancy.
         secondary_network_id: The UUID of a second network to connect to new machines
                               when available. OPTIONAL, default ``None``.
                               If the network is not given or not available to a
                               tenancy, a second network is not connected.
-        interface: The OpenStack interface to connect using (default ``public``).
+        cluster_engine: The :py:class:`~.cluster_engine.base.ClusterEngine` to use for clusters.
+                        If not given, clusters are disabled.
     """
     provider_name = 'openstack'
 
-    def __init__(self, username, tenancy_id, tenancy_name, connection, **kwargs):
-        self.username = username
-        self.tenancy_id = tenancy_id
-        self.tenancy_name = tenancy_name
-        self.connection = connection
-        self.secondary_network_id = kwargs.get('secondary_network_id', None)
-        self.interface = kwargs.get('interface', 'public')
+    def __init__(self, username,
+                       tenancy,
+                       connection,
+                       secondary_network_id = None,
+                       cluster_engine = None):
+        self._username = username
+        self._tenancy = tenancy
+        self._connection = connection
+        self._secondary_network_id = secondary_network_id
+        self._cluster_engine = cluster_engine
 
     def _log(self, message, *args, level = logging.INFO, **kwargs):
-        logger.info(
+        logger.log(
+            level,
             '[%s] [%s] ' + message,
-            self.username, self.tenancy_name, *args, **kwargs
+            self._username, self._tenancy.name, *args, **kwargs
         )
 
     @convert_sdk_exceptions
@@ -324,7 +370,7 @@ class ScopedSession(base.ScopedSession):
         self._log('Fetching tenancy quotas')
         # Compute provides a way to fetch this information through the SDK, but
         # the floating IP quota obtained through it is rubbish...
-        compute_limits = self.connection.compute.get_limits().absolute
+        compute_limits = self._connection.compute.get_limits().absolute
         quotas = [
             dto.Quota(
                 'cpus',
@@ -345,21 +391,22 @@ class ScopedSession(base.ScopedSession):
                 compute_limits.instances_used
             ),
         ]
+        interface = self._connection.config.config['interface']
         # For block storage and floating IPs, use the API directly
-        network_ep = self.connection.network.get_endpoint(interface = self.interface)
-        network_quotas = self.connection.session.get(
-            network_ep + '/quotas/' + self.tenancy_id
+        network_ep = self._connection.network.get_endpoint(interface = interface)
+        network_quotas = self._connection.session.get(
+            network_ep + '/quotas/' + self._tenancy.id
         ).json()
         quotas.append(
             dto.Quota(
                 'external_ips',
                 None,
                 network_quotas['quota']['floatingip'],
-                len(list(self.connection.network.ips()))
+                len(list(self._connection.network.ips()))
             )
         )
-        volume_ep = self.connection.volume.get_endpoint(interface = self.interface)
-        volume_limits = self.connection.session.get(volume_ep + '/limits').json()
+        volume_ep = self._connection.volume.get_endpoint(interface = interface)
+        volume_limits = self._connection.session.get(volume_ep + '/limits').json()
         quotas.extend([
             dto.Quota(
                 'storage',
@@ -385,6 +432,9 @@ class ScopedSession(base.ScopedSession):
         """
         jasmin_type = resource.Body('jasmin_type')
         jasmin_nat_allowed = resource.Body('jasmin_nat_allowed')
+        # This flag indicates whether the image is a cluster image
+        # Cluster images are excluded from the image list
+        jasmin_cluster_image = resource.Body('jasmin_cluster_image')
 
     def _from_sdk_image(self, sdk_image):
         """
@@ -408,7 +458,12 @@ class ScopedSession(base.ScopedSession):
         """
         self._log('Fetching available images')
         # Fetch from the SDK using our custom image resource
-        images = list(self.connection.image._list(self.Image, status = 'active'))
+        # Exclude cluster images from the returned list
+        images = list(
+            image
+            for image in self._connection.image._list(self.Image, status = 'active')
+            if not int(image.jasmin_cluster_image or '0')
+        )
         self._log('Found %s images', len(images))
         return tuple(self._from_sdk_image(i) for i in images)
 
@@ -420,7 +475,7 @@ class ScopedSession(base.ScopedSession):
         """
         self._log("Fetching image with id '%s'", id)
         # Fetch from the SDK using our custom image resource
-        return self._from_sdk_image(self.connection.image._get(self.Image, id))
+        return self._from_sdk_image(self._connection.image._get(self.Image, id))
 
     def _from_sdk_flavor(self, sdk_flavor):
         """
@@ -440,7 +495,7 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.sizes`.
         """
         self._log('Fetching available flavors')
-        all_flavors = self.connection.compute.flavors()
+        all_flavors = self._connection.compute.flavors()
         flavors = list(f for f in all_flavors if not f.is_disabled)
         self._log('Found %s flavors', len(flavors))
         return tuple(self._from_sdk_flavor(f) for f in flavors)
@@ -452,7 +507,7 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.find_size`.
         """
         self._log("Fetching flavor with id '%s'", id)
-        return self._from_sdk_flavor(self.connection.compute.get_flavor(id))
+        return self._from_sdk_flavor(self._connection.compute.get_flavor(id))
 
     @functools.lru_cache()
     def _tenant_network(self):
@@ -462,11 +517,11 @@ class ScopedSession(base.ScopedSession):
         Return ``None`` if the tenant network cannot be located.
         """
         try:
-            port = next(self.connection.network.ports(device_owner = 'network:router_interface'))
+            port = next(self._connection.network.ports(device_owner = 'network:router_interface'))
         except StopIteration:
             raise errors.ImproperlyConfiguredError('Could not find tenancy network')
         else:
-            return self.connection.network.find_network(port.network_id)
+            return self._connection.network.find_network(port.network_id)
 
     class Server(server.Server):
         """
@@ -556,7 +611,7 @@ class ScopedSession(base.ScopedSession):
         """
         self._log('Fetching available servers')
         # In order to get fault info, we need to use a custom resource definition
-        servers = list(self.connection.compute._list(self.ServerDetail))
+        servers = list(self._connection.compute._list(self.ServerDetail))
         self._log('Found %s servers', len(servers))
         return tuple(self._from_sdk_server(s) for s in servers)
 
@@ -567,7 +622,7 @@ class ScopedSession(base.ScopedSession):
         """
         # In order to get fault info, we need to use a custom resource definition
         self._log("Fetching server with id '%s'", id)
-        return self._from_sdk_server(self.connection.compute._get(self.Server, id))
+        return self._from_sdk_server(self._connection.compute._get(self.Server, id))
 
     def _get_or_create_keypair(self, ssh_key):
         # Keypairs are immutable, i.e. once created cannot be changed
@@ -575,11 +630,11 @@ class ScopedSession(base.ScopedSession):
         # allows for us to recognise when a user has changed their key and create
         # a new one
         fingerprint = hashlib.md5(base64.b64decode(ssh_key.split()[1])).hexdigest()
-        key_name = '{}-{}'.format(self.username, fingerprint)
+        key_name = '{}-{}'.format(self._username, fingerprint)
         try:
-            return self.connection.compute.find_keypair(key_name, False)
+            return self._connection.compute.find_keypair(key_name, False)
         except exceptions.ResourceNotFound:
-            return self.connection.compute.create_keypair(
+            return self._connection.compute.create_keypair(
                 name = key_name,
                 public_key = ssh_key
             )
@@ -598,14 +653,14 @@ class ScopedSession(base.ScopedSession):
         self._log("Creating machine '%s' (image: %s, size: %s)", name, image.name, size)
         # Get the networks to use
         networks = [{ 'uuid': self._tenant_network().id }]
-        if self.secondary_network_id:
+        if self._secondary_network_id:
             # If the network exists, add it
-            if self.connection.network.find_network(self.secondary_network_id) is not None:
-                networks.append({ 'uuid': self.secondary_network_id })
+            if self._connection.network.find_network(self._secondary_network_id) is not None:
+                networks.append({ 'uuid': self._secondary_network_id })
         # Get the keypair to inject
         keypair = self._get_or_create_keypair(ssh_key) if ssh_key else None
         # Interpolate values into the cloud-init script template
-        server = self.connection.compute.create_server(
+        server = self._connection.compute.create_server(
             name = name,
             image_id = image.id,
             flavor_id = size,
@@ -614,7 +669,7 @@ class ScopedSession(base.ScopedSession):
             metadata = {
                 'jasmin_nat_allowed': '1' if image.nat_allowed else '0',
                 'jasmin_type': image.vm_type,
-                'jasmin_organisation': self.tenancy_name,
+                'jasmin_organisation': self._tenancy.name,
             },
             # The SDK doesn't like it if None is given for keypair, but behaves
             # correctly if it is not given at all
@@ -629,7 +684,7 @@ class ScopedSession(base.ScopedSession):
         """
         machine = machine.id if isinstance(machine, dto.Machine) else machine
         self._log("Starting machine '%s'", machine)
-        self.connection.compute.start_server(machine)
+        self._connection.compute.start_server(machine)
         return self.find_machine(machine)
 
     @convert_sdk_exceptions
@@ -639,7 +694,7 @@ class ScopedSession(base.ScopedSession):
         """
         machine = machine.id if isinstance(machine, dto.Machine) else machine
         self._log("Stopping machine '%s'", machine)
-        self.connection.compute.stop_server(machine)
+        self._connection.compute.stop_server(machine)
         return self.find_machine(machine)
 
     @convert_sdk_exceptions
@@ -649,7 +704,7 @@ class ScopedSession(base.ScopedSession):
         """
         machine = machine.id if isinstance(machine, dto.Machine) else machine
         self._log("Restarting machine '%s'", machine)
-        self.connection.compute.reboot_server(machine, 'SOFT')
+        self._connection.compute.reboot_server(machine, 'SOFT')
         return self.find_machine(machine)
 
     @convert_sdk_exceptions
@@ -659,7 +714,7 @@ class ScopedSession(base.ScopedSession):
         """
         machine = machine.id if isinstance(machine, dto.Machine) else machine
         self._log("Deleting machine '%s'", machine)
-        self.connection.compute.delete_server(machine)
+        self._connection.compute.delete_server(machine)
         try:
             return self.find_machine(machine)
         except errors.ObjectNotFoundError:
@@ -670,7 +725,7 @@ class ScopedSession(base.ScopedSession):
         Converts an OpenStack SDK floatingip object into a :py:class:`.dto.ExternalIp`.
         """
         if sdk_floatingip.port_id:
-            port = self.connection.network.find_port(sdk_floatingip.port_id)
+            port = self._connection.network.find_port(sdk_floatingip.port_id)
             machine_id = port.device_id
         else:
             machine_id = None
@@ -682,7 +737,7 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.external_ips`.
         """
         self._log("Fetching floating ips")
-        fips = list(self.connection.network.ips())
+        fips = list(self._connection.network.ips())
         self._log("Found %s floating ips", len(fips))
         return tuple(self._from_sdk_floatingip(fip) for fip in fips)
 
@@ -693,12 +748,12 @@ class ScopedSession(base.ScopedSession):
         """
         self._log("Allocating new floating ip")
         # Get the external network being used by the tenancy router
-        router = next(self.connection.network.routers(), None)
+        router = next(self._connection.network.routers(), None)
         if not router:
             raise errors.ImproperlyConfiguredError('Could not find tenancy router.')
         extnet = router.external_gateway_info['network_id']
         # Create a new floating IP on that network
-        fip = self.connection.network.create_ip(floating_network_id = extnet)
+        fip = self._connection.network.create_ip(floating_network_id = extnet)
         self._log("Allocated new floating ip '%s'", fip.floating_ip_address)
         return self._from_sdk_floatingip(fip)
 
@@ -708,7 +763,7 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.find_external_ip`.
         """
         self._log("Fetching floating IP details for '%s'", ip)
-        fip = next(self.connection.network.ips(floating_ip_address = ip), None)
+        fip = next(self._connection.network.ips(floating_ip_address = ip), None)
         if not fip:
             raise errors.ObjectNotFoundError("Could not find external IP '{}'".format(ip))
         return self._from_sdk_floatingip(fip)
@@ -729,7 +784,7 @@ class ScopedSession(base.ScopedSession):
         # Get the port that attaches the machine to the tenant network
         tenant_net = self._tenant_network()
         port = next(
-            self.connection.network.ports(device_id = machine.id,
+            self._connection.network.ports(device_id = machine.id,
                                           network_id = tenant_net.id),
             None
         )
@@ -738,16 +793,16 @@ class ScopedSession(base.ScopedSession):
                 'Machine is not connected to tenancy network.'
             )
         # If there is already a floating IP associated with the port, detach it
-        current = next(self.connection.network.ips(port_id = port.id), None)
+        current = next(self._connection.network.ips(port_id = port.id), None)
         if current:
-            self.connection.network.update_ip(current, port_id = None)
+            self._connection.network.update_ip(current, port_id = None)
         # Find the floating IP instance for the given address
-        fip = next(self.connection.network.ips(floating_ip_address = ip), None)
+        fip = next(self._connection.network.ips(floating_ip_address = ip), None)
         if not fip:
             raise errors.ObjectNotFoundError("Could not find external IP '{}'".format(ip))
         # Associate the floating IP with the port
         return self._from_sdk_floatingip(
-            self.connection.network.update_ip(fip, port_id = port.id)
+            self._connection.network.update_ip(fip, port_id = port.id)
         )
 
     @convert_sdk_exceptions
@@ -758,12 +813,12 @@ class ScopedSession(base.ScopedSession):
         ip = ip.external_ip if isinstance(ip, dto.ExternalIp) else ip
         self._log("Detaching floating ip '%s'", ip)
         # Find the floating IP instance for the given address
-        fip = next(self.connection.network.ips(floating_ip_address = ip), None)
+        fip = next(self._connection.network.ips(floating_ip_address = ip), None)
         if not fip:
             raise errors.ObjectNotFoundError("Could not find external IP '{}'".format(ip))
         # Remove any association for the floating IP
         return self._from_sdk_floatingip(
-            self.connection.network.update_ip(fip, port_id = None)
+            self._connection.network.update_ip(fip, port_id = None)
         )
 
     _VOLUME_STATUSES = {
@@ -810,7 +865,7 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.volumes`.
         """
         self._log('Fetching available volumes')
-        volumes = list(self.connection.block_store.volumes())
+        volumes = list(self._connection.block_store.volumes())
         self._log('Found %s volumes', len(volumes))
         return tuple(self._from_sdk_volume(v) for v in volumes)
 
@@ -820,7 +875,7 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.find_volume`.
         """
         self._log("Fetching volume with id '%s'", id)
-        volume = self.connection.block_store.get_volume(id)
+        volume = self._connection.block_store.get_volume(id)
         return self._from_sdk_volume(volume)
 
     @convert_sdk_exceptions
@@ -829,7 +884,7 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.create_volume`.
         """
         self._log("Creating machine '%s' (size: %s)", name, size)
-        volume = self.connection.block_store.create_volume(name = name, size = size)
+        volume = self._connection.block_store.create_volume(name = name, size = size)
         return self.find_volume(volume.id)
 
     @convert_sdk_exceptions
@@ -843,7 +898,7 @@ class ScopedSession(base.ScopedSession):
                 "Cannot delete volume with status {}.".format(volume.status.name)
             )
         self._log("Deleting volume '%s'", volume.id)
-        self.connection.block_store.delete_volume(volume.id)
+        self._connection.block_store.delete_volume(volume.id)
         try:
             return self.find_volume(volume.id)
         except errors.ObjectNotFoundError:
@@ -865,7 +920,7 @@ class ScopedSession(base.ScopedSession):
                 "Volume must be AVAILABLE before attaching."
             )
         self._log("Attaching volume '%s' to server '%s'", volume.id, machine)
-        self.connection.compute.create_volume_attachment(
+        self._connection.compute.create_volume_attachment(
             machine,
             volume_id = volume.id
         )
@@ -881,12 +936,185 @@ class ScopedSession(base.ScopedSession):
         if not volume.machine_id:
             return volume
         self._log("Detaching volume '%s' from '%s'", volume.id, volume.machine_id)
-        self.connection.compute.delete_volume_attachment(volume.id, volume.machine_id)
+        self._connection.compute.delete_volume_attachment(volume.id, volume.machine_id)
         return self.find_volume(volume.id)
 
+    @property
+    def cluster_manager(self):
+        """
+        Returns the cluster manager for the tenancy.
+        """
+        # Lazily instantiate the cluster manager the first time it is asked for.
+        if not hasattr(self, '_cluster_manager'):
+            if self._cluster_engine:
+                self._cluster_manager = self._cluster_engine.create_manager(
+                    self._username,
+                    self._tenancy
+                )
+            else:
+                self._cluster_manager = None
+        # If there is still no cluster manager, clusters are not supported
+        if not self._cluster_manager:
+            raise errors.UnsupportedOperationError(
+                'Clusters are not supported for this tenancy.'
+            )
+        return self._cluster_manager
+
+    @convert_sdk_exceptions
+    def cluster_types(self):
+        """
+        See :py:meth:`.base.ScopedSession.cluster_types`.
+        """
+        return self.cluster_manager.cluster_types()
+
+    @convert_sdk_exceptions
+    def find_cluster_type(self, name):
+        """
+        See :py:meth:`.base.ScopedSession.find_cluster_type`.
+        """
+        return self.cluster_manager.find_cluster_type(name)
+
+    def _fixup_cluster(self, cluster):
+        """
+        Fix up the cluster with any OpenStack-specific changes.
+        """
+        # Remove injected parameters from the cluster params
+        params = dict(cluster.parameter_values)
+        for param in ('cluster_network', 'cluster_keypair'):
+            if param in params:
+                del params[param]
+        # Add any tags attached to the stack
+        stack = self._connection.orchestration.find_stack(
+            cluster.name,
+            ignore_missing = True
+        )
+        # We use this format because tags might exist on the stack but be None
+        stack_tags = tuple(getattr(stack, 'tags', None) or [])
+        original_error = (cluster.error_message or '').lower()
+        # Convert quota-related error messages based on known OpenStack errors
+        if any(m in original_error for m in {'quota exceeded', 'exceedsavailablequota'}):
+            if 'floatingip' in original_error:
+                error_message = (
+                    'Could not find an external IP for deployment. '
+                    'Please ensure an external IP is available and try again.'
+                )
+            else:
+                error_message = (
+                    'Requested resources exceed at least one quota. '
+                    'Please check your tenancy quotas and try again.'
+                )
+        elif cluster.error_message:
+            error_message = (
+                'Error during cluster configuration. '
+                'Please contact support.'
+            )
+        else:
+            error_message = None
+        return cluster._replace(
+            parameter_values = params,
+            tags = cluster.tags + stack_tags,
+            error_message = error_message
+        )
+
+    @convert_sdk_exceptions
+    def clusters(self):
+        """
+        See :py:meth:`.base.ScopedSession.clusters`.
+        """
+        return tuple(
+            self._fixup_cluster(c)
+            for c in self.cluster_manager.clusters()
+        )
+
+    @convert_sdk_exceptions
+    def find_cluster(self, id):
+        """
+        See :py:meth:`.base.ScopedSession.find_cluster`.
+        """
+        return self._fixup_cluster(
+            self.cluster_manager.find_cluster(id)
+        )
+
+    def _cluster_credential(self):
+        # Making sure we get the public URL for identity is a bit contrived
+        session = self._connection.session
+        auth_ref = session.auth.get_auth_ref(session)
+        return dict(
+            auth_url = auth_ref.service_catalog.url_for('identity', 'public'),
+            project_id = self._connection.current_project.id,
+            token = self._connection.authorize()
+        )
+
+    @convert_sdk_exceptions
+    def create_cluster(self, name, cluster_type, params, ssh_key):
+        """
+        See :py:meth:`.base.ScopedSession.create_cluster`.
+        """
+        params = self.validate_cluster_params(cluster_type, params)
+        # Inject some OpenStack specific parameters
+        params.update(
+            cluster_network = self._tenant_network().name,
+            cluster_keypair = self._get_or_create_keypair(ssh_key).name
+        )
+        return self._fixup_cluster(
+            self.cluster_manager.create_cluster(
+                name,
+                cluster_type,
+                params,
+                self._cluster_credential()
+            )
+        )
+
+    @convert_sdk_exceptions
+    def update_cluster(self, cluster, params):
+        """
+        See :py:meth:`.base.ScopedSession.update_cluster`.
+        """
+        if not isinstance(cluster, dto.Cluster):
+            cluster = self.find_cluster(cluster)
+        return self._fixup_cluster(
+            self.cluster_manager.update_cluster(
+                cluster,
+                self.validate_cluster_params(
+                    cluster.cluster_type,
+                    params,
+                    cluster.parameter_values
+                ),
+                self._cluster_credential()
+            )
+        )
+
+    @convert_sdk_exceptions
+    def patch_cluster(self, cluster):
+        """
+        See :py:meth:`.base.ScopedSession.patch_cluster`.
+        """
+        return self._fixup_cluster(
+            self.cluster_manager.patch_cluster(
+                cluster,
+                self._cluster_credential()
+            )
+        )
+
+    @convert_sdk_exceptions
+    def delete_cluster(self, cluster):
+        """
+        See :py:meth:`.base.ScopedSession.delete_cluster`.
+        """
+        return self._fixup_cluster(
+            self.cluster_manager.delete_cluster(
+                cluster,
+                self._cluster_credential()
+            )
+        )
+
+    @convert_sdk_exceptions
     def close(self):
         """
         See :py:meth:`.base.ScopedSession.close`.
         """
-        # Make sure the underlying requests session is closed
-        self.connection.session.session.close()
+        # Make sure the underlying OpenStack connection is closed
+        close_openstack_connection(self._connection)
+        # Also close the cluster manager if one has been created
+        if getattr(self, '_cluster_manager', None):
+            self._cluster_manager.close()
