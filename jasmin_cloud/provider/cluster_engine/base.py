@@ -67,7 +67,7 @@ class ClusterManager:
         """
         raise NotImplementedError
 
-    def create_cluster(self, name, cluster_type, params, *args, **kwargs):
+    def create_cluster(self, name, cluster_type, params, ssh_key, *args, **kwargs):
         """
         Creates a new cluster with the given name, type and parameters.
 
@@ -76,6 +76,7 @@ class ClusterManager:
             cluster_type: The :py:class:`~..dto.ClusterType`.
             params: Dictionary of parameter values as required by the
                     cluster type.
+            ssh_key: The SSH public key to inject for admin access.
             args: Any additional arguments as required by implementations.
             kwargs: Any additional arguments as required by implementations.
 

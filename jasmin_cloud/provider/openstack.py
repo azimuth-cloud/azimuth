@@ -979,10 +979,11 @@ class ScopedSession(base.ScopedSession):
         Fix up the cluster with any OpenStack-specific changes.
         """
         # Remove injected parameters from the cluster params
-        params = dict(cluster.parameter_values)
-        for param in ('cluster_network', 'cluster_keypair'):
-            if param in params:
-                del params[param]
+        params = {
+            k: v
+            for k, v in cluster.parameter_values.items()
+            if k != 'cluster_network'
+        }
         # Add any tags attached to the stack
         stack = self._connection.orchestration.find_stack(
             cluster.name,
@@ -1052,15 +1053,13 @@ class ScopedSession(base.ScopedSession):
         """
         params = self.validate_cluster_params(cluster_type, params)
         # Inject some OpenStack specific parameters
-        params.update(
-            cluster_network = self._tenant_network().name,
-            cluster_keypair = self._get_or_create_keypair(ssh_key).name
-        )
+        params.update(cluster_network = self._tenant_network().name)
         return self._fixup_cluster(
             self.cluster_manager.create_cluster(
                 name,
                 cluster_type,
                 params,
+                ssh_key,
                 self._cluster_credential()
             )
         )

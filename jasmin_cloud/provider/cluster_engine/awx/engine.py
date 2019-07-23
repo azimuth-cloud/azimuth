@@ -200,6 +200,7 @@ class ClusterManager(base.ClusterManager):
         # Extract the parameters that aren't really parameters
         name = params.pop('cluster_name')
         cluster_type = params.pop('cluster_type')
+        ssh_key = params.pop('cluster_user_ssh_public_key')
         # Get the jobs for the inventory
         jobs = self._connection.job.fetch_all(
             inventory = inventory.id,
@@ -341,7 +342,7 @@ class ClusterManager(base.ClusterManager):
         # Evict the inventory from the cache as it has changed
         self._connection.inventory.cache_evict(inventory.id)
 
-    def create_cluster(self, name, cluster_type, params, credential):
+    def create_cluster(self, name, cluster_type, params, ssh_key, credential):
         """
         See :py:meth:`.base.ClusterManager.create_cluster`.
         """
@@ -382,7 +383,8 @@ class ClusterManager(base.ClusterManager):
             dict(
                 params,
                 cluster_name = name,
-                cluster_type = cluster_type
+                cluster_type = cluster_type,
+                cluster_user_ssh_public_key = ssh_key
             ),
             # Cluster creation should include a patch
             # There is no point in creating clusters that have known vulnerabilities!

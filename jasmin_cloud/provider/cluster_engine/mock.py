@@ -75,7 +75,7 @@ class ClusterManager(base.ClusterManager):
         except StopIteration:
             raise errors.ObjectNotFoundError("Could not find cluster '{}'".format(id))
 
-    def create_cluster(self, name, cluster_type, params, *args, **kwargs):
+    def create_cluster(self, name, cluster_type, params, ssh_key, *args, **kwargs):
         with open(self._clusters_file) as fh:
             clusters = json.load(fh)
         id = str(uuid.uuid4())
