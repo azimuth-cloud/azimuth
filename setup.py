@@ -31,7 +31,7 @@ if __name__ == "__main__":
         install_requires = [
             'docutils',
             'python-dateutil',
-            'openstacksdk<0.27.0',  # 0.27 has a bug
+            'openstacksdk<0.27.0',  # https://storyboard.openstack.org/#!/story/2006343
             'django',
             'djangorestframework',
             'psycopg2-binary',
