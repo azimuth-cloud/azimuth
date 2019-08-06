@@ -107,6 +107,41 @@ def register_constraint(kind):
     return decorator
 
 
+@register_constraint('list')
+def list_constraint(session, options, prev_value):
+    constraints = []
+    if 'min_length' in options:
+        constraints.append(v.Length(min = options['min_length']))
+    if 'max_length' in options:
+        constraints.append(v.Length(max = options['max_length']))
+    # Apply a validator to each item, if given
+    if 'item' in options:
+        item_kind = options['item']['kind']
+        item_options = options['item'].get('options', {})
+        prev_len = len(prev_value) if prev_value is not NO_PREVIOUS else 0
+        def validate_items(value):
+            # The validator to use for each element depends on whether there is an existing
+            # value at that index
+            schemas = map(
+                v.Schema,
+                (
+                    kind_constraint(
+                        session,
+                        item_kind,
+                        item_options,
+                        prev_value[idx] if prev_len > idx else NO_PREVIOUS
+                    )
+                    for idx in range(len(value))
+                )
+            )
+            try:
+                return [schema(x) for x, schema in zip(value, schemas)]
+            except v.Invalid:
+                raise v.Invalid("At least one item does not match the item specification.")
+        constraints.append(validate_items)
+    return v.All(v.Coerce(list), *constraints)
+
+
 @register_constraint("string")
 def string_constraint(session, options):
     constraints = []
