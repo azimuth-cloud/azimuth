@@ -430,11 +430,18 @@ class ScopedSession(base.ScopedSession):
         The OpenStack SDK seems to make it impossible to consume custom properties
         without doing this...
         """
+        # Metadata indicating the type of server the image deploys
         jasmin_type = resource.Body('jasmin_type')
+        # Flag indicating if the machine is allowed to be NATed
         jasmin_nat_allowed = resource.Body('jasmin_nat_allowed')
-        # This flag indicates whether the image is a cluster image
+        # Flag indicating whether the image is a cluster image
         # Cluster images are excluded from the image list
         jasmin_cluster_image = resource.Body('jasmin_cluster_image')
+        # Metadata providing the name of the private interface
+        # If this metadata is present, the private network is connected
+        jasmin_private_if = resource.Body('jasmin_private_if')
+        # Metadata indicating the activator version to use
+        jasmin_activ_ver = resource.Body('jasmin_activ_ver')
 
     def _from_sdk_image(self, sdk_image):
         """
@@ -469,13 +476,20 @@ class ScopedSession(base.ScopedSession):
 
     @convert_sdk_exceptions
     @functools.lru_cache()
+    def _find_sdk_image(self, id):
+        """
+        Finds the raw SDK image, but with exceptions converted.
+        """
+        self._log("Fetching image with id '%s'", id)
+        # Fetch from the SDK using our custom image resource
+        return self._connection.image._get(self.Image, id)
+
     def find_image(self, id):
         """
         See :py:meth:`.base.ScopedSession.find_image`.
         """
-        self._log("Fetching image with id '%s'", id)
-        # Fetch from the SDK using our custom image resource
-        return self._from_sdk_image(self._connection.image._get(self.Image, id))
+        # Just convert the SDK image to a DTO image
+        return self._from_sdk_image(self._find_sdk_image(id))
 
     def _from_sdk_flavor(self, sdk_flavor):
         """
@@ -644,33 +658,45 @@ class ScopedSession(base.ScopedSession):
         """
         See :py:meth:`.base.ScopedSession.create_machine`.
         """
-        # Convert the ObjectNotFound into an InvalidOperation
+        # Convert the given image or image ID into an SDK image
+        image = image.id if isinstance(image, dto.Image) else image
         try:
-            image = image if isinstance(image, dto.Image) else self.find_image(image)
+            sdk_image = self._find_sdk_image(image)
         except errors.ObjectNotFoundError:
             raise errors.BadInputError('Invalid image provided')
         size = size.id if isinstance(size, dto.Size) else size
-        self._log("Creating machine '%s' (image: %s, size: %s)", name, image.name, size)
+        self._log("Creating machine '%s' (image: %s, size: %s)", name, sdk_image.name, size)
         # Get the networks to use
         networks = [{ 'uuid': self._tenant_network().id }]
-        if self._secondary_network_id:
-            # If the network exists, add it
-            if self._connection.network.find_network(self._secondary_network_id) is not None:
-                networks.append({ 'uuid': self._secondary_network_id })
+        # Only attach the private network if it is defined, exists and the image asks for it
+        attach_private_network = (
+            sdk_image.jasmin_private_if is not None and
+            self._secondary_network_id and
+            self._connection.network.find_network(self._secondary_network_id) is not None
+        )
+        if attach_private_network:
+            networks.append({ 'uuid': self._secondary_network_id })
         # Get the keypair to inject
         keypair = self._get_or_create_keypair(ssh_key) if ssh_key else None
-        # Interpolate values into the cloud-init script template
+        # Pass metadata onto the machine from the image if present
+        metadata = dict(jasmin_organisation = self._tenancy.name)
+        metadata.update({
+            item : getattr(sdk_image, item)
+            for item in {
+                'jasmin_nat_allowed',
+                'jasmin_type',
+                'jasmin_private_if',
+                'jasmin_activ_ver'
+            }
+            if getattr(sdk_image, item, None) is not None
+        })
         server = self._connection.compute.create_server(
             name = name,
-            image_id = image.id,
+            image_id = sdk_image.id,
             flavor_id = size,
             networks = networks,
             # Set the instance metadata
-            metadata = {
-                'jasmin_nat_allowed': '1' if image.nat_allowed else '0',
-                'jasmin_type': image.vm_type,
-                'jasmin_organisation': self._tenancy.name,
-            },
+            metadata = metadata,
             # The SDK doesn't like it if None is given for keypair, but behaves
             # correctly if it is not given at all
             **({ 'key_name': keypair.name } if keypair else {})
