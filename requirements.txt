@@ -1,38 +1,38 @@
 appdirs==1.4.3
-asn1crypto==1.1.0
-certifi==2019.9.11
-cffi==1.13.0
+asgiref==3.2.3
+certifi==2019.11.28
+cffi==1.13.2
 chardet==3.0.4
-cryptography==2.7
-decorator==4.4.0
-Django==2.2.6
--e git+https://github.com/cedadev/django-settings-object.git@0288a63cb77bb126fd530438871a0845a05789bc#egg=django_settings_object
+cryptography==2.8
+decorator==4.4.1
+Django==3.0
+-e git+https://github.com/cedadev/django-settings-object.git@b87e921a95bbfaf70c08af6b3484ecf243a97d1c#egg=django_settings_object
 djangorestframework==3.10.3
 docutils==0.15.2
-dogpile.cache==0.8.0
+dogpile.cache==0.9.0
 idna==2.8
 iso8601==0.1.12
--e git+https://github.com/cedadev/jasmin-ldap.git@9d62daaeaecca56e320b86f68bee2ad2f745a0ca#egg=jasmin_ldap
+-e git+https://github.com/cedadev/jasmin-ldap.git@ad21e8f7d8d82e33e5bf48820bf5f9e630a53d8d#egg=jasmin_ldap
 jmespath==0.9.4
 jsonpatch==1.24
 jsonpointer==2.0
-keystoneauth1==3.17.1
+keystoneauth1==3.18.0
 ldap3==2.6.1
-munch==2.3.2
+munch==2.5.0
 netifaces==0.10.9
 openstacksdk==0.26.0
 os-service-types==1.7.0
-pbr==5.4.3
-psycopg2-binary==2.8.3
-pyasn1==0.4.7
+pbr==5.4.4
+psycopg2-binary==2.8.4
+pyasn1==0.4.8
 pycparser==2.19
-python-dateutil==2.8.0
+python-dateutil==2.8.1
 pytz==2019.3
-PyYAML==5.1.2
+PyYAML==5.2
 requests==2.22.0
 requestsexceptions==1.4.0
-six==1.12.0
+six==1.13.0
 sqlparse==0.3.0
 stevedore==1.31.0
-urllib3==1.25.6
+urllib3==1.25.7
 voluptuous==0.11.7
