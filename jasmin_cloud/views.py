@@ -5,16 +5,12 @@ Django views for interacting with the configured cloud provider.
 import logging, functools
 
 from django.urls import reverse
-from django.contrib.auth import authenticate as dj_authenticate, login, logout
 from django.utils.safestring import mark_safe
 from django.utils.encoding import smart_text
-from django.core.exceptions import ImproperlyConfigured
 
 from docutils import core
 
-from rest_framework import (
-    decorators, permissions, response, status, exceptions as drf_exceptions
-)
+from rest_framework import decorators, response, status, exceptions as drf_exceptions
 from rest_framework.utils import formatting
 
 from . import serializers
@@ -96,23 +92,42 @@ def convert_provider_exceptions(view):
     return wrapper
 
 
-def require_provider_session(view):
+def map_provider_session(view):
     """
-    Decorator that converts credentials stored in the HTTP session into an
-    :py:class:`.provider.base.UnscopedSession` for the configured provider.
+    Decorator that copies the provider session between the DRF request and Django request.
+
+    DRF uses it's own request object that wraps the Django request, but doesn't map
+    custom properties, like the provider session set by our middleware.
     """
     @functools.wraps(view)
     def wrapper(request, *args, **kwargs):
-        # If there is no provider session on the request, force a reauthentication
-        session = getattr(request, 'auth', None)
-        if session is None or not isinstance(session, provider_base.UnscopedSession):
-            request.session.flush()
-            raise drf_exceptions.NotAuthenticated
-        return view(request, *args, **kwargs)
+        # Copy the session onto the DRF request from the wrapped request
+        request.provider_session = getattr(request._request, 'provider_session', None)
+        # Resolve the response
+        response = view(request, *args, **kwargs)
+        # Copy the current value of the provider session back onto the wrapped request
+        request._request.provider_session = getattr(request, 'provider_session', None)
+        return response
     return wrapper
 
 
+def require_provider_session(view):
+    """
+    Decorator that requires that a provider session is available on the request object.
+    """
+    @functools.wraps(view)
+    def wrapper(request, *args, **kwargs):
+        if not request.provider_session:
+            # If there is no provider session, force a reauthentication
+            raise drf_exceptions.NotAuthenticated
+        # Return the response
+        return view(request, *args, **kwargs)
+    # Wrap the returned view with map_provider_session
+    return map_provider_session(wrapper)
+
+
 @decorators.api_view(['POST'])
+@map_provider_session
 @convert_provider_exceptions
 def authenticate(request):
     """
@@ -130,20 +145,13 @@ def authenticate(request):
     serializer.is_valid(raise_exception = True)
     username = serializer.validated_data['username']
     password = serializer.validated_data['password']
-    user = dj_authenticate(request, username = username, password = password)
-    if user is None or not user.is_active:
-        raise drf_exceptions.AuthenticationFailed('Invalid username or password.')
-    # Find the token from the session
-    # NOTE: The token will have been placed there in the dj_authenticate call by the
-    #       provider backend - we are not relying on a persistent session
-    try:
-        token = request.session['provider_token']
-    except KeyError:
-        raise ImproperlyConfigured('Please configure the provider backend.')
-    login(request, user)
+    # Attempt to authenticate the user with the configured provider
+    # Let the authentication error bubble to be handled by the decorator
+    # Add the session to the request to be used by the middleware
+    request.provider_session = cloud_settings.PROVIDER.authenticate(username, password)
     return response.Response({
-        'username': user.username,
-        'token': token,
+        'username': request.provider_session.username(),
+        'token': request.provider_session.token(),
         'links': {
             'tenancies': request.build_absolute_uri(reverse('jasmin_cloud:tenancies'))
         }
@@ -151,7 +159,6 @@ def authenticate(request):
 
 
 @decorators.api_view(['GET', 'DELETE'])
-@decorators.permission_classes([permissions.IsAuthenticated])
 @require_provider_session
 @convert_provider_exceptions
 def session(request):
@@ -161,12 +168,13 @@ def session(request):
     On ``DELETE`` requests, destroy the current session.
     """
     if request.method == 'DELETE':
-        logout(request)
+        request.provider_session.close()
+        del request.provider_session
         return response.Response()
     else:
         return response.Response({
-            'username': request.user.username,
-            'token': request.auth.token(),
+            'username': request.provider_session.username(),
+            'token': request.provider_session.token(),
             'links': {
                 'tenancies': request.build_absolute_uri(reverse('jasmin_cloud:tenancies'))
             }
@@ -174,7 +182,6 @@ def session(request):
 
 
 @decorators.api_view(['GET'])
-@decorators.permission_classes([permissions.IsAuthenticated])
 @require_provider_session
 @convert_provider_exceptions
 def tenancies(request):
@@ -182,7 +189,7 @@ def tenancies(request):
     Returns the tenancies available to the authenticated user.
     """
     serializer = serializers.TenancySerializer(
-        request.auth.tenancies(),
+        request.provider_session.tenancies(),
         many = True,
         context = { 'request': request }
     )
@@ -190,14 +197,13 @@ def tenancies(request):
 
 
 @decorators.api_view(['GET'])
-@decorators.permission_classes([permissions.IsAuthenticated])
 @require_provider_session
 @convert_provider_exceptions
 def quotas(request, tenant):
     """
     Returns information about the quotas available to the tenant.
     """
-    with request.auth.scoped_session(tenant) as session:
+    with request.provider_session.scoped_session(tenant) as session:
         serializer = serializers.QuotaSerializer(
             session.quotas(),
             many = True,
@@ -207,7 +213,6 @@ def quotas(request, tenant):
 
 
 @decorators.api_view(['GET'])
-@decorators.permission_classes([permissions.IsAuthenticated])
 @require_provider_session
 @convert_provider_exceptions
 def images(request, tenant):
@@ -221,7 +226,7 @@ def images(request, tenant):
     * ``is_public``: Indicates if the image is public or private.
     * ``nat_allowed``: Indicates if NAT is allowed for machines deployed from the image.
     """
-    with request.auth.scoped_session(tenant) as session:
+    with request.provider_session.scoped_session(tenant) as session:
         serializer = serializers.ImageSerializer(
             session.images(),
             many = True,
@@ -231,7 +236,6 @@ def images(request, tenant):
 
 
 @decorators.api_view(['GET'])
-@decorators.permission_classes([permissions.IsAuthenticated])
 @require_provider_session
 @convert_provider_exceptions
 def image_details(request, tenant, image):
@@ -245,7 +249,7 @@ def image_details(request, tenant, image):
     * ``is_public``: Indicates if the image is public or private.
     * ``nat_allowed``: Indicates if NAT is allowed for machines deployed from the image.
     """
-    with request.auth.scoped_session(tenant) as session:
+    with request.provider_session.scoped_session(tenant) as session:
         serializer = serializers.ImageSerializer(
             session.find_image(image),
             context = { 'request': request, 'tenant': tenant }
@@ -254,7 +258,6 @@ def image_details(request, tenant, image):
 
 
 @decorators.api_view(['GET'])
-@decorators.permission_classes([permissions.IsAuthenticated])
 @require_provider_session
 @convert_provider_exceptions
 def sizes(request, tenant):
@@ -268,7 +271,7 @@ def sizes(request, tenant):
     * ``cpus``: The number of CPUs.
     * ``ram``: The amount of RAM (in MB).
     """
-    with request.auth.scoped_session(tenant) as session:
+    with request.provider_session.scoped_session(tenant) as session:
         serializer = serializers.SizeSerializer(
             session.sizes(),
             many = True,
@@ -278,7 +281,6 @@ def sizes(request, tenant):
 
 
 @decorators.api_view(['GET'])
-@decorators.permission_classes([permissions.IsAuthenticated])
 @require_provider_session
 @convert_provider_exceptions
 def size_details(request, tenant, size):
@@ -292,7 +294,7 @@ def size_details(request, tenant, size):
     * ``cpus``: The number of CPUs.
     * ``ram``: The amount of RAM (in MB).
     """
-    with request.auth.scoped_session(tenant) as session:
+    with request.provider_session.scoped_session(tenant) as session:
         serializer = serializers.SizeSerializer(
             session.find_size(size),
             context = { 'request': request, 'tenant': tenant }
@@ -301,7 +303,6 @@ def size_details(request, tenant, size):
 
 
 @decorators.api_view(['GET', 'POST'])
-@decorators.permission_classes([permissions.IsAuthenticated])
 @require_provider_session
 @convert_provider_exceptions
 def machines(request, tenant):
@@ -319,7 +320,7 @@ def machines(request, tenant):
     if request.method == 'POST':
         input_serializer = serializers.MachineSerializer(data = request.data)
         input_serializer.is_valid(raise_exception = True)
-        with request.auth.scoped_session(tenant) as session:
+        with request.provider_session.scoped_session(tenant) as session:
             output_serializer = serializers.MachineSerializer(
                 session.create_machine(
                     input_serializer.validated_data['name'],
@@ -331,7 +332,7 @@ def machines(request, tenant):
             )
         return response.Response(output_serializer.data, status = status.HTTP_201_CREATED)
     else:
-        with request.auth.scoped_session(tenant) as session:
+        with request.provider_session.scoped_session(tenant) as session:
             serializer = serializers.MachineSerializer(
                 session.machines(),
                 many = True,
@@ -341,7 +342,6 @@ def machines(request, tenant):
 
 
 @decorators.api_view(['GET', 'DELETE'])
-@decorators.permission_classes([permissions.IsAuthenticated])
 @require_provider_session
 @convert_provider_exceptions
 def machine_details(request, tenant, machine):
@@ -351,7 +351,7 @@ def machine_details(request, tenant, machine):
     On ``DELETE`` requests, delete the specified machine.
     """
     if request.method == 'DELETE':
-        with request.auth.scoped_session(tenant) as session:
+        with request.provider_session.scoped_session(tenant) as session:
             deleted = session.delete_machine(machine)
         if deleted:
             serializer = serializers.MachineSerializer(
@@ -362,7 +362,7 @@ def machine_details(request, tenant, machine):
         else:
             return response.Response()
     else:
-        with request.auth.scoped_session(tenant) as session:
+        with request.provider_session.scoped_session(tenant) as session:
             serializer = serializers.MachineSerializer(
                 session.find_machine(machine),
                 context = { 'request': request, 'tenant': tenant }
@@ -371,14 +371,13 @@ def machine_details(request, tenant, machine):
 
 
 @decorators.api_view(['POST'])
-@decorators.permission_classes([permissions.IsAuthenticated])
 @require_provider_session
 @convert_provider_exceptions
 def machine_start(request, tenant, machine):
     """
     Start (power on) the specified machine.
     """
-    with request.auth.scoped_session(tenant) as session:
+    with request.provider_session.scoped_session(tenant) as session:
         serializer = serializers.MachineSerializer(
             session.start_machine(machine),
             context = { 'request': request, 'tenant': tenant }
@@ -387,14 +386,13 @@ def machine_start(request, tenant, machine):
 
 
 @decorators.api_view(['POST'])
-@decorators.permission_classes([permissions.IsAuthenticated])
 @require_provider_session
 @convert_provider_exceptions
 def machine_stop(request, tenant, machine):
     """
     Stop (power off) the specified machine.
     """
-    with request.auth.scoped_session(tenant) as session:
+    with request.provider_session.scoped_session(tenant) as session:
         serializer = serializers.MachineSerializer(
             session.stop_machine(machine),
             context = { 'request': request, 'tenant': tenant }
@@ -403,14 +401,13 @@ def machine_stop(request, tenant, machine):
 
 
 @decorators.api_view(['POST'])
-@decorators.permission_classes([permissions.IsAuthenticated])
 @require_provider_session
 @convert_provider_exceptions
 def machine_restart(request, tenant, machine):
     """
     Restart (power cycle) the specified machine.
     """
-    with request.auth.scoped_session(tenant) as session:
+    with request.provider_session.scoped_session(tenant) as session:
         serializer = serializers.MachineSerializer(
             session.restart_machine(machine),
             context = { 'request': request, 'tenant': tenant }
@@ -419,7 +416,6 @@ def machine_restart(request, tenant, machine):
 
 
 @decorators.api_view(['GET', 'POST'])
-@decorators.permission_classes([permissions.IsAuthenticated])
 @require_provider_session
 @convert_provider_exceptions
 def external_ips(request, tenant):
@@ -437,11 +433,11 @@ def external_ips(request, tenant):
         }
     """
     if request.method == 'POST':
-        with request.auth.scoped_session(tenant) as session:
+        with request.provider_session.scoped_session(tenant) as session:
             serializer = serializers.ExternalIPSerializer(session.allocate_external_ip())
         return response.Response(serializer.data, status = status.HTTP_201_CREATED)
     else:
-        with request.auth.scoped_session(tenant) as session:
+        with request.provider_session.scoped_session(tenant) as session:
             serializer = serializers.ExternalIPSerializer(
                 session.external_ips(),
                 many = True,
@@ -451,7 +447,6 @@ def external_ips(request, tenant):
 
 
 @decorators.api_view(['GET', 'PUT'])
-@decorators.permission_classes([permissions.IsAuthenticated])
 @require_provider_session
 @convert_provider_exceptions
 def external_ip_details(request, tenant, ip):
@@ -469,7 +464,7 @@ def external_ip_details(request, tenant, ip):
         input_serializer = serializers.ExternalIPSerializer(data = request.data)
         input_serializer.is_valid(raise_exception = True)
         machine_id = input_serializer.validated_data['machine_id']
-        with request.auth.scoped_session(tenant) as session:
+        with request.provider_session.scoped_session(tenant) as session:
             if machine_id:
                 ip = session.attach_external_ip(ip, str(machine_id))
             else:
@@ -480,7 +475,7 @@ def external_ip_details(request, tenant, ip):
         )
         return response.Response(output_serializer.data)
     else:
-        with request.auth.scoped_session(tenant) as session:
+        with request.provider_session.scoped_session(tenant) as session:
             serializer = serializers.ExternalIPSerializer(
                 session.find_external_ip(ip),
                 context = { 'request': request, 'tenant': tenant }
@@ -489,7 +484,6 @@ def external_ip_details(request, tenant, ip):
 
 
 @decorators.api_view(['GET', 'POST'])
-@decorators.permission_classes([permissions.IsAuthenticated])
 @require_provider_session
 @convert_provider_exceptions
 def volumes(request, tenant):
@@ -508,7 +502,7 @@ def volumes(request, tenant):
     if request.method == 'POST':
         input_serializer = serializers.CreateVolumeSerializer(data = request.data)
         input_serializer.is_valid(raise_exception = True)
-        with request.auth.scoped_session(tenant) as session:
+        with request.provider_session.scoped_session(tenant) as session:
             output_serializer = serializers.VolumeSerializer(
                 session.create_volume(
                     input_serializer.validated_data['name'],
@@ -518,7 +512,7 @@ def volumes(request, tenant):
             )
         return response.Response(output_serializer.data, status = status.HTTP_201_CREATED)
     else:
-        with request.auth.scoped_session(tenant) as session:
+        with request.provider_session.scoped_session(tenant) as session:
             serializer = serializers.VolumeSerializer(
                 session.volumes(),
                 many = True,
@@ -528,7 +522,6 @@ def volumes(request, tenant):
 
 
 @decorators.api_view(['GET', 'PUT', 'DELETE'])
-@decorators.permission_classes([permissions.IsAuthenticated])
 @require_provider_session
 @convert_provider_exceptions
 def volume_details(request, tenant, volume):
@@ -552,7 +545,7 @@ def volume_details(request, tenant, volume):
         input_serializer = serializers.UpdateVolumeSerializer(data = request.data)
         input_serializer.is_valid(raise_exception = True)
         machine_id = input_serializer.validated_data['machine_id']
-        with request.auth.scoped_session(tenant) as session:
+        with request.provider_session.scoped_session(tenant) as session:
             if machine_id:
                 volume = session.attach_volume(volume, str(machine_id))
             else:
@@ -563,7 +556,7 @@ def volume_details(request, tenant, volume):
         )
         return response.Response(output_serializer.data)
     elif request.method == 'DELETE':
-        with request.auth.scoped_session(tenant) as session:
+        with request.provider_session.scoped_session(tenant) as session:
             deleted = session.delete_volume(volume)
         if deleted:
             serializer = serializers.VolumeSerializer(
@@ -574,7 +567,7 @@ def volume_details(request, tenant, volume):
         else:
             return response.Response()
     else:
-        with request.auth.scoped_session(tenant) as session:
+        with request.provider_session.scoped_session(tenant) as session:
             serializer = serializers.VolumeSerializer(
                 session.find_volume(volume),
                 context = { 'request': request, 'tenant': tenant }
@@ -583,14 +576,13 @@ def volume_details(request, tenant, volume):
 
 
 @decorators.api_view(['GET'])
-@decorators.permission_classes([permissions.IsAuthenticated])
 @require_provider_session
 @convert_provider_exceptions
 def cluster_types(request, tenant):
     """
     Returns the cluster types available to the tenancy.
     """
-    with request.auth.scoped_session(tenant) as session:
+    with request.provider_session.scoped_session(tenant) as session:
         serializer = serializers.ClusterTypeSerializer(
             session.cluster_types(),
             many = True,
@@ -600,14 +592,13 @@ def cluster_types(request, tenant):
 
 
 @decorators.api_view(['GET'])
-@decorators.permission_classes([permissions.IsAuthenticated])
 @require_provider_session
 @convert_provider_exceptions
 def cluster_type_details(request, tenant, cluster_type):
     """
     Returns the requested cluster type.
     """
-    with request.auth.scoped_session(tenant) as session:
+    with request.provider_session.scoped_session(tenant) as session:
         serializer = serializers.ClusterTypeSerializer(
             session.find_cluster_type(cluster_type),
             context = { 'request': request, 'tenant': tenant }
@@ -616,7 +607,6 @@ def cluster_type_details(request, tenant, cluster_type):
 
 
 @decorators.api_view(['GET', 'POST'])
-@decorators.permission_classes([permissions.IsAuthenticated])
 @require_provider_session
 @convert_provider_exceptions
 def clusters(request, tenant):
@@ -626,7 +616,7 @@ def clusters(request, tenant):
     On ``POST`` requests, create a new cluster.
     """
     if request.method == 'POST':
-        with request.auth.scoped_session(tenant) as session:
+        with request.provider_session.scoped_session(tenant) as session:
             input_serializer = serializers.CreateClusterSerializer(
                 data = request.data,
                 context = { 'session': session }
@@ -644,7 +634,7 @@ def clusters(request, tenant):
         )
         return response.Response(output_serializer.data)
     else:
-        with request.auth.scoped_session(tenant) as session:
+        with request.provider_session.scoped_session(tenant) as session:
             serializer = serializers.ClusterSerializer(
                 session.clusters(),
                 many = True,
@@ -654,7 +644,6 @@ def clusters(request, tenant):
 
 
 @decorators.api_view(['GET', 'PUT', 'DELETE'])
-@decorators.permission_classes([permissions.IsAuthenticated])
 @require_provider_session
 @convert_provider_exceptions
 def cluster_details(request, tenant, cluster):
@@ -666,7 +655,7 @@ def cluster_details(request, tenant, cluster):
     On ``DELETE`` requests, delete the named cluster.
     """
     if request.method == 'PUT':
-        with request.auth.scoped_session(tenant) as session:
+        with request.provider_session.scoped_session(tenant) as session:
             cluster = session.find_cluster(cluster)
             input_serializer = serializers.UpdateClusterSerializer(
                 data = request.data,
@@ -683,7 +672,7 @@ def cluster_details(request, tenant, cluster):
         )
         return response.Response(output_serializer.data)
     elif request.method == 'DELETE':
-        with request.auth.scoped_session(tenant) as session:
+        with request.provider_session.scoped_session(tenant) as session:
             deleted = session.delete_cluster(cluster)
         if deleted:
             serializer = serializers.ClusterSerializer(
@@ -694,7 +683,7 @@ def cluster_details(request, tenant, cluster):
         else:
             return response.Response()
     else:
-        with request.auth.scoped_session(tenant) as session:
+        with request.provider_session.scoped_session(tenant) as session:
             serializer = serializers.ClusterSerializer(
                 session.find_cluster(cluster),
                 context = { 'request': request, 'tenant': tenant }
@@ -703,14 +692,13 @@ def cluster_details(request, tenant, cluster):
 
 
 @decorators.api_view(['POST'])
-@decorators.permission_classes([permissions.IsAuthenticated])
 @require_provider_session
 @convert_provider_exceptions
 def cluster_patch(request, tenant, cluster):
     """
     Patch the given cluster.
     """
-    with request.auth.scoped_session(tenant) as session:
+    with request.provider_session.scoped_session(tenant) as session:
         serializer = serializers.ClusterSerializer(
             session.patch_cluster(cluster),
             context = { 'request': request, 'tenant': tenant }
