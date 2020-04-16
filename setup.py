@@ -34,7 +34,6 @@ if __name__ == "__main__":
             'openstacksdk<0.27.0',  # https://storyboard.openstack.org/#!/story/2006343
             'django',
             'djangorestframework',
-            'psycopg2-binary',
             'django-settings-object',
             'jasmin-ldap',
             'pyyaml',
