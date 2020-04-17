@@ -13,6 +13,9 @@ class JasminCloudSettings(SettingsObject):
     """
     #: The name of the cookie used to store tokens
     TOKEN_COOKIE_NAME = Setting(default = 'provider-token')
+    #: Indicates whether the token cookie should be restricted to secure connections
+    #: Should always be True in production
+    TOKEN_COOKIE_SECURE = Setting(default = True)
     #: Cloud provider configuration
     PROVIDER = ObjectFactorySetting()
     #: SSH key store configuration

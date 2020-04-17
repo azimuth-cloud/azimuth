@@ -169,7 +169,7 @@ def session(request):
     """
     if request.method == 'DELETE':
         request.provider_session.close()
-        del request.provider_session
+        request.provider_session = None
         return response.Response()
     else:
         return response.Response({

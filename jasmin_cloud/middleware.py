@@ -30,7 +30,7 @@ def provider_session(get_response):
             response.set_signed_cookie(
                 cloud_settings.TOKEN_COOKIE_NAME,
                 session.token(),
-                secure = True,
+                secure = cloud_settings.TOKEN_COOKIE_SECURE,
                 httponly = True,
                 samesite = 'Strict'
             )
