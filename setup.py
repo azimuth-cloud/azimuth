@@ -31,7 +31,6 @@ if __name__ == "__main__":
         install_requires = [
             'docutils',
             'python-dateutil',
-            'openstacksdk<0.27.0',  # https://storyboard.openstack.org/#!/story/2006343
             'django',
             'djangorestframework',
             'django-settings-object',
@@ -39,5 +38,6 @@ if __name__ == "__main__":
             'pyyaml',
             'voluptuous',
             'requests',
+            'rackit',
         ],
     )
