@@ -123,6 +123,8 @@ def provider_api_view(methods):
 
 
 @decorators.api_view(['POST'])
+# No authentication is required for this endpoint
+@decorators.authentication_classes([])
 @convert_provider_exceptions
 def authenticate(request):
     """

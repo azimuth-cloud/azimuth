@@ -85,9 +85,9 @@ class UnmanagedResource(rackit.UnmanagedResource):
     class Meta:
         options_cls = UnmanagedResourceOptions
 
-    def _fetch(self, path = None):
+    def _fetch(self):
         # The data is under a key, which we need to extract
-        return super()._fetch(path)[self._opts.resource_key]
+        return super()._fetch()[self._opts.resource_key]
 
 
 class ResourceManager(rackit.ResourceManager):
@@ -310,11 +310,6 @@ class Service(rackit.Connection):
     #: The name of the catalog type that this service is for
     #: This is used to retrieve the endpoint from the service catalog
     catalog_type = None
-    #: The path prefix for this service, e.g. a specific version
-    #: The path part is stripped from the endpoint in the service catalog
-    #: and replaced with this
-    #: The project id is interpolated into the prefix using ``str.format(project_id = ...)``.
-    path_prefix = None
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -328,22 +323,11 @@ class Service(rackit.Connection):
 
     def __init__(self, url, session):
         super().__init__(url, session)
-        # Resolve the path prefix for this instance by templating in the project id
+        # Template the project id into the path prefix
         if self.path_prefix:
             # Template the project id into the path prefix
             project_id = session.auth.project_id
             self.path_prefix = self.path_prefix.format(project_id = project_id)
-
-    def prepare_url(self, url):
-        # If the URL is absolute, then use it as-is
-        if re.match('https?://', url) is not None:
-            return url
-        # Treat the url as a path now
-        # If it doesn't already start with the path prefix, prepend it
-        if self.path_prefix and not url.startswith(self.path_prefix):
-            url = self.path_prefix + url
-        # Prepend the API base URL
-        return self.api_base + url
 
     def _find_message(self, obj):
         # Try to find a message property at any depth within the structure

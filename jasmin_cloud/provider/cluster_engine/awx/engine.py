@@ -11,25 +11,14 @@ import time
 
 import dateutil.parser
 
+import rackit
+
 from . import api
 from .. import base
 from ... import dto, errors
 
 
 logger = logging.getLogger(__name__)
-
-
-def convert_api_exceptions(func):
-    """
-    Decorator that converts api exceptions into provider errors.
-    """
-    @functools.wraps(func)
-    def decorator(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except:
-            raise
-    return decorator
 
 
 class Engine(base.Engine):
@@ -69,18 +58,20 @@ class Engine(base.Engine):
             self._verify_ssl
         )
         try:
-            organisation = connection.organisation.fetch_one()
-            template_inventory = connection.inventory.fetch_one(
-                name = self._template_inventory
-            )
-            credential_type = connection.credential_type.fetch_one(
-                name = self._credential_type
-            )
+            organisation = next(connection.organisations.all(), None)
+            if not organisation:
+                raise errors.ImproperlyConfiguredError('Could not find organisation.')
+            template_inventory = connection.inventories.find_by_name(self._template_inventory)
+            if not template_inventory:
+                raise errors.ImproperlyConfiguredError('Could not find template inventory.')
+            credential_type = connection.credential_types.find_by_name(self._credential_type)
+            if not credential_type:
+                raise errors.ImproperlyConfiguredError('Could not find credential type.')
         except:
             connection.close()
             raise
         try:
-            team = connection.team.fetch_one(name__iexact = tenancy.name)
+            team = next(connection.teams.all(name__iexact = tenancy.name))
             logger.info("Found AWX team '%s'", team.name)
             return ClusterManager(
                 username,
@@ -90,7 +81,7 @@ class Engine(base.Engine):
                 template_inventory,
                 team
             )
-        except api.NotFound:
+        except StopIteration:
             logger.warn("Could not find AWX team '%s'", tenancy.name)
             connection.close()
             return None
@@ -127,6 +118,17 @@ class ClusterManager(base.ClusterManager):
             **kwargs
         )
 
+    def _from_job_template(self, job_template):
+        """
+        Returns a cluster template from the given job template.
+        """
+        if not job_template.description:
+            raise errors.ImproperlyConfiguredError(
+                "No metadata specified for cluster type '{}'".format(job_template.name)
+            )
+        self._log("Loading metadata from {}".format(job_template.description))
+        return dto.ClusterType.from_yaml(job_template.name, job_template.description)
+
     def cluster_types(self):
         """
         See :py:meth:`.base.ClusterManager.cluster_types`.
@@ -134,104 +136,79 @@ class ClusterManager(base.ClusterManager):
         # Get the names of the job temaplates that the team has been
         # granted execute access for
         self._log("Fetching team permissions")
-        permitted = [
+        permitted = {
             role.summary_fields['resource_name']
-            for role in self._team.fetch_related('roles')
+            for role in self._team.roles.all()
             if role.name.lower() == 'execute' and
                role.summary_fields['resource_type'] == 'job_template'
-        ]
+        }
         self._log("Found %s permitted job templates", len(permitted))
-        # Convert to DTO objects
-        return tuple(self.find_cluster_type(name) for name in permitted)
+        # Fetch the job templates, filter the allowed ones and return the cluster types
+        return tuple(
+            self._from_job_template(jt)
+            for jt in self._connection.job_templates.all()
+            if jt.name in permitted
+        )
 
     def find_cluster_type(self, name):
         """
         See :py:meth:`.base.ClusterManager.find_cluster_type`.
         """
         self._log("Fetching job template '%s'", name)
-        try:
-            job_template = self._connection.job_template.fetch_one(name = name)
-        except api.NotFound:
+        job_template = self._connection.job_templates.find_by_name(name)
+        if not job_template:
             raise errors.ObjectNotFoundError("Could not find cluster type '{}'".format(name))
-        if not job_template.description:
-            raise errors.ImproperlyConfiguredError(
-                "No metadata specified for cluster type '{}'".format(name)
-            )
-        self._log("Loading metadata from {}".format(job_template.description))
-        return dto.ClusterType.from_yaml(name, job_template.description)
+        return self._from_job_template(job_template)
 
-    def clusters(self):
+    def _from_inventory(self, inventory):
         """
-        See :py:meth:`.base.ClusterManager.clusters`.
+        Returns a cluster from the given inventory.
         """
-        # Inventories for a tenancy are prefixed with the tenancy name
-        prefix = "{}-".format(self._team.name)
-        self._log("Fetching inventories")
-        inventories = self._connection.inventory.fetch_all(name__istartswith = prefix)
-        self._log("Found %s inventories", len(inventories))
-        # find_cluster might raise ObjectNotFoundError for inventories representing a
-        # deleted cluster
-        def active_inventories(inventories):
-            for inventory in inventories:
-                try:
-                    yield self.find_cluster(inventory.id)
-                except errors.ObjectNotFoundError:
-                    pass
-        return tuple(active_inventories(inventories))
-
-    def find_cluster(self, id):
-        """
-        See :py:meth:`.base.ClusterManager.find_cluster`.
-        """
-        # First, load the inventory
-        self._log("Fetching inventory with id '%s'", id)
-        try:
-            inventory = self._connection.inventory.fetch_one(id)
-        except api.NotFound:
-            raise errors.ObjectNotFoundError(
-                "Could not find cluster with ID {}".format(id)
-            )
-        if not inventory.name.startswith(self._team.name):
-            raise errors.ObjectNotFoundError(
-                "Could not find cluster with ID {}".format(id)
-            )
         # Get the inventory variables
-        params = dict(inventory.fetch_related('variable_data'))
+        params = inventory.variable_data._as_dict()
         # Extract the parameters that aren't really parameters
         name = params.pop('cluster_name')
         cluster_type = params.pop('cluster_type')
         ssh_key = params.pop('cluster_user_ssh_public_key')
         # Get the jobs for the inventory
-        jobs = self._connection.job.fetch_all(
-            inventory = inventory.id,
-            order_by = '-started'
-        )
+        jobs = self._connection.jobs.all(inventory = inventory.id, order_by = '-started')
         # The status of the cluster is the status of the latest job
         task = None
         error_message = None
+        # The updated and patched times are based on successful jobs
+        # The patched time is from a job with cluster_upgrade_system_packages = True
+        updated = None
+        patched = None
         try:
-            latest = next(iter(jobs))
+            latest = next(jobs)
         except StopIteration:
             # There should be at least one job...
             status = dto.Cluster.Status.ERROR
         else:
             # The cluster_state comes from the extra vars of the most recent job
-            cluster_state = json.loads(latest.extra_vars).get('cluster_state', 'present')
+            latest_extra_vars = json.loads(latest.extra_vars)
+            cluster_state = latest_extra_vars.get('cluster_state', 'present')
             if latest.status == 'successful':
                 if cluster_state == 'present':
                     status = dto.Cluster.Status.READY
+                    updated = latest.finished
+                    if latest_extra_vars.get('cluster_upgrade_system_packages', False):
+                        patched = latest.finished
                 else:
                     self._log("Inventory '%s' represents deleted cluster - removing", inventory.name)
                     # If the last job was a successful delete, delete the inventory
-                    self._connection.inventory.delete(inventory)
+                    inventory._delete()
                     # Inventories don't always delete straight away, so try up to five times
                     remaining = 5
                     while remaining > 0:
                         try:
-                            inventory = self._connection.inventory.fetch_one(inventory.id)
-                        except api.NotFound:
+                            inventory = self._connection.inventories.get(inventory.id)
+                        except rackit.NotFound:
                             break
-                        self._connection.inventory.cache_evict(inventory.id)
+                        else:
+                            # Evict the inventory from the cache so it isn't cached for future accesses
+                            self._connection.inventories.cache.evict(inventory.id)
+                            remaining = remaining - 1
                     else:
                         raise errors.OperationTimedOutError('Timed out while removing inventory.')
                     raise errors.ObjectNotFoundError(
@@ -243,48 +220,39 @@ class ClusterManager(base.ClusterManager):
             elif latest.status in {'failed', 'error'}:
                 status = dto.Cluster.Status.ERROR
                 # Try to retrieve an error from the failed task
-                events = latest.fetch_related(
-                    'job_events',
-                    event = 'runner_on_failed',
-                    order_by = '-created'
+                event = next(
+                    latest.job_events.all(event = 'runner_on_failed', order_by = '-created'),
+                    None
                 )
-                error_message = (
-                    next(iter(events), {})
-                        .get('event_data', {})
-                        .get('res', {})
-                        .get(
-                            'msg',
-                            'Error during cluster configuration. Please contact support.'
-                        )
-                )
+                msg = getattr(event, 'event_data', {}).get('res', {}).get('msg')
+                error_message = msg or 'Error during cluster configuration. Please contact support.'
             else:
                 if cluster_state == 'present':
                     status = dto.Cluster.Status.CONFIGURING
                 else:
                     status = dto.Cluster.Status.DELETING
                 # Find the name of the currently executing task
-                events = latest.fetch_related(
-                    'job_events',
-                    event = 'playbook_on_task_start',
-                    order_by = '-created'
+                task = next(
+                    (
+                        event.task
+                        for event in latest.job_events.all(
+                            event = 'playbook_on_task_start',
+                            order_by = '-created'
+                        )
+                    ),
+                    None
                 )
-                task = next(iter(events), {}).get('task')
-        # The updated time is the finish time of the last successful job
-        try:
-            func = lambda j: j.status == 'successful'
-            updated = next(iter(filter(func, jobs))).finished
-        except StopIteration:
-            updated = None
-        # The patched time is the finish time of the last successful job
-        # with the "cluster_upgrade_system_packages" variable set to true
-        try:
-            func = lambda j: (
-                j.status == 'successful' and
-                json.loads(j.extra_vars).get('cluster_upgrade_system_packages', False)
-            )
-            patched = next(iter(filter(func, jobs))).finished
-        except StopIteration:
-            patched = None
+        # If we haven't found the update or patch time, traverse the rest of the jobs until we find them
+        while not updated or not patched:
+            try:
+                job = next(jobs)
+            except StopIteration:
+                break
+            if job.status != 'successful':
+                continue
+            updated = updated or job.finished
+            if json.loads(job.extra_vars).get('cluster_upgrade_system_packages', False):
+                patched = patched or job.finished
         return dto.Cluster(
             inventory.id,
             name,
@@ -299,6 +267,42 @@ class ClusterManager(base.ClusterManager):
             dateutil.parser.parse(patched) if patched else None
         )
 
+    def clusters(self):
+        """
+        See :py:meth:`.base.ClusterManager.clusters`.
+        """
+        # Inventories for a tenancy are prefixed with the tenancy name
+        prefix = "{}-".format(self._team.name)
+        self._log("Fetching inventories")
+        inventories = list(self._connection.inventories.all(name__istartswith = prefix))
+        self._log("Found %s inventories", len(inventories))
+        # If any of the clusters raise ObjectNotFound while iterating, omit them
+        def active_inventories(inventories):
+            for inventory in inventories:
+                try:
+                    yield self._from_inventory(inventory)
+                except errors.ObjectNotFoundError:
+                    pass
+        return tuple(active_inventories(inventories))
+
+    def find_cluster(self, id):
+        """
+        See :py:meth:`.base.ClusterManager.find_cluster`.
+        """
+        # First, load the inventory
+        self._log("Fetching inventory with id '%s'", id)
+        try:
+            inventory = self._connection.inventories.get(id)
+        except rackit.NotFound:
+            raise errors.ObjectNotFoundError(
+                "Could not find cluster with ID {}".format(id)
+            )
+        if not inventory.name.startswith(self._team.name):
+            raise errors.ObjectNotFoundError(
+                "Could not find cluster with ID {}".format(id)
+            )
+        return self._from_inventory(inventory)
+
     def _update_and_run_inventory(self, cluster_type,
                                         inventory,
                                         credential_inputs,
@@ -309,23 +313,18 @@ class ClusterManager(base.ClusterManager):
         and run a job.
         """
         self._log("Finding job template '%s'", cluster_type)
-        try:
-            job_template = self._connection.job_template.fetch_one(name = cluster_type)
-        except api.NotFound:
+        job_template = self._connection.job_templates.find_by_name(cluster_type)
+        if not job_template:
             raise errors.ObjectNotFoundError(
                 "Could not find cluster type '%s'",
                 cluster_type
             )
         self._log("Updating inventory variables for '%s'", inventory.name)
-        inventory.update_related(
-            'variable_data',
-            **dict(
-                inventory.fetch_related('variable_data'),
-                **inventory_variables
-            )
-        )
+        variable_data = inventory.variable_data._as_dict()
+        variable_data.update(inventory_variables)
+        inventory.variable_data._update(variable_data)
         self._log("Creating credential to run job")
-        credential = self._connection.credential.create(
+        credential = self._connection.credentials.create(
             name = str(uuid.uuid4()),
             organization = self._organisation.id,
             credential_type = self._credential_type.id,
@@ -333,14 +332,13 @@ class ClusterManager(base.ClusterManager):
         )
         self._log("Executing job for inventory '%s'", inventory.name)
         # Once everything is updated, launch a job
-        job_template.create_related(
-            'launch',
+        job_template.launch(
             inventory = inventory.id,
             credentials = [credential.id],
             extra_vars = json.dumps(extra_vars)
         )
         # Evict the inventory from the cache as it has changed
-        self._connection.inventory.cache_evict(inventory.id)
+        self._connection.inventories.cache.evict(inventory)
 
     def create_cluster(self, name, cluster_type, params, ssh_key, credential):
         """
@@ -352,12 +350,10 @@ class ClusterManager(base.ClusterManager):
         inventory_name = "{}-{}".format(self._team.name, name)
         self._log("Try to find existing inventory '%s'", inventory_name)
         # Try to find an existing inventory with the name we want to use
-        try:
-            inventory = self._connection.inventory.fetch_one(name = inventory_name)
-        except api.NotFound:
+        inventory = self._connection.inventories.find_by_name(inventory_name)
+        if not inventory:
             # Not found is great!
             self._log("No inventory called '%s' exists", inventory_name)
-            pass
         else:
             self._log("Existing inventory called '%s' found", inventory_name)
             # If there is an existing inventory, try to fetch the corresponding cluster
@@ -371,10 +367,7 @@ class ClusterManager(base.ClusterManager):
                 # If the cluster also exists, this is a bad request
                 raise errors.BadInputError("A cluster called '%s' aleady exists.", name)
         self._log("Copying template inventory as '%s'", inventory_name)
-        inventory = self._connection.inventory.copy(
-            self._template_inventory.id,
-            inventory_name
-        )
+        inventory = self._connection.inventories.copy(self._template_inventory.id, inventory_name)
         # Update the inventory variables and execute the creation job
         self._update_and_run_inventory(
             cluster_type,
@@ -409,7 +402,7 @@ class ClusterManager(base.ClusterManager):
         # Update the inventory with the given parameters
         self._update_and_run_inventory(
             cluster.cluster_type,
-            self._connection.inventory.fetch_one(cluster.id),
+            self._connection.inventories.get(cluster.id),
             credential,
             params
         )
@@ -433,7 +426,7 @@ class ClusterManager(base.ClusterManager):
         # Update the inventory with the given parameters
         self._update_and_run_inventory(
             cluster.cluster_type,
-            self._connection.inventory.fetch_one(cluster.id),
+            self._connection.inventories.get(cluster.id),
             credential,
             extra_vars = dict(cluster_upgrade_system_packages = True)
         )
@@ -454,7 +447,7 @@ class ClusterManager(base.ClusterManager):
             )
         self._log("Deleting cluster '%s'", cluster.id)
         # The job that is executed has cluster_state = absent in the extra vars
-        inventory = self._connection.inventory.fetch_one(cluster.id)
+        inventory = self._connection.inventories.get(cluster.id)
         self._update_and_run_inventory(
             cluster.cluster_type,
             inventory,

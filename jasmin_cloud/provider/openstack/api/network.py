@@ -17,14 +17,12 @@ class Quotas(UnmanagedResource):
         endpoint = "/quotas/{project_id}"
         resource_key = "quota"
 
-    def _fetch(self, path = None):
-        # Interpolate the project id into the endpoint before fetching
-        if not path:
-            # Interpolate the project id from the auth object into the endpoint
-            path = self._opts.endpoint.format(
-                project_id = self._connection.session.auth.project_id
-            )
-        return super()._fetch(path)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Interpolate the project id into the path
+        self._path = self._path.format(
+            project_id = self._connection.session.auth.project_id
+        )
 
 
 class FloatingIp(Resource):
