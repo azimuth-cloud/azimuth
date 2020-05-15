@@ -7,6 +7,7 @@ import logging
 import base64
 import hashlib
 import json
+import random
 
 import dateutil.parser
 
@@ -95,10 +96,13 @@ class Provider(base.Provider):
         auth_url: The Keystone v3 authentication URL.
         domain: The domain to authenticate with (default ``Default``).
         interface: The OpenStack interface to connect using (default ``public``).
-        secondary_network_id: The UUID of a second network to connect to new machines
-                              when available (default ``None``).
-                              If the network is not given or not available to a
-                              tenancy, a second network is not connected.
+        az_backdoor_net_map: Mapping of availability zone to the UUID of the backdoor network
+                             for that availability zone (default ``None``).
+                             The backdoor network will only be attached if the image specifically
+                             requests it. At that point, an availability zone will be randomly
+                             selected, and if the network is not available an error will be raised.
+        backdoor_vnic_type: The ``binding:vnic_type`` for the backdoor network. If not given,
+                            no vNIC type will be specified (default ``None``).
         verify_ssl: If ``True`` (the default), verify SSL certificates. If ``False``
                     SSL certificates are not verified.
         cluster_engine: The :py:class:`~..cluster.base.Engine` to use for clusters.
@@ -109,14 +113,16 @@ class Provider(base.Provider):
     def __init__(self, auth_url,
                        domain = 'Default',
                        interface = 'public',
-                       secondary_network_id = None,
+                       az_backdoor_net_map = None,
+                       backdoor_vnic_type = None,
                        verify_ssl = True,
                        cluster_engine = None):
         # Strip any trailing slashes from the auth URL
         self._auth_url = auth_url.rstrip('/')
         self._domain = domain
         self._interface = interface
-        self._secondary_network_id = secondary_network_id
+        self._az_backdoor_net_map = az_backdoor_net_map or dict()
+        self._backdoor_vnic_type = backdoor_vnic_type
         self._verify_ssl = verify_ssl
         self._cluster_engine = cluster_engine
 
@@ -136,7 +142,8 @@ class Provider(base.Provider):
         else:
             return UnscopedSession(
                 conn,
-                secondary_network_id = self._secondary_network_id,
+                az_backdoor_net_map = self._az_backdoor_net_map,
+                backdoor_vnic_type = self._backdoor_vnic_type,
                 cluster_engine = self._cluster_engine
             )
 
@@ -155,7 +162,8 @@ class Provider(base.Provider):
         else:
             return UnscopedSession(
                 conn,
-                secondary_network_id = self._secondary_network_id,
+                az_backdoor_net_map = self._az_backdoor_net_map,
+                backdoor_vnic_type = self._backdoor_vnic_type,
                 cluster_engine = self._cluster_engine
             )
 
@@ -166,18 +174,25 @@ class UnscopedSession(base.UnscopedSession):
 
     Args:
         connection: An unscoped :py:mod:`.api.Connection`.
-        secondary_network_id: The UUID of a second network to connect to new machines
-                              when available. OPTIONAL, default ``None``.
-                              If the network is not given or not available to a
-                              tenancy, a second network is not connected.
+        az_backdoor_net_map: Mapping of availability zone to the UUID of the backdoor network
+                             for that availability zone (default ``None``).
+                             The backdoor network will only be attached if the image specifically
+                             requests it. At that point, an availability zone will be randomly
+                             selected, and if the network is not available an error will be raised.
+        backdoor_vnic_type: The ``binding:vnic_type`` for the backdoor network. If not given,
+                            no vNIC type will be specified (default ``None``).
         cluster_engine: The :py:class:`~..cluster.base.Engine` to use for clusters.
                         If not given, clusters are disabled.
     """
     provider_name = 'openstack'
 
-    def __init__(self, connection, secondary_network_id = None, cluster_engine = None):
+    def __init__(self, connection,
+                       az_backdoor_net_map = None,
+                       backdoor_vnic_type = None,
+                       cluster_engine = None):
         self._connection = connection
-        self._secondary_network_id = secondary_network_id
+        self._az_backdoor_net_map = az_backdoor_net_map or dict()
+        self._backdoor_vnic_type = backdoor_vnic_type
         self._cluster_engine = cluster_engine
 
     def token(self):
@@ -222,7 +237,8 @@ class UnscopedSession(base.UnscopedSession):
                 self.username(),
                 tenancy,
                 self._connection.scoped_connection(tenancy.id),
-                secondary_network_id = self._secondary_network_id,
+                az_backdoor_net_map = self._az_backdoor_net_map,
+                backdoor_vnic_type = self._backdoor_vnic_type,
                 cluster_engine = self._cluster_engine
             )
         except (rackit.Unauthorized, rackit.Forbidden):
@@ -246,10 +262,13 @@ class ScopedSession(base.ScopedSession):
         username: The username of the OpenStack user.
         tenancy: The :py:class:`~.dto.Tenancy`.
         connection: An ``openstack.connection.Connection`` for the tenancy.
-        secondary_network_id: The UUID of a second network to connect to new machines
-                              when available. OPTIONAL, default ``None``.
-                              If the network is not given or not available to a
-                              tenancy, a second network is not connected.
+        az_backdoor_net_map: Mapping of availability zone to the UUID of the backdoor network
+                             for that availability zone (default ``None``).
+                             The backdoor network will only be attached if the image specifically
+                             requests it. At that point, an availability zone will be randomly
+                             selected, and if the network is not available an error will be raised.
+        backdoor_vnic_type: The ``binding:vnic_type`` for the backdoor network. If not given,
+                            no vNIC type will be specified (default ``None``).
         cluster_engine: The :py:class:`~.cluster_engine.base.ClusterEngine` to use for clusters.
                         If not given, clusters are disabled.
     """
@@ -258,12 +277,14 @@ class ScopedSession(base.ScopedSession):
     def __init__(self, username,
                        tenancy,
                        connection,
-                       secondary_network_id = None,
+                       az_backdoor_net_map = None,
+                       backdoor_vnic_type = None,
                        cluster_engine = None):
         self._username = username
         self._tenancy = tenancy
         self._connection = connection
-        self._secondary_network_id = secondary_network_id
+        self._az_backdoor_net_map = az_backdoor_net_map or dict()
+        self._backdoor_vnic_type = backdoor_vnic_type
         self._cluster_engine = cluster_engine
 
     def _log(self, message, *args, level = logging.INFO, **kwargs):
@@ -503,50 +524,67 @@ class ScopedSession(base.ScopedSession):
         self._log("Fetching server with id '%s'", id)
         return self._from_api_server(self._connection.compute.servers.get(id))
 
-    def _get_or_create_keypair(self, ssh_key):
-        # Keypairs are immutable, i.e. once created cannot be changed
-        # We create keys with names of the form "<username>-<fingerprint>", which
-        # allows for us to recognise when a user has changed their key and create
-        # a new one
-        fingerprint = hashlib.md5(base64.b64decode(ssh_key.split()[1])).hexdigest()
-        key_name = '{}-{}'.format(self._username, fingerprint)
-        try:
-            # We need to force a fetch so that the keypair is resolved
-            return self._connection.compute.keypairs.get(key_name, force = True)
-        except rackit.NotFound:
-            return self._connection.compute.keypairs.create(
-                name = key_name,
-                public_key = ssh_key
-            )
-
     @convert_exceptions
     def create_machine(self, name, image, size, ssh_key = None):
         """
         See :py:meth:`.base.ScopedSession.create_machine`.
         """
+        # Start building the server params
+        params = dict(name = name)
         # If an id was given, resolve it to an image
         if not isinstance(image, dto.Image):
             try:
                 image = self.find_image(image)
             except errors.ObjectNotFoundError:
                 raise errors.BadInputError('Invalid image provided')
+        params.update(image_id = str(image.id))
         # To find the metadata elements, we need the raw API image
         # This will load from the cache
         api_image = self._connection.image.images.get(image.id)
         size = size.id if isinstance(size, dto.Size) else size
+        params.update(flavor_id = size)
         self._log("Creating machine '%s' (image: %s, size: %s)", name, api_image.name, size)
         # Get the networks to use
-        networks = [{ 'uuid': self._tenant_network().id }]
-        # Only attach the private network if it is defined, exists and the image asks for it
-        if self._secondary_network_id and getattr(api_image, 'jasmin_private_if', None):
-            secondary_network = self._connection.network.networks.get(
-                self._secondary_network_id,
-                ignore_missing = True
-            )
-            if secondary_network:
-                networks.append({ 'uuid': self._secondary_network_id })
+        # Always use the tenant network that is attached to the router
+        params.update(networks = [{ 'uuid': self._tenant_network().id }])
+        # If the image asks for the backdoor network, attach it
+        if getattr(api_image, 'jasmin_private_if', None):
+            if not self._az_backdoor_net_map:
+                raise errors.ImproperlyConfiguredError(
+                    'Backdoor network required by image but not configured.'
+                )
+            # Pick an availability zone at random
+            #   random.choice needs something that supports indexing
+            choices = list(self._az_backdoor_net_map.items())
+            availability_zone, backdoor_net = random.choice(choices)
+            # If the availability zone is "nova" don't specify it, as per the advice
+            # in the OpenStack API documentation
+            if availability_zone != "nova":
+                params.update(availability_zone = availability_zone)
+            # Create a port on the backdoor network
+            port_params = dict(network_id = backdoor_net)
+            # If a vNIC type is specified, add it to the port parameters
+            if self._backdoor_vnic_type:
+                port_params['binding:vnic_type'] = self._backdoor_vnic_type
+            port = self._connection.network.ports.create(port_params)
+            params['networks'].append({ 'port': port.id })
         # Get the keypair to inject
-        keypair = self._get_or_create_keypair(ssh_key) if ssh_key else None
+        if ssh_key:
+            # Keypairs are immutable, i.e. once created cannot be changed
+            # We create keys with names of the form "<username>-<fingerprint>", which
+            # allows for us to recognise when a user has changed their key and create
+            # a new one
+            fingerprint = hashlib.md5(base64.b64decode(ssh_key.split()[1])).hexdigest()
+            key_name = '{}-{}'.format(self._username, fingerprint)
+            try:
+                # We need to force a fetch so that the keypair is resolved
+                keypair = self._connection.compute.keypairs.get(key_name, force = True)
+            except rackit.NotFound:
+                keypair = self._connection.compute.keypairs.create(
+                    name = key_name,
+                    public_key = ssh_key
+                )
+            params.update(key_name = keypair.name)
         # Pass metadata onto the machine from the image if present
         metadata = dict(jasmin_organisation = self._tenancy.name)
         metadata.update({
@@ -559,17 +597,8 @@ class ScopedSession(base.ScopedSession):
             }
             if getattr(api_image, item, None) is not None
         })
-        server = self._connection.compute.servers.create(
-            name = name,
-            image_id = api_image.id,
-            flavor_id = size,
-            networks = networks,
-            # Set the instance metadata
-            metadata = metadata,
-            # The API doesn't like it if None is given for keypair, but behaves
-            # correctly if it is not given at all
-            **({ 'key_name': keypair.name } if keypair else {})
-        )
+        params.update(metadata = metadata)
+        server = self._connection.compute.servers.create(params)
         return self.find_machine(server.id)
 
     @convert_exceptions
@@ -609,6 +638,9 @@ class ScopedSession(base.ScopedSession):
         """
         machine = machine.id if isinstance(machine, dto.Machine) else machine
         self._log("Deleting machine '%s'", machine)
+        # First, delete any associated ports
+        for port in self._connection.network.ports.all(device_id = machine):
+            port._delete()
         self._connection.compute.servers.delete(machine)
         try:
             return self.find_machine(machine)
