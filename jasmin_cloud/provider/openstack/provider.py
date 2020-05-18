@@ -436,6 +436,16 @@ class ScopedSession(base.ScopedSession):
         else:
             raise errors.ImproperlyConfiguredError('Could not find tenancy network')
 
+    def _external_network(self):
+        """
+        Returns the external network that connects the tenant router to the outside world.
+        """
+        try:
+            router = next(self._connection.network.routers.all())
+        except StopIteration:
+            raise errors.ImproperlyConfiguredError('Could not find tenancy router.')
+        return self._connection.network.networks.get(router.external_gateway_info['network_id'])
+
     _POWER_STATES = {
         0: 'Unknown',
         1: 'Running',
@@ -677,13 +687,10 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.allocate_external_ip`.
         """
         self._log("Allocating new floating ip")
-        # Get the external network being used by the tenancy router
-        router = next(self._connection.network.routers.all(), None)
-        if not router:
-            raise errors.ImproperlyConfiguredError('Could not find tenancy router.')
-        extnet = router.external_gateway_info['network_id']
+        # Get the external network to allocate IPs on
+        extnet = self._external_network()
         # Create a new floating IP on that network
-        fip = self._connection.network.floatingips.create(floating_network_id = extnet)
+        fip = self._connection.network.floatingips.create(floating_network_id = extnet.id)
         self._log("Allocated new floating ip '%s'", fip.floating_ip_address)
         return self._from_api_floatingip(fip)
 
@@ -983,8 +990,11 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.create_cluster`.
         """
         params = self.validate_cluster_params(cluster_type, params)
-        # Inject some OpenStack specific parameters
-        params.update(cluster_network = self._tenant_network().name)
+        # Inject information about the networks to use
+        params.update(
+            cluster_floating_network = self._external_network().name,
+            cluster_network = self._tenant_network().name
+        )
         return self._fixup_cluster(
             self.cluster_manager.create_cluster(
                 name,
