@@ -20,6 +20,11 @@ class JasminCloudSettings(SettingsObject):
     PROVIDER = ObjectFactorySetting()
     #: SSH key store configuration
     SSH_KEY_STORE = ObjectFactorySetting()
+    #: The clouds that are available
+    #: Should be a mapping of name => (label, url) dictionaries
+    AVAILABLE_CLOUDS = Setting()
+    #: The name of the current cloud
+    CURRENT_CLOUD = Setting()
 
 
 cloud_settings = JasminCloudSettings('JASMIN_CLOUD')

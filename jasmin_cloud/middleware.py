@@ -25,8 +25,5 @@ def provider_session(get_response):
                 samesite = 'Strict'
             )
             session.close()
-        else:
-            # If there is not a session, delete the cookie
-            response.delete_cookie(cloud_settings.TOKEN_COOKIE_NAME)
         return response
     return middleware

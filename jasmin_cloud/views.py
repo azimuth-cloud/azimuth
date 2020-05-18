@@ -92,34 +92,28 @@ def convert_provider_exceptions(view):
     return wrapper
 
 
-def require_provider_session(view):
-    """
-    Decorator that requires that a provider session is available on the request object.
-    """
-    @functools.wraps(view)
-    def wrapper(request, *args, **kwargs):
-        # The provider session will be set as the auth parameter on the request
-        # This is populated by our authentication class if the authentication passed
-        session = getattr(request, 'auth', None)
-        if not session:
-            # If there is no provider session, force a reauthentication
-            raise drf_exceptions.NotAuthenticated
-        # Return the response
-        return view(request, *args, **kwargs)
-    return wrapper
-
-
 def provider_api_view(methods):
     """
     Returns a decorator for a provider API view that combines several decorators into one.
     """
     def decorator(view):
         view = convert_provider_exceptions(view)
-#        view = require_provider_session(view)
         view = decorators.permission_classes([permissions.IsAuthenticated])(view)
         view = decorators.api_view(methods)(view)
         return view
     return decorator
+
+
+@decorators.api_view(['GET'])
+def cloud_info(request):
+    return response.Response({
+        'available_clouds': cloud_settings.AVAILABLE_CLOUDS,
+        'current_cloud': cloud_settings.CURRENT_CLOUD,
+        'links': {
+            'authenticate': request.build_absolute_uri(reverse('jasmin_cloud:authenticate')),
+            'session': request.build_absolute_uri(reverse('jasmin_cloud:session'))
+        }
+    })
 
 
 @decorators.api_view(['POST'])
