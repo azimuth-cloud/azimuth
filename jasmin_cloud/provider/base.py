@@ -62,6 +62,7 @@ class UnscopedSession:
         Returns:
             A string username.
         """
+        raise NotImplementedError
 
     def tenancies(self):
         """
