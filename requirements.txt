@@ -2,17 +2,17 @@ asgiref==3.2.7
 certifi==2020.4.5.1
 chardet==3.0.4
 Django==3.0.6
--e git+https://github.com/cedadev/django-settings-object.git@01351828ae73cea07404de0a38d5d868ecb75b59#egg=django_settings_object
+git+https://github.com/cedadev/django-settings-object.git@01351828ae73cea07404de0a38d5d868ecb75b59#egg=django_settings_object
 djangorestframework==3.11.0
 docutils==0.16
 idna==2.9
--e git+https://github.com/cedadev/jasmin-ldap.git@ad21e8f7d8d82e33e5bf48820bf5f9e630a53d8d#egg=jasmin_ldap
+git+https://github.com/cedadev/jasmin-ldap.git@ad21e8f7d8d82e33e5bf48820bf5f9e630a53d8d#egg=jasmin_ldap
 ldap3==2.7
 pyasn1==0.4.8
 python-dateutil==2.8.1
 pytz==2020.1
 PyYAML==5.3.1
--e git+https://github.com/cedadev/rackit.git@dc510955e2bd37220ab6a7f4b1ea71432aa48314#egg=rackit
+git+https://github.com/cedadev/rackit.git@dc510955e2bd37220ab6a7f4b1ea71432aa48314#egg=rackit
 requests==2.23.0
 six==1.14.0
 sqlparse==0.3.1
