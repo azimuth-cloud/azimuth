@@ -2,6 +2,7 @@
 Root URL configuration for the JASMIN Cloud API site.
 """
 
+from django.contrib import admin
 from django.urls import path, include
 from django.http import HttpResponse
 
@@ -20,4 +21,5 @@ urlpatterns = [
     # or don't accept use of the GET method
     path('_status/', status, name = 'status'),
     path('api/', include('jasmin_cloud.urls', namespace = 'jasmin_cloud')),
+    path('admin/', admin.site.urls)
 ]
