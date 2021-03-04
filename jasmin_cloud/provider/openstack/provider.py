@@ -147,6 +147,7 @@ class Provider(base.Provider):
             return UnscopedSession(
                 conn,
                 az_backdoor_net_map = self._az_backdoor_net_map,
+                net_device_owner = self._net_device_owner,
                 backdoor_vnic_type = self._backdoor_vnic_type,
                 cluster_engine = self._cluster_engine
             )
@@ -167,6 +168,7 @@ class Provider(base.Provider):
             return UnscopedSession(
                 conn,
                 az_backdoor_net_map = self._az_backdoor_net_map,
+                net_device_owner = self._net_device_owner,
                 backdoor_vnic_type = self._backdoor_vnic_type,
                 cluster_engine = self._cluster_engine
             )
@@ -197,7 +199,7 @@ class UnscopedSession(base.UnscopedSession):
                        cluster_engine = None):
         self._connection = connection
         self._az_backdoor_net_map = az_backdoor_net_map or dict()
-        self._net_device_owner = net_device_owner,
+        self._net_device_owner = net_device_owner
         self._backdoor_vnic_type = backdoor_vnic_type
         self._cluster_engine = cluster_engine
 
@@ -444,7 +446,7 @@ class ScopedSession(base.ScopedSession):
         if port:
             return self._connection.network.networks.get(port.network_id)
         else:
-            raise errors.ImproperlyConfiguredError('Could not find tenancy network')
+            raise errors.ImproperlyConfiguredError('Could not find tenancy network for {}'.format(net_device_owner))
 
     def _external_network(self):
         """
