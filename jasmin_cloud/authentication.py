@@ -2,11 +2,16 @@
 Django REST Framwork authentication backend for the jasmin_cloud app.
 """
 
+import logging
+
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 
 from .provider import errors
 from .settings import cloud_settings
+
+
+logger = logging.getLogger(__name__)
 
 
 class AuthenticatedUser:
@@ -37,9 +42,11 @@ class TokenCookieAuthentication(BaseAuthentication):
             session = cloud_settings.PROVIDER.from_token(token)
         except errors.AuthenticationError as exc:
             # If a session cannot be resolved from the token, then it has expired
+            logger.exception('Authentication failed: %s', str(exc))
             raise AuthenticationFailed(str(exc))
         else:
             # If the token resolved, return an authenticated user
+            logger.info('[%s] Authenticated user from token', session.username())
             return (AuthenticatedUser(session.username()), session)
 
     def authenticate_header(self, request):

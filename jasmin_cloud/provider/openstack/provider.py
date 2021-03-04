@@ -140,6 +140,7 @@ class Provider(base.Provider):
             # We want to use a different error message to convert_exceptions
             raise errors.AuthenticationError('Invalid username or password.')
         else:
+            logger.info('[%s] Sucessfully authenticated user against OpenStack', username)
             return UnscopedSession(
                 conn,
                 az_backdoor_net_map = self._az_backdoor_net_map,
