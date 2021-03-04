@@ -20,6 +20,7 @@ from .. import base, errors, dto
 logger = logging.getLogger(__name__)
 
 
+_NET_DEVICE_OWNER = 'network:router_interface'
 _REPLACEMENTS = [
     ('instance', 'machine'),
     ('Instance', 'Machine'),
@@ -113,7 +114,8 @@ class Provider(base.Provider):
     def __init__(self, auth_url,
                        domain = 'Default',
                        interface = 'public',
-                       az_backdoor_net_map = None,
+                       az_backdoor_net_map = dict(),
+                       net_device_owner = None,
                        backdoor_vnic_type = None,
                        verify_ssl = True,
                        cluster_engine = None):
@@ -122,6 +124,7 @@ class Provider(base.Provider):
         self._domain = domain
         self._interface = interface
         self._az_backdoor_net_map = az_backdoor_net_map or dict()
+        self._net_device_owner = net_device_owner
         self._backdoor_vnic_type = backdoor_vnic_type
         self._verify_ssl = verify_ssl
         self._cluster_engine = cluster_engine
@@ -188,11 +191,13 @@ class UnscopedSession(base.UnscopedSession):
     provider_name = 'openstack'
 
     def __init__(self, connection,
+                       net_device_owner = None,
                        az_backdoor_net_map = None,
                        backdoor_vnic_type = None,
                        cluster_engine = None):
         self._connection = connection
         self._az_backdoor_net_map = az_backdoor_net_map or dict()
+        self._net_device_owner = net_device_owner,
         self._backdoor_vnic_type = backdoor_vnic_type
         self._cluster_engine = cluster_engine
 
@@ -239,6 +244,7 @@ class UnscopedSession(base.UnscopedSession):
                 tenancy,
                 self._connection.scoped_connection(tenancy.id),
                 az_backdoor_net_map = self._az_backdoor_net_map,
+                net_device_owner = self._net_device_owner,
                 backdoor_vnic_type = self._backdoor_vnic_type,
                 cluster_engine = self._cluster_engine
             )
@@ -279,12 +285,14 @@ class ScopedSession(base.ScopedSession):
                        tenancy,
                        connection,
                        az_backdoor_net_map = None,
+                       net_device_owner = None,
                        backdoor_vnic_type = None,
                        cluster_engine = None):
         self._username = username
         self._tenancy = tenancy
         self._connection = connection
         self._az_backdoor_net_map = az_backdoor_net_map or dict()
+        self._net_device_owner = net_device_owner
         self._backdoor_vnic_type = backdoor_vnic_type
         self._cluster_engine = cluster_engine
 
@@ -431,7 +439,8 @@ class ScopedSession(base.ScopedSession):
         Returns the network connected to the tenant router.
         Assumes a single router with a single tenant network connected.
         """
-        port = self._connection.network.ports.find_by_device_owner('network:router_interface')
+        net_device_owner = self._net_device_owner or _NET_DEVICE_OWNER
+        port = self._connection.network.ports.find_by_device_owner(net_device_owner)
         if port:
             return self._connection.network.networks.get(port.network_id)
         else:
