@@ -51,6 +51,12 @@ class ClusterManager(base.ClusterManager):
             raise errors.ObjectNotFoundError("Could not find cluster type '{}'".format(name))
 
     def clusters(self):
+        try:
+            return self._clusters()
+        except FileNotFoundError:
+            return tuple()
+
+    def _clusters(self):
         with open(self._clusters_file) as fh:
             return tuple(
                 dto.Cluster(
