@@ -52,10 +52,12 @@ coverage.xml
 # PyBuilder
 target/
 
-# pyenv version file
+# pyenv version file
 .python-version
 
 # Settings
 jasmin_cloud_site/settings.py
 
 .vscode
+
+venv
