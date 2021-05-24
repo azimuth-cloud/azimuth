@@ -30,8 +30,8 @@ ENV PYTHONUNBUFFERED 1
 # django-flexi-settings for smart handling of settings
 RUN pip install --no-cache-dir \
       'gunicorn==20.0.4' \
-      'django-flexi-settings==0.1.1' \
-      'whitenoise==5.2.0'
+      'whitenoise==5.2.0' \
+      'git+https://github.com/stackhpc/django-flexi-settings.git@9540ccdaff70b075658bfe5550e5b3626d5e95cd#egg=django_flexi_settings'
 
 # Install Gunicorn config
 COPY ./etc/gunicorn /etc/gunicorn
