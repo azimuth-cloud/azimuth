@@ -10,7 +10,6 @@ from . import views
 app_name = 'jasmin_cloud'
 urlpatterns = [
     path('', views.cloud_info, name = 'cloud_info'),
-    path('authenticate/', views.authenticate, name = 'authenticate'),
     path('session/', views.session, name = 'session'),
     path('tenancies/', views.tenancies, name = 'tenancies'),
     path('tenancies/<slug:tenant>/', include([

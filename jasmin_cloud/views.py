@@ -110,36 +110,16 @@ def cloud_info(request):
         'available_clouds': cloud_settings.AVAILABLE_CLOUDS,
         'current_cloud': cloud_settings.CURRENT_CLOUD,
         'links': {
-            'authenticate': request.build_absolute_uri(reverse('jasmin_cloud:authenticate')),
             'session': request.build_absolute_uri(reverse('jasmin_cloud:session'))
         }
     })
 
 
-@decorators.api_view(['POST'])
-# No authentication is required for this endpoint
-@decorators.authentication_classes([])
-@convert_provider_exceptions
-def authenticate(request):
+@provider_api_view(['GET'])
+def session(request):
     """
-    This view attempts to authenticate the user using the given username and
-    password. If authentication is successful, a session is started for the user.
-
-    Example request payload::
-
-        {
-            "username": "jbloggs",
-            "password": "mysecurepassword"
-        }
+    Returns information about the current session.
     """
-    serializer = serializers.LoginSerializer(data = request.data)
-    serializer.is_valid(raise_exception = True)
-    username = serializer.validated_data['username']
-    password = serializer.validated_data['password']
-    # Attempt to authenticate the user with the configured provider
-    # Let the authentication error bubble to be handled by the decorator
-    # Add the session to the request to be used by the middleware
-    request.auth = cloud_settings.PROVIDER.authenticate(username, password)
     return response.Response({
         'username': request.auth.username(),
         'token': request.auth.token(),
@@ -147,27 +127,6 @@ def authenticate(request):
             'tenancies': request.build_absolute_uri(reverse('jasmin_cloud:tenancies'))
         }
     })
-
-
-@provider_api_view(['GET', 'DELETE'])
-def session(request):
-    """
-    On ``GET`` requests, return information about the current session.
-
-    On ``DELETE`` requests, destroy the current session.
-    """
-    if request.method == 'DELETE':
-        request.auth.close()
-        request.auth = None
-        return response.Response()
-    else:
-        return response.Response({
-            'username': request.auth.username(),
-            'token': request.auth.token(),
-            'links': {
-                'tenancies': request.build_absolute_uri(reverse('jasmin_cloud:tenancies'))
-            }
-        })
 
 
 @provider_api_view(['GET'])

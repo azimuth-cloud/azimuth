@@ -6,24 +6,18 @@ from .provider import errors
 from .settings import cloud_settings
 
 
-def provider_session(get_response):
+class CleanupProviderMiddleware:
     """
-    Middleware to inject a cloud provider session onto the request based on a token in a cookie.
+    Middleware to cleanup any active cloud provider session on the request.
     """
-    def middleware(request):
-        # First, process the request
-        response = get_response(request)
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
         # See if there is a session on the request after the view has run
+        # If there is, close it
         session = getattr(request, 'auth', None)
         if session:
-            # If there is an open session, set the token cookie and close it
-            response.set_signed_cookie(
-                cloud_settings.TOKEN_COOKIE_NAME,
-                session.token(),
-                secure = cloud_settings.TOKEN_COOKIE_SECURE,
-                httponly = True,
-                samesite = 'Strict'
-            )
             session.close()
         return response
-    return middleware
