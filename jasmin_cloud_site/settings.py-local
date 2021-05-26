@@ -33,6 +33,7 @@ LOGGING = {
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.staticfiles',
+    'cloud_auth',
     'jasmin_cloud',
     'rest_framework',
 ]
@@ -42,7 +43,9 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'jasmin_cloud.middleware.provider_session',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'cloud_auth.middleware.SessionTokenMiddleware',
+    'jasmin_cloud.middleware.CleanupProviderMiddleware',
 ]
 
 ROOT_URLCONF = 'jasmin_cloud_site.urls'
@@ -56,8 +59,6 @@ TEMPLATES = [
             'context_processors': [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
             ],
         },
     },
@@ -82,19 +83,34 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 
+# Use cookie sessions so that we don't need a database
+SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
+
+
 REST_FRAMEWORK = {
     'VIEW_DESCRIPTION_FUNCTION': 'jasmin_cloud.views.get_view_description',
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'jasmin_cloud.authentication.TokenCookieAuthentication',
-    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': ['jasmin_cloud.authentication.TokenHeaderAuthentication'],
     'UNAUTHENTICATED_USER': None,
 }
 
 
-JASMIN_CLOUD = {
-    # THIS MUST BE TRUE IN PRODUCTION (default if omitted is true)
-    'TOKEN_COOKIE_SECURE': False,
+CLOUD_AUTH = {
+    'AUTHENTICATOR': {
+        # The authenticator factory to use
+        'FACTORY': 'cloud_auth.authenticator.openstack.PasswordAuthenticator',
+        'PARAMS': {
+            # OpenStack auth URL
+            'AUTH_URL': 'https://keystone.cloud.example.com/v3',
+            # The OpenStack domain to use
+            'DOMAIN': 'default',
+            # Whether to verify SSL or not (default true)
+            'VERIFY_SSL': True
+        },
+    },
+}
 
+
+JASMIN_CLOUD = {
     'AVAILABLE_CLOUDS': {
         'example': {
             'label': 'Example Cloud',
@@ -145,15 +161,9 @@ JASMIN_CLOUD = {
     # The SSH key store to use
     # The JASMIN Cloud Portal asks this store for the SSH key for a user
     'SSH_KEY_STORE': {
-        # Currently, only LDAP is supported
-        'FACTORY': 'jasmin_cloud.keystore.ldap.LdapKeyStore',
+        'FACTORY': 'jasmin_cloud.keystore.dummy.DummyKeyStore',
         'PARAMS': {
-            # The primary LDAP server
-            'PRIMARY': 'ldap://ldap.example.com',
-            # List of LDAP replica servers (can be omitted)
-            'REPLICAS': [],
-            # The base DN where users exist
-            'BASE_DN': 'OU=Users,DC=example,DC=com',
+            'KEY': 'not-a-key',
         },
     },
 }
