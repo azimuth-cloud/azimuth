@@ -55,7 +55,7 @@ def login(request):
     if next_url:
         request.session[auth_settings.NEXT_URL_SESSION_KEY] = next_url
     else:
-        request.session.pop(auth_settings.NEXT_URL_SESSION_KEY)
+        request.session.pop(auth_settings.NEXT_URL_SESSION_KEY, None)
     return auth_settings.AUTHENTICATOR.auth_start(request)
 
 
