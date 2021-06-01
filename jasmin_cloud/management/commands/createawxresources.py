@@ -18,37 +18,33 @@ CAAS_CREDENTIAL_TYPES = [
         'name': 'OpenStack Token',
         'description': 'Authenticate with an OpenStack cloud using a previously acquired token.',
         'kind': 'cloud',
-        'injectors': {
-            'env': {
-                'OS_AUTH_TYPE': 'token',
-                'OS_AUTH_URL': '{{ os_auth_url }}',
-                'OS_PROJECT_ID': '{{ os_project_id }}',
-                'OS_TOKEN': '{{ os_token }}',
-            },
-        },
         'inputs': {
             'fields': [
                 {
                     'type': 'string',
-                    'id': 'os_auth_url',
-                    'label': 'OpenStack Auth URL',
+                    'id': 'auth_url',
+                    'label': 'Auth URL',
                 },
                 {
                     'type': 'string',
-                    'id': 'os_project_id',
-                    'label': 'OpenStack Project ID',
+                    'id': 'project_id',
+                    'label': 'Project ID',
                 },
                 {
                     'type': 'string',
-                    'id': 'os_token',
-                    'label': 'OpenStack Token',
+                    'id': 'token',
+                    'label': 'Token',
                 },
             ],
-            'required': [
-                'os_auth_url',
-                'os_project_id',
-                'os_token',
-            ],
+            'required': ['auth_url', 'project_id', 'token'],
+        },
+        'injectors': {
+            'env': {
+                'OS_AUTH_TYPE': 'token',
+                'OS_AUTH_URL': '{{ auth_url }}',
+                'OS_PROJECT_ID': '{{ project_id }}',
+                'OS_TOKEN': '{{ token }}',
+            },
         },
     },
 ]
@@ -110,10 +106,16 @@ class Command(BaseCommand):
                 name = inventory_name,
                 organization = organisation.id
             )
-        # Make sure localhost belongs to the template inventory
-        localhost = inventory.hosts.find_by_name("localhost")
-        if not localhost:
-            localhost = inventory.hosts.create(name = "localhost")
+        # Create the openstack group
+        group = inventory.groups.find_by_name('openstack')
+        if not group:
+            group = inventory.groups.create(name = 'openstack')
+        # Create localhost in the inventory and group
+        localhost = group.hosts.find_by_name("localhost")
+        if localhost:
+            localhost._update(inventory = inventory.id)
+        else:
+            localhost = group.hosts.create(name = "localhost", inventory = inventory.id)
         # Update the variables associated with localhost
         localhost.variable_data._update(
             dict(
