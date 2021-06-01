@@ -21,7 +21,7 @@ class CloudAuthSettings(SettingsObject):
     BEARER_TOKEN_PREFIX = Setting(default = 'Bearer')
 
     #: For the session middleware, this is the name of the session key in which the token is stored
-    SESSION_TOKEN_KEY = Setting(default = 'token')
+    TOKEN_SESSION_KEY = Setting(default = 'token')
 
     #: The HTTP parameter to get the next URL from
     NEXT_URL_PARAM = Setting(default = 'next')

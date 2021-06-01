@@ -46,4 +46,4 @@ class SessionTokenMiddleware(BaseMiddleware):
     Middleware that reads token information from the session.
     """
     def get_token(self, request):
-        return request.session.get(auth_settings.SESSION_TOKEN_KEY, None)
+        return request.session.get(auth_settings.TOKEN_SESSION_KEY, None)

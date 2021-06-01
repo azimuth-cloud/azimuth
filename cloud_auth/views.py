@@ -69,7 +69,7 @@ def complete(request):
     token = auth_settings.AUTHENTICATOR.auth_complete(request)
     if token:
         # On a successful authentication, store the token in the session
-        request.session[auth_settings.SESSION_TOKEN_KEY] = token
+        request.session[auth_settings.TOKEN_SESSION_KEY] = token
         # Either redirect or return to the next URL
         next_url = get_next_url(request)
         if next_url:
