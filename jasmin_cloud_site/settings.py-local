@@ -137,26 +137,30 @@ JASMIN_CLOUD = {
             # The type of NIC to use for the backdoor network
             # Set to 'direct' for SR-IOV support, or omit
             # 'BACKDOOR_VNIC_TYPE': 'direct',
-
-            # The cluster engine to use for Cluster-as-a-Service support (can be omitted)
-            # 'CLUSTER_ENGINE': {
-            #     # The cluster engine factory to use (currently only AWX is supported)
-            #     'FACTORY': 'jasmin_cloud.provider.cluster_engine.awx.Engine',
-            #     'PARAMS': {
-            #         # The AWX or Ansible Tower URL
-            #         'URL': 'https://tower.example.com',
-            #         # The username to use for the AWX/Tower API
-            #         'USERNAME': 'caasuser',
-            #         # The password to use with the AWX/Tower API
-            #         'PASSWORD': 'Password123',
-            #         # Whether to verify SSL with the AWX/Tower API
-            #         'VERIFY_SSL': False,
-            #         # The name of the credential type to use when launching AWX/Tower jobs
-            #         'CREDENTIAL_TYPE': 'Openstack Token',
-            #     },
-            # },
         },
     },
+
+    # AWX settings for Cluster-as-a-Service support (optional)
+    # 'AWX': {
+    #     # Indicates whether AWX support should be enabled
+    #     'ENABLED': True,
+    #     # The AWX URL
+    #     'URL': 'https://tower.example.com',
+    #     # Indicates whether to verify SSL when connecting over HTTPS
+    #     'VERIFY_SSL': True,
+    #     # The username to use for CaaS operations
+    #     'USERNAME': 'caasctl',
+    #     # The password to use for CaaS operations
+    #     'PASSWORD': 'secretpassword',
+    #     # Indicates whether teams should be created on demand
+    #     # If set to false, then teams must be created manually in AWX, giving admins
+    #     # control of which tenancies have CaaS enabled and which do not
+    #     'CREATE_TEAMS': True,
+    #     # Username and password for admin operations (e.g. creating resources),
+    #     # if different from the username and password for CaaS operations
+    #     'ADMIN_USERNAME': 'admin',
+    #     'ADMIN_PASSWORD': 'secretadminpassword'
+    # },
 
     # The SSH key store to use
     # The JASMIN Cloud Portal asks this store for the SSH key for a user

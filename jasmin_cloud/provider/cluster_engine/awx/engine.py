@@ -30,6 +30,7 @@ class Engine(base.Engine):
         username: The username of the service account to use.
         password: The password of the service account.
         credential_type: The name of the credential type to use.
+        create_teams: Whether to create teams which do not exist.
         verify_ssl: Whether to verify SSL connections to AWX.
         template_inventory: The name of the template inventory.
     """
@@ -37,6 +38,7 @@ class Engine(base.Engine):
                        username,
                        password,
                        credential_type,
+                       create_teams = False,
                        verify_ssl = True,
                        template_inventory = 'openstack'):
         self._url = url.rstrip('/')
@@ -45,6 +47,7 @@ class Engine(base.Engine):
         self._verify_ssl = verify_ssl
         self._template_inventory = template_inventory
         self._credential_type = credential_type
+        self._create_teams = create_teams
 
     def create_manager(self, username, tenancy):
         """
@@ -70,9 +73,13 @@ class Engine(base.Engine):
         except:
             connection.close()
             raise
-        try:
-            team = next(connection.teams.all(name__iexact = tenancy.name))
+        team = next(connection.teams.all(name__iexact = tenancy.name), None)
+        if team:
             logger.info("Found AWX team '%s'", team.name)
+        elif self._create_teams:
+            logger.info("Creating AWX team '%s'", tenancy.name)
+            team = connection.teams.create(name = tenancy.name, organization = organisation.id)
+        if team:
             return ClusterManager(
                 username,
                 connection,
@@ -81,7 +88,7 @@ class Engine(base.Engine):
                 template_inventory,
                 team
             )
-        except StopIteration:
+        else:
             logger.warn("Could not find AWX team '%s'", tenancy.name)
             connection.close()
             return None
