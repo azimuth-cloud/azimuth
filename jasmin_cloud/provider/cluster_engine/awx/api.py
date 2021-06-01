@@ -89,6 +89,19 @@ class Host(Resource):
     variable_data = rackit.NestedEndpoint(HostVariableData)
 
 
+class GroupVariableData(rackit.UnmanagedResource):
+    class Meta:
+        endpoint = "/variable_data/"
+
+
+class Group(Resource):
+    class Meta:
+        endpoint = "/groups/"
+
+    hosts = rackit.NestedResource(Host)
+    variable_data = rackit.NestedEndpoint(GroupVariableData)
+
+
 class InventoryManager(ResourceManager):
     def copy(self, resource_or_key, name):
         endpoint = self.prepare_url(resource_or_key, 'copy')
@@ -106,6 +119,7 @@ class Inventory(Resource):
         manager_cls = InventoryManager
         endpoint = "/inventories/"
 
+    groups = rackit.NestedResource(Group)
     hosts = rackit.NestedResource(Host)
     variable_data = rackit.NestedEndpoint(InventoryVariableData)
 
@@ -127,6 +141,7 @@ class Connection(rackit.Connection):
     job_templates = rackit.RootResource(JobTemplate)
     jobs = rackit.RootResource(Job)
     inventories = rackit.RootResource(Inventory)
+    groups = rackit.RootResource(Group)
     hosts = rackit.RootResource(Host)
     roles = rackit.RootResource(Role)
     job_events = rackit.RootResource(JobEvent)
