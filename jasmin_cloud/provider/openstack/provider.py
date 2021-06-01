@@ -6,7 +6,6 @@ import functools
 import logging
 import base64
 import hashlib
-import json
 import random
 
 import dateutil.parser

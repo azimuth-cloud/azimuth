@@ -2,8 +2,6 @@
 Settings helpers for the ``jasmin_cloud`` Django app.
 """
 
-from django.conf import settings
-
 from settings_object import SettingsObject, Setting, ObjectFactorySetting
 
 
