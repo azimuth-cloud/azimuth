@@ -1,7 +1,16 @@
 {% extends "rest_framework/base.html" %}
+{% load jasmin_cloud_tags %}
 
 {% block title %}{% if name %}{{ name }} | {% endif %}JASMIN Cloud API{% endblock %}
 
 {% block branding %}
     <a class="navbar-brand" rel="nofollow" href="#">JASMIN Cloud API</a>
+{% endblock %}
+
+{% block userlinks %}
+    {% if user.is_authenticated %}
+        {% cloud_auth_logout %}
+    {% else %}
+        {% cloud_auth_login %}
+    {% endif %}
 {% endblock %}

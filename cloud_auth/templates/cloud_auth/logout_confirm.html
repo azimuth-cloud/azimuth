@@ -1,0 +1,31 @@
+{% extends "cloud_auth/base.html" %}
+
+{% load cloud_auth_tags %}
+
+{% block head_title %}Sign out{% endblock %}
+
+{% block content %}
+<div class="row justify-content-md-center">
+    <div class="modal d-block mt-5">
+        <div class="modal-dialog modal-md">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Sign out</h5>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0">Are you sure you want to sign out?</p>
+                </div>
+                <div class="modal-footer">
+                    {% if next_url %}
+                    <a href="{{ next_url }}" class="btn btn-secondary">Go back</a>
+                    {% endif %}
+                    <form method="POST" action="">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary">Sign out</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

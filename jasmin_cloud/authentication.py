@@ -26,13 +26,13 @@ class AuthenticatedUser:
         return self.username
 
 
-class TokenCookieAuthentication(BaseAuthentication):
+class TokenHeaderAuthentication(BaseAuthentication):
     """
-    Authentication backend that uses a token cookie for authentication.
+    Authentication backend that uses a token set by the cloud-auth app for authentication.
     """
     def authenticate(self, request):
-        # First, see if the token cookie is set
-        token = request.get_signed_cookie(cloud_settings.TOKEN_COOKIE_NAME, None)
+        # First, see if the token header is set
+        token = request.META.get(cloud_settings.TOKEN_HEADER)
         # If it is not, we are done
         if not token:
             return None
@@ -50,5 +50,4 @@ class TokenCookieAuthentication(BaseAuthentication):
             return (AuthenticatedUser(session.username()), session)
 
     def authenticate_header(self, request):
-        # Use "Cookie" as the www-authenticate header
-        return "Cookie"
+        return "Token"
