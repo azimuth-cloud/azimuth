@@ -2,8 +2,6 @@
 Module containing helpers for interacting with the AWX API.
 """
 
-import copy
-
 import requests
 
 import rackit
@@ -29,6 +27,11 @@ class Resource(rackit.Resource):
 class Organisation(Resource):
     class Meta:
         endpoint = "/organizations/"
+
+
+class ExecutionEnvironment(Resource):
+    class Meta:
+        endpoint = "/execution_environments/"
 
 
 class CredentialType(Resource):
@@ -74,6 +77,18 @@ class Job(Resource):
     job_events = rackit.NestedResource(JobEvent)
 
 
+class HostVariableData(rackit.UnmanagedResource):
+    class Meta:
+        endpoint = "/variable_data/"
+
+
+class Host(Resource):
+    class Meta:
+        endpoint = "/hosts/"
+
+    variable_data = rackit.NestedEndpoint(HostVariableData)
+
+
 class InventoryManager(ResourceManager):
     def copy(self, resource_or_key, name):
         endpoint = self.prepare_url(resource_or_key, 'copy')
@@ -91,6 +106,7 @@ class Inventory(Resource):
         manager_cls = InventoryManager
         endpoint = "/inventories/"
 
+    hosts = rackit.NestedResource(Host)
     variable_data = rackit.NestedEndpoint(InventoryVariableData)
 
     def copy(self, name):
@@ -104,12 +120,14 @@ class Connection(rackit.Connection):
     path_prefix = "/api/v2"
 
     organisations = rackit.RootResource(Organisation)
+    execution_environments = rackit.RootResource(ExecutionEnvironment)
     credential_types = rackit.RootResource(CredentialType)
     credentials = rackit.RootResource(Credential)
     teams = rackit.RootResource(Team)
     job_templates = rackit.RootResource(JobTemplate)
     jobs = rackit.RootResource(Job)
     inventories = rackit.RootResource(Inventory)
+    hosts = rackit.RootResource(Host)
     roles = rackit.RootResource(Role)
     job_events = rackit.RootResource(JobEvent)
 
