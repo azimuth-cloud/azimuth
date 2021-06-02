@@ -43,6 +43,22 @@ class AwxSettings(SettingsObject):
     CREATE_TEAMS = Setting(default = False)
 
     ####
+    # Project settings
+    ####
+    #: A list of default projects to create.
+    #:
+    #:   * NAME - The name of the project
+    #:   * GIT_URL - The git URL of the project
+    #:   * GIT_VERSION - The branch, tag or commit id to use
+    DEFAULT_PROJECTS = Setting(default = [
+        {
+            'NAME': 'Demo Appliances',
+            'GIT_URL': 'https://github.com/stackhpc/demo-appliances.git',
+            'GIT_VERSION': 'main',
+        }
+    ])
+
+    ####
     # Admin settings
     ####
     #: The username to use for admin operations (e.g. creating resources)
