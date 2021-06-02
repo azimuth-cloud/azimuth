@@ -56,6 +56,11 @@ class Team(Resource):
     roles = rackit.NestedResource(Role)
 
 
+class Project(Resource):
+    class Meta:
+        endpoint = "/projects/"
+
+
 class JobTemplate(Resource):
     class Meta:
         endpoint = "/job_templates/"
@@ -138,6 +143,7 @@ class Connection(rackit.Connection):
     credential_types = rackit.RootResource(CredentialType)
     credentials = rackit.RootResource(Credential)
     teams = rackit.RootResource(Team)
+    projects = rackit.RootResource(Project)
     job_templates = rackit.RootResource(JobTemplate)
     jobs = rackit.RootResource(Job)
     inventories = rackit.RootResource(Inventory)

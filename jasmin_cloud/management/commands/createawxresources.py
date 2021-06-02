@@ -62,17 +62,26 @@ class Command(BaseCommand):
         """
         ee = connection.execution_environments.find_by_name(CAAS_EXECUTION_ENVIRONMENT_NAME)
         if ee:
-            ee._update(
-                image = cloud_settings.AWX.EXECUTION_ENVIRONMENT_IMAGE,
-                pull = 'always'
-            )
+            ee._update(image = cloud_settings.AWX.EXECUTION_ENVIRONMENT_IMAGE)
         else:
             ee = connection.execution_environments.create(
                 name = CAAS_EXECUTION_ENVIRONMENT_NAME,
-                image = cloud_settings.AWX.EXECUTION_ENVIRONMENT_IMAGE,
-                pull = 'always'
+                image = cloud_settings.AWX.EXECUTION_ENVIRONMENT_IMAGE
             )
+        # Set the execution environment as the default
+        connection.api_patch("/settings/system/", json = { "DEFAULT_EXECUTION_ENVIRONMENT": ee.id })
         return ee
+
+    def ensure_credential_types(self, connection):
+        """
+        Ensures that the credential types that are used by Cluster-as-a-Service exist.
+        """
+        for ct_spec in CAAS_CREDENTIAL_TYPES:
+            ct = connection.credential_types.find_by_name(ct_spec['name'])
+            if ct:
+                ct._update(**ct_spec)
+            else:
+                connection.credential_types.create(**ct_spec)
 
     def ensure_organisation(self, connection):
         """
@@ -83,18 +92,10 @@ class Command(BaseCommand):
             organisation = connection.organisations.create(name = CAAS_ORGANISATION_NAME)
         return organisation
 
-    def ensure_credential_types(self, connection):
-        """
-        Ensure that the credential types that are used by Cluster-as-a-Service exist.
-        """
-        for ct_spec in CAAS_CREDENTIAL_TYPES:
-            ct = connection.credential_types.find_by_name(ct_spec['name'])
-            if ct:
-                ct._update(**ct_spec)
-            else:
-                connection.credential_types.create(**ct_spec)
-
     def ensure_template_inventory(self, connection, organisation):
+        """
+        Ensures that the template inventory used by Cluster-as-a-Service exists.
+        """
         inventory_name = cloud_settings.AWX.TEMPLATE_INVENTORY
         # Ensure that the template inventory exists and is in the correct organisation
         inventory = connection.inventories.find_by_name(inventory_name)
@@ -121,8 +122,36 @@ class Command(BaseCommand):
             dict(
                 ansible_host = '127.0.0.1',
                 ansible_connection = 'local',
+                ansible_python_interpreter = '{{ ansible_playbook_python }}',
             )
         )
+
+    def ensure_project(self, connection, organisation, project_spec):
+        """
+        Ensure that the given project exists.
+        """
+        project = connection.projects.find_by_name(project_spec['NAME'])
+        params = dict(
+            scm_type = 'git',
+            scm_url = project_spec['GIT_URL'],
+            scm_branch = project_spec['GIT_VERSION'],
+            organization = organisation.id,
+            scm_update_on_launch = True
+        )
+        if project:
+            project._update(**params)
+            return project
+        else:
+            return connection.projects.create(name = project_spec['NAME'], **params)
+
+    def ensure_projects(self, connection, organisation):
+        """
+        Ensure that the configured projects exist.
+        """
+        return {
+            project['NAME']: self.ensure_project(connection, organisation, project)
+            for project in cloud_settings.AWX.DEFAULT_PROJECTS
+        }
 
     def handle(self, *args, **options):
         connection = api.Connection(
@@ -131,7 +160,8 @@ class Command(BaseCommand):
             cloud_settings.AWX.ADMIN_PASSWORD,
             cloud_settings.AWX.VERIFY_SSL
         )
-#        self.ensure_execution_environment(connection)
+        self.ensure_execution_environment(connection)
         self.ensure_credential_types(connection)
         organisation = self.ensure_organisation(connection)
         self.ensure_template_inventory(connection, organisation)
+        self.ensure_projects(connection, organisation)
