@@ -259,7 +259,7 @@ class ExternalIPSerializer(make_dto_serializer(dto.ExternalIp)):
             result.setdefault('links', {})['self'] = request.build_absolute_uri(
                 reverse('jasmin_cloud:external_ip_details', kwargs = {
                     'tenant': tenant,
-                    'ip': obj.external_ip,
+                    'ip': obj.id,
                 })
             )
         return result

@@ -4,7 +4,15 @@ Module containing service and resource definitions for the OpenStack image API.
 
 from rackit import RootResource
 
-from .core import Service, Resource
+from .core import Service, Resource, ResourceManager
+
+
+class ImageManager(ResourceManager):
+    """
+    Custom manager for resources in the image service.
+    """
+    def extract_next_url(self, data):
+        return data.get('next')
 
 
 class Image(Resource):
@@ -12,6 +20,7 @@ class Image(Resource):
     Resource for accessing images.
     """
     class Meta:
+        manager_cls = ImageManager
         endpoint = '/images'
         # The image service returns the image data directly when fetching by id
         resource_key = None

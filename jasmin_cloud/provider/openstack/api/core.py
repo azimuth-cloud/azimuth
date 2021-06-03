@@ -2,9 +2,7 @@
 Module containing helpers for interacting with the OpenStack API.
 """
 
-import collections
 import logging
-import re
 from urllib.parse import urlsplit
 import json
 
@@ -112,17 +110,24 @@ class ResourceManager(rackit.ResourceManager):
     def extract_list(self, response):
         # OpenStack responses have the list under a named key
         # If there is a next page, that is provided under a links attribute
-        json = response.json()
-        data = json[self.resource_cls._opts.resource_list_key]
-        next_url = next(
+        data = response.json()
+        list_data = data[self.resource_cls._opts.resource_list_key]
+        next_url = self.extract_next_url(data)
+        return list_data, next_url
+
+    def extract_next_url(self, data):
+        """
+        Given the response data, extract the next URL from it.
+        """
+        # By default, use the resource_links_key
+        return next(
             (
                 link['href']
-                for link in json.get(self.resource_cls._opts.resource_links_key, [])
+                for link in data.get(self.resource_cls._opts.resource_links_key, [])
                 if link['rel'] == 'next'
             ),
             None
         )
-        return data, next_url
 
     def extract_one(self, response):
         # Some OpenStack responses have the instance under a named key
@@ -196,6 +201,14 @@ class ResourceWithDetail(Resource):
         manager_cls = ResourceWithDetailManager
 
 
+class AuthProjectManager(ResourceManager):
+    """
+    Custom manager for projects implementing pagination.
+    """
+    def extract_next_url(self, data):
+        return data.get('links', {}).get('next')
+
+
 class AuthProject(Resource):
     """
     Resource for the projects for a user.
@@ -203,6 +216,7 @@ class AuthProject(Resource):
     Manipulation of projects more generally is available through the identity service.
     """
     class Meta:
+        manager_cls = AuthProjectManager
         endpoint = '/auth/projects'
         resource_list_key = 'projects'
 

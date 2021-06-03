@@ -322,7 +322,7 @@ class ScopedSession:
 
     def find_external_ip(self, ip):
         """
-        Finds external IP details by IP address.
+        Finds an external IP by id.
 
         Returns:
             A :py:class:`~.dto.ExternalIp` object.
@@ -348,7 +348,7 @@ class ScopedSession:
         Attaches an external IP to a machine.
 
         Args:
-            ip: The IP address to attach. Can be an external IP address as a string
+            ip: The IP address to attach. Can be the id of an external IP address
                 or a :py:class:`~.dto.ExternalIp`.
             machine: The machine. Can be a machine id or a :py:class:`~.dto.Machine`.
 
@@ -365,7 +365,7 @@ class ScopedSession:
         attached to.
 
         Args:
-            ip: The IP address to detach. Can be an external IP address as a string
+            ip: The IP address to detach. Can be the id of an external IP address
                 or a :py:class:`~.dto.ExternalIp`.
 
         Returns:

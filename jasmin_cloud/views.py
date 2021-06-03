@@ -352,6 +352,7 @@ def external_ips(request, tenant):
     body is ignored. The returned response will be the allocated IP::
 
         {
+            "id": "<external ip id>",
             "external_ip": "172.28.128.4",
             "internal_ip": null
         }
