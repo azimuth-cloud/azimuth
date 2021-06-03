@@ -2,9 +2,7 @@
 Module containing helpers for interacting with the OpenStack API.
 """
 
-import collections
 import logging
-import re
 from urllib.parse import urlsplit
 import json
 

@@ -7,9 +7,7 @@ from rackit import RootResource, NestedResource, EmbeddedResource, Endpoint
 from .core import (
     Service,
     UnmanagedResource,
-    ResourceManager,
     Resource,
-    ResourceWithDetailManager,
     ResourceWithDetail
 )
 from .image import Image

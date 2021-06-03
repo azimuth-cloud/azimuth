@@ -4,7 +4,7 @@ Module containing service and resource definitions for the OpenStack compute API
 
 from rackit import Endpoint, RootResource
 
-from .core import Service, UnmanagedResource, Resource
+from .core import Service, UnmanagedResource, ResourceManager, Resource
 
 
 class Quotas(UnmanagedResource):
@@ -25,11 +25,25 @@ class Quotas(UnmanagedResource):
         )
 
 
+class NetworkResourceManager(ResourceManager):
+    """
+    Custom resource manager for networking resources.
+
+    Handles scoping list queries to the current project.
+    """
+    def all(self, **params):
+        project_id = self.connection.session.auth.project_id
+        if project_id:
+            params.update(project_id = project_id)
+        return super().all(**params)
+
+
 class FloatingIp(Resource):
     """
     Represents a floating IP.
     """
     class Meta:
+        manager_cls = NetworkResourceManager
         endpoint = "/floatingips"
 
 
@@ -38,6 +52,7 @@ class Port(Resource):
     Represents a port.
     """
     class Meta:
+        manager_cls = NetworkResourceManager
         endpoint = "/ports"
 
 
@@ -46,6 +61,7 @@ class Network(Resource):
     Represents a network.
     """
     class Meta:
+        manager_cls = NetworkResourceManager
         endpoint = "/networks"
 
 
@@ -54,6 +70,7 @@ class Router(Resource):
     Represents a router.
     """
     class Meta:
+        manager_cls = NetworkResourceManager
         endpoint = "/routers"
 
 
