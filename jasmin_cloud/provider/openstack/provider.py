@@ -20,7 +20,6 @@ from .. import base, errors, dto
 logger = logging.getLogger(__name__)
 
 
-_NET_DEVICE_OWNER = 'network:router_interface'
 _REPLACEMENTS = [
     ('instance', 'machine'),
     ('Instance', 'Machine'),
@@ -115,7 +114,7 @@ class Provider(base.Provider):
                        domain = 'Default',
                        interface = 'public',
                        az_backdoor_net_map = dict(),
-                       net_device_owner = None,
+                       net_device_owner = 'network:router_interface',
                        backdoor_vnic_type = None,
                        verify_ssl = True,
                        cluster_engine = None):
@@ -193,7 +192,7 @@ class UnscopedSession(base.UnscopedSession):
     provider_name = 'openstack'
 
     def __init__(self, connection,
-                       net_device_owner = None,
+                       net_device_owner = 'network:router_interface',
                        az_backdoor_net_map = None,
                        backdoor_vnic_type = None,
                        cluster_engine = None):
@@ -237,7 +236,7 @@ class UnscopedSession(base.UnscopedSession):
                 tenancy = next(t for t in self.tenancies() if t.id == tenancy)
             except StopIteration:
                 raise errors.ObjectNotFoundError(
-                    'Could not find tenancy with ID {}'.format(tenancy)
+                    'Could not find tenancy with ID {}.'.format(tenancy)
                 )
         logger.info('[%s] [%s] Creating scoped session', self.username(), tenancy.name)
         try:
@@ -252,7 +251,7 @@ class UnscopedSession(base.UnscopedSession):
             )
         except (rackit.Unauthorized, rackit.Forbidden):
             raise errors.ObjectNotFoundError(
-                'Could not find tenancy with ID {}'.format(tenancy.id)
+                'Could not find tenancy with ID {}.'.format(tenancy.id)
             )
 
     def close(self):
@@ -287,7 +286,7 @@ class ScopedSession(base.ScopedSession):
                        tenancy,
                        connection,
                        az_backdoor_net_map = None,
-                       net_device_owner = None,
+                       net_device_owner = 'network:router_interface',
                        backdoor_vnic_type = None,
                        cluster_engine = None):
         self._username = username
@@ -441,14 +440,13 @@ class ScopedSession(base.ScopedSession):
         Returns the network connected to the tenant router.
         Assumes a single router with a single tenant network connected.
         """
-        net_device_owner = self._net_device_owner or _NET_DEVICE_OWNER
         # Find the port that connects the tenancy network to a router
-        port = self._connection.network.ports.find_by_device_owner(net_device_owner)
+        port = self._connection.network.ports.find_by_device_owner(self._net_device_owner)
         if port:
             # Get the network that is attached to that port
             return self._connection.network.networks.get(port.network_id)
         else:
-            raise errors.ImproperlyConfiguredError('Could not find tenancy network for {}'.format(net_device_owner))
+            raise errors.ImproperlyConfiguredError('Could not find tenancy network.')
 
     def _external_network(self):
         """
@@ -459,6 +457,8 @@ class ScopedSession(base.ScopedSession):
             router = next(self._connection.network.routers.all())
         except StopIteration:
             raise errors.ImproperlyConfiguredError('Could not find tenancy router.')
+        if not router.external_gateway_info:
+            raise errors.ImproperlyConfiguredError('Could not find external network.')
         return self._connection.network.networks.get(router.external_gateway_info['network_id'])
 
     _POWER_STATES = {
@@ -476,11 +476,11 @@ class ScopedSession(base.ScopedSession):
         """
         # Make sure we can find the image and flavor specified
         try:
-            image = self.find_image(api_server.image.id)
+            image = self.find_image(api_server.image['id'])
         except (AttributeError, errors.ObjectNotFoundError):
             image = None
         try:
-            size = self.find_size(api_server.flavor.id)
+            size = self.find_size(api_server.flavor['id'])
         except (AttributeError, errors.ObjectNotFoundError):
             size = None
         # Try to get nat_allowed from the machine metadata
@@ -561,7 +561,7 @@ class ScopedSession(base.ScopedSession):
             try:
                 image = self.find_image(image)
             except errors.ObjectNotFoundError:
-                raise errors.BadInputError('Invalid image provided')
+                raise errors.BadInputError('Invalid image provided.')
         params.update(image_id = str(image.id))
         # To find the metadata elements, we need the raw API image
         # This will load from the cache
