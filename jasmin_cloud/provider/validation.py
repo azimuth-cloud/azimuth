@@ -259,7 +259,7 @@ def cloud_ip_constraint(session, options, prev_value):
     # If the given IP matches the previous value, that is OK
     # Otherwise, require that the IP be available for attaching
     def ip_available(ip):
-        if prev_value == ip.external_ip or ip.machine_id is None:
+        if prev_value == ip.id or ip.machine_id is None:
             return ip
         else:
             raise v.Invalid('External IP is not available.')
@@ -270,7 +270,7 @@ def cloud_ip_constraint(session, options, prev_value):
             "Not a valid external ip."
         ),
         ip_available,
-        lambda ip: ip.external_ip
+        lambda ip: ip.id
     )
 
 

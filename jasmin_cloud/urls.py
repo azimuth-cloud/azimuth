@@ -2,7 +2,7 @@
 URL definitions for the ``jasmin_cloud`` Django app.
 """
 
-from django.urls import path, re_path, include
+from django.urls import path, include
 
 from . import views
 
@@ -24,9 +24,7 @@ urlpatterns = [
         ])),
         path('external_ips/', include([
             path('', views.external_ips, name = 'external_ips'),
-            re_path(r'^(?P<ip>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/$',
-                views.external_ip_details,
-                name = 'external_ip_details'),
+            path('<slug:ip>/', views.external_ip_details, name = 'external_ip_details'),
         ])),
         path('volumes/', include([
             path('', views.volumes, name = 'volumes'),
