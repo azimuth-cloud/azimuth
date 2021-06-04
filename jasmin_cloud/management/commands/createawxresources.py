@@ -266,7 +266,7 @@ class Command(BaseCommand):
             for project in cloud_settings.AWX.DEFAULT_PROJECTS
         ]
 
-    def ensure_job_template_for_playbook(self, connection, project, playbook):
+    def ensure_job_template_for_playbook(self, connection, project, playbook, deploy_keypair_cred):
         """
         Ensures that a job template exists for the given project and playbook.
         """
@@ -285,32 +285,50 @@ class Command(BaseCommand):
             job_type = 'run',
             project = project.id,
             playbook = playbook,
+            # We will add the deploy keypair as a default credential,
+            # but also allow extra credentials to be added
+            ask_credential_on_launch = True,
             ask_inventory_on_launch = True,
+            ask_variables_on_launch = True,
             allow_simultaneous = True
         )
         if job_template:
             job_template = job_template._update(**params)
         else:
             job_template = connection.job_templates.create(name = template_name, **params)
+        # Associate the deploy keypair credential with the job template
+        connection.api_post(
+            f"/job_templates/{job_template.id}/credentials/",
+            json = dict(id = deploy_keypair_cred.id)
+        )
         return job_template
 
-    def ensure_job_templates_for_project(self, connection, project):
+    def ensure_job_templates_for_project(self, connection, project, deploy_keypair_cred):
         """
         Ensures that a job template exists for each playbook in a project.
         """
         return [
-            self.ensure_job_template_for_playbook(connection, project, playbook)
+            self.ensure_job_template_for_playbook(
+                connection,
+                project,
+                playbook,
+                deploy_keypair_cred
+            )
             for playbook in project.playbooks._fetch()
         ]
 
-    def ensure_job_templates(self, connection, projects):
+    def ensure_job_templates(self, connection, projects, deploy_keypair_cred):
         """
         Ensure that a job template exists for each playbook in each project.
         """
         return [
             job_template
             for project in projects
-            for job_template in self.ensure_job_templates_for_project(connection, project)
+            for job_template in self.ensure_job_templates_for_project(
+                connection,
+                project,
+                deploy_keypair_cred
+            )
         ]
 
     def handle(self, *args, **options):
@@ -323,7 +341,7 @@ class Command(BaseCommand):
         credential_types = self.ensure_credential_types(connection)
         organisation = self.ensure_organisation(connection)
         self.ensure_galaxy_credential(connection, organisation)
-        self.ensure_caas_deploy_keypair(
+        deploy_keypair_cred = self.ensure_caas_deploy_keypair(
             connection,
             organisation,
             credential_types[CAAS_DEPLOY_KEYPAIR_CREDENTIAL_NAME]
@@ -331,4 +349,4 @@ class Command(BaseCommand):
         self.ensure_execution_environment(connection, organisation)
         self.ensure_template_inventory(connection, organisation)
         projects = self.ensure_projects(connection, organisation)
-        self.ensure_job_templates(connection, projects)
+        self.ensure_job_templates(connection, projects, deploy_keypair_cred)

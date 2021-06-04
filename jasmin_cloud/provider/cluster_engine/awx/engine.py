@@ -36,6 +36,7 @@ class Engine(base.Engine):
                        password,
                        credential_type,
                        create_teams = False,
+                       create_team_allow_all_permission = False,
                        verify_ssl = True,
                        template_inventory = 'openstack'):
         self._url = url.rstrip('/')
@@ -45,6 +46,27 @@ class Engine(base.Engine):
         self._template_inventory = template_inventory
         self._credential_type = credential_type
         self._create_teams = create_teams
+        self._create_team_allow_all_permission = create_team_allow_all_permission
+
+    def _create_team(self, connection, organisation, name):
+        """
+        Create the specified team and, if configured, the allow-all permission.
+        """
+        team = connection.teams.create(name = name, organization = organisation.id)
+        if self._create_team_allow_all_permission:
+            # Find the execute role for the organisation
+            execute_role = next(
+                role
+                for role in connection.roles.all()
+                if (
+                    role.name.lower() == 'execute' and
+                    role.summary_fields.get('resource_type') == 'organization' and
+                    role.summary_fields.get('resource_id') == organisation.id
+                )
+            )
+            # Associate the role with the newly created team
+            connection.api_post(f"/teams/{team.id}/roles/", json = dict(id = execute_role.id))
+        return team
 
     def create_manager(self, username, tenancy):
         """
@@ -75,7 +97,7 @@ class Engine(base.Engine):
             logger.info("Found AWX team '%s'", team.name)
         elif self._create_teams:
             logger.info("Creating AWX team '%s'", tenancy.name)
-            team = connection.teams.create(name = tenancy.name, organization = organisation.id)
+            team = self._create_team(connection, organisation, tenancy.name)
         if team:
             return ClusterManager(
                 username,
@@ -357,10 +379,13 @@ class ClusterManager(base.ClusterManager):
             inputs = credential_inputs
         )
         self._log("Executing job for inventory '%s'", inventory.name)
+        # Append the cloud credential to the existing creds for the template
+        credentials = [c['id'] for c in job_template.summary_fields['credentials']]
+        credentials.append(credential.id)
         # Once everything is updated, launch a job
         job_template.launch(
             inventory = inventory.id,
-            credentials = [credential.id],
+            credentials = credentials,
             extra_vars = json.dumps(extra_vars)
         )
         # Evict the inventory from the cache as it has changed

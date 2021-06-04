@@ -73,6 +73,8 @@ class JobTemplate(Resource):
         endpoint = "/job_templates/"
         cache_keys = ('name', )
 
+    credentials = rackit.NestedResource(Credential)
+
     def launch(self, *args, **kwargs):
         return self._action('launch', *args, **kwargs)
 

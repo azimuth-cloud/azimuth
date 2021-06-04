@@ -37,10 +37,13 @@ class AwxSettings(SettingsObject):
     CREDENTIAL_TYPE = Setting(default = 'OpenStack Token')
     #: The name of the template inventory
     TEMPLATE_INVENTORY = Setting(default = 'openstack')
-    #: Indicates whether teams should be created on demand
+    #: Determines whether teams should be created on demand
     #: If set to false, then teams must be created manually in AWX, giving admins
     #: control of which tenancies have CaaS enabled and which do not
     CREATE_TEAMS = Setting(default = False)
+    #: Determines whether newly created teams should have the allow all permission granted
+    #: Only used if CREATE_TEAMS = True
+    CREATE_TEAM_ALLOW_ALL_PERMISSION = Setting(default = False)
 
     ####
     # Admin settings
@@ -96,6 +99,7 @@ class ProviderSetting(ObjectFactorySetting):
                     PASSWORD = instance.AWX.PASSWORD,
                     CREDENTIAL_TYPE = instance.AWX.CREDENTIAL_TYPE,
                     CREATE_TEAMS = instance.AWX.CREATE_TEAMS,
+                    CREATE_TEAM_ALLOW_ALL_PERMISSION = instance.AWX.CREATE_TEAM_ALLOW_ALL_PERMISSION,
                     VERIFY_SSL = instance.AWX.VERIFY_SSL,
                     TEMPLATE_INVENTORY = instance.AWX.TEMPLATE_INVENTORY
                 )
