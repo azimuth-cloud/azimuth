@@ -491,7 +491,7 @@ class ScopedSession(base.ScopedSession):
         7: 'Suspended',
     }
 
-    def _from_api_server(self, api_server):
+    def _from_api_server(self, api_server, tenant_network = None):
         """
         See :py:meth:`.base.ScopedSession.find_machine`.
         """
@@ -516,7 +516,7 @@ class ScopedSession(base.ScopedSession):
         task = api_server.task_state
         # Find IP addresses specifically on the tenant network that is connected
         # to the router
-        network = self._tenant_network()
+        network = tenant_network or self._tenant_network()
         # Function to get the first IP of a particular type on the tenant network
         def ip_of_type(ip_type):
             return next(
@@ -553,9 +553,10 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.machines`.
         """
         self._log('Fetching available servers')
-        # In order to get fault info, we need to use a custom resource definition
+        # Load the tenant network once and reuse it
+        tenant_network = self._tenant_network()
         servers = tuple(
-            self._from_api_server(s)
+            self._from_api_server(s, tenant_network)
             for s in self._connection.compute.servers.all()
         )
         self._log('Found %s servers', len(servers))
@@ -566,7 +567,6 @@ class ScopedSession(base.ScopedSession):
         """
         See :py:meth:`.base.ScopedSession.find_machine`.
         """
-        # In order to get fault info, we need to use a custom resource definition
         self._log("Fetching server with id '%s'", id)
         return self._from_api_server(self._connection.compute.servers.get(id))
 
