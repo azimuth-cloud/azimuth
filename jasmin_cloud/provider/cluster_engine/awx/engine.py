@@ -3,11 +3,8 @@ This module contains the cluster engine implementation for AWX.
 """
 
 import logging
-import functools
-import io
 import json
 import uuid
-import time
 
 import dateutil.parser
 
@@ -143,19 +140,41 @@ class ClusterManager(base.ClusterManager):
         # Get the names of the job temaplates that the team has been
         # granted execute access for
         self._log("Fetching team permissions")
-        permitted = {
-            role.summary_fields['resource_name']
-            for role in self._team.roles.all()
-            if role.name.lower() == 'execute' and
-               role.summary_fields['resource_type'] == 'job_template'
-        }
-        self._log("Found %s permitted job templates", len(permitted))
-        # Fetch the job templates, filter the allowed ones and return the cluster types
-        return tuple(
-            self._from_job_template(jt)
-            for jt in self._connection.job_templates.all()
-            if jt.name in permitted
+        # First, get the team roles
+        roles = list(self._team.roles.all())
+        # If the team has the execute permission on the organisation, then they are
+        # permitted to access all the templates
+        all_permitted = any(
+            (
+                role.name.lower() == 'execute' and
+                role.summary_fields['resource_type'] == 'organization' and
+                role.summary_fields['resource_id'] == self._organisation.id
+            )
+            for role in roles
         )
+        # Otherwise, the team may have been granted the execute permission on
+        # individual job templates
+        if all_permitted:
+            permitted = {}
+        else:
+            permitted = {
+                role.summary_fields['resource_name']
+                for role in roles
+                if (
+                    role.name.lower() == 'execute' and
+                    role.summary_fields['resource_type'] == 'job_template'
+                )
+            }
+        self._log("Found %s permitted job templates", len(permitted))
+        if all_permitted or permitted:
+            # Fetch the job templates, filter the allowed ones and return the cluster types
+            return tuple(
+                self._from_job_template(jt)
+                for jt in self._connection.job_templates.all()
+                if all_permitted or jt.name in permitted
+            )
+        else:
+            return ()
 
     def find_cluster_type(self, name):
         """
