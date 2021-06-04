@@ -301,6 +301,14 @@ class Connection(rackit.Connection):
         )
 
 
+class ServiceNotSupported(RuntimeError):
+    """
+    Raised when a service that is not supported by the cloud is asked for.
+    """
+    def __init__(self, service, *args, **kwargs):
+        super().__init__(f"Service not supported: {service}", *args, **kwargs)
+
+
 class ServiceDescriptor(rackit.CachedProperty):
     """
     Property descriptor for attaching a :py:class:`Service` to a :py:class:`Connection`.
@@ -313,7 +321,10 @@ class ServiceDescriptor(rackit.CachedProperty):
         super().__init__(self.get_service)
 
     def get_service(self, instance):
-        url = instance.endpoints[self.service_cls.catalog_type]
+        try:
+            url = instance.endpoints[self.service_cls.catalog_type]
+        except KeyError:
+            raise ServiceNotSupported(self.service_cls.catalog_type)
         return self.service_cls(url, instance.session)
 
 

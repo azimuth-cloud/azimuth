@@ -7,6 +7,7 @@ import logging
 import base64
 import hashlib
 import random
+import re
 
 import dateutil.parser
 
@@ -42,6 +43,9 @@ def convert_exceptions(f):
     def wrapper(*args, **kwargs):
         try:
             return f(*args, **kwargs)
+        except api.ServiceNotSupported as exc:
+            # Convert service not supported from the API module into unsupported operation
+            raise errors.UnsupportedOperationError(str(exc))
         except rackit.ApiError as exc:
             # Extract the status code and message
             status_code = exc.status_code
@@ -343,21 +347,26 @@ class ScopedSession(base.ScopedSession):
                 len(list(self._connection.network.floatingips.all()))
             )
         )
-        volume_limits = self._connection.block_store.limits.absolute
-        quotas.extend([
-            dto.Quota(
-                'storage',
-                'GB',
-                volume_limits.total_volume_gigabytes,
-                volume_limits.total_gigabytes_used
-            ),
-            dto.Quota(
-                'volumes',
-                None,
-                volume_limits.volumes,
-                volume_limits.volumes_used
-            )
-        ])
+        # The volume service is optional
+        # In the case where the service is not enabled, just don't add the quotas
+        try:
+            volume_limits = self._connection.block_store.limits.absolute
+            quotas.extend([
+                dto.Quota(
+                    'storage',
+                    'GB',
+                    volume_limits.total_volume_gigabytes,
+                    volume_limits.total_gigabytes_used
+                ),
+                dto.Quota(
+                    'volumes',
+                    None,
+                    volume_limits.volumes,
+                    volume_limits.volumes_used
+                )
+            ])
+        except api.ServiceNotSupported:
+            pass
         return quotas
 
     def _from_api_image(self, api_image):
@@ -598,8 +607,11 @@ class ScopedSession(base.ScopedSession):
             # We create keys with names of the form "<username>-<fingerprint>", which
             # allows for us to recognise when a user has changed their key and create
             # a new one
-            fingerprint = hashlib.md5(base64.b64decode(ssh_key.split()[1])).hexdigest()
-            key_name = '{}-{}'.format(self._username, fingerprint)
+            key_name = '{username}-{fingerprint}'.format(
+                # Sanitise the username by replacing non-alphanumerics with -
+                username = re.sub('[^a-zA-Z0-9]+', '-', self._username),
+                fingerprint = hashlib.md5(base64.b64decode(ssh_key.split()[1])).hexdigest()
+            )
             try:
                 # We need to force a fetch so that the keypair is resolved
                 keypair = self._connection.compute.keypairs.get(key_name, force = True)
