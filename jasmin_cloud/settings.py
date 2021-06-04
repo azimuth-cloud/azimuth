@@ -43,22 +43,6 @@ class AwxSettings(SettingsObject):
     CREATE_TEAMS = Setting(default = False)
 
     ####
-    # Project settings
-    ####
-    #: A list of default projects to create.
-    #:
-    #:   * NAME - The name of the project
-    #:   * GIT_URL - The git URL of the project
-    #:   * GIT_VERSION - The branch, tag or commit id to use
-    DEFAULT_PROJECTS = Setting(default = [
-        {
-            'NAME': 'Demo Appliances',
-            'GIT_URL': 'https://github.com/stackhpc/demo-appliances.git',
-            'GIT_VERSION': 'main',
-        }
-    ])
-
-    ####
     # Admin settings
     ####
     #: The username to use for admin operations (e.g. creating resources)
@@ -69,6 +53,19 @@ class AwxSettings(SettingsObject):
     ADMIN_PASSWORD = Setting(default = lambda settings: settings.PASSWORD)
     #: The image to use for the CaaS execution environment
     EXECUTION_ENVIRONMENT_IMAGE = Setting(default = 'quay.io/ansible/awx-ee:0.2.0')
+    #: List of default projects to create.
+    #:
+    #:   * NAME - The name of the project
+    #:   * GIT_URL - The git URL of the project
+    #:   * GIT_VERSION - The branch, tag or commit id to use
+    DEFAULT_PROJECTS = Setting(default = [
+        {
+            'NAME': 'Demo Appliances',
+            'GIT_URL': 'https://github.com/stackhpc/demo-appliances.git',
+            'GIT_VERSION': 'master',
+            'METADATA_ROOT': 'https://raw.githubusercontent.com/stackhpc/demo-appliances/master/ui-meta',
+        }
+    ])
 
 
 class ProviderSetting(ObjectFactorySetting):

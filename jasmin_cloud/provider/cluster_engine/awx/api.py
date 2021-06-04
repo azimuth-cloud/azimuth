@@ -56,9 +56,16 @@ class Team(Resource):
     roles = rackit.NestedResource(Role)
 
 
+class Playbooks(rackit.UnmanagedResource):
+    class Meta:
+        endpoint = "/playbooks/"
+
+
 class Project(Resource):
     class Meta:
         endpoint = "/projects/"
+
+    playbooks = rackit.NestedEndpoint(Playbooks)
 
 
 class JobTemplate(Resource):
