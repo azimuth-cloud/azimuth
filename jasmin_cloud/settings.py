@@ -56,11 +56,7 @@ class AwxSettings(SettingsObject):
     ADMIN_PASSWORD = Setting(default = lambda settings: settings.PASSWORD)
     #: The image to use for the CaaS execution environment
     EXECUTION_ENVIRONMENT_IMAGE = Setting(default = 'quay.io/ansible/awx-ee:0.2.0')
-    #: List of default projects to create.
-    #:
-    #:   * NAME - The name of the project
-    #:   * GIT_URL - The git URL of the project
-    #:   * GIT_VERSION - The branch, tag or commit id to use
+    #: List of default projects to create
     DEFAULT_PROJECTS = Setting(default = [
         {
             'NAME': 'Demo Appliances',
@@ -104,7 +100,6 @@ class ProviderSetting(ObjectFactorySetting):
                     TEMPLATE_INVENTORY = instance.AWX.TEMPLATE_INVENTORY
                 )
             )
-
         # Process the given specification
         return self._process_item(provider, '{}.{}'.format(instance.name, self.name))
 
