@@ -6,8 +6,8 @@ import functools
 import logging
 import base64
 import hashlib
-import json
 import random
+import re
 
 import dateutil.parser
 
@@ -43,6 +43,9 @@ def convert_exceptions(f):
     def wrapper(*args, **kwargs):
         try:
             return f(*args, **kwargs)
+        except api.ServiceNotSupported as exc:
+            # Convert service not supported from the API module into unsupported operation
+            raise errors.UnsupportedOperationError(str(exc))
         except rackit.ApiError as exc:
             # Extract the status code and message
             status_code = exc.status_code
@@ -114,7 +117,6 @@ class Provider(base.Provider):
                        domain = 'Default',
                        interface = 'public',
                        az_backdoor_net_map = dict(),
-                       net_device_owner = 'network:router_interface',
                        backdoor_vnic_type = None,
                        verify_ssl = True,
                        cluster_engine = None):
@@ -123,7 +125,6 @@ class Provider(base.Provider):
         self._domain = domain
         self._interface = interface
         self._az_backdoor_net_map = az_backdoor_net_map or dict()
-        self._net_device_owner = net_device_owner
         self._backdoor_vnic_type = backdoor_vnic_type
         self._verify_ssl = verify_ssl
         self._cluster_engine = cluster_engine
@@ -146,7 +147,6 @@ class Provider(base.Provider):
             return UnscopedSession(
                 conn,
                 az_backdoor_net_map = self._az_backdoor_net_map,
-                net_device_owner = self._net_device_owner,
                 backdoor_vnic_type = self._backdoor_vnic_type,
                 cluster_engine = self._cluster_engine
             )
@@ -167,7 +167,6 @@ class Provider(base.Provider):
             return UnscopedSession(
                 conn,
                 az_backdoor_net_map = self._az_backdoor_net_map,
-                net_device_owner = self._net_device_owner,
                 backdoor_vnic_type = self._backdoor_vnic_type,
                 cluster_engine = self._cluster_engine
             )
@@ -192,13 +191,11 @@ class UnscopedSession(base.UnscopedSession):
     provider_name = 'openstack'
 
     def __init__(self, connection,
-                       net_device_owner = 'network:router_interface',
                        az_backdoor_net_map = None,
                        backdoor_vnic_type = None,
                        cluster_engine = None):
         self._connection = connection
         self._az_backdoor_net_map = az_backdoor_net_map or dict()
-        self._net_device_owner = net_device_owner
         self._backdoor_vnic_type = backdoor_vnic_type
         self._cluster_engine = cluster_engine
 
@@ -245,7 +242,6 @@ class UnscopedSession(base.UnscopedSession):
                 tenancy,
                 self._connection.scoped_connection(tenancy.id),
                 az_backdoor_net_map = self._az_backdoor_net_map,
-                net_device_owner = self._net_device_owner,
                 backdoor_vnic_type = self._backdoor_vnic_type,
                 cluster_engine = self._cluster_engine
             )
@@ -286,14 +282,12 @@ class ScopedSession(base.ScopedSession):
                        tenancy,
                        connection,
                        az_backdoor_net_map = None,
-                       net_device_owner = 'network:router_interface',
                        backdoor_vnic_type = None,
                        cluster_engine = None):
         self._username = username
         self._tenancy = tenancy
         self._connection = connection
         self._az_backdoor_net_map = az_backdoor_net_map or dict()
-        self._net_device_owner = net_device_owner
         self._backdoor_vnic_type = backdoor_vnic_type
         self._cluster_engine = cluster_engine
 
@@ -344,21 +338,26 @@ class ScopedSession(base.ScopedSession):
                 len(list(self._connection.network.floatingips.all()))
             )
         )
-        volume_limits = self._connection.block_store.limits.absolute
-        quotas.extend([
-            dto.Quota(
-                'storage',
-                'GB',
-                volume_limits.total_volume_gigabytes,
-                volume_limits.total_gigabytes_used
-            ),
-            dto.Quota(
-                'volumes',
-                None,
-                volume_limits.volumes,
-                volume_limits.volumes_used
-            )
-        ])
+        # The volume service is optional
+        # In the case where the service is not enabled, just don't add the quotas
+        try:
+            volume_limits = self._connection.block_store.limits.absolute
+            quotas.extend([
+                dto.Quota(
+                    'storage',
+                    'GB',
+                    volume_limits.total_volume_gigabytes,
+                    volume_limits.total_gigabytes_used
+                ),
+                dto.Quota(
+                    'volumes',
+                    None,
+                    volume_limits.volumes,
+                    volume_limits.volumes_used
+                )
+            ])
+        except api.ServiceNotSupported:
+            pass
         return quotas
 
     def _from_api_image(self, api_image):
@@ -435,13 +434,27 @@ class ScopedSession(base.ScopedSession):
         self._log("Fetching flavor with id '%s'", id)
         return self._from_api_flavor(self._connection.compute.flavors.get(id))
 
+    def _tagged_network(self, tag):
+        """
+        Returns the first network with the given tag, or None if there is not one.
+        """
+        return next(self._connection.network.networks.all(tags = tag), None)
+
     def _tenant_network(self):
         """
         Returns the network connected to the tenant router.
         Assumes a single router with a single tenant network connected.
         """
+        # First, try to find a network that is tagged as the portal internal network
+        tagged_network = self._tagged_network('portal-internal')
+        if tagged_network:
+            self._log("Using tagged internal network: {}".format(tagged_network.name))
+            return tagged_network
+        else:
+            self._log("Failed to find tagged internal network.")
+        # If there are no networks with that tag, try to find the network using the tenancy router
         # Find the port that connects the tenancy network to a router
-        port = self._connection.network.ports.find_by_device_owner(self._net_device_owner)
+        port = self._connection.network.ports.find_by_device_owner('network:router_interface')
         if port:
             # Get the network that is attached to that port
             return self._connection.network.networks.get(port.network_id)
@@ -452,6 +465,14 @@ class ScopedSession(base.ScopedSession):
         """
         Returns the external network that connects the tenant router to the outside world.
         """
+        # First, try to find a network that is tagged as the portal external network
+        tagged_network = self._tagged_network('portal-external')
+        if tagged_network:
+            self._log("Using tagged external network: {}".format(tagged_network.name))
+            return tagged_network
+        else:
+            self._log("Failed to find tagged external network.")
+        # Otherwise find the external gateway for the tenancy router
         try:
             # Try to get the router for the tenancy
             router = next(self._connection.network.routers.all())
@@ -470,7 +491,7 @@ class ScopedSession(base.ScopedSession):
         7: 'Suspended',
     }
 
-    def _from_api_server(self, api_server):
+    def _from_api_server(self, api_server, tenant_network = None):
         """
         See :py:meth:`.base.ScopedSession.find_machine`.
         """
@@ -495,7 +516,7 @@ class ScopedSession(base.ScopedSession):
         task = api_server.task_state
         # Find IP addresses specifically on the tenant network that is connected
         # to the router
-        network = self._tenant_network()
+        network = tenant_network or self._tenant_network()
         # Function to get the first IP of a particular type on the tenant network
         def ip_of_type(ip_type):
             return next(
@@ -532,9 +553,10 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.machines`.
         """
         self._log('Fetching available servers')
-        # In order to get fault info, we need to use a custom resource definition
+        # Load the tenant network once and reuse it
+        tenant_network = self._tenant_network()
         servers = tuple(
-            self._from_api_server(s)
+            self._from_api_server(s, tenant_network)
             for s in self._connection.compute.servers.all()
         )
         self._log('Found %s servers', len(servers))
@@ -545,7 +567,6 @@ class ScopedSession(base.ScopedSession):
         """
         See :py:meth:`.base.ScopedSession.find_machine`.
         """
-        # In order to get fault info, we need to use a custom resource definition
         self._log("Fetching server with id '%s'", id)
         return self._from_api_server(self._connection.compute.servers.get(id))
 
@@ -599,8 +620,11 @@ class ScopedSession(base.ScopedSession):
             # We create keys with names of the form "<username>-<fingerprint>", which
             # allows for us to recognise when a user has changed their key and create
             # a new one
-            fingerprint = hashlib.md5(base64.b64decode(ssh_key.split()[1])).hexdigest()
-            key_name = '{}-{}'.format(self._username, fingerprint)
+            key_name = '{username}-{fingerprint}'.format(
+                # Sanitise the username by replacing non-alphanumerics with -
+                username = re.sub('[^a-zA-Z0-9]+', '-', self._username),
+                fingerprint = hashlib.md5(base64.b64decode(ssh_key.split()[1])).hexdigest()
+            )
             try:
                 # We need to force a fetch so that the keypair is resolved
                 keypair = self._connection.compute.keypairs.get(key_name, force = True)

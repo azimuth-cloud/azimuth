@@ -3,11 +3,8 @@ This module contains the cluster engine implementation for AWX.
 """
 
 import logging
-import functools
-import io
 import json
 import uuid
-import time
 
 import dateutil.parser
 
@@ -30,6 +27,7 @@ class Engine(base.Engine):
         username: The username of the service account to use.
         password: The password of the service account.
         credential_type: The name of the credential type to use.
+        create_teams: Whether to create teams which do not exist.
         verify_ssl: Whether to verify SSL connections to AWX.
         template_inventory: The name of the template inventory.
     """
@@ -37,6 +35,8 @@ class Engine(base.Engine):
                        username,
                        password,
                        credential_type,
+                       create_teams = False,
+                       create_team_allow_all_permission = False,
                        verify_ssl = True,
                        template_inventory = 'openstack'):
         self._url = url.rstrip('/')
@@ -45,6 +45,28 @@ class Engine(base.Engine):
         self._verify_ssl = verify_ssl
         self._template_inventory = template_inventory
         self._credential_type = credential_type
+        self._create_teams = create_teams
+        self._create_team_allow_all_permission = create_team_allow_all_permission
+
+    def _create_team(self, connection, organisation, name):
+        """
+        Create the specified team and, if configured, the allow-all permission.
+        """
+        team = connection.teams.create(name = name, organization = organisation.id)
+        if self._create_team_allow_all_permission:
+            # Find the execute role for the organisation
+            execute_role = next(
+                role
+                for role in connection.roles.all()
+                if (
+                    role.name.lower() == 'execute' and
+                    role.summary_fields.get('resource_type') == 'organization' and
+                    role.summary_fields.get('resource_id') == organisation.id
+                )
+            )
+            # Associate the role with the newly created team
+            connection.api_post(f"/teams/{team.id}/roles/", json = dict(id = execute_role.id))
+        return team
 
     def create_manager(self, username, tenancy):
         """
@@ -70,9 +92,13 @@ class Engine(base.Engine):
         except:
             connection.close()
             raise
-        try:
-            team = next(connection.teams.all(name__iexact = tenancy.name))
+        team = next(connection.teams.all(name__iexact = tenancy.name), None)
+        if team:
             logger.info("Found AWX team '%s'", team.name)
+        elif self._create_teams:
+            logger.info("Creating AWX team '%s'", tenancy.name)
+            team = self._create_team(connection, organisation, tenancy.name)
+        if team:
             return ClusterManager(
                 username,
                 connection,
@@ -81,7 +107,7 @@ class Engine(base.Engine):
                 template_inventory,
                 team
             )
-        except StopIteration:
+        else:
             logger.warn("Could not find AWX team '%s'", tenancy.name)
             connection.close()
             return None
@@ -136,19 +162,41 @@ class ClusterManager(base.ClusterManager):
         # Get the names of the job temaplates that the team has been
         # granted execute access for
         self._log("Fetching team permissions")
-        permitted = {
-            role.summary_fields['resource_name']
-            for role in self._team.roles.all()
-            if role.name.lower() == 'execute' and
-               role.summary_fields['resource_type'] == 'job_template'
-        }
-        self._log("Found %s permitted job templates", len(permitted))
-        # Fetch the job templates, filter the allowed ones and return the cluster types
-        return tuple(
-            self._from_job_template(jt)
-            for jt in self._connection.job_templates.all()
-            if jt.name in permitted
+        # First, get the team roles
+        roles = list(self._team.roles.all())
+        # If the team has the execute permission on the organisation, then they are
+        # permitted to access all the templates
+        all_permitted = any(
+            (
+                role.name.lower() == 'execute' and
+                role.summary_fields['resource_type'] == 'organization' and
+                role.summary_fields['resource_id'] == self._organisation.id
+            )
+            for role in roles
         )
+        # Otherwise, the team may have been granted the execute permission on
+        # individual job templates
+        if all_permitted:
+            permitted = {}
+        else:
+            permitted = {
+                role.summary_fields['resource_name']
+                for role in roles
+                if (
+                    role.name.lower() == 'execute' and
+                    role.summary_fields['resource_type'] == 'job_template'
+                )
+            }
+        self._log("Found %s permitted job templates", len(permitted))
+        if all_permitted or permitted:
+            # Fetch the job templates, filter the allowed ones and return the cluster types
+            return tuple(
+                self._from_job_template(jt)
+                for jt in self._connection.job_templates.all()
+                if all_permitted or jt.name in permitted
+            )
+        else:
+            return ()
 
     def find_cluster_type(self, name):
         """
@@ -195,25 +243,8 @@ class ClusterManager(base.ClusterManager):
                     if latest_extra_vars.get('cluster_upgrade_system_packages', False):
                         patched = latest.finished
                 else:
-                    self._log("Inventory '%s' represents deleted cluster - removing", inventory.name)
-                    # If the last job was a successful delete, delete the inventory
-                    inventory._delete()
-                    # Inventories don't always delete straight away, so try up to five times
-                    remaining = 5
-                    while remaining > 0:
-                        try:
-                            inventory = self._connection.inventories.get(inventory.id)
-                        except rackit.NotFound:
-                            break
-                        else:
-                            # Evict the inventory from the cache so it isn't cached for future accesses
-                            self._connection.inventories.cache.evict(inventory.id)
-                            remaining = remaining - 1
-                    else:
-                        raise errors.OperationTimedOutError('Timed out while removing inventory.')
-                    raise errors.ObjectNotFoundError(
-                        "Could not find cluster with ID {}".format(id)
-                    )
+                    self._log("Inventory '%s' represents deleted cluster - ignoring", inventory.name)
+                    raise errors.ObjectNotFoundError("Could not find cluster with ID {}".format(id))
             elif latest.status == 'canceled':
                 status = dto.Cluster.Status.ERROR
                 error_message = 'Cluster configuration cancelled by an administrator.'
@@ -303,11 +334,7 @@ class ClusterManager(base.ClusterManager):
             )
         return self._from_inventory(inventory)
 
-    def _update_and_run_inventory(self, cluster_type,
-                                        inventory,
-                                        credential_inputs,
-                                        inventory_variables = {},
-                                        extra_vars = {}):
+    def _run_inventory(self, cluster_type, inventory, credential_inputs, extra_vars = {}):
         """
         Utility method to update inventory variables, create a credential
         and run a job.
@@ -319,10 +346,6 @@ class ClusterManager(base.ClusterManager):
                 "Could not find cluster type '%s'",
                 cluster_type
             )
-        self._log("Updating inventory variables for '%s'", inventory.name)
-        variable_data = inventory.variable_data._as_dict()
-        variable_data.update(inventory_variables)
-        inventory.variable_data._update(variable_data)
         self._log("Creating credential to run job")
         credential = self._connection.credentials.create(
             name = str(uuid.uuid4()),
@@ -331,10 +354,13 @@ class ClusterManager(base.ClusterManager):
             inputs = credential_inputs
         )
         self._log("Executing job for inventory '%s'", inventory.name)
+        # Append the cloud credential to the existing creds for the template
+        credentials = [c['id'] for c in job_template.summary_fields['credentials']]
+        credentials.append(credential.id)
         # Once everything is updated, launch a job
         job_template.launch(
             inventory = inventory.id,
-            credentials = [credential.id],
+            credentials = credentials,
             extra_vars = json.dumps(extra_vars)
         )
         # Evict the inventory from the cache as it has changed
@@ -351,34 +377,48 @@ class ClusterManager(base.ClusterManager):
         self._log("Try to find existing inventory '%s'", inventory_name)
         # Try to find an existing inventory with the name we want to use
         inventory = self._connection.inventories.find_by_name(inventory_name)
-        if not inventory:
-            # Not found is great!
-            self._log("No inventory called '%s' exists", inventory_name)
-        else:
+        if inventory:
             self._log("Existing inventory called '%s' found", inventory_name)
-            # If there is an existing inventory, try to fetch the corresponding cluster
+            # If an inventory exists, check if it represents a valid cluster
             try:
-                _ = self.find_cluster(inventory.id)
+                _ = self._from_inventory(inventory)
             except errors.ObjectNotFoundError:
-                # If the cluster is not found, that means the inventory will have
-                # been removed and we can continue
-                pass
+                self._log("Inventory '%s' represents deleted cluster - removing", inventory_name)
+                # If the cluster does not exist, delete the inventory
+                inventory._delete()
+                # Inventories don't always delete straight away, so try up to
+                # five times to refetch it until we get a 404
+                remaining = 5
+                while remaining > 0:
+                    try:
+                        inventory = self._connection.inventories.get(inventory.id, force = True)
+                    except rackit.NotFound:
+                        break
+                    else:
+                        remaining = remaining - 1
+                else:
+                    raise errors.OperationTimedOutError('Timed out while removing inventory.')
             else:
-                # If the cluster also exists, this is a bad request
-                raise errors.BadInputError("A cluster called '%s' aleady exists.", name)
+                # If the cluster also exists, we have a conflict
+                raise errors.BadInputError("A cluster called '{}' aleady exists.".format(name))
+        # Start to build the new inventory for the new cluster
         self._log("Copying template inventory as '%s'", inventory_name)
         inventory = self._connection.inventories.copy(self._template_inventory.id, inventory_name)
-        # Update the inventory variables and execute the creation job
-        self._update_and_run_inventory(
-            cluster_type,
-            inventory,
-            credential,
+        # Update the inventory variables
+        self._log("Setting inventory variables for '%s'", inventory.name)
+        inventory.variable_data._update(
             dict(
                 params,
                 cluster_name = name,
                 cluster_type = cluster_type,
                 cluster_user_ssh_public_key = ssh_key
-            ),
+            )
+        )
+        # Execute the creation job
+        self._run_inventory(
+            cluster_type,
+            inventory,
+            credential,
             # Cluster creation should include a patch
             # There is no point in creating clusters that have known vulnerabilities!
             extra_vars = dict(cluster_upgrade_system_packages = True)
@@ -399,13 +439,13 @@ class ClusterManager(base.ClusterManager):
                 'Cannot update cluster with status {}'.format(cluster.status.name)
             )
         self._log("Updating cluster '%s'", cluster.id)
-        # Update the inventory with the given parameters
-        self._update_and_run_inventory(
-            cluster.cluster_type,
-            self._connection.inventories.get(cluster.id),
-            credential,
-            params
-        )
+        # Update the inventory variables with the given parameters
+        inventory = self._connection.inventories.get(cluster.id)
+        inventory_variables = inventory.variable_data._as_dict()
+        inventory_variables.update(params)
+        inventory.variable_data._update(inventory_variables)
+        # Run the inventory
+        self._run_inventory(cluster.cluster_type, inventory, credential)
         # Refetch the cluster to get the new status
         return self.find_cluster(cluster.id)
 
@@ -423,8 +463,8 @@ class ClusterManager(base.ClusterManager):
                 'Cannot patch cluster with status {}'.format(cluster.status.name)
             )
         self._log("Patching cluster '%s'", cluster.id)
-        # Update the inventory with the given parameters
-        self._update_and_run_inventory(
+        # Run a job against the inventory with the patch variable set
+        self._run_inventory(
             cluster.cluster_type,
             self._connection.inventories.get(cluster.id),
             credential,
@@ -448,7 +488,7 @@ class ClusterManager(base.ClusterManager):
         self._log("Deleting cluster '%s'", cluster.id)
         # The job that is executed has cluster_state = absent in the extra vars
         inventory = self._connection.inventories.get(cluster.id)
-        self._update_and_run_inventory(
+        self._run_inventory(
             cluster.cluster_type,
             inventory,
             credential,

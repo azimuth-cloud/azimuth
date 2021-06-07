@@ -2,8 +2,6 @@
 Module containing helpers for interacting with the AWX API.
 """
 
-import copy
-
 import requests
 
 import rackit
@@ -31,6 +29,11 @@ class Organisation(Resource):
         endpoint = "/organizations/"
 
 
+class ExecutionEnvironment(Resource):
+    class Meta:
+        endpoint = "/execution_environments/"
+
+
 class CredentialType(Resource):
     class Meta:
         endpoint = "/credential_types/"
@@ -53,10 +56,24 @@ class Team(Resource):
     roles = rackit.NestedResource(Role)
 
 
+class Playbooks(rackit.UnmanagedResource):
+    class Meta:
+        endpoint = "/playbooks/"
+
+
+class Project(Resource):
+    class Meta:
+        endpoint = "/projects/"
+
+    playbooks = rackit.NestedEndpoint(Playbooks)
+
+
 class JobTemplate(Resource):
     class Meta:
         endpoint = "/job_templates/"
         cache_keys = ('name', )
+
+    credentials = rackit.NestedResource(Credential)
 
     def launch(self, *args, **kwargs):
         return self._action('launch', *args, **kwargs)
@@ -72,6 +89,31 @@ class Job(Resource):
         endpoint = "/jobs/"
 
     job_events = rackit.NestedResource(JobEvent)
+
+
+class HostVariableData(rackit.UnmanagedResource):
+    class Meta:
+        endpoint = "/variable_data/"
+
+
+class Host(Resource):
+    class Meta:
+        endpoint = "/hosts/"
+
+    variable_data = rackit.NestedEndpoint(HostVariableData)
+
+
+class GroupVariableData(rackit.UnmanagedResource):
+    class Meta:
+        endpoint = "/variable_data/"
+
+
+class Group(Resource):
+    class Meta:
+        endpoint = "/groups/"
+
+    hosts = rackit.NestedResource(Host)
+    variable_data = rackit.NestedEndpoint(GroupVariableData)
 
 
 class InventoryManager(ResourceManager):
@@ -91,6 +133,8 @@ class Inventory(Resource):
         manager_cls = InventoryManager
         endpoint = "/inventories/"
 
+    groups = rackit.NestedResource(Group)
+    hosts = rackit.NestedResource(Host)
     variable_data = rackit.NestedEndpoint(InventoryVariableData)
 
     def copy(self, name):
@@ -104,12 +148,16 @@ class Connection(rackit.Connection):
     path_prefix = "/api/v2"
 
     organisations = rackit.RootResource(Organisation)
+    execution_environments = rackit.RootResource(ExecutionEnvironment)
     credential_types = rackit.RootResource(CredentialType)
     credentials = rackit.RootResource(Credential)
     teams = rackit.RootResource(Team)
+    projects = rackit.RootResource(Project)
     job_templates = rackit.RootResource(JobTemplate)
     jobs = rackit.RootResource(Job)
     inventories = rackit.RootResource(Inventory)
+    groups = rackit.RootResource(Group)
+    hosts = rackit.RootResource(Host)
     roles = rackit.RootResource(Role)
     job_events = rackit.RootResource(JobEvent)
 
@@ -119,3 +167,12 @@ class Connection(rackit.Connection):
         session.auth = requests.auth.HTTPBasicAuth(username, password)
         session.verify = verify_ssl
         super().__init__(url, session)
+
+    def process_response(self, response):
+        # First, do the parent processing
+        response = super().process_response(response)
+        # In addition, if we were redirected to the migrations page, raise that
+        # as a 503 (which is what it should be)
+        if response.url.endswith("/migrations_notran/"):
+            raise rackit.ServiceUnavailable('Migrations in progress')
+        return response
