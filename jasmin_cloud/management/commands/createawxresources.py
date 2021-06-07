@@ -5,10 +5,12 @@ Module containing the management command for creating AWX resources required for
 import re
 import time
 
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, PublicFormat, NoEncryption
+
+import rackit
 
 from ...settings import cloud_settings
 from ...provider.cluster_engine.awx import api
@@ -94,14 +96,32 @@ class Command(BaseCommand):
     """
     help = 'Creates AWX resources required by Cluster-as-a-Service.'
 
+    def wait_for_awx(self, connection):
+        """
+        Waits for the AWX API to become available before returning.
+        """
+        self.stdout.write('Waiting for AWX API to become available...')
+        # Just try to fetch the API information until it loads properly
+        while True:
+            try:
+                connection.api_get("/")
+            except (rackit.ConnectionError, rackit.ApiError) as exc:
+                # If there is an error response, we need to continue
+                pass
+            else:
+                break
+            time.sleep(5)
+
     def ensure_credential_type(self, connection, ct_spec):
         """
         Ensures that given credential type exists.
         """
         ct = connection.credential_types.find_by_name(ct_spec['name'])
         if ct:
+            self.stdout.write(f"Updating credential type '{ct_spec['name']}'")
             ct = ct._update(**ct_spec)
         else:
+            self.stdout.write(f"Creating credential type '{ct_spec['name']}'")
             ct = connection.credential_types.create(**ct_spec)
         return ct
 
@@ -119,7 +139,10 @@ class Command(BaseCommand):
         Ensures that the CaaS organisation exists.
         """
         organisation = connection.organisations.find_by_name(CAAS_ORGANISATION_NAME)
-        if not organisation:
+        if organisation:
+            self.stdout.write(f"Found existing organisation '{CAAS_ORGANISATION_NAME}'")
+        else:
+            self.stdout.write(f"Creating organisation '{CAAS_ORGANISATION_NAME}'")
             organisation = connection.organisations.create(name = CAAS_ORGANISATION_NAME)
         return organisation
 
@@ -139,7 +162,10 @@ class Command(BaseCommand):
             ),
             None
         )
-        if not credential:
+        if credential:
+            self.stdout.write("Found existing Galaxy credential for organisation")
+        else:
+            self.stdout.write("Creating Galaxy credential for organisation")
             credential = connection.credentials.create(
                 name = f"{CAAS_ORGANISATION_NAME} Galaxy Credential",
                 credential_type = galaxy_ct.id,
@@ -161,8 +187,10 @@ class Command(BaseCommand):
         ee_name = f"{CAAS_ORGANISATION_NAME} EE"
         ee = connection.execution_environments.find_by_name(ee_name)
         if ee:
+            self.stdout.write(f"Updating execution environment '{ee_name}'")
             ee = ee._update(image = cloud_settings.AWX.EXECUTION_ENVIRONMENT_IMAGE)
         else:
+            self.stdout.write(f"Creating execution environment '{ee_name}'")
             ee = connection.execution_environments.create(
                 name = ee_name,
                 organization = organisation.id,
@@ -177,7 +205,10 @@ class Command(BaseCommand):
         Ensure that a CaaS deploy keypair with the expected name exists.
         """
         credential = connection.credentials.find_by_name(CAAS_DEPLOY_KEYPAIR_CREDENTIAL_NAME)
-        if not credential:
+        if credential:
+            self.stdout.write("Found existing CaaS deploy keypair credential")
+        else:
+            self.stdout.write("Generating ed25519 key pair")
             # Generate a keypair to use
             keypair = Ed25519PrivateKey.generate()
             private_key = (
@@ -191,6 +222,7 @@ class Command(BaseCommand):
                     .public_bytes(Encoding.OpenSSH, PublicFormat.OpenSSH)
                     .decode()
             )
+            self.stdout.write("Creating CaaS deploy keypair credential")
             credential = connection.credentials.create(
                 name = CAAS_DEPLOY_KEYPAIR_CREDENTIAL_NAME,
                 credential_type = ct.id,
@@ -207,24 +239,31 @@ class Command(BaseCommand):
         # Ensure that the template inventory exists and is in the correct organisation
         inventory = connection.inventories.find_by_name(inventory_name)
         if inventory:
+            self.stdout.write(f"Updating inventory '{inventory_name}'")
             # Make sure the inventory is in the correct organisation
             inventory = inventory._update(organization = organisation.id)
         else:
+            self.stdout.write(f"Creating inventory '{inventory_name}'")
             inventory = connection.inventories.create(
                 name = inventory_name,
                 organization = organisation.id
             )
         # Create the openstack group
         group = inventory.groups.find_by_name('openstack')
-        if not group:
+        if group:
+            self.stdout.write("Found existing inventory group 'openstack'")
+        else:
+            self.stdout.write("Creating inventory group 'openstack'")
             group = inventory.groups.create(name = 'openstack')
         # Create localhost in the inventory and group
         localhost = group.hosts.find_by_name("localhost")
         if localhost:
-            localhost = localhost._update(inventory = inventory.id)
+            self.stdout.write("Found existing localhost for inventory")
         else:
+            self.stdout.write("Creating localhost for inventory")
             localhost = group.hosts.create(name = "localhost", inventory = inventory.id)
         # Update the variables associated with localhost
+        self.stdout.write("Updating inventory variables for localhost")
         localhost.variable_data._update(
             dict(
                 ansible_host = '127.0.0.1',
@@ -247,10 +286,13 @@ class Command(BaseCommand):
             scm_update_on_launch = True
         )
         if project:
+            self.stdout.write(f"Updating project '{project.name}'")
             project = project._update(**params)
         else:
+            self.stdout.write(f"Creating project '{project_spec['NAME']}'")
             project = connection.projects.create(name = project_spec['NAME'], **params)
         # Wait for the project to move into the successful state
+        self.stdout.write(f"Waiting for project to become available...")
         while project.status != "successful":
             time.sleep(3)
             project = connection.projects.get(project.id, force = True)
@@ -292,11 +334,14 @@ class Command(BaseCommand):
             allow_simultaneous = True
         )
         if job_template:
+            self.stdout.write(f"Updating job template '{template_name}'")
             job_template = job_template._update(**params)
         else:
+            self.stdout.write(f"Creating job template '{template_name}'")
             job_template = connection.job_templates.create(name = template_name, **params)
         existing_creds = [c['id'] for c in job_template.summary_fields['credentials']]
         if deploy_keypair_cred.id not in existing_creds:
+            self.stdout.write("Associating CaaS deploy keypair with job template")
             # Associate the deploy keypair credential with the job template
             connection.api_post(
                 f"/job_templates/{job_template.id}/credentials/",
@@ -339,6 +384,7 @@ class Command(BaseCommand):
             cloud_settings.AWX.ADMIN_PASSWORD,
             cloud_settings.AWX.VERIFY_SSL
         )
+        self.wait_for_awx(connection)
         credential_types = self.ensure_credential_types(connection)
         organisation = self.ensure_organisation(connection)
         self.ensure_galaxy_credential(connection, organisation)

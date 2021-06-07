@@ -167,3 +167,12 @@ class Connection(rackit.Connection):
         session.auth = requests.auth.HTTPBasicAuth(username, password)
         session.verify = verify_ssl
         super().__init__(url, session)
+
+    def process_response(self, response):
+        # First, do the parent processing
+        response = super().process_response(response)
+        # In addition, if we were redirected to the migrations page, raise that
+        # as a 503 (which is what it should be)
+        if response.url.endswith("/migrations_notran/"):
+            raise rackit.ServiceUnavailable('Migrations in progress')
+        return response
