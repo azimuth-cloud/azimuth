@@ -11,7 +11,6 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, PublicFormat, NoEncryption
 
 from ...settings import cloud_settings
-
 from ...provider.cluster_engine.awx import api
 
 
@@ -296,11 +295,13 @@ class Command(BaseCommand):
             job_template = job_template._update(**params)
         else:
             job_template = connection.job_templates.create(name = template_name, **params)
-        # Associate the deploy keypair credential with the job template
-        connection.api_post(
-            f"/job_templates/{job_template.id}/credentials/",
-            json = dict(id = deploy_keypair_cred.id)
-        )
+        existing_creds = [c['id'] for c in job_template.summary_fields['credentials']]
+        if deploy_keypair_cred.id not in existing_creds:
+            # Associate the deploy keypair credential with the job template
+            connection.api_post(
+                f"/job_templates/{job_template.id}/credentials/",
+                json = dict(id = deploy_keypair_cred.id)
+            )
         return job_template
 
     def ensure_job_templates_for_project(self, connection, project, deploy_keypair_cred):
