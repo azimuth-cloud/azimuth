@@ -9,6 +9,12 @@ class Error(Exception):
     """
 
 
+class UnsupportedOperation(Error):
+    """
+    Raised when an unsupported operation is attempted.
+    """
+
+
 class KeyNotFound(Error):
     """
     Raised when no SSH key can be found for a user.

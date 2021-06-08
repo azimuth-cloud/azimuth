@@ -11,6 +11,7 @@ app_name = 'jasmin_cloud'
 urlpatterns = [
     path('', views.cloud_info, name = 'cloud_info'),
     path('session/', views.session, name = 'session'),
+    path('ssh_public_key/', views.ssh_public_key, name = 'ssh_public_key'),
     path('tenancies/', views.tenancies, name = 'tenancies'),
     path('tenancies/<slug:tenant>/', include([
         path('quotas/', views.quotas, name = 'quotas'),

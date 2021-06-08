@@ -243,8 +243,11 @@ class UnscopedSession(base.UnscopedSession):
         except rackit.NotFound:
             pass
         # Create a new keypair with the same name but the new key
-        self._connection.compute.keypairs.create(name = keypair_name, public_key = public_key)
-        return public_key
+        keypair = self._connection.compute.keypairs.create(
+            name = keypair_name,
+            public_key = public_key
+        )
+        return keypair.public_key
 
     @convert_exceptions
     def tenancies(self):

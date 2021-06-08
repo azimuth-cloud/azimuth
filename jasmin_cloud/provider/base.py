@@ -74,7 +74,9 @@ class UnscopedSession:
         Returns:
             The SSH public key as a string.
         """
-        raise NotImplementedError
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
 
     def update_ssh_public_key(self, key_name, public_key):
         """
@@ -87,7 +89,9 @@ class UnscopedSession:
         Returns:
             The new SSH public key as a string.
         """
-        raise NotImplementedError
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
 
     def tenancies(self):
         """

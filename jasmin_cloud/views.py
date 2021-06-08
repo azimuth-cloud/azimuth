@@ -107,6 +107,11 @@ def convert_key_store_exceptions(view):
                 { 'detail': 'No SSH public key available.', 'code': 'ssh_key_not_set' },
                 status = status.HTTP_409_CONFLICT
             )
+        except keystore_errors.UnsupportedOperation as exc:
+            return response.Response(
+                { 'detail': str(exc), 'code': 'unsupported_operation'},
+                status = status.HTTP_405_METHOD_NOT_ALLOWED
+            )
         except keystore_errors.Error as exc:
             log.exception('Unexpected key store error occurred')
             return response.Response(
@@ -149,8 +154,51 @@ def session(request):
         'username': request.auth.username(),
         'token': request.auth.token(),
         'links': {
-            'tenancies': request.build_absolute_uri(reverse('jasmin_cloud:tenancies'))
+            'ssh_public_key': request.build_absolute_uri(reverse('jasmin_cloud:ssh_public_key')),
+            'tenancies': request.build_absolute_uri(reverse('jasmin_cloud:tenancies')),
         }
+    })
+
+
+@provider_api_view(['GET', 'PUT'])
+def ssh_public_key(request):
+    """
+    On ``GET`` requests, return the current SSH public key for the user along with
+    a hint about whether the key can be updated (i.e. the configured key store
+    supports updating SSH public keys).
+
+    On ``PUT`` requests, update the SSH public key for the user. The request body
+    should look like::
+
+        {
+            "ssh_public_key": "<public key content>"
+        }
+    """
+    if request.method == 'PUT':
+        serializer = serializers.SSHKeyUpdateSerializer(data = request.data)
+        serializer.is_valid(raise_exception = True)
+        ssh_public_key = cloud_settings.SSH_KEY_STORE.update_key(
+            request.user.username,
+            serializer.validated_data['ssh_public_key'],
+            # Pass the request and the sessions as keyword options
+            # so that the key store can use them if it needs to
+            request = request,
+            unscoped_session = request.auth
+        )
+    else:
+        try:
+            ssh_public_key = cloud_settings.SSH_KEY_STORE.get_key(
+                request.user.username,
+                # Pass the request and the sessions as keyword options
+                # so that the key store can use them if it needs to
+                request = request,
+                unscoped_session = request.auth
+            )
+        except keystore_errors.KeyNotFound:
+            ssh_public_key = None
+    return response.Response({
+        'ssh_public_key': ssh_public_key,
+        'can_update_ssh_public_key': cloud_settings.SSH_KEY_STORE.supports_key_update
     })
 
 
