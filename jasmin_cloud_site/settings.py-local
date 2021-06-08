@@ -127,7 +127,7 @@ JASMIN_CLOUD = {
             # OpenStack auth URL
             'AUTH_URL': 'https://keystone.cloud.example.com/v3',
             # The OpenStack domain to use
-            'DOMAIN': 'default',
+            # 'DOMAIN': 'default',
             # Map of availability zone to backdoor network
             # Required to connect storage networks in JASMIN managed tenancies
             # Can be omitted
@@ -182,11 +182,12 @@ JASMIN_CLOUD = {
     # },
 
     # The SSH key store to use
-    # The JASMIN Cloud Portal asks this store for the SSH key for a user
-    'SSH_KEY_STORE': {
-        'FACTORY': 'jasmin_cloud.keystore.dummy.DummyKeyStore',
-        'PARAMS': {
-            'KEY': 'not-a-key',
-        },
-    },
+    # The portal asks this store for the SSH key for a user
+    # By default, it will use a key store that calls out to the configured provider
+    # to store and retrieve keys natively
+    # However if you already have users' SSH keys in an external system, e.g. LDAP, you can implement
+    # the key store interface to fetch them
+    # 'SSH_KEY_STORE': {
+    #     'FACTORY': 'jasmin_cloud.keystore.provider.ProviderKeyStore',
+    # },
 }

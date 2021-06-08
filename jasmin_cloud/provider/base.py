@@ -64,6 +64,31 @@ class UnscopedSession:
         """
         raise NotImplementedError
 
+    def ssh_public_key(self, key_name):
+        """
+        Return a named SSH public key.
+
+        Args:
+            key_name: The name of the SSH public key to return.
+
+        Returns:
+            The SSH public key as a string.
+        """
+        raise NotImplementedError
+
+    def update_ssh_public_key(self, key_name, public_key):
+        """
+        Update a stored SSH public key.
+
+        Args:
+            key_name: The name of the SSH public key to update.
+            public_key: The new SSH public key.
+
+        Returns:
+            The new SSH public key as a string.
+        """
+        raise NotImplementedError
+
     def tenancies(self):
         """
         Get the tenancies available to the authenticated user.

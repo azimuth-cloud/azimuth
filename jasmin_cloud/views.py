@@ -14,7 +14,8 @@ from rest_framework import decorators, permissions, response, status, exceptions
 from rest_framework.utils import formatting
 
 from . import serializers
-from .provider import base as provider_base, errors as provider_errors
+from .keystore import errors as keystore_errors
+from .provider import errors as provider_errors
 from .settings import cloud_settings
 
 
@@ -92,12 +93,36 @@ def convert_provider_exceptions(view):
     return wrapper
 
 
+def convert_key_store_exceptions(view):
+    """
+    Decorator that converts errors from :py:mod:`.keystore.errors` into appropriate
+    HTTP responses or Django REST framework errors.
+    """
+    @functools.wraps(view)
+    def wrapper(*args, **kwargs):
+        try:
+            return view(*args, **kwargs)
+        except keystore_errors.KeyNotFound:
+            return response.Response(
+                { 'detail': 'No SSH public key available.', 'code': 'ssh_key_not_set' },
+                status = status.HTTP_409_CONFLICT
+            )
+        except keystore_errors.Error as exc:
+            log.exception('Unexpected key store error occurred')
+            return response.Response(
+                { 'detail': str(exc) },
+                status = status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    return wrapper
+
+
 def provider_api_view(methods):
     """
     Returns a decorator for a provider API view that combines several decorators into one.
     """
     def decorator(view):
         view = convert_provider_exceptions(view)
+        view = convert_key_store_exceptions(view)
         view = decorators.permission_classes([permissions.IsAuthenticated])(view)
         view = decorators.api_view(methods)(view)
         return view
@@ -260,7 +285,14 @@ def machines(request, tenant):
                     input_serializer.validated_data['name'],
                     input_serializer.validated_data['image_id'],
                     input_serializer.validated_data['size_id'],
-                    cloud_settings.SSH_KEY_STORE.get_key(request.user.username)
+                    cloud_settings.SSH_KEY_STORE.get_key(
+                        request.user.username,
+                        # Pass the request and the sessions as keyword options
+                        # so that the key store can use them if it needs to
+                        request = request,
+                        unscoped_session = request.auth,
+                        scoped_session = session
+                    )
                 ),
                 context = { 'request': request, 'tenant': tenant }
             )
@@ -539,7 +571,14 @@ def clusters(request, tenant):
                 input_serializer.validated_data['name'],
                 input_serializer.validated_data['cluster_type'],
                 input_serializer.validated_data['parameter_values'],
-                cloud_settings.SSH_KEY_STORE.get_key(request.user.username)
+                cloud_settings.SSH_KEY_STORE.get_key(
+                    request.user.username,
+                    # Pass the request and the sessions as keyword options
+                    # so that the key store can use them if it needs to
+                    request = request,
+                    unscoped_session = request.auth,
+                    scoped_session = session
+                )
             )
         output_serializer = serializers.ClusterSerializer(
             cluster,

@@ -113,7 +113,12 @@ class JasminCloudSettings(SettingsObject):
     #: Cloud provider configuration
     PROVIDER = ProviderSetting()
     #: SSH key store configuration
-    SSH_KEY_STORE = ObjectFactorySetting()
+    SSH_KEY_STORE = ObjectFactorySetting(
+        # By default, use functionality from the provider to store SSH keys
+        default = dict(
+            FACTORY = 'jasmin_cloud.keystore.provider.ProviderKeyStore',
+        )
+    )
     #: AWX configuration
     AWX = NestedSetting(AwxSettings)
     #: The clouds that are available
