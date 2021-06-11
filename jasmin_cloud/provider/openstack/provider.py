@@ -536,11 +536,11 @@ class ScopedSession(base.ScopedSession):
         # Make sure we can find the image and flavor specified
         try:
             image = self.find_image(api_server.image['id'])
-        except (AttributeError, errors.ObjectNotFoundError):
+        except (TypeError, AttributeError, errors.ObjectNotFoundError):
             image = None
         try:
             size = self.find_size(api_server.flavor['id'])
-        except (AttributeError, errors.ObjectNotFoundError):
+        except (TypeError, AttributeError, errors.ObjectNotFoundError):
             size = None
         # Try to get nat_allowed from the machine metadata
         # If the nat_allowed metadata is not present, use the image
