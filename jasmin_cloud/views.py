@@ -196,10 +196,16 @@ def ssh_public_key(request):
             )
         except keystore_errors.KeyNotFound:
             ssh_public_key = None
-    return response.Response({
-        'ssh_public_key': ssh_public_key,
-        'can_update_ssh_public_key': cloud_settings.SSH_KEY_STORE.supports_key_update
-    })
+    content = dict(
+        ssh_public_key = ssh_public_key,
+        can_update = cloud_settings.SSH_KEY_STORE.supports_key_update
+    )
+    if cloud_settings.SSH_KEY_STORE.supports_key_update:
+        content.update(
+            allowed_key_types = cloud_settings.SSH_ALLOWED_KEY_TYPES,
+            rsa_min_bits = cloud_settings.SSH_RSA_MIN_BITS
+        )
+    return response.Response(content)
 
 
 @provider_api_view(['GET'])
