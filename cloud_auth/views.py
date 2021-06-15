@@ -7,7 +7,9 @@ from urllib.parse import urlencode
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.views.decorators.http import require_http_methods, require_safe
+from requests import auth
 
 from .settings import auth_settings
 
@@ -22,14 +24,37 @@ def get_next_url(request):
     elif auth_settings.NEXT_URL_PARAM in request.GET:
         next_url = request.GET[auth_settings.NEXT_URL_PARAM]
     else:
-        # URLs in the session are single use
-        next_url = request.session.pop(auth_settings.NEXT_URL_SESSION_KEY, None)
+        next_url = request.get_signed_cookie(auth_settings.NEXT_URL_COOKIE_NAME, None)
     url_is_safe = url_has_allowed_host_and_scheme(
         url = next_url,
         allowed_hosts = { request.get_host(), *auth_settings.NEXT_URL_ALLOWED_HOSTS },
         require_https = request.is_secure(),
     )
     return next_url if url_is_safe else None
+
+
+def set_next_url_cookie(response, next_url, secure):
+    """
+    Sets the next URL cookie on the given response to the given URL.
+
+    We use a separate cookie rather than using the session because in order for some
+    authenticators to redirect correctly (e.g. OpenStack federation) we need to be able
+    to access the next URL from a cross-domain POST request. This requires storing
+    the URL in a cookie with samesite='None', which we don't want to do with the
+    session cookie. However the next URL is not private data, so it can go in a
+    cross-domain cookie.
+    """
+    if next_url:
+        response.set_signed_cookie(
+            auth_settings.NEXT_URL_COOKIE_NAME,
+            next_url,
+            httponly = True,
+            secure = secure,
+            samesite = 'None'
+        )
+    else:
+        response.delete_cookie(auth_settings.NEXT_URL_COOKIE_NAME, samesite = 'None')
+    return response
 
 
 def redirect_to_login(code = None):
@@ -50,35 +75,41 @@ def login(request):
     """
     Begin the authentication flow for the configured authenticator.
     """
-    # Store the next URL in the session for use at the end of the authentication
     next_url = get_next_url(request)
-    if next_url:
-        request.session[auth_settings.NEXT_URL_SESSION_KEY] = next_url
-    else:
-        request.session.pop(auth_settings.NEXT_URL_SESSION_KEY, None)
-    return auth_settings.AUTHENTICATOR.auth_start(request)
+    response = auth_settings.AUTHENTICATOR.auth_start(request)
+    return set_next_url_cookie(response, next_url, request.is_secure())
 
 
 @require_http_methods(["GET", "POST"])
+# Authenticators can specify whether they have CSRF protection or not
+# So disable it for the view and re-enable it if required
+@csrf_exempt
 def complete(request):
     """
     Complete the authentication flow for the configured authenticator.
     """
-    # The auth_complete method of the authenticator should return a token or null
-    # depending on whether authentication was successful
-    token = auth_settings.AUTHENTICATOR.auth_complete(request)
-    if token:
-        # On a successful authentication, store the token in the session
-        request.session[auth_settings.TOKEN_SESSION_KEY] = token
-        # Either redirect or return to the next URL
-        next_url = get_next_url(request)
-        if next_url:
-            return redirect(next_url)
+    def handle_request(request):
+        # The auth_complete method of the authenticator should return a token or null
+        # depending on whether authentication was successful
+        token = auth_settings.AUTHENTICATOR.auth_complete(request)
+        if token:
+            # On a successful authentication, store the token in the session
+            request.session[auth_settings.TOKEN_SESSION_KEY] = token
+            # Either redirect or return to the next URL
+            next_url = get_next_url(request)
+            if next_url:
+                response = redirect(next_url)
+            else:
+                response = render(request, 'cloud_auth/complete.html')
+            # On a successful authentication, we also want to clear the next URL cookie
+            return set_next_url_cookie(response, None, request.is_secure())
         else:
-            return render(request, 'cloud_auth/complete.html')
-    else:
-        # On a failed authentication, redirect to login but indicate that the auth failed
-        return redirect_to_login('invalid_credentials')
+            # On a failed authentication, redirect to login but indicate that the auth failed
+            return redirect_to_login('invalid_credentials')
+    # Enable CSRF protection if required
+    if auth_settings.AUTHENTICATOR.csrf_protect:
+        handle_request = csrf_protect(handle_request)
+    return handle_request(request)
 
 
 @require_http_methods(["GET", "POST"])
