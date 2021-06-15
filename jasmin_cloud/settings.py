@@ -113,7 +113,27 @@ class JasminCloudSettings(SettingsObject):
     #: Cloud provider configuration
     PROVIDER = ProviderSetting()
     #: SSH key store configuration
-    SSH_KEY_STORE = ObjectFactorySetting()
+    SSH_KEY_STORE = ObjectFactorySetting(
+        # By default, use functionality from the provider to store SSH keys
+        default = dict(
+            FACTORY = 'jasmin_cloud.keystore.provider.ProviderKeyStore',
+        )
+    )
+    #: An iterable of allowed SSH key types
+    SSH_ALLOWED_KEY_TYPES = Setting(default = {
+        # By default, DSA keys are not permitted
+        # 'ssh-dss',
+        # RSA keys are permitted, subject to SSH_RSA_MIN_BITS below
+        'ssh-rsa',
+        # All three sizes of ECDSA are permitted
+        'ecdsa-sha2-nistp256',
+        'ecdsa-sha2-nistp384',
+        'ecdsa-sha2-nistp521',
+        # ED25519 is permitted by default
+        'ssh-ed25519',
+    })
+    #: The minimum size for RSA keys (by default, 1024 bit keys are not allowed)
+    SSH_RSA_MIN_BITS = Setting(default = 2048)
     #: AWX configuration
     AWX = NestedSetting(AwxSettings)
     #: The clouds that are available

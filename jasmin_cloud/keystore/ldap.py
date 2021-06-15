@@ -5,6 +5,7 @@ Module implementing an LDAP key store.
 from jasmin_ldap import ServerPool, Connection, Query
 
 from .base import KeyStore
+from .errors import KeyNotFound
 
 
 class LdapKeyStore(KeyStore):
@@ -27,7 +28,7 @@ class LdapKeyStore(KeyStore):
         self.password = password
         self.base_dn = base_dn
 
-    def get_key(self, username):
+    def get_key(self, username, **kwargs):
         """
         See :py:meth:`.base.KeyStore.get_key`.
         """
@@ -37,7 +38,7 @@ class LdapKeyStore(KeyStore):
         )
         with connection:
             query = Query(connection, self.base_dn)
-            return next(
-                iter(query.filter(cn = username).one().get('sshPublicKey', [])),
-                None
-            )
+            try:
+                return next(iter(query.filter(cn = username).one().get('sshPublicKey', [])))
+            except StopIteration:
+                raise KeyNotFound(username)

@@ -4,11 +4,15 @@ Django REST framework serializers for objects from the :py:mod:`~.cloud.dto` pac
 
 import collections
 
+from cryptography.exceptions import UnsupportedAlgorithm
+from cryptography.hazmat.primitives.serialization import load_ssh_public_key
+
 from django.urls import reverse
 
 from rest_framework import serializers
 
 from .provider import dto, errors
+from .settings import cloud_settings
 
 
 def make_dto_serializer(dto_class, exclude = []):
@@ -37,12 +41,34 @@ def make_dto_serializer(dto_class, exclude = []):
     )
 
 
-class LoginSerializer(serializers.Serializer):
-    username = serializers.CharField(write_only = True)
-    password = serializers.CharField(
-        write_only = True,
-        style = { 'input_type': 'password' }
-    )
+class SSHKeyUpdateSerializer(serializers.Serializer):
+    """
+    Serializer for updating an SSH public key.
+    """
+    #: The new SSH public key
+    ssh_public_key = serializers.CharField(write_only = True)
+
+    def validate_ssh_public_key(self, value):
+        # Try to load the public key using cryptography
+        try:
+            public_key = load_ssh_public_key(value.encode())
+        except (ValueError, UnsupportedAlgorithm):
+            raise serializers.ValidationError(["Not a valid SSH public key."])
+        # Now we know it is a valid SSH key, we know how to get the type as a string
+        key_type = value.split()[0]
+        # Test whether the key type is an allowed key type
+        if key_type not in cloud_settings.SSH_ALLOWED_KEY_TYPES:
+            message = "Keys of type '{}' are not permitted.".format(key_type)
+            raise serializers.ValidationError([message])
+        # If the key is an RSA key, check the minimum size
+        if key_type == 'ssh-rsa' and public_key.key_size < cloud_settings.SSH_RSA_MIN_BITS:
+            message = "RSA keys must have a minimum of {} bits ({} given).".format(
+                cloud_settings.SSH_RSA_MIN_BITS,
+                public_key.key_size
+            )
+            raise serializers.ValidationError([message])
+        # The key is valid! Hooray!
+        return value
 
 
 class TenancySerializer(make_dto_serializer(dto.Tenancy)):
@@ -332,7 +358,6 @@ class CreateClusterSerializer(serializers.Serializer):
             return session.find_cluster_type(value)
         except errors.ObjectNotFoundError as exc:
             raise serializers.ValidationError(str(exc))
-        return data
 
     def validate(self, data):
         # Force a validation of the parameter values for the cluster type

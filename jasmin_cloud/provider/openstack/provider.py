@@ -35,6 +35,13 @@ def _replace_resource_names(message):
     )
 
 
+def sanitise_username(username):
+    """
+    Sanitise a username for use in a keypair name.
+    """
+    return re.sub('[^a-zA-Z0-9]+', '-', username)
+
+
 def convert_exceptions(f):
     """
     Decorator that converts OpenStack API exceptions into errors from :py:mod:`..errors`.
@@ -210,6 +217,37 @@ class UnscopedSession(base.UnscopedSession):
         See :py:meth:`.base.UnscopedSession.username`.
         """
         return self._connection.username
+
+    @convert_exceptions
+    def ssh_public_key(self, key_name):
+        """
+        See :py:meth:`.base.UnscopedSession.ssh_public_key`.
+        """
+        # Sanitise the requested name and try to find a keypair with that name
+        keypair_name = sanitise_username(key_name)
+        keypair = self._connection.compute.keypairs.get(keypair_name)
+        # Return the public key associated with that key
+        return keypair.public_key
+
+    @convert_exceptions
+    def update_ssh_public_key(self, key_name, public_key):
+        """
+        See :py:meth:`.base.UnscopedSession.update_ssh_public_key`.
+        """
+        # Use the sanitised username as the keypair name
+        keypair_name = sanitise_username(key_name)
+        # Keypairs are immutable in OpenStack, so we first remove the existing keypair
+        # If it doesn't exist, we can ignore that
+        try:
+            self._connection.compute.keypairs.delete(keypair_name)
+        except rackit.NotFound:
+            pass
+        # Create a new keypair with the same name but the new key
+        keypair = self._connection.compute.keypairs.create(
+            name = keypair_name,
+            public_key = public_key
+        )
+        return keypair.public_key
 
     @convert_exceptions
     def tenancies(self):
@@ -498,11 +536,11 @@ class ScopedSession(base.ScopedSession):
         # Make sure we can find the image and flavor specified
         try:
             image = self.find_image(api_server.image['id'])
-        except (AttributeError, errors.ObjectNotFoundError):
+        except (TypeError, AttributeError, errors.ObjectNotFoundError):
             image = None
         try:
             size = self.find_size(api_server.flavor['id'])
-        except (AttributeError, errors.ObjectNotFoundError):
+        except (TypeError, AttributeError, errors.ObjectNotFoundError):
             size = None
         # Try to get nat_allowed from the machine metadata
         # If the nat_allowed metadata is not present, use the image
@@ -617,13 +655,15 @@ class ScopedSession(base.ScopedSession):
         # Get the keypair to inject
         if ssh_key:
             # Keypairs are immutable, i.e. once created cannot be changed
-            # We create keys with names of the form "<username>-<fingerprint>", which
-            # allows for us to recognise when a user has changed their key and create
+            # We create keys with names of the form "<username>-<truncated fingerprint>",
+            # which allows for us to recognise when a user has changed their key and create
             # a new one
+            fingerprint = hashlib.md5(base64.b64decode(ssh_key.split()[1])).hexdigest()
             key_name = '{username}-{fingerprint}'.format(
                 # Sanitise the username by replacing non-alphanumerics with -
-                username = re.sub('[^a-zA-Z0-9]+', '-', self._username),
-                fingerprint = hashlib.md5(base64.b64decode(ssh_key.split()[1])).hexdigest()
+                username = sanitise_username(self._username),
+                # Truncate the fingerprint to 8 characters
+                fingerprint = fingerprint[:8]
             )
             try:
                 # We need to force a fetch so that the keypair is resolved
