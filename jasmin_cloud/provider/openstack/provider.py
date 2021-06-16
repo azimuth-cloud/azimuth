@@ -278,7 +278,7 @@ class UnscopedSession(base.UnscopedSession):
         else:
             self._log("Deleted previous keypair '%s'", keypair_name)
         # Create a new keypair with the same name but the new key
-        self._log("Creating keypair '%s'")
+        self._log("Creating keypair '%s'", keypair_name)
         keypair = connection.compute.keypairs.create(
             name = keypair_name,
             public_key = public_key
