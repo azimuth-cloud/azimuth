@@ -7,9 +7,15 @@ class BaseAuthenticator:
     """
     Base class for an authenticator, defining the expected interface.
     """
-    #: Indicates whether POST requests to the auth_complete endpoint should have
-    #: CSRF protection enabled
-    csrf_protect = True
+    #: Indicates if the authenticator uses cross-domain POST requests in the auth completion
+    #: This has implications for the CSRF protection and next URL cookie
+    #:
+    #: WARNING
+    #: For authenticators that use cross-domain POST requests, the next URL redirection
+    #: will only work over HTTPS in Chrome. Other browsers are likely to follow suit.
+    #: See this blog article for more information:
+    #:   https://blog.chromium.org/2019/10/developers-get-ready-for-new.html
+    uses_crossdomain_post_requests = False
 
     def auth_start(self, request):
         """

@@ -15,7 +15,7 @@ from .settings import auth_settings
 
 def get_next_url(request):
     """
-    Return the next URL to go to if one is present in the session, GET or POST data
+    Return the next URL to go to if one is present in the cookie, GET or POST data
     and is safe to use.
     """
     if auth_settings.NEXT_URL_PARAM in request.POST:
@@ -39,9 +39,9 @@ def set_next_url_cookie(response, next_url, secure):
     We use a separate cookie rather than using the session because in order for some
     authenticators to redirect correctly (e.g. OpenStack federation) we need to be able
     to access the next URL from a cross-domain POST request. This requires storing
-    the URL in a cookie with samesite='None', which we don't want to do with the
-    session cookie. However the next URL is not private data, so it can go in a
-    cross-domain cookie.
+    the URL in a cookie with SameSite='None', which we don't want to do with the
+    session cookie. However the next URL is not sensitive data, and is checked for safety
+    anyway, so it can go in a cross-domain cookie.
     """
     if next_url:
         response.set_signed_cookie(
@@ -49,10 +49,14 @@ def set_next_url_cookie(response, next_url, secure):
             next_url,
             httponly = True,
             secure = secure,
-            samesite = 'None'
+            samesite = (
+                'None'
+                if auth_settings.AUTHENTICATOR.uses_crossdomain_post_requests
+                else 'Lax'
+            )
         )
     else:
-        response.delete_cookie(auth_settings.NEXT_URL_COOKIE_NAME, samesite = 'None')
+        response.delete_cookie(auth_settings.NEXT_URL_COOKIE_NAME)
     return response
 
 
@@ -80,8 +84,6 @@ def login(request):
 
 
 @require_http_methods(["GET", "POST"])
-# Authenticators can specify whether they have CSRF protection or not
-# So disable it for the view and re-enable it if required
 @csrf_exempt
 def complete(request):
     """
@@ -105,8 +107,8 @@ def complete(request):
         else:
             # On a failed authentication, redirect to login but indicate that the auth failed
             return redirect_to_login('invalid_credentials')
-    # Enable CSRF protection if required
-    if auth_settings.AUTHENTICATOR.csrf_protect:
+    # Enable CSRF protection unless it will break the authenticator
+    if not auth_settings.AUTHENTICATOR.uses_crossdomain_post_requests:
         handle_request = csrf_protect(handle_request)
     return handle_request(request)
 

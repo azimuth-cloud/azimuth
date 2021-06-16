@@ -60,11 +60,10 @@ class FederatedAuthenticator(BaseAuthenticator):
     The way federated authentication with Keystone works is that we redirect to a
     Keystone URL under /v3/auth/OS-FEDERATION, specifying where we want the token to
     be sent. Keystone then negotiates the external authentication before rendering
-    an auto-submitting form that sends the token back to us.
-
-    Because Keystone is submitting the POST request to us, we need to disable CSRF checks.
+    an auto-submitting form that sends the token back to us using a cross-domain
+    POST request.
     """
-    csrf_protect = False
+    uses_crossdomain_post_requests = True
 
     def __init__(self, federation_url):
         self.federation_url = federation_url
