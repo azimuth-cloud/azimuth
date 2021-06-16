@@ -9,7 +9,6 @@ from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.views.decorators.http import require_http_methods, require_safe
-from requests import auth
 
 from .settings import auth_settings
 
