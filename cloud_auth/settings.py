@@ -26,7 +26,7 @@ class CloudAuthSettings(SettingsObject):
     #: The HTTP parameter to get the next URL from
     NEXT_URL_PARAM = Setting(default = 'next')
     #: The session key to store the next URL
-    NEXT_URL_SESSION_KEY = Setting(default = 'next_url')
+    NEXT_URL_COOKIE_NAME = Setting(default = 'next-url')
     #: The allowed hosts for the next URL
     NEXT_URL_ALLOWED_HOSTS = Setting(default = set)
 

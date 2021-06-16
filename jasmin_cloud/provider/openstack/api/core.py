@@ -2,9 +2,10 @@
 Module containing helpers for interacting with the OpenStack API.
 """
 
-import logging
-from urllib.parse import urlsplit
 import json
+import logging
+import os
+from urllib.parse import urlsplit
 
 import requests
 
@@ -242,6 +243,15 @@ class Connection(rackit.Connection):
         # This object is the auth object for the session
         session.auth = self
         session.verify = verify
+        # Ensure that any proxies from the environment that are set are respected
+        # For some reason, this is not done automatically when using session.send directly,
+        # as rackit does
+        if 'HTTP_PROXY' in os.environ:
+            session.proxies.update(http = os.environ['HTTP_PROXY'])
+        if 'HTTPS_PROXY' in os.environ:
+            session.proxies.update(https = os.environ['HTTPS_PROXY'])
+        if 'NO_PROXY' in os.environ:
+            session.proxies.update(no_proxy = os.environ['NO_PROXY'])
 
         # Once the superclass init is called, we can use the api_{} methods
         super().__init__(auth_url, session)

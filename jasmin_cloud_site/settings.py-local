@@ -128,6 +128,9 @@ JASMIN_CLOUD = {
             'AUTH_URL': 'https://keystone.cloud.example.com/v3',
             # The OpenStack domain to use
             # 'DOMAIN': 'default',
+            # CIDR to use for auto-created internal networks
+            # Defaults to 192.168.3.0/24
+            # 'INTERNAL_NET_CIDR': '10.100.100.0/24',
             # Map of availability zone to backdoor network
             # Required to connect storage networks in JASMIN managed tenancies
             # Can be omitted

@@ -135,6 +135,8 @@ def provider_api_view(methods):
 
 
 @decorators.api_view(['GET'])
+# The info endpoint does not require authentication
+@decorators.authentication_classes([])
 def cloud_info(request):
     return response.Response({
         'available_clouds': cloud_settings.AVAILABLE_CLOUDS,

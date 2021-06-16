@@ -7,6 +7,10 @@ class BaseAuthenticator:
     """
     Base class for an authenticator, defining the expected interface.
     """
+    #: Indicates whether POST requests to the auth_complete endpoint should have
+    #: CSRF protection enabled
+    csrf_protect = True
+
     def auth_start(self, request):
         """
         Process a request for the login endpoint and return a response.

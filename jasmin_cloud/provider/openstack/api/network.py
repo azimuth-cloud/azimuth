@@ -38,39 +38,58 @@ class NetworkResourceManager(ResourceManager):
         return super().all(**params)
 
 
-class FloatingIp(Resource):
+class NetworkResource(Resource):
+    """
+    Base class for networking resources.
+    """
+    class Meta:
+        manager_cls = NetworkResourceManager
+
+
+class FloatingIp(NetworkResource):
     """
     Represents a floating IP.
     """
     class Meta:
-        manager_cls = NetworkResourceManager
         endpoint = "/floatingips"
 
 
-class Port(Resource):
+class Port(NetworkResource):
     """
     Represents a port.
     """
     class Meta:
-        manager_cls = NetworkResourceManager
         endpoint = "/ports"
 
 
-class Network(Resource):
+class Network(NetworkResource):
     """
     Represents a network.
     """
     class Meta:
-        manager_cls = NetworkResourceManager
         endpoint = "/networks"
 
+    def _update_tags(self, tags):
+        """
+        Update the tags associated with a network.
+        """
+        conn = self._manager.connection
+        conn.api_put("{}/tags".format(self._path), json = dict(tags = tags))
 
-class Router(Resource):
+
+class Subnet(NetworkResource):
+    """
+    Represents a subnet.
+    """
+    class Meta:
+        endpoint = "/subnets"
+
+
+class Router(NetworkResource):
     """
     Represents a router.
     """
     class Meta:
-        manager_cls = NetworkResourceManager
         endpoint = "/routers"
 
 
@@ -86,4 +105,5 @@ class NetworkService(Service):
     floatingips = RootResource(FloatingIp)
     ports = RootResource(Port)
     networks = RootResource(Network)
+    subnets = RootResource(Subnet)
     routers = RootResource(Router)
