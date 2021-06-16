@@ -106,6 +106,8 @@ class Provider(base.Provider):
         auth_url: The Keystone v3 authentication URL.
         domain: The domain to authenticate with (default ``Default``).
         interface: The OpenStack interface to connect using (default ``public``).
+        internal_net_cidr: The CIDR for the internal network when it is
+                           auto-created (default ``192.168.3.0/24``).
         az_backdoor_net_map: Mapping of availability zone to the UUID of the backdoor network
                              for that availability zone (default ``None``).
                              The backdoor network will only be attached if the image specifically
@@ -123,6 +125,7 @@ class Provider(base.Provider):
     def __init__(self, auth_url,
                        domain = 'Default',
                        interface = 'public',
+                       internal_net_cidr = '192.168.3.0/24',
                        az_backdoor_net_map = dict(),
                        backdoor_vnic_type = None,
                        verify_ssl = True,
@@ -131,6 +134,7 @@ class Provider(base.Provider):
         self._auth_url = auth_url.rstrip('/')
         self._domain = domain
         self._interface = interface
+        self._internal_net_cidr = internal_net_cidr
         self._az_backdoor_net_map = az_backdoor_net_map or dict()
         self._backdoor_vnic_type = backdoor_vnic_type
         self._verify_ssl = verify_ssl
@@ -141,18 +145,20 @@ class Provider(base.Provider):
         """
         See :py:meth:`.base.Provider.authenticate`.
         """
-        logger.info('Authenticating user %s with OpenStack', username)
+        logger.info("Authenticating user '%s' with OpenStack", username)
         # Create an API connection using the username and password
         auth_params = api.AuthParams().use_password(self._domain, username, password)
         try:
             conn = api.Connection(self._auth_url, auth_params, self._interface, self._verify_ssl)
         except rackit.Unauthorized:
+            logger.info("Authentication failed for user '%s'", username)
             # We want to use a different error message to convert_exceptions
             raise errors.AuthenticationError('Invalid username or password.')
         else:
-            logger.info('[%s] Sucessfully authenticated user against OpenStack', username)
+            logger.info("Sucessfully authenticated user '%s'", username)
             return UnscopedSession(
                 conn,
+                internal_net_cidr = self._internal_net_cidr,
                 az_backdoor_net_map = self._az_backdoor_net_map,
                 backdoor_vnic_type = self._backdoor_vnic_type,
                 cluster_engine = self._cluster_engine
@@ -168,11 +174,14 @@ class Provider(base.Provider):
         try:
             conn = api.Connection(self._auth_url, auth_params, self._interface, self._verify_ssl)
         except (rackit.Unauthorized, rackit.NotFound):
+            logger.info("Authentication failed for token")
             # Failing to validate a token is a 404 for some reason
             raise errors.AuthenticationError('Your session has expired.')
         else:
+            logger.info("Sucessfully authenticated user '%s'", conn.username)
             return UnscopedSession(
                 conn,
+                internal_net_cidr = self._internal_net_cidr,
                 az_backdoor_net_map = self._az_backdoor_net_map,
                 backdoor_vnic_type = self._backdoor_vnic_type,
                 cluster_engine = self._cluster_engine
@@ -185,6 +194,8 @@ class UnscopedSession(base.UnscopedSession):
 
     Args:
         connection: An unscoped :py:mod:`.api.Connection`.
+        internal_net_cidr: The CIDR for the internal network when it is
+                           auto-created (default ``192.168.3.0/24``).
         az_backdoor_net_map: Mapping of availability zone to the UUID of the backdoor network
                              for that availability zone (default ``None``).
                              The backdoor network will only be attached if the image specifically
@@ -198,10 +209,12 @@ class UnscopedSession(base.UnscopedSession):
     provider_name = 'openstack'
 
     def __init__(self, connection,
+                       internal_net_cidr = '192.168.3.0/24',
                        az_backdoor_net_map = None,
                        backdoor_vnic_type = None,
                        cluster_engine = None):
         self._connection = connection
+        self._internal_net_cidr = internal_net_cidr
         self._az_backdoor_net_map = az_backdoor_net_map or dict()
         self._backdoor_vnic_type = backdoor_vnic_type
         self._cluster_engine = cluster_engine
@@ -218,6 +231,19 @@ class UnscopedSession(base.UnscopedSession):
         """
         return self._connection.username
 
+    def _log(self, message, *args, level = logging.INFO, **kwargs):
+        logger.log(level, '[%s] ' + message, self.username(), *args, **kwargs)
+
+    def _scoped_connection_for_first_project(self):
+        """
+        Returns a scoped connection for the user's first project.
+        """
+        try:
+            project = next(self._connection.projects.all())
+        except StopIteration:
+            raise errors.InvalidOperationError("User does not belong to any projects.")
+        return self._connection.scoped_connection(project)
+
     @convert_exceptions
     def ssh_public_key(self, key_name):
         """
@@ -225,7 +251,11 @@ class UnscopedSession(base.UnscopedSession):
         """
         # Sanitise the requested name and try to find a keypair with that name
         keypair_name = sanitise_username(key_name)
-        keypair = self._connection.compute.keypairs.get(keypair_name)
+        self._log("Attempting to locate keypair '%s'", keypair_name)
+        # In OpenStack, SSH keys are shared between projects
+        # So get a scoped connection for the user's first project to use
+        connection = self._scoped_connection_for_first_project()
+        keypair = connection.compute.keypairs.get(keypair_name)
         # Return the public key associated with that key
         return keypair.public_key
 
@@ -236,14 +266,20 @@ class UnscopedSession(base.UnscopedSession):
         """
         # Use the sanitised username as the keypair name
         keypair_name = sanitise_username(key_name)
+        # In OpenStack, SSH keys are shared between projects
+        # So get a scoped connection for the user's first project to use
+        connection = self._scoped_connection_for_first_project()
         # Keypairs are immutable in OpenStack, so we first remove the existing keypair
         # If it doesn't exist, we can ignore that
         try:
-            self._connection.compute.keypairs.delete(keypair_name)
+            connection.compute.keypairs.delete(keypair_name)
         except rackit.NotFound:
             pass
+        else:
+            self._log("Deleted previous keypair '%s'", keypair_name)
         # Create a new keypair with the same name but the new key
-        keypair = self._connection.compute.keypairs.create(
+        self._log("Creating keypair '%s'")
+        keypair = connection.compute.keypairs.create(
             name = keypair_name,
             public_key = public_key
         )
@@ -254,9 +290,9 @@ class UnscopedSession(base.UnscopedSession):
         """
         See :py:meth:`.base.UnscopedSession.tenancies`.
         """
-        logger.info('[%s] Fetching available tenancies', self.username())
+        self._log('Fetching available tenancies')
         projects = tuple(self._connection.projects.all())
-        logger.info('[%s] Found %s projects', self.username(), len(projects))
+        self._log('Found %s projects', len(projects))
         return tuple(dto.Tenancy(p.id, p.name) for p in projects if p.enabled)
 
     @convert_exceptions
@@ -273,12 +309,13 @@ class UnscopedSession(base.UnscopedSession):
                 raise errors.ObjectNotFoundError(
                     'Could not find tenancy with ID {}.'.format(tenancy)
                 )
-        logger.info('[%s] [%s] Creating scoped session', self.username(), tenancy.name)
+        self._log("Creating scoped session for project '%s'", tenancy.name)
         try:
             return ScopedSession(
                 self.username(),
                 tenancy,
                 self._connection.scoped_connection(tenancy.id),
+                internal_net_cidr = self._internal_net_cidr,
                 az_backdoor_net_map = self._az_backdoor_net_map,
                 backdoor_vnic_type = self._backdoor_vnic_type,
                 cluster_engine = self._cluster_engine
@@ -304,6 +341,8 @@ class ScopedSession(base.ScopedSession):
         username: The username of the OpenStack user.
         tenancy: The :py:class:`~.dto.Tenancy`.
         connection: An ``openstack.connection.Connection`` for the tenancy.
+        internal_net_cidr: The CIDR for the internal network when it is
+                           auto-created (default ``192.168.3.0/24``).
         az_backdoor_net_map: Mapping of availability zone to the UUID of the backdoor network
                              for that availability zone (default ``None``).
                              The backdoor network will only be attached if the image specifically
@@ -319,12 +358,14 @@ class ScopedSession(base.ScopedSession):
     def __init__(self, username,
                        tenancy,
                        connection,
+                       internal_net_cidr = '192.168.3.0/24',
                        az_backdoor_net_map = None,
                        backdoor_vnic_type = None,
                        cluster_engine = None):
         self._username = username
         self._tenancy = tenancy
         self._connection = connection
+        self._internal_net_cidr = internal_net_cidr
         self._az_backdoor_net_map = az_backdoor_net_map or dict()
         self._backdoor_vnic_type = backdoor_vnic_type
         self._cluster_engine = cluster_engine
@@ -478,15 +519,16 @@ class ScopedSession(base.ScopedSession):
         """
         return next(self._connection.network.networks.all(tags = tag), None)
 
-    def _tenant_network(self):
+    def _tenant_network(self, create_network = False):
         """
         Returns the network connected to the tenant router.
         Assumes a single router with a single tenant network connected.
+        If create_network = True, a network will be created if one cannot be found.
         """
         # First, try to find a network that is tagged as the portal internal network
         tagged_network = self._tagged_network('portal-internal')
         if tagged_network:
-            self._log("Using tagged internal network: {}".format(tagged_network.name))
+            self._log("Using tagged internal network '%s'", tagged_network.name)
             return tagged_network
         else:
             self._log("Failed to find tagged internal network.")
@@ -495,9 +537,25 @@ class ScopedSession(base.ScopedSession):
         port = self._connection.network.ports.find_by_device_owner('network:router_interface')
         if port:
             # Get the network that is attached to that port
-            return self._connection.network.networks.get(port.network_id)
+            network = self._connection.network.networks.get(port.network_id)
+            self._log("Found internal network '%s' via router.", network.name)
+            return network
         else:
-            raise errors.ImproperlyConfiguredError('Could not find tenancy network.')
+            self._log("Failed to find internal network via router.")
+        # If we get this far, we either create and return a network or return None
+        if create_network:
+            # Unfortunately, the tags cannot be set in the POST request
+            self._log("Creating internal network")
+            network = self._connection.network.networks.create(name = "portal-internal")
+            network._update_tags(["portal-internal"])
+            # Create a subnet for the network
+            self._log("Creating subnet for network '%s'", network.name)
+            self._connection.network.subnets.create(
+                network_id = network.id,
+                ip_version = 4,
+                cidr = self._internal_net_cidr
+            )
+            return network
 
     def _external_network(self):
         """
@@ -506,19 +564,20 @@ class ScopedSession(base.ScopedSession):
         # First, try to find a network that is tagged as the portal external network
         tagged_network = self._tagged_network('portal-external')
         if tagged_network:
-            self._log("Using tagged external network: {}".format(tagged_network.name))
+            self._log("Using tagged external network '%s'", tagged_network.name)
             return tagged_network
         else:
             self._log("Failed to find tagged external network.")
         # Otherwise find the external gateway for the tenancy router
-        try:
-            # Try to get the router for the tenancy
-            router = next(self._connection.network.routers.all())
-        except StopIteration:
-            raise errors.ImproperlyConfiguredError('Could not find tenancy router.')
-        if not router.external_gateway_info:
-            raise errors.ImproperlyConfiguredError('Could not find external network.')
-        return self._connection.network.networks.get(router.external_gateway_info['network_id'])
+        router = next(self._connection.network.routers.all(), None)
+        if router and router.external_gateway_info:
+            external_network_id = router.external_gateway_info['network_id']
+            network = self._connection.network.networks.get(external_network_id)
+            self._log("Found external network '%s' via router", network.name)
+            return network
+        else:
+            self._log("Failed to find external network")
+            raise errors.InvalidOperationError('Could not find external network.')
 
     _POWER_STATES = {
         0: 'Unknown',
@@ -529,7 +588,7 @@ class ScopedSession(base.ScopedSession):
         7: 'Suspended',
     }
 
-    def _from_api_server(self, api_server, tenant_network = None):
+    def _from_api_server(self, api_server, tenant_network):
         """
         See :py:meth:`.base.ScopedSession.find_machine`.
         """
@@ -552,15 +611,12 @@ class ScopedSession(base.ScopedSession):
         status = api_server.status
         fault = api_server.fault.get('message', None)
         task = api_server.task_state
-        # Find IP addresses specifically on the tenant network that is connected
-        # to the router
-        network = tenant_network or self._tenant_network()
         # Function to get the first IP of a particular type on the tenant network
         def ip_of_type(ip_type):
             return next(
                 (
                     a['addr']
-                    for a in api_server.addresses.get(network.name, [])
+                    for a in api_server.addresses.get(tenant_network.name, [])
                     if a['version'] == 4 and a['OS-EXT-IPS:type'] == ip_type
                 ),
                 None
@@ -577,8 +633,8 @@ class ScopedSession(base.ScopedSession):
             ),
             self._POWER_STATES[api_server.power_state],
             task.capitalize() if task else None,
-            ip_of_type('fixed'),
-            ip_of_type('floating'),
+            ip_of_type('fixed') if tenant_network else None,
+            ip_of_type('floating') if tenant_network else None,
             nat_allowed,
             tuple(v['id'] for v in api_server.attached_volumes),
             api_server.user_id,
@@ -591,14 +647,15 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.machines`.
         """
         self._log('Fetching available servers')
-        # Load the tenant network once and reuse it
-        tenant_network = self._tenant_network()
-        servers = tuple(
-            self._from_api_server(s, tenant_network)
-            for s in self._connection.compute.servers.all()
-        )
-        self._log('Found %s servers', len(servers))
-        return servers
+        api_servers = tuple(self._connection.compute.servers.all())
+        self._log('Found %s servers', len(api_servers))
+        # If no servers loaded, we don't need to discover the tenant network
+        if api_servers:
+            # Load the tenant network once and reuse it
+            tenant_network = self._tenant_network()
+        else:
+            tenant_network = None
+        return tuple(self._from_api_server(s, tenant_network) for s in api_servers)
 
     @convert_exceptions
     def find_machine(self, id):
@@ -606,7 +663,10 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.find_machine`.
         """
         self._log("Fetching server with id '%s'", id)
-        return self._from_api_server(self._connection.compute.servers.get(id))
+        server = self._connection.compute.servers.get(id)
+        # Don't discover the tenant network unless the server is found
+        tenant_network = self._tenant_network()
+        return self._from_api_server(server, tenant_network)
 
     @convert_exceptions
     def create_machine(self, name, image, size, ssh_key = None):
@@ -630,7 +690,7 @@ class ScopedSession(base.ScopedSession):
         self._log("Creating machine '%s' (image: %s, size: %s)", name, api_image.name, size)
         # Get the networks to use
         # Always use the tenant network that is attached to the router
-        params.update(networks = [{ 'uuid': self._tenant_network().id }])
+        params.update(networks = [{ 'uuid': self._tenant_network(True).id }])
         # If the image asks for the backdoor network, attach it
         if getattr(api_image, 'jasmin_private_if', None):
             if not self._az_backdoor_net_map:
@@ -800,14 +860,17 @@ class ScopedSession(base.ScopedSession):
             )
         self._log("Attaching floating ip '%s' to server '%s'", ip, machine.id)
         # Get the port that attaches the machine to the tenant network
-        tenant_net = self._tenant_network()
-        port = next(
-            self._connection.network.ports.all(
-                device_id = machine.id,
-                network_id = tenant_net.id
-            ),
-            None
-        )
+        tenant_network = self._tenant_network()
+        if tenant_network:
+            port = next(
+                self._connection.network.ports.all(
+                    device_id = machine.id,
+                    network_id = tenant_network.id
+                ),
+                None
+            )
+        else:
+            port = None
         if not port:
             raise errors.ImproperlyConfiguredError(
                 'Machine is not connected to tenancy network.'
@@ -1069,7 +1132,7 @@ class ScopedSession(base.ScopedSession):
         # Inject information about the networks to use
         params.update(
             cluster_floating_network = self._external_network().name,
-            cluster_network = self._tenant_network().name
+            cluster_network = self._tenant_network(True).name
         )
         return self._fixup_cluster(
             self.cluster_manager.create_cluster(
