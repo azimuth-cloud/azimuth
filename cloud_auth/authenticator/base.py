@@ -3,9 +3,6 @@ Module containing the base authenticator.
 """
 
 
-from django.views.decorators.csrf import csrf_protect
-
-
 class BaseAuthenticator:
     """
     Base class for an authenticator, defining the expected interface.
