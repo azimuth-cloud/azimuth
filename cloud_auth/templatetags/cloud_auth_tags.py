@@ -11,6 +11,22 @@ register = template.Library()
 
 
 @register.simple_tag
+def cloud_auth_bootstrap_css_url():
+    """
+    Returns the configured Bootstrap CSS URL.
+    """
+    return auth_settings.BOOTSTRAP_CSS_URL
+
+
+@register.simple_tag
+def cloud_auth_custom_css():
+    """
+    Returns any custom CSS that is configured.
+    """
+    return auth_settings.CUSTOM_CSS
+
+
+@register.simple_tag
 def field_with_classes(field, *classes):
     """
     Adds the specified classes to the HTML element produced for the field.

@@ -8,9 +8,18 @@ from django.utils.html import escape, format_html
 from django.utils.safestring import mark_safe
 
 from cloud_auth.settings import auth_settings
+from ..settings import cloud_settings
 
 
 register = template.Library()
+
+
+@register.simple_tag()
+def jasmin_cloud_current_cloud():
+    """
+    Insert the name of the current cloud.
+    """
+    return cloud_settings.AVAILABLE_CLOUDS[cloud_settings.CURRENT_CLOUD]['label']
 
 
 @register.simple_tag(takes_context = True)

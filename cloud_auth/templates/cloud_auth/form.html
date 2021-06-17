@@ -6,8 +6,8 @@
 
 {% block content %}
 <div class="row justify-content-md-center">
-    <div class="modal d-block mt-5">
-        <div class="modal-dialog modal-md">
+    <div class="modal position-relative d-block mt-5">
+        <div class="modal-dialog">
             <form method="POST" action="{% url "cloud_auth:complete" %}">
                 {% csrf_token %}
                 <div class="modal-content">
