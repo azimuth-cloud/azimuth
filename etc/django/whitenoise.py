@@ -13,3 +13,6 @@ try:
 except ValueError:
     index = -1
 MIDDLEWARE.insert(index + 1, _WHITENOISE_MIDDLEWARE)
+
+# Always use the staticfiles location rather than using finders, even when DEBUG is True
+WHITENOISE_USE_FINDERS = False
