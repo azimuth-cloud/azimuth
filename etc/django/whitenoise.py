@@ -13,6 +13,3 @@ try:
 except ValueError:
     index = -1
 MIDDLEWARE.insert(index + 1, _WHITENOISE_MIDDLEWARE)
-
-# Use the whitenoise static file storage for caching, compression etc.
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
