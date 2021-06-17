@@ -42,12 +42,5 @@ class CloudAuthSettings(SettingsObject):
         'logout_successful': { 'message': 'You have been signed out.', 'level': 'success' },
     })
 
-    #: The URL of the Bootstrap CSS to use
-    BOOTSTRAP_CSS_URL = Setting(
-        default = "https://cdn.jsdelivr.net/npm/bootswatch@5.0.1/dist/pulse/bootstrap.min.css"
-    )
-    #: Any custom CSS that should be injected
-    CUSTOM_CSS = Setting(default = None)
-
 
 auth_settings = CloudAuthSettings('CLOUD_AUTH')

@@ -1,0 +1,7 @@
+/**
+ * We use this file to include the bootstrap CSS + any themes.
+ *
+ * Doing this allows us to replace this file in the container at runtime to use a
+ * different theme, rather than having to rebuild the image.
+*/
+@import url(https://cdn.jsdelivr.net/npm/bootswatch@5.0.1/dist/pulse/bootstrap.min.css);

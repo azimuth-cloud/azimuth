@@ -1,4 +1,4 @@
-{% load cloud_auth_tags %}
+{% load static %}
 {% load jasmin_cloud_tags %}
 
 <!doctype html>
@@ -6,8 +6,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link rel="stylesheet" href="{% cloud_auth_bootstrap_css_url %}">
-        <style>{% cloud_auth_custom_css %}</style>
+        <link rel="stylesheet" href="{% static 'bootstrap.css' %}">
         <title>{% block head_title %}{% block page_title %}{% endblock %} | {% jasmin_cloud_current_cloud %}{% endblock %}</title>
     </head>
     <body>
