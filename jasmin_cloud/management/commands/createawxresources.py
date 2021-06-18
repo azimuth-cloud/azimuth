@@ -2,6 +2,7 @@
 Module containing the management command for creating AWX resources required for CaaS.
 """
 
+import json
 import re
 import time
 
@@ -323,7 +324,6 @@ class Command(BaseCommand):
         """
         project = connection.projects.find_by_name(project_spec['NAME'])
         params = dict(
-            description = project_spec['METADATA_ROOT'],
             scm_type = 'git',
             scm_url = project_spec['GIT_URL'],
             scm_branch = project_spec['GIT_VERSION'],
@@ -347,12 +347,20 @@ class Command(BaseCommand):
         """
         Ensure that the configured projects exist.
         """
+        # Return (project_spec, project) pairs so we have access to the spec later
         return [
-            self.ensure_project(connection, organisation, project)
-            for project in cloud_settings.AWX.DEFAULT_PROJECTS
+            (project_spec, self.ensure_project(connection, organisation, project_spec))
+            for project_spec in cloud_settings.AWX.DEFAULT_PROJECTS
         ]
 
-    def ensure_job_template_for_playbook(self, connection, project, playbook, deploy_keypair_cred):
+    def ensure_job_template_for_playbook(
+        self,
+        connection,
+        project_spec,
+        project,
+        playbook,
+        deploy_keypair_cred
+    ):
         """
         Ensures that a job template exists for the given project and playbook.
         """
@@ -360,21 +368,29 @@ class Command(BaseCommand):
         template_name = re.sub(
             '[^a-zA-Z0-9-]+',
             '-',
-            playbook.removesuffix('.yml')
+            playbook.removesuffix('.yml').removesuffix('.yaml')
         )
-        # The metadata root should be in the project description
+        # Work out what extra vars we should use for the job template
+        # Start with the common extra vars
+        extra_vars_spec = project_spec.get('EXTRA_VARS', {})
+        extra_vars = extra_vars_spec.get('__ALL__', {})
+        # Update with specific variables for the playbook
+        extra_vars.update(extra_vars_spec.get(playbook, {}))
+        # The metadata root should be in the project spec
         # The metadata file should be named after the playbook
-        metadata_url = f"{project.description.rstrip('/')}/{playbook}"
+        metadata_url = f"{project_spec['METADATA_ROOT']}/{playbook}"
         job_template = connection.job_templates.find_by_name(template_name)
         params = dict(
             description = metadata_url,
             job_type = 'run',
             project = project.id,
             playbook = playbook,
+            extra_vars = json.dumps(extra_vars),
             # We will add the deploy keypair as a default credential,
             # but also allow extra credentials to be added
             ask_credential_on_launch = True,
             ask_inventory_on_launch = True,
+            # As well as the extra vars for the template, we allow per-job variables
             ask_variables_on_launch = True,
             allow_simultaneous = True
         )
@@ -394,18 +410,32 @@ class Command(BaseCommand):
             )
         return job_template
 
-    def ensure_job_templates_for_project(self, connection, project, deploy_keypair_cred):
+    def ensure_job_templates_for_project(
+        self,
+        connection,
+        project_spec,
+        project,
+        deploy_keypair_cred
+    ):
         """
         Ensures that a job template exists for each playbook in a project.
         """
+        self.stdout.write(f"Creating or updating job templates for '{project.name}'")
+        if 'PLAYBOOKS' in project_spec:
+            playbooks = project_spec['PLAYBOOKS']
+        else:
+            self.stdout.write(f"Fetching playbooks for project '{project.name}'")
+            playbooks = project.playbooks._fetch()
+        self.stdout.write(f"Using playbooks: {playbooks}")
         return [
             self.ensure_job_template_for_playbook(
                 connection,
+                project_spec,
                 project,
                 playbook,
                 deploy_keypair_cred
             )
-            for playbook in project.playbooks._fetch()
+            for playbook in playbooks
         ]
 
     def ensure_job_templates(self, connection, projects, deploy_keypair_cred):
@@ -414,9 +444,10 @@ class Command(BaseCommand):
         """
         return [
             job_template
-            for project in projects
+            for (project_spec, project) in projects
             for job_template in self.ensure_job_templates_for_project(
                 connection,
+                project_spec,
                 project,
                 deploy_keypair_cred
             )
