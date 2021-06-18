@@ -31,10 +31,6 @@ class AwxSettings(SettingsObject):
     USERNAME = Setting()
     #: The password to use for CaaS operations
     PASSWORD = Setting()
-    #: The name of the credential type to use
-    #: This should correspond to the selected provider
-    #: If CREATE_RESOURCES = True, credential types will be created that can be used
-    CREDENTIAL_TYPE = Setting(default = 'OpenStack Token')
     #: The name of the template inventory
     TEMPLATE_INVENTORY = Setting(default = 'openstack')
     #: Determines whether teams should be created on demand
@@ -93,7 +89,6 @@ class ProviderSetting(ObjectFactorySetting):
                     URL = instance.AWX.URL,
                     USERNAME = instance.AWX.USERNAME,
                     PASSWORD = instance.AWX.PASSWORD,
-                    CREDENTIAL_TYPE = instance.AWX.CREDENTIAL_TYPE,
                     CREATE_TEAMS = instance.AWX.CREATE_TEAMS,
                     CREATE_TEAM_ALLOW_ALL_PERMISSION = instance.AWX.CREATE_TEAM_ALLOW_ALL_PERMISSION,
                     VERIFY_SSL = instance.AWX.VERIFY_SSL,

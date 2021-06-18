@@ -2,6 +2,27 @@
 This module defines the base class for cluster managers.
 """
 
+from dataclasses import dataclass
+
+
+@dataclass
+class Credential:
+    """
+    Dataclass for a credential that is passed from the provider to interact with
+    a cloud.
+
+    For persistent (i.e. long-lived) credentials that are created once and reused,
+    data may be empty or None after the first use. However the credential type and
+    persistent flag should still be given in order for the engine to locate the 
+    stored credential.
+    """
+    #: The credential type
+    type: str
+    #: Indicates if the credential is a persistent credential or not
+    persistent: bool
+    #: The credential data
+    data: dict
+
 
 class Engine:
     """
@@ -67,7 +88,7 @@ class ClusterManager:
         """
         raise NotImplementedError
 
-    def create_cluster(self, name, cluster_type, params, ssh_key, *args, **kwargs):
+    def create_cluster(self, name, cluster_type, params, ssh_key, credential):
         """
         Creates a new cluster with the given name, type and parameters.
 
@@ -77,15 +98,14 @@ class ClusterManager:
             params: Dictionary of parameter values as required by the
                     cluster type.
             ssh_key: The SSH public key to inject for admin access.
-            args: Any additional arguments as required by implementations.
-            kwargs: Any additional arguments as required by implementations.
+            credential: The :py:class:`Credential` to use for accessing cloud resources.
 
         Returns:
             A :py:class:`~..dto.Cluster`.
         """
         raise NotImplementedError
 
-    def update_cluster(self, cluster, params, *args, **kwargs):
+    def update_cluster(self, cluster, params, credential):
         """
         Updates an existing cluster with the given parameters.
 
@@ -94,38 +114,35 @@ class ClusterManager:
                      Can be an id or a :py:class:`~..dto.Cluster`.
             params: Dictionary of parameters values as required by the
                     cluster type.
-            args: Any additional arguments as required by implementations.
-            kwargs: Any additional arguments as required by implementations.
+            credential: The :py:class:`Credential` to use for accessing cloud resources.
 
         Returns:
             The updated :py:class:`~..dto.Cluster`.
         """
         raise NotImplementedError
 
-    def patch_cluster(self, cluster, *args, **kwargs):
+    def patch_cluster(self, cluster, credential):
         """
         Patches the given existing cluster.
 
         Args:
             cluster: The cluster to patch.
                      Can be an id or a :py:class:`~..dto.Cluster`.
-            args: Any additional arguments as required by implementations.
-            kwargs: Any additional arguments as required by implementations.
+            credential: The :py:class:`Credential` to use for accessing cloud resources.
 
         Returns:
             The :py:class:`~..dto.Cluster` being patched.
         """
         raise NotImplementedError
 
-    def delete_cluster(self, cluster, *args, **kwargs):
+    def delete_cluster(self, cluster, credential):
         """
         Deletes an existing cluster.
 
         Args:
             cluster: The cluster to delete.
                      Can be an id or a :py:class:`~..dto.Cluster`.
-            args: Any additional arguments as required by implementations.
-            kwargs: Any additional arguments as required by implementations.
+            credential: The :py:class:`Credential` to use for accessing cloud resources.
 
         Returns:
             The deleted :py:class:`~..dto.Cluster`.

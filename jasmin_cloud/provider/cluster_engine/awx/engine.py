@@ -4,6 +4,7 @@ This module contains the cluster engine implementation for AWX.
 
 import logging
 import json
+import re
 import uuid
 
 import dateutil.parser
@@ -18,6 +19,13 @@ from ... import dto, errors
 logger = logging.getLogger(__name__)
 
 
+#: Maps credential types to AWX credential type names
+CREDENTIAL_TYPE_NAMES = {
+    'openstack_token': 'OpenStack Token',
+    'openstack_application_credential': 'OpenStack Application Credential',
+}
+
+
 class Engine(base.Engine):
     """
     Cluster engine implementation for AWX.
@@ -26,7 +34,6 @@ class Engine(base.Engine):
         url: The AWX API url.
         username: The username of the service account to use.
         password: The password of the service account.
-        credential_type: The name of the credential type to use.
         create_teams: Whether to create teams which do not exist.
         verify_ssl: Whether to verify SSL connections to AWX.
         template_inventory: The name of the template inventory.
@@ -34,7 +41,6 @@ class Engine(base.Engine):
     def __init__(self, url,
                        username,
                        password,
-                       credential_type,
                        create_teams = False,
                        create_team_allow_all_permission = False,
                        verify_ssl = True,
@@ -44,7 +50,6 @@ class Engine(base.Engine):
         self._password = password
         self._verify_ssl = verify_ssl
         self._template_inventory = template_inventory
-        self._credential_type = credential_type
         self._create_teams = create_teams
         self._create_team_allow_all_permission = create_team_allow_all_permission
 
@@ -86,9 +91,6 @@ class Engine(base.Engine):
             template_inventory = connection.inventories.find_by_name(self._template_inventory)
             if not template_inventory:
                 raise errors.ImproperlyConfiguredError('Could not find template inventory.')
-            credential_type = connection.credential_types.find_by_name(self._credential_type)
-            if not credential_type:
-                raise errors.ImproperlyConfiguredError('Could not find credential type.')
         except:
             connection.close()
             raise
@@ -103,7 +105,6 @@ class Engine(base.Engine):
                 username,
                 connection,
                 organisation,
-                credential_type,
                 template_inventory,
                 team
             )
@@ -124,13 +125,11 @@ class ClusterManager(base.ClusterManager):
     def __init__(self, username,
                        connection,
                        organisation,
-                       credential_type,
                        template_inventory,
                        team):
         self._username = username
         self._connection = connection
         self._organisation = organisation
-        self._credential_type = credential_type
         self._template_inventory = template_inventory
         self._team = team
 
@@ -217,7 +216,7 @@ class ClusterManager(base.ClusterManager):
         # Extract the parameters that aren't really parameters
         name = params.pop('cluster_name')
         cluster_type = params.pop('cluster_type')
-        ssh_key = params.pop('cluster_user_ssh_public_key')
+        params.pop('cluster_user_ssh_public_key')
         # Get the jobs for the inventory
         jobs = self._connection.jobs.all(inventory = inventory.id, order_by = '-started')
         # The status of the cluster is the status of the latest job
@@ -334,10 +333,69 @@ class ClusterManager(base.ClusterManager):
             )
         return self._from_inventory(inventory)
 
-    def _run_inventory(self, cluster_type, inventory, credential_inputs, extra_vars = {}):
+    def _get_or_create_credential(self, credential):
         """
-        Utility method to update inventory variables, create a credential
-        and run a job.
+        Utility method to return a credential to use.
+        """
+        # First, try to find the AWX credential type
+        try:
+            credential_type_name = CREDENTIAL_TYPE_NAMES[credential.type]
+        except KeyError:
+            self._log("Unknown credential type '%s'", credential.type, level = logging.WARNING)
+            credential_type = None
+        else:
+            self._log("Finding credential type '%s'", credential_type_name)
+            credential_type = self._connection.credential_types.find_by_name(credential_type_name)
+        if not credential_type:
+            message = "Unknown credential type '{}'.".format(credential.type)
+            raise errors.InvalidOperationError(message)
+        # Get the credential name to use
+        credential_name = re.sub(
+            '[^a-zA-Z0-9]+',
+            '-',
+            "{}-{}".format(self._username, self._team.name)
+        )
+        if credential.persistent:
+            # If the credential is long-lived, see if it already exists
+            self._log("Finding persistent credential '%s'", credential_name)
+            awx_credential = next(
+                self._connection.credentials.all(
+                    credential_type = credential_type.id,
+                    name = credential_name
+                ),
+                None
+            )
+            if awx_credential:
+                self._log("Found existing persistent credential '%s'", credential_name)
+        else:
+            # If the credential is short-lived, then it won't already exist
+            # Append some randomness to the name so that when we create the credential in AWX
+            # it doesn't conflict with previous ones for the same team and user
+            credential_name += "-" + str(uuid.uuid4())[:8]
+            awx_credential = None
+        # If data is given, create or update the named credential
+        if credential.data:
+            if awx_credential:
+                self._log("Updating credential '%s'", credential_name)
+                awx_credential = awx_credential._update(inputs = credential.data)
+            else:
+                self._log("Creating credential '%s'", credential_name)
+                awx_credential = self._connection.credentials.create(
+                    name = credential_name,
+                    credential_type = credential_type.id,
+                    organization = self._organisation.id,
+                    inputs = credential.data
+                )
+        # By now, we should have a credential to use
+        # If not, that is a problem!
+        if awx_credential:
+            return awx_credential
+        else:
+            raise errors.InvalidOperationError('Unable to find a suitable credential.')
+
+    def _run_inventory(self, cluster_type, inventory, credential, extra_vars = {}):
+        """
+        Utility method to update inventory variables and run a job with the given credential.
         """
         self._log("Finding job template '%s'", cluster_type)
         job_template = self._connection.job_templates.find_by_name(cluster_type)
@@ -346,13 +404,6 @@ class ClusterManager(base.ClusterManager):
                 "Could not find cluster type '%s'",
                 cluster_type
             )
-        self._log("Creating credential to run job")
-        credential = self._connection.credentials.create(
-            name = str(uuid.uuid4()),
-            organization = self._organisation.id,
-            credential_type = self._credential_type.id,
-            inputs = credential_inputs
-        )
         self._log("Executing job for inventory '%s'", inventory.name)
         # Append the cloud credential to the existing creds for the template
         credentials = [c['id'] for c in job_template.summary_fields['credentials']]
@@ -372,6 +423,10 @@ class ClusterManager(base.ClusterManager):
         """
         if isinstance(cluster_type, dto.ClusterType):
             cluster_type = cluster_type.name
+        # Get the AWX credential to use from the given data
+        # Do this before anything else as there is no point proceeding if the credential
+        # is not recognised
+        awx_credential = self._get_or_create_credential(credential)
         # The inventory name is prefixed with the tenancy name
         inventory_name = "{}-{}".format(self._team.name, name)
         self._log("Try to find existing inventory '%s'", inventory_name)
@@ -418,7 +473,7 @@ class ClusterManager(base.ClusterManager):
         self._run_inventory(
             cluster_type,
             inventory,
-            credential,
+            awx_credential,
             # Cluster creation should include a patch
             # There is no point in creating clusters that have known vulnerabilities!
             extra_vars = dict(cluster_upgrade_system_packages = True)
@@ -433,6 +488,10 @@ class ClusterManager(base.ClusterManager):
         # currently running job
         if isinstance(cluster, dto.Cluster):
             cluster = cluster.id
+        # Get the AWX credential to use from the given data
+        # Do this before anything else as there is no point proceeding if the credential
+        # is not recognised
+        awx_credential = self._get_or_create_credential(credential)
         cluster = self.find_cluster(cluster)
         if cluster.status in {dto.Cluster.Status.CONFIGURING, dto.Cluster.Status.DELETING}:
             raise errors.InvalidOperationError(
@@ -445,7 +504,7 @@ class ClusterManager(base.ClusterManager):
         inventory_variables.update(params)
         inventory.variable_data._update(inventory_variables)
         # Run the inventory
-        self._run_inventory(cluster.cluster_type, inventory, credential)
+        self._run_inventory(cluster.cluster_type, inventory, awx_credential)
         # Refetch the cluster to get the new status
         return self.find_cluster(cluster.id)
 
@@ -457,6 +516,10 @@ class ClusterManager(base.ClusterManager):
         # currently running job
         if isinstance(cluster, dto.Cluster):
             cluster = cluster.id
+        # Get the AWX credential to use from the given data
+        # Do this before anything else as there is no point proceeding if the credential
+        # is not recognised
+        awx_credential = self._get_or_create_credential(credential)
         cluster = self.find_cluster(cluster)
         if cluster.status in {dto.Cluster.Status.CONFIGURING, dto.Cluster.Status.DELETING}:
             raise errors.InvalidOperationError(
@@ -467,7 +530,7 @@ class ClusterManager(base.ClusterManager):
         self._run_inventory(
             cluster.cluster_type,
             self._connection.inventories.get(cluster.id),
-            credential,
+            awx_credential,
             extra_vars = dict(cluster_upgrade_system_packages = True)
         )
         # Refetch the cluster to get the new status
@@ -480,6 +543,10 @@ class ClusterManager(base.ClusterManager):
         # Start by re-fetching the cluster - it might already have been deleted
         if isinstance(cluster, dto.Cluster):
             cluster = cluster.id
+        # Get the AWX credential to use from the given data
+        # Do this before anything else as there is no point proceeding if the credential
+        # is not recognised
+        awx_credential = self._get_or_create_credential(credential)
         cluster = self.find_cluster(cluster)
         if cluster.status in {dto.Cluster.Status.CONFIGURING, dto.Cluster.Status.DELETING}:
             raise errors.InvalidOperationError(
@@ -491,7 +558,7 @@ class ClusterManager(base.ClusterManager):
         self._run_inventory(
             cluster.cluster_type,
             inventory,
-            credential,
+            awx_credential,
             extra_vars = dict(cluster_state = 'absent')
         )
         return self.find_cluster(inventory.id)

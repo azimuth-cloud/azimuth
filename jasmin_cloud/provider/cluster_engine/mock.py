@@ -21,15 +21,6 @@ class Engine(base.Engine):
         self._clusters_file = clusters_file
 
     def create_manager(self, username, tenancy):
-        """
-        Creates a cluster manager for the given tenancy.
-
-        Args:
-            tenancy: The :py:class:`~..provider.dto.Tenancy`.
-
-        Returns:
-            A :py:class:`ClusterManager`.
-        """
         return ClusterManager(self._cluster_types, self._clusters_file)
 
 
@@ -81,7 +72,7 @@ class ClusterManager(base.ClusterManager):
         except StopIteration:
             raise errors.ObjectNotFoundError("Could not find cluster '{}'".format(id))
 
-    def create_cluster(self, name, cluster_type, params, ssh_key, *args, **kwargs):
+    def create_cluster(self, name, cluster_type, params, *args, **kwargs):
         with open(self._clusters_file) as fh:
             clusters = json.load(fh)
         id = str(uuid.uuid4())

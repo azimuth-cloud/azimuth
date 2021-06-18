@@ -8,11 +8,17 @@ import time
 from django.core.management.base import BaseCommand
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, PublicFormat, NoEncryption
+from cryptography.hazmat.primitives.serialization import (
+    Encoding,
+    PrivateFormat,
+    PublicFormat,
+    NoEncryption
+)
 
 import rackit
 
 from ...settings import cloud_settings
+from ...provider.cluster_engine.awx.engine import CREDENTIAL_TYPE_NAMES
 from ...provider.cluster_engine.awx import api
 
 
@@ -21,7 +27,7 @@ CAAS_ORGANISATION_NAME = "CaaS"
 CAAS_DEPLOY_KEYPAIR_CREDENTIAL_NAME = 'CaaS Deploy Keypair'
 CAAS_CREDENTIAL_TYPES = [
     {
-        'name': 'OpenStack Token',
+        'name': CREDENTIAL_TYPE_NAMES['openstack_token'],
         'description': 'Authenticate with an OpenStack cloud using a previously acquired token.',
         'kind': 'cloud',
         'inputs': {
@@ -50,6 +56,45 @@ CAAS_CREDENTIAL_TYPES = [
                 'OS_AUTH_URL': '{{ auth_url }}',
                 'OS_PROJECT_ID': '{{ project_id }}',
                 'OS_TOKEN': '{{ token }}',
+            },
+        },
+    },
+    {
+        'name': CREDENTIAL_TYPE_NAMES['openstack_application_credential'],
+        'description': 'Authenticate with an OpenStack cloud using an application credential.',
+        'kind': 'cloud',
+        'inputs': {
+            'fields': [
+                {
+                    'type': 'string',
+                    'id': 'auth_url',
+                    'label': 'Auth URL',
+                },
+                {
+                    'type': 'string',
+                    'id': 'application_credential_id',
+                    'label': 'Application Credential ID',
+                },
+                {
+                    'type': 'string',
+                    'id': 'application_credential_secret',
+                    'label': 'Application Credential Secret',
+                    'secret': True,
+                },
+            ],
+            'required': [
+                'auth_url',
+                'application_credential_id',
+                'application_credential_secret',
+            ],
+        },
+        'injectors': {
+            'env': {
+                'OS_IDENTITY_API_VERSION': '3',
+                'OS_AUTH_TYPE': 'v3applicationcredential',
+                'OS_AUTH_URL': '{{ auth_url }}',
+                'OS_APPLICATION_CREDENTIAL_ID': '{{ application_credential_id }}',
+                'OS_APPLICATION_CREDENTIAL_SECRET': '{{ application_credential_secret }}',
             },
         },
     },
