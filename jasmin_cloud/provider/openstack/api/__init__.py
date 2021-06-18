@@ -1,3 +1,3 @@
 from .core import Connection, AuthParams, ServiceNotSupported
 # Import the modules for each of the services
-from . import block_store, compute, image, network, orchestration
+from . import block_store, compute, identity, image, network, orchestration

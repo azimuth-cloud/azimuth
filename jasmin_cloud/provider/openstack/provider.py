@@ -13,8 +13,10 @@ import dateutil.parser
 
 import rackit
 
-from . import api
 from .. import base, errors, dto
+from ..cluster_engine.base import Credential
+
+from . import api
 
 
 logger = logging.getLogger(__name__)
@@ -117,6 +119,8 @@ class Provider(base.Provider):
                             no vNIC type will be specified (default ``None``).
         verify_ssl: If ``True`` (the default), verify SSL certificates. If ``False``
                     SSL certificates are not verified.
+        cluster_app_cred_name: The name to use for the application credential that is given
+                               to the cluster engine for creating OpenStack resources.
         cluster_engine: The :py:class:`~..cluster.base.Engine` to use for clusters.
                         If not given, clusters are disabled.
     """
@@ -129,6 +133,7 @@ class Provider(base.Provider):
                        az_backdoor_net_map = dict(),
                        backdoor_vnic_type = None,
                        verify_ssl = True,
+                       cluster_app_cred_name = "caas-awx",
                        cluster_engine = None):
         # Strip any trailing slashes from the auth URL
         self._auth_url = auth_url.rstrip('/')
@@ -138,6 +143,7 @@ class Provider(base.Provider):
         self._az_backdoor_net_map = az_backdoor_net_map or dict()
         self._backdoor_vnic_type = backdoor_vnic_type
         self._verify_ssl = verify_ssl
+        self._cluster_app_cred_name = cluster_app_cred_name
         self._cluster_engine = cluster_engine
 
     @convert_exceptions
@@ -161,6 +167,7 @@ class Provider(base.Provider):
                 internal_net_cidr = self._internal_net_cidr,
                 az_backdoor_net_map = self._az_backdoor_net_map,
                 backdoor_vnic_type = self._backdoor_vnic_type,
+                cluster_app_cred_name = self._cluster_app_cred_name,
                 cluster_engine = self._cluster_engine
             )
 
@@ -184,6 +191,7 @@ class Provider(base.Provider):
                 internal_net_cidr = self._internal_net_cidr,
                 az_backdoor_net_map = self._az_backdoor_net_map,
                 backdoor_vnic_type = self._backdoor_vnic_type,
+                cluster_app_cred_name = self._cluster_app_cred_name,
                 cluster_engine = self._cluster_engine
             )
 
@@ -191,20 +199,6 @@ class Provider(base.Provider):
 class UnscopedSession(base.UnscopedSession):
     """
     Unscoped session implementation for OpenStack.
-
-    Args:
-        connection: An unscoped :py:mod:`.api.Connection`.
-        internal_net_cidr: The CIDR for the internal network when it is
-                           auto-created (default ``192.168.3.0/24``).
-        az_backdoor_net_map: Mapping of availability zone to the UUID of the backdoor network
-                             for that availability zone (default ``None``).
-                             The backdoor network will only be attached if the image specifically
-                             requests it. At that point, an availability zone will be randomly
-                             selected, and if the network is not available an error will be raised.
-        backdoor_vnic_type: The ``binding:vnic_type`` for the backdoor network. If not given,
-                            no vNIC type will be specified (default ``None``).
-        cluster_engine: The :py:class:`~..cluster.base.Engine` to use for clusters.
-                        If not given, clusters are disabled.
     """
     provider_name = 'openstack'
 
@@ -212,11 +206,13 @@ class UnscopedSession(base.UnscopedSession):
                        internal_net_cidr = '192.168.3.0/24',
                        az_backdoor_net_map = None,
                        backdoor_vnic_type = None,
+                       cluster_app_cred_name = "caas-awx",
                        cluster_engine = None):
         self._connection = connection
         self._internal_net_cidr = internal_net_cidr
         self._az_backdoor_net_map = az_backdoor_net_map or dict()
         self._backdoor_vnic_type = backdoor_vnic_type
+        self._cluster_app_cred_name = cluster_app_cred_name
         self._cluster_engine = cluster_engine
 
     def token(self):
@@ -318,6 +314,7 @@ class UnscopedSession(base.UnscopedSession):
                 internal_net_cidr = self._internal_net_cidr,
                 az_backdoor_net_map = self._az_backdoor_net_map,
                 backdoor_vnic_type = self._backdoor_vnic_type,
+                cluster_app_cred_name = self._cluster_app_cred_name,
                 cluster_engine = self._cluster_engine
             )
         except (rackit.Unauthorized, rackit.Forbidden):
@@ -336,22 +333,6 @@ class UnscopedSession(base.UnscopedSession):
 class ScopedSession(base.ScopedSession):
     """
     Tenancy-scoped session implementation for OpenStack.
-
-    Args:
-        username: The username of the OpenStack user.
-        tenancy: The :py:class:`~.dto.Tenancy`.
-        connection: An ``openstack.connection.Connection`` for the tenancy.
-        internal_net_cidr: The CIDR for the internal network when it is
-                           auto-created (default ``192.168.3.0/24``).
-        az_backdoor_net_map: Mapping of availability zone to the UUID of the backdoor network
-                             for that availability zone (default ``None``).
-                             The backdoor network will only be attached if the image specifically
-                             requests it. At that point, an availability zone will be randomly
-                             selected, and if the network is not available an error will be raised.
-        backdoor_vnic_type: The ``binding:vnic_type`` for the backdoor network. If not given,
-                            no vNIC type will be specified (default ``None``).
-        cluster_engine: The :py:class:`~.cluster_engine.base.ClusterEngine` to use for clusters.
-                        If not given, clusters are disabled.
     """
     provider_name = 'openstack'
 
@@ -361,6 +342,7 @@ class ScopedSession(base.ScopedSession):
                        internal_net_cidr = '192.168.3.0/24',
                        az_backdoor_net_map = None,
                        backdoor_vnic_type = None,
+                       cluster_app_cred_name = "caas-awx",
                        cluster_engine = None):
         self._username = username
         self._tenancy = tenancy
@@ -368,6 +350,7 @@ class ScopedSession(base.ScopedSession):
         self._internal_net_cidr = internal_net_cidr
         self._az_backdoor_net_map = az_backdoor_net_map or dict()
         self._backdoor_vnic_type = backdoor_vnic_type
+        self._cluster_app_cred_name = cluster_app_cred_name
         self._cluster_engine = cluster_engine
 
     def _log(self, message, *args, level = logging.INFO, **kwargs):
@@ -1112,16 +1095,71 @@ class ScopedSession(base.ScopedSession):
         """
         See :py:meth:`.base.ScopedSession.find_cluster`.
         """
-        return self._fixup_cluster(
-            self.cluster_manager.find_cluster(id)
-        )
+        return self._fixup_cluster(self.cluster_manager.find_cluster(id))
 
     def _cluster_credential(self):
-        return dict(
-            auth_url = self._connection.auth_url,
-            project_id = self._connection.project_id,
-            token = self._connection.token
-        )
+        """
+        Returns a credential to be used with the cluster engine for making OpenStack resources.
+
+        It attempts to use application credentials if they are supported, but falls back
+        to using the short-lived token if not.
+
+        Using the token can be a bit of a pain for cluster configuration, particularly if the
+        tokens have a short TTL, which is why we favour application creds if possible.
+        """
+        # Try to get the application credentials for the user
+        # If this fails for any reason, fallback to a token
+        try:
+            self._log("Fetching application credentials")
+            # This is a lazy object that isn't actually fetched
+            user = self._connection.identity.users.get(self._connection.user_id)
+            app_creds = user.application_credentials.all()
+        except rackit.ApiError:
+            self._log("Application credentials not supported - falling back to token")
+            return Credential(
+                type = "openstack_token",
+                persistent = False,
+                data = dict(
+                    auth_url = self._connection.auth_url,
+                    project_id = self._connection.project_id,
+                    token = self._connection.token
+                )
+            )
+        # If we were able to retrieve the app creds, then they are supported
+        # Search the discovered app creds for one that matches the current project
+        # and required name
+        app_cred_name = "{}-{}".format(self._tenancy.name, self._cluster_app_cred_name)
+        if any(
+            cred.name == app_cred_name and cred.project_id == self._connection.project_id
+            for cred in app_creds
+        ):
+            self._log("Reusing existing application credential")
+            # If the app cred exists, indicate to the cluster engine that it should
+            # reuse the user's existing credential
+            return Credential(
+                type = "openstack_application_credential",
+                persistent = True,
+                data = {}
+            )
+        else:
+            self._log("Creating application credential '%s'", app_cred_name)
+            # If the app cred doesn't exist, create it
+            app_cred = user.application_credentials.create(
+                name = app_cred_name,
+                # This application credential must be unrestricted because it
+                # will be used with Heat which makes trusts
+                unrestricted = True
+            )
+            # Return a credential containing the data
+            return Credential(
+                type = "openstack_application_credential",
+                persistent = True,
+                data = dict(
+                    auth_url = self._connection.auth_url,
+                    application_credential_id = app_cred.id,
+                    application_credential_secret = app_cred.secret
+                )
+            )
 
     @convert_exceptions
     def create_cluster(self, name, cluster_type, params, ssh_key):

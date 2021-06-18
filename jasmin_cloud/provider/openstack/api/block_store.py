@@ -5,7 +5,6 @@ Module containing service and resource definitions for the OpenStack compute API
 from rackit import RootResource, EmbeddedResource, Endpoint
 
 from .core import Service, ResourceWithDetail, UnmanagedResource
-from .image import Image
 
 
 class AbsoluteLimits(UnmanagedResource):
