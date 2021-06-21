@@ -2,6 +2,7 @@
 This module contains the provider implementation for OpenStack.
 """
 
+import dataclasses
 import functools
 import logging
 import base64
@@ -609,8 +610,8 @@ class ScopedSession(base.ScopedSession):
             api_server.name,
             image,
             size,
-            dto.Machine.Status(
-                getattr(dto.Machine.Status.Type, status, dto.Machine.Status.Type.OTHER),
+            dto.MachineStatus(
+                getattr(dto.MachineStatusType, status, dto.MachineStatusType.OTHER),
                 status,
                 _replace_resource_names(fault) if fault else None
             ),
@@ -879,18 +880,18 @@ class ScopedSession(base.ScopedSession):
         return self._from_api_floatingip(fip._update(port_id = None))
 
     _VOLUME_STATUSES = {
-        'creating': dto.Volume.Status.CREATING,
-        'available': dto.Volume.Status.AVAILABLE,
-        'reserved': dto.Volume.Status.ATTACHING,
-        'attaching': dto.Volume.Status.ATTACHING,
-        'detaching': dto.Volume.Status.DETACHING,
-        'in-use': dto.Volume.Status.IN_USE,
-        'deleting': dto.Volume.Status.DELETING,
-        'error': dto.Volume.Status.ERROR,
-        'error_deleting': dto.Volume.Status.ERROR,
-        'error_backing-up': dto.Volume.Status.ERROR,
-        'error_restoring': dto.Volume.Status.ERROR,
-        'error_extending': dto.Volume.Status.ERROR,
+        'creating': dto.VolumeStatus.CREATING,
+        'available': dto.VolumeStatus.AVAILABLE,
+        'reserved': dto.VolumeStatus.ATTACHING,
+        'attaching': dto.VolumeStatus.ATTACHING,
+        'detaching': dto.VolumeStatus.DETACHING,
+        'in-use': dto.VolumeStatus.IN_USE,
+        'deleting': dto.VolumeStatus.DELETING,
+        'error': dto.VolumeStatus.ERROR,
+        'error_deleting': dto.VolumeStatus.ERROR,
+        'error_backing-up': dto.VolumeStatus.ERROR,
+        'error_restoring': dto.VolumeStatus.ERROR,
+        'error_extending': dto.VolumeStatus.ERROR,
     }
 
     def _from_api_volume(self, api_volume):
@@ -900,7 +901,7 @@ class ScopedSession(base.ScopedSession):
         # Work out the volume status
         status = self._VOLUME_STATUSES.get(
             api_volume.status.lower(),
-            dto.Volume.Status.OTHER
+            dto.VolumeStatus.OTHER
         )
         try:
             attachment = api_volume.attachments[0]
@@ -953,7 +954,7 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.delete_volume`.
         """
         volume = volume if isinstance(volume, dto.Volume) else self.find_volume(volume)
-        if volume.status not in [dto.Volume.Status.AVAILABLE, dto.Volume.Status.ERROR]:
+        if volume.status not in [dto.VolumeStatus.AVAILABLE, dto.VolumeStatus.ERROR]:
             raise errors.InvalidOperationError(
                 "Cannot delete volume with status {}.".format(volume.status.name)
             )
@@ -975,7 +976,7 @@ class ScopedSession(base.ScopedSession):
         if volume.machine_id == machine:
             return volume
         # The volume must be available before attaching
-        if volume.status != dto.Volume.Status.AVAILABLE:
+        if volume.status != dto.VolumeStatus.AVAILABLE:
             raise errors.InvalidOperationError(
                 "Volume must be AVAILABLE before attaching."
             )
@@ -1074,7 +1075,8 @@ class ScopedSession(base.ScopedSession):
             )
         else:
             error_message = None
-        return cluster._replace(
+        return dataclasses.replace(
+            cluster,
             parameter_values = params,
             tags = cluster.tags + stack_tags,
             error_message = error_message

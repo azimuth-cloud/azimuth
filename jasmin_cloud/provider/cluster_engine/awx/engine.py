@@ -230,14 +230,14 @@ class ClusterManager(base.ClusterManager):
             latest = next(jobs)
         except StopIteration:
             # There should be at least one job...
-            status = dto.Cluster.Status.ERROR
+            status = dto.ClusterStatus.ERROR
         else:
             # The cluster_state comes from the extra vars of the most recent job
             latest_extra_vars = json.loads(latest.extra_vars)
             cluster_state = latest_extra_vars.get('cluster_state', 'present')
             if latest.status == 'successful':
                 if cluster_state == 'present':
-                    status = dto.Cluster.Status.READY
+                    status = dto.ClusterStatus.READY
                     updated = latest.finished
                     if latest_extra_vars.get('cluster_upgrade_system_packages', False):
                         patched = latest.finished
@@ -245,10 +245,10 @@ class ClusterManager(base.ClusterManager):
                     self._log("Inventory '%s' represents deleted cluster - ignoring", inventory.name)
                     raise errors.ObjectNotFoundError("Could not find cluster with ID {}".format(id))
             elif latest.status == 'canceled':
-                status = dto.Cluster.Status.ERROR
+                status = dto.ClusterStatus.ERROR
                 error_message = 'Cluster configuration cancelled by an administrator.'
             elif latest.status in {'failed', 'error'}:
-                status = dto.Cluster.Status.ERROR
+                status = dto.ClusterStatus.ERROR
                 # Try to retrieve an error from the failed task
                 event = next(
                     latest.job_events.all(event = 'runner_on_failed', order_by = '-created'),
@@ -258,9 +258,9 @@ class ClusterManager(base.ClusterManager):
                 error_message = msg or 'Error during cluster configuration. Please contact support.'
             else:
                 if cluster_state == 'present':
-                    status = dto.Cluster.Status.CONFIGURING
+                    status = dto.ClusterStatus.CONFIGURING
                 else:
-                    status = dto.Cluster.Status.DELETING
+                    status = dto.ClusterStatus.DELETING
                 # Find the name of the currently executing task
                 task = next(
                     (
@@ -493,7 +493,7 @@ class ClusterManager(base.ClusterManager):
         # is not recognised
         awx_credential = self._get_or_create_credential(credential)
         cluster = self.find_cluster(cluster)
-        if cluster.status in {dto.Cluster.Status.CONFIGURING, dto.Cluster.Status.DELETING}:
+        if cluster.status in {dto.ClusterStatus.CONFIGURING, dto.ClusterStatus.DELETING}:
             raise errors.InvalidOperationError(
                 'Cannot update cluster with status {}'.format(cluster.status.name)
             )
@@ -521,7 +521,7 @@ class ClusterManager(base.ClusterManager):
         # is not recognised
         awx_credential = self._get_or_create_credential(credential)
         cluster = self.find_cluster(cluster)
-        if cluster.status in {dto.Cluster.Status.CONFIGURING, dto.Cluster.Status.DELETING}:
+        if cluster.status in {dto.ClusterStatus.CONFIGURING, dto.ClusterStatus.DELETING}:
             raise errors.InvalidOperationError(
                 'Cannot patch cluster with status {}'.format(cluster.status.name)
             )
@@ -548,7 +548,7 @@ class ClusterManager(base.ClusterManager):
         # is not recognised
         awx_credential = self._get_or_create_credential(credential)
         cluster = self.find_cluster(cluster)
-        if cluster.status in {dto.Cluster.Status.CONFIGURING, dto.Cluster.Status.DELETING}:
+        if cluster.status in {dto.ClusterStatus.CONFIGURING, dto.ClusterStatus.DELETING}:
             raise errors.InvalidOperationError(
                 'Cannot delete cluster with status {}'.format(cluster.status.name)
             )

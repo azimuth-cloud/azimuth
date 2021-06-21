@@ -3,6 +3,7 @@ Django REST framework serializers for objects from the :py:mod:`~.cloud.dto` pac
 """
 
 import collections
+import dataclasses
 
 from cryptography.exceptions import UnsupportedAlgorithm
 from cryptography.hazmat.primitives.serialization import load_ssh_public_key
@@ -30,12 +31,16 @@ def make_dto_serializer(dto_class, exclude = []):
     Returns:
         A subclass of ``rest_framework.serializers.Serializer``.
     """
+    if dataclasses.is_dataclass(dto_class):
+        fields = [f.name for f in dataclasses.fields(dto_class)]
+    else:
+        fields = dto_class._fields
     return type(
         dto_class.__name__ + 'Serializer',
         (serializers.Serializer, ),
         {
             name: serializers.ReadOnlyField()
-            for name in dto_class._fields
+            for name in fields
             if name not in exclude
         }
     )
@@ -108,6 +113,16 @@ class TenancySerializer(make_dto_serializer(dto.Tenancy)):
                         'tenant': obj.id,
                     })
                 ),
+                'kubernetes_cluster_templates': request.build_absolute_uri(
+                    reverse('jasmin_cloud:kubernetes_cluster_templates', kwargs = {
+                        'tenant': obj.id,
+                    })
+                ),
+                'kubernetes_clusters': request.build_absolute_uri(
+                    reverse('jasmin_cloud:kubernetes_clusters', kwargs = {
+                        'tenant': obj.id,
+                    })
+                ),
                 'cluster_types': request.build_absolute_uri(
                     reverse('jasmin_cloud:cluster_types', kwargs = {
                         'tenant': obj.id,
@@ -160,42 +175,50 @@ class SizeSerializer(make_dto_serializer(dto.Size)):
 Ref = collections.namedtuple('Ref', ['id'])
 
 
-class VolumeRefSerializer(serializers.Serializer):
+class RefSerializer(serializers.Serializer):
     id = serializers.ReadOnlyField()
 
     def to_representation(self, obj):
+        # If the given object is a scalar, convert it to a ref first
+        if isinstance(obj, (str, int)):
+            obj = Ref(obj)
         result = super().to_representation(obj)
         # If the info to build a link is in the context, add it
         request = self.context.get('request')
         tenant = self.context.get('tenant')
         if request and tenant:
-            result.setdefault('links', {})['self'] = request.build_absolute_uri(
-                reverse('jasmin_cloud:volume_details', kwargs = {
-                    'tenant': tenant,
-                    'volume': obj.id,
-                })
+            result.setdefault('links', {})['self'] = self.get_self_link(
+                request,
+                tenant,
+                obj.id
             )
         return result
 
+    def get_self_link(self, request, tenant, id):
+        """
+        Returns the self link for a ref.
+        """
+        raise NotImplementedError
 
-class MachineRefSerializer(serializers.Serializer):
-    id = serializers.ReadOnlyField()
 
-    def to_representation(self, obj):
-        result = super().to_representation(obj)
-        # If the info to build a link is in the context, add it
-        request = self.context.get('request')
-        tenant = self.context.get('tenant')
-        if request and tenant:
-            result.setdefault('links', {}).update({
-                'self': request.build_absolute_uri(
-                    reverse('jasmin_cloud:machine_details', kwargs = {
-                        'tenant': tenant,
-                        'machine': obj.id,
-                    })
-                ),
+class VolumeRefSerializer(RefSerializer):
+    def get_self_link(self, request, tenant, id):
+        return request.build_absolute_uri(
+            reverse('jasmin_cloud:volume_details', kwargs = {
+                'tenant': tenant,
+                'volume': id,
             })
-        return result
+        )
+
+
+class MachineRefSerializer(RefSerializer):
+    def get_self_link(self, request, tenant, id):
+        return request.build_absolute_uri(
+            reverse('jasmin_cloud:machine_details', kwargs = {
+                'tenant': tenant,
+                'machine': id,
+            })
+        )
 
 
 class VolumeSerializer(
@@ -203,12 +226,11 @@ class VolumeSerializer(
     make_dto_serializer(dto.Volume, exclude = ['status', 'machine_id'])
 ):
     status = serializers.ReadOnlyField(source = 'status.name')
-    machine = MachineRefSerializer(read_only = True, allow_null = True)
-
-    def to_representation(self, obj):
-        # Convert raw ids to refs before serializing
-        obj.machine = Ref(obj.machine_id) if obj.machine_id else None
-        return super().to_representation(obj)
+    machine = MachineRefSerializer(
+        source = "machine_id",
+        read_only = True,
+        allow_null = True
+    )
 
 
 class CreateVolumeSerializer(serializers.Serializer):
@@ -220,7 +242,7 @@ class UpdateVolumeSerializer(serializers.Serializer):
     machine_id = serializers.UUIDField(write_only = True, allow_null = True)
 
 
-class MachineStatusSerializer(make_dto_serializer(dto.Machine.Status)):
+class MachineStatusSerializer(make_dto_serializer(dto.MachineStatus)):
     type = serializers.ReadOnlyField(source = 'type.name')
 
 
@@ -237,11 +259,13 @@ class MachineSerializer(
     size_id = serializers.RegexField('^[a-z0-9-]+$', write_only = True)
 
     status = MachineStatusSerializer(read_only = True)
-    attached_volumes = VolumeRefSerializer(many = True, read_only = True)
+    attached_volumes = VolumeRefSerializer(
+        source = 'attached_volume_ids',
+        many = True,
+        read_only = True
+    )
 
     def to_representation(self, obj):
-        # Convert volume ids to refs before serializing
-        obj.attached_volumes = [Ref(v) for v in obj.attached_volume_ids]
         result = super().to_representation(obj)
         # If the info to build a link is in the context, add it
         request = self.context.get('request')
@@ -271,12 +295,14 @@ class MachineSerializer(
 
 
 class ExternalIPSerializer(make_dto_serializer(dto.ExternalIp)):
-    machine = MachineRefSerializer(read_only = True, allow_null = True)
+    machine = MachineRefSerializer(
+        source = "machine_id",
+        read_only = True,
+        allow_null = True
+    )
     machine_id = serializers.UUIDField(write_only = True, allow_null = True)
 
     def to_representation(self, obj):
-        # Convert raw ids to refs before serializing
-        obj.machine = Ref(obj.machine_id) if obj.machine_id else None
         result = super().to_representation(obj)
         # If the info to build a link is in the context, add it
         request = self.context.get('request')
@@ -291,8 +317,11 @@ class ExternalIPSerializer(make_dto_serializer(dto.ExternalIp)):
         return result
 
 
-class ClusterTypeRefSerializer(serializers.Serializer):
-    name = serializers.ReadOnlyField()
+ClusterParameterSerializer = make_dto_serializer(dto.ClusterParameter)
+
+
+class ClusterTypeSerializer(make_dto_serializer(dto.ClusterType)):
+    parameters = ClusterParameterSerializer(many = True, read_only = True)
 
     def to_representation(self, obj):
         result = super().to_representation(obj)
@@ -307,16 +336,6 @@ class ClusterTypeRefSerializer(serializers.Serializer):
                 })
             )
         return result
-
-
-ClusterTypeParameterSerializer = make_dto_serializer(dto.ClusterType.Parameter)
-
-
-class ClusterTypeSerializer(
-    ClusterTypeRefSerializer,
-    make_dto_serializer(dto.ClusterType)
-):
-    parameters = ClusterTypeParameterSerializer(many = True, read_only = True)
 
 
 class ClusterSerializer(make_dto_serializer(dto.Cluster)):
