@@ -488,6 +488,129 @@ class ScopedSession:
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
+    def kubernetes_cluster_templates(self):
+        """
+        Lists the Kubernetes cluster templates currently available to the tenancy.
+
+        Returns:
+            An iterable of :py:class:`~.dto.KubernetesClusterTemplate`\ s.
+        """
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
+
+    def find_kubernetes_cluster_template(self, id):
+        """
+        Finds a Kubernetes cluster template by id.
+
+        Args:
+            id: The id of the Kubernetes cluster template to find.
+
+        Returns:
+            A :py:class:`~.dto.KubernetesClusterTemplate` object.
+        """
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
+
+    def kubernetes_clusters(self):
+        """
+        Lists the Kubernetes clusters currently available to the tenancy.
+
+        Returns:
+            An iterable of :py:class:`~.dto.KubernetesCluster`\ s.
+        """
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
+
+    def find_kubernetes_cluster(self, id):
+        """
+        Finds a Kubernetes cluster by id.
+
+        Args:
+            id: The id of the Kubernetes cluster to find.
+
+        Returns:
+            A :py:class:`~.dto.KubernetesCluster` object.
+        """
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
+
+    def create_kubernetes_cluster(
+        self,
+        name,
+        template_id,
+        master_size_id,
+        worker_size_id,
+        worker_count = None,
+        min_worker_count = None,
+        max_worker_count = None,
+        auto_healing_enabled = False,
+        auto_scaling_enabled = False,
+        monitoring_enabled = False,
+        grafana_admin_password = None,
+        ssh_key = None
+    ):
+        """
+        Create a new Kubernetes cluster in the tenancy.
+
+        Args:
+            name: The name of the cluster.
+            template_id: The ID of the template to use for the cluster.
+            master_size_id: The ID of the size to use for masters.
+            worker_size_id: The ID of the size to use for workers.
+            worker_count: The number of workers if auto-scaling is not enabled.
+            min_worker_count: The minimum number of workers if auto-scaling is enabled.
+            max_worker_count: The maximum number of workers if auto-scaling is enabled.
+            auto_healing_enabled: Indicates if cluster auto-healing should be enabled.
+            auto_scaling_enabled: Indicates if cluster auto-scaling should be enabled.
+            monitoring_enabled: Indicates if cluster monitoring should be enabled.
+            grafana_admin_password: The password for the Grafana admin user if
+                                    monitoring is enabled.
+            ssh_key: The SSH key to inject into cluster nodes.
+
+        Returns:
+            A :py:class:`~.dto.KubernetesCluster` object.
+        """
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
+
+    def update_kubernetes_cluster(self, cluster, template):
+        """
+        Update the specified Kubernetes cluster.
+
+        Args:
+            cluster: The cluster to update.
+                     Can be an id or a :py:class:`~.dto.KubernetesCluster`.
+            template: The template to use for the cluster.
+                      Can be an id or a :py:class:`~.dto.KubernetesClusterTemplate`.
+
+        Returns:
+            The updated :py:class:`~.dto.KubernetesCluster`.
+        """
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
+
+    def delete_kubernetes_cluster(self, cluster):
+        """
+        Delete the specified Kubernetes cluster.
+
+        Args:
+            cluster: The cluster to delete.
+                     Can be an id or a :py:class:`~.dto.KubernetesCluster`.
+
+        Returns:
+            The updated :py:class:`~.dto.KubernetesCluster` if it has transitioned to a
+            deleting status, or ``None`` if it has already been deleted.
+        """
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
+
     def cluster_types(self):
         """
         Lists the available cluster types.

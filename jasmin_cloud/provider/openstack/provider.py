@@ -563,6 +563,30 @@ class ScopedSession(base.ScopedSession):
             self._log("Failed to find external network")
             raise errors.InvalidOperationError('Could not find external network.')
 
+    def _get_or_create_keypair(self, ssh_key):
+        """
+        Returns a Nova keypair for the given SSH key.
+        """
+        # Keypairs are immutable, i.e. once created cannot be changed
+        # We create keys with names of the form "<username>-<truncated fingerprint>",
+        # which allows for us to recognise when a user has changed their key and create
+        # a new one
+        fingerprint = hashlib.md5(base64.b64decode(ssh_key.split()[1])).hexdigest()
+        key_name = '{username}-{fingerprint}'.format(
+            # Sanitise the username by replacing non-alphanumerics with -
+            username = sanitise_username(self._username),
+            # Truncate the fingerprint to 8 characters
+            fingerprint = fingerprint[:8]
+        )
+        try:
+            # We need to force a fetch so that the keypair is resolved
+            return self._connection.compute.keypairs.get(key_name, force = True)
+        except rackit.NotFound:
+            return self._connection.compute.keypairs.create(
+                name = key_name,
+                public_key = ssh_key
+            )
+
     _POWER_STATES = {
         0: 'Unknown',
         1: 'Running',
@@ -698,25 +722,7 @@ class ScopedSession(base.ScopedSession):
             params['networks'].append({ 'port': port.id })
         # Get the keypair to inject
         if ssh_key:
-            # Keypairs are immutable, i.e. once created cannot be changed
-            # We create keys with names of the form "<username>-<truncated fingerprint>",
-            # which allows for us to recognise when a user has changed their key and create
-            # a new one
-            fingerprint = hashlib.md5(base64.b64decode(ssh_key.split()[1])).hexdigest()
-            key_name = '{username}-{fingerprint}'.format(
-                # Sanitise the username by replacing non-alphanumerics with -
-                username = sanitise_username(self._username),
-                # Truncate the fingerprint to 8 characters
-                fingerprint = fingerprint[:8]
-            )
-            try:
-                # We need to force a fetch so that the keypair is resolved
-                keypair = self._connection.compute.keypairs.get(key_name, force = True)
-            except rackit.NotFound:
-                keypair = self._connection.compute.keypairs.create(
-                    name = key_name,
-                    public_key = ssh_key
-                )
+            keypair = self._get_or_create_keypair(ssh_key)
             params.update(key_name = keypair.name)
         # Pass metadata onto the machine from the image if present
         metadata = dict(jasmin_organisation = self._tenancy.name)
@@ -896,7 +902,7 @@ class ScopedSession(base.ScopedSession):
 
     def _from_api_volume(self, api_volume):
         """
-        Converts an OpenStack SDK volume object into a :py:class:`.dto.Volume`.
+        Converts an OpenStack API volume object into a :py:class:`.dto.Volume`.
         """
         # Work out the volume status
         status = self._VOLUME_STATUSES.get(
@@ -1002,6 +1008,175 @@ class ScopedSession(base.ScopedSession):
         # Refresh the volume in the cache
         self._connection.block_store.volumes.get(volume.id, force = True)
         return self.find_volume(volume.id)
+
+    def _from_api_coe_cluster_template(self, template):
+        """
+        Converts a COE cluster template into a :py:class:`.dto.KubernetesClusterTemplate`.
+        """
+        return dto.KubernetesClusterTemplate(
+            template.uuid,
+            template.name,
+            template.public,
+            template.hidden,
+            dateutil.parser.parse(template.created_at),
+            dateutil.parser.parse(template.updated_at) if template.updated_at else None
+        )
+
+    @convert_exceptions
+    def kubernetes_cluster_templates(self):
+        """
+        See :py:meth:`.base.ScopedSession.kubernetes_cluster_templates`.
+        """
+        self._log('Fetching available COE cluster templates')
+        templates = list(self._connection.coe.cluster_templates.all())
+        self._log('Found %s COE cluster templates', len(templates))
+        # Return only the templates that have Kubernetes as a COE
+        return tuple(
+            self._from_api_coe_cluster_template(template)
+            for template in templates
+            if template.coe == "kubernetes"
+        )
+
+    @convert_exceptions
+    def find_kubernetes_cluster_template(self, id):
+        """
+        See :py:meth:`.base.ScopedSession.find_kubernetes_cluster_template`.
+        """
+        self._log("Fetching COE cluster template with id '%s'", id)
+        template = self._connection.coe.cluster_templates.get(id)
+        # Check that the COE is Kubernetes and bail if not
+        if template.coe != "kubernetes":
+            raise errors.ObjectNotFoundError('ClusterTemplate {} could not be found.'.format(id))
+        return self._from_api_coe_cluster_template(template)
+
+    def _from_api_coe_cluster(self, cluster):
+        """
+        Converts a COE cluster into a :py:class:`.dto.KubernetesCluster`.
+        """
+        return dto.KubernetesCluster(
+            cluster.uuid,
+            cluster.name,
+            cluster.cluster_template_id,
+            cluster.coe_version,
+            dto.KubernetesClusterStatus(cluster.status),
+            cluster.status_reason or None,
+            dto.KubernetesClusterHealthStatus(cluster.health_status)
+                if cluster.health_status
+                else None,
+            cluster.health_status_reason,
+            cluster.master_count,
+            cluster.node_count,
+            cluster.master_flavor_id,
+            cluster.flavor_id,
+            cluster.labels.get("auto_scaling_enabled", "False") == "True",
+            cluster.labels.get("min_node_count"),
+            cluster.labels.get("max_node_count"),
+            cluster.labels.get("auto_healing_enabled", "False") == "True",
+            cluster.labels.get("monitoring_enabled", "False") == "True",
+            cluster.labels.get("grafana_admin_password"),
+            dateutil.parser.parse(cluster.created_at),
+            dateutil.parser.parse(cluster.updated_at) if cluster.updated_at else None
+        )
+
+    @convert_exceptions
+    def kubernetes_clusters(self):
+        """
+        See :py:meth:`.base.ScopedSession.kubernetes_clusters`.
+        """
+        self._log('Fetching available COE clusters')
+        clusters = list(self._connection.coe.clusters.all())
+        self._log('Found %s COE clusters', len(clusters))
+        # Return only the clusters that have Kubernetes as a COE
+        # To do this, we need to look up the template
+        return tuple(
+            self._from_api_coe_cluster(cluster)
+            for cluster in clusters
+            if cluster.cluster_template.coe == "kubernetes"
+        )
+
+    @convert_exceptions
+    def find_kubernetes_cluster(self, id):
+        """
+        See :py:meth:`.base.ScopedSession.find_kubernetes_cluster`.
+        """
+        self._log("Fetching COE cluster with id '%s'", id)
+        cluster = self._connection.coe.clusters.get(id)
+        # Check that the COE is Kubernetes and bail if not
+        if cluster.cluster_template.coe != "kubernetes":
+            raise errors.ObjectNotFoundError('Cluster {} could not be found.'.format(id))
+        return self._from_api_coe_cluster(cluster)
+
+    @convert_exceptions
+    def create_kubernetes_cluster(
+        self,
+        name,
+        template_id,
+        master_size_id,
+        worker_size_id,
+        worker_count = None,
+        min_worker_count = None,
+        max_worker_count = None,
+        auto_healing_enabled = False,
+        auto_scaling_enabled = False,
+        monitoring_enabled = False,
+        grafana_admin_password = None,
+        ssh_key = None
+    ):
+        """
+        See :py:meth:`.base.ScopedSession.create_kubernetes_cluster`.
+        """
+        self._log("Creating Kubernetes cluster '%s'", name)
+        params = dict(
+            name = name,
+            cluster_template_id = template_id,
+            master_flavor_id = master_size_id,
+            flavor_id = worker_size_id,
+            # If auto-scaling is enabled, min/max worker count will be set
+            # If not, then worker count will be set
+            # Use the worker count or the minimum worker count, depending which is set
+            node_count = worker_count or min_worker_count,
+            labels = dict(
+                auto_healing_enabled = auto_healing_enabled,
+                auto_scaling_enabled = auto_scaling_enabled,
+                monitoring_enabled = monitoring_enabled
+            )
+        )
+        if auto_scaling_enabled:
+            params['labels'].update(
+                min_node_count = min_worker_count,
+                max_node_count = max_worker_count
+            )
+        if monitoring_enabled:
+            params['labels'].update(grafana_admin_password = grafana_admin_password)
+        if ssh_key:
+            keypair = self._get_or_create_keypair(ssh_key)
+            params.update(keypair = keypair.name)
+        cluster = self._connection.coe.clusters.create(**params)
+        return self._from_api_coe_cluster(cluster)
+
+    @convert_exceptions
+    def update_kubernetes_cluster(self, cluster, template):
+        """
+        See :py:meth:`.base.ScopedSession.update_kubernetes_cluster`.
+        """
+        return super().update_kubernetes_cluster(cluster, template)
+
+    @convert_exceptions
+    def delete_kubernetes_cluster(self, cluster):
+        """
+        See :py:meth:`.base.ScopedSession.delete_kubernetes_cluster`.
+        """
+        cluster = cluster.id if isinstance(cluster, dto.KubernetesCluster) else cluster
+        self._log("Deleting Kubernetes cluster '%s'", cluster)
+        self._connection.coe.clusters.delete(cluster)
+        try:
+            # The state doesn't change straight away, so replace it
+            return dataclasses.replace(
+                self.find_kubernetes_cluster(cluster),
+                status = dto.KubernetesClusterStatus.DELETE_IN_PROGRESS
+            )
+        except errors.ObjectNotFoundError:
+            return None
 
     @property
     def cluster_manager(self):

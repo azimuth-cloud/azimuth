@@ -46,6 +46,35 @@ def make_dto_serializer(dto_class, exclude = []):
     )
 
 
+Ref = collections.namedtuple('Ref', ['id'])
+
+
+class RefSerializer(serializers.Serializer):
+    id = serializers.ReadOnlyField()
+
+    def to_representation(self, obj):
+        # If the given object is a scalar, convert it to a ref first
+        if isinstance(obj, (str, int)):
+            obj = Ref(obj)
+        result = super().to_representation(obj)
+        # If the info to build a link is in the context, add it
+        request = self.context.get('request')
+        tenant = self.context.get('tenant')
+        if request and tenant:
+            result.setdefault('links', {})['self'] = self.get_self_link(
+                request,
+                tenant,
+                obj.id
+            )
+        return result
+
+    def get_self_link(self, request, tenant, id):
+        """
+        Returns the self link for a ref.
+        """
+        raise NotImplementedError
+
+
 class SSHKeyUpdateSerializer(serializers.Serializer):
     """
     Serializer for updating an SSH public key.
@@ -156,49 +185,21 @@ class ImageSerializer(make_dto_serializer(dto.Image, exclude = ['vm_type'])):
         return result
 
 
-class SizeSerializer(make_dto_serializer(dto.Size)):
-    def to_representation(self, obj):
-        result = super().to_representation(obj)
-        # If the info to build a link is in the context, add it
-        request = self.context.get('request')
-        tenant = self.context.get('tenant')
-        if request and tenant:
-            result.setdefault('links', {})['self'] = request.build_absolute_uri(
-                reverse('jasmin_cloud:size_details', kwargs = {
-                    'tenant': tenant,
-                    'size': obj.id,
-                })
-            )
-        return result
-
-
-Ref = collections.namedtuple('Ref', ['id'])
-
-
-class RefSerializer(serializers.Serializer):
-    id = serializers.ReadOnlyField()
-
-    def to_representation(self, obj):
-        # If the given object is a scalar, convert it to a ref first
-        if isinstance(obj, (str, int)):
-            obj = Ref(obj)
-        result = super().to_representation(obj)
-        # If the info to build a link is in the context, add it
-        request = self.context.get('request')
-        tenant = self.context.get('tenant')
-        if request and tenant:
-            result.setdefault('links', {})['self'] = self.get_self_link(
-                request,
-                tenant,
-                obj.id
-            )
-        return result
-
+class SizeRefSerializer(RefSerializer):
     def get_self_link(self, request, tenant, id):
-        """
-        Returns the self link for a ref.
-        """
-        raise NotImplementedError
+        return request.build_absolute_uri(
+            reverse('jasmin_cloud:size_details', kwargs = {
+                'tenant': tenant,
+                'size': id,
+            })
+        )
+
+
+SizeSerializer = type(
+    'SizeSerializer',
+    (SizeRefSerializer, make_dto_serializer(dto.Size)),
+    {}
+)
 
 
 class VolumeRefSerializer(RefSerializer):
@@ -315,6 +316,118 @@ class ExternalIPSerializer(make_dto_serializer(dto.ExternalIp)):
                 })
             )
         return result
+
+
+class KubernetesClusterTemplateRefSerializer(RefSerializer):
+    def get_self_link(self, request, tenant, id):
+        return request.build_absolute_uri(
+            reverse('jasmin_cloud:kubernetes_cluster_template_details', kwargs = {
+                'tenant': tenant,
+                'template': id,
+            })
+        )
+
+
+KubernetesClusterTemplateSerializer = type(
+    'KubernetesClusterTemplateSerializer',
+    (
+        KubernetesClusterTemplateRefSerializer,
+        make_dto_serializer(dto.KubernetesClusterTemplate)
+    ),
+    {}
+)
+
+
+class KubernetesClusterSerializer(
+    make_dto_serializer(
+        dto.KubernetesCluster,
+        exclude = [
+            'template_id',
+            'master_size_id',
+            'worker_size_id',
+            'status',
+            'health_status'
+        ]
+    )
+):
+    master_size = SizeRefSerializer(source = 'master_size_id', read_only = True)
+    worker_size = SizeRefSerializer(source = 'worker_size_id', read_only = True)
+    template = KubernetesClusterTemplateRefSerializer(
+        source = 'template_id',
+        read_only = True
+    )
+    status = serializers.ReadOnlyField(
+        source = 'status.name',
+        read_only = True
+    )
+    health_status = serializers.ReadOnlyField(
+        source = 'health_status.name',
+        allow_null = True,
+        read_only = True
+    )
+
+    def to_representation(self, obj):
+        result = super().to_representation(obj)
+        # If the info to build a link is in the context, add it
+        request = self.context.get('request')
+        tenant = self.context.get('tenant')
+        if request and tenant:
+            result.setdefault('links', {})['self'] = request.build_absolute_uri(
+                reverse('jasmin_cloud:kubernetes_cluster_details', kwargs = {
+                    'tenant': tenant,
+                    'cluster': obj.id,
+                })
+            )
+        return result
+
+
+class CreateKubernetesClusterSerializer(serializers.Serializer):
+    name = serializers.RegexField('^[a-z0-9-_]+$')
+    template_id = serializers.RegexField('^[a-z0-9-]+$')
+    master_size_id = serializers.RegexField('^[a-z0-9-]+$')
+    worker_size_id = serializers.RegexField('^[a-z0-9-]+$')
+    monitoring_enabled = serializers.BooleanField(default = False)
+    grafana_admin_password = serializers.CharField(required = False)
+    auto_healing_enabled = serializers.BooleanField(default = False)
+    auto_scaling_enabled = serializers.BooleanField(default = False)
+    # Worker count should be given if auto-scaling is not enabled
+    worker_count = serializers.IntegerField(required = False, min_value = 1)
+    # If auto-scaling is enabled, min and max worker count should be given
+    min_worker_count = serializers.IntegerField(required = False, min_value = 1)
+    max_worker_count = serializers.IntegerField(required = False, min_value = 1)
+
+    def validate(self, data):
+        errors = {}
+        if data['auto_scaling_enabled']:
+            if 'min_worker_count' not in data:
+                errors['min_worker_count'] = [
+                    'This field is required when auto-scaling is enabled.',
+                ]
+            elif 'max_worker_count' not in data:
+                errors['max_worker_count'] = [
+                    'This field is required when auto-scaling is enabled.',
+                ]
+            elif data['max_worker_count'] < data['min_worker_count']:
+                errors['max_worker_count'] = [
+                    'Must be greater than or equal to min worker count.',
+                ]
+        else:
+            if 'worker_count' not in data:
+                errors['worker_count'] = [
+                    'This field is required when auto-scaling is not enabled.',
+                ]
+        if data['monitoring_enabled'] and 'grafana_admin_password' not in data:
+            errors['grafana_admin_password'] = [
+                'This field is required when monitoring is enabled.',
+            ]
+        if errors:
+            raise serializers.ValidationError(errors)
+        else:
+            return data
+
+
+class UpdateKubernetesClusterSerializer(serializers.Serializer):
+    pass
 
 
 ClusterParameterSerializer = make_dto_serializer(dto.ClusterParameter)

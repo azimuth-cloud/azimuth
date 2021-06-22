@@ -40,9 +40,29 @@ urlpatterns = [
                 path('restart/', views.machine_restart, name = 'machine_restart'),
             ])),
         ])),
+        path('kubernetes_cluster_templates/', include([
+            path('', views.kubernetes_cluster_templates, name = 'kubernetes_cluster_templates'),
+            path(
+                '<slug:template>/',
+                views.kubernetes_cluster_template_details,
+                name = 'kubernetes_cluster_template_details'
+            ),
+        ])),
+        path('kubernetes_clusters/', include([
+            path('', views.kubernetes_clusters, name = 'kubernetes_clusters'),
+            path(
+                '<slug:cluster>/',
+                views.kubernetes_cluster_details,
+                name = 'kubernetes_cluster_details'
+            ),
+        ])),
         path('cluster_types/', include([
             path('', views.cluster_types, name = 'cluster_types'),
-            path('<slug:cluster_type>/', views.cluster_type_details, name = 'cluster_type_details'),
+            path(
+                '<slug:cluster_type>/',
+                views.cluster_type_details,
+                name = 'cluster_type_details'
+            ),
         ])),
         path('clusters/', include([
             path('', views.clusters, name = 'clusters'),

@@ -3,6 +3,7 @@ This module defines data-transfer objects used by providers.
 """
 
 from dataclasses import dataclass
+import dataclasses
 from datetime import datetime
 import enum
 import io
@@ -212,6 +213,107 @@ class ClusterParameter:
     required: bool
     #: A default value for the parameter
     default: Any
+
+
+@dataclass(frozen = True)
+class KubernetesClusterTemplate:
+    """
+    Represents a template for Kubernetes clusters.
+    """
+    #: The id of the template
+    id: str
+    #: The human-readable name of the template
+    name: str
+    #: Indicates if this is a public template
+    public: bool
+    #: Indicates if this is a hidden/deprecated template
+    hidden: bool
+    #: The datetime at which the template was created
+    created_at: datetime
+    #: The datetime at which the template was updated
+    updated_at: Optional[datetime]
+
+
+@enum.unique
+class KubernetesClusterStatus(enum.Enum):
+    """
+    Enum representing the possible statuses for a Kubernetes cluster.
+    """
+    CREATE_IN_PROGRESS = 'CREATE_IN_PROGRESS'
+    CREATE_FAILED = 'CREATE_FAILED'
+    CREATE_COMPLETE = 'CREATE_COMPLETE'
+    UPDATE_IN_PROGRESS = 'UPDATE_IN_PROGRESS'
+    UPDATE_FAILED = 'UPDATE_FAILED'
+    UPDATE_COMPLETE = 'UPDATE_COMPLETE'
+    DELETE_IN_PROGRESS = 'DELETE_IN_PROGRESS'
+    DELETE_FAILED = 'DELETE_FAILED'
+    DELETE_COMPLETE = 'DELETE_COMPLETE'
+    RESUME_COMPLETE = 'RESUME_COMPLETE'
+    RESUME_FAILED = 'RESUME_FAILED'
+    RESTORE_COMPLETE = 'RESTORE_COMPLETE'
+    ROLLBACK_IN_PROGRESS = 'ROLLBACK_IN_PROGRESS'
+    ROLLBACK_FAILED = 'ROLLBACK_FAILED'
+    ROLLBACK_COMPLETE = 'ROLLBACK_COMPLETE'
+    SNAPSHOT_COMPLETE = 'SNAPSHOT_COMPLETE'
+    CHECK_COMPLETE = 'CHECK_COMPLETE'
+    ADOPT_COMPLETE = 'ADOPT_COMPLETE'
+
+
+@enum.unique
+class KubernetesClusterHealthStatus(enum.Enum):
+    """
+    Enum representing the possible health statuses for a Kubernetes cluster.
+    """
+    HEALTHY = 'HEALTHY'
+    UNHEALTHY = 'UNHEALTHY'
+    UNKNOWN = 'UNKNOWN'
+
+
+@dataclass(frozen = True)
+class KubernetesCluster:
+    """
+    Represents a Kubernetes cluster.
+    """
+    #: The id of the cluster
+    id: str
+    #: The human-readable name of the cluster
+    name: str
+    #: The ID of the template for the cluster
+    template_id: str
+    #: The Kubernetes version of the cluster
+    kubernetes_version: Optional[str]
+    #: The status of the cluster
+    status: KubernetesClusterStatus
+    #: Optional description of the cluster status
+    status_detail: Optional[str]
+    #: The health status of the cluster
+    health_status: Optional[KubernetesClusterHealthStatus]
+    #: Optional description of the health status
+    health_status_detail: Optional[Mapping[str, Any]]
+    #: The number of masters
+    master_count: int
+    #: The current number of workers
+    worker_count: int
+    #: The ID of the size used for masters
+    master_size_id: str
+    #: The ID of the size used for workers
+    worker_size_id: str
+    #: Indicates if auto-scaling is enabled
+    auto_scaling_enabled: bool
+    #: The minimum number of workers for auto-scaling
+    min_worker_count: Optional[int]
+    #: The maximum number of workers for auto-scaling
+    max_worker_count: Optional[int]
+    #: Indicates if auto-healing is enabled
+    auto_healing_enabled: bool
+    #: Indicates if monitoring is enabled
+    monitoring_enabled: bool
+    #: The Grafana admin password, if monitoring is enabled
+    grafana_admin_password: Optional[str]
+    #: The datetime at which the cluster was created
+    created_at: datetime
+    #: The datetime at which the cluster was updated
+    updated_at: Optional[datetime]
 
 
 @dataclass(frozen = True)

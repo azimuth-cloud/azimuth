@@ -583,6 +583,117 @@ def volume_details(request, tenant, volume):
 
 
 @provider_api_view(['GET'])
+def kubernetes_cluster_templates(request, tenant):
+    """
+    Return a list of the available Kubernetes cluster templates for the tenancy.
+    """
+    with request.auth.scoped_session(tenant) as session:
+        serializer = serializers.KubernetesClusterTemplateSerializer(
+            session.kubernetes_cluster_templates(),
+            many = True,
+            context = { 'request': request, 'tenant': tenant }
+        )
+    return response.Response(serializer.data)
+
+
+@provider_api_view(['GET'])
+def kubernetes_cluster_template_details(request, tenant, template):
+    """
+    Return the details for the specified Kubernetes cluster template.
+    """
+    with request.auth.scoped_session(tenant) as session:
+        serializer = serializers.KubernetesClusterTemplateSerializer(
+            session.find_kubernetes_cluster_template(template),
+            context = { 'request': request, 'tenant': tenant }
+        )
+    return response.Response(serializer.data)
+
+
+@provider_api_view(['GET', 'POST'])
+def kubernetes_clusters(request, tenant):
+    """
+    On ``GET`` requests, return a list of the deployed Kubernetes clusters for the tenancy.
+
+    On ``POST`` requests, create a new Kubernetes cluster.
+    """
+    if request.method == 'POST':
+        with request.auth.scoped_session(tenant) as session:
+            input_serializer = serializers.CreateKubernetesClusterSerializer(
+                data = request.data,
+                context = { 'session': session }
+            )
+            input_serializer.is_valid(raise_exception = True)
+            cluster = session.create_kubernetes_cluster(
+                **input_serializer.validated_data,
+                ssh_key = cloud_settings.SSH_KEY_STORE.get_key(
+                    request.user.username,
+                    # Pass the request and the sessions as keyword options
+                    # so that the key store can use them if it needs to
+                    request = request,
+                    unscoped_session = request.auth,
+                    scoped_session = session
+                )
+            )
+        output_serializer = serializers.KubernetesClusterSerializer(
+            cluster,
+            context = { 'request': request, 'tenant': tenant }
+        )
+        return response.Response(output_serializer.data)
+    else:
+        with request.auth.scoped_session(tenant) as session:
+            serializer = serializers.KubernetesClusterSerializer(
+                session.kubernetes_clusters(),
+                many = True,
+                context = { 'request': request, 'tenant': tenant }
+            )
+        return response.Response(serializer.data)
+
+
+@provider_api_view(['GET', 'PUT', 'DELETE'])
+def kubernetes_cluster_details(request, tenant, cluster):
+    """
+    On ``GET`` requests, return the specified Kubernetes cluster.
+
+    On ``PUT`` requests, update the specified Kubernetes cluster.
+
+    On ``DELETE`` requests, delete the specified Kubernetes cluster.
+    """
+    if request.method == 'PUT':
+        with request.auth.scoped_session(tenant) as session:
+            input_serializer = serializers.UpdateKubernetesClusterSerializer(
+                data = request.data,
+                context = dict(session = session, cluster = cluster)
+            )
+            input_serializer.is_valid(raise_exception = True)
+            updated = session.update_kubernetes_cluster(
+                cluster,
+            )
+        output_serializer = serializers.KubernetesClusterSerializer(
+            updated,
+            context = { 'request': request, 'tenant': tenant }
+        )
+        return response.Response(output_serializer.data)
+    elif request.method == 'DELETE':
+        with request.auth.scoped_session(tenant) as session:
+            deleted = session.delete_kubernetes_cluster(cluster)
+        if deleted:
+            serializer = serializers.KubernetesClusterSerializer(
+                deleted,
+                context = { 'request': request, 'tenant': tenant }
+            )
+            return response.Response(serializer.data)
+        else:
+            return response.Response()
+    else:
+        with request.auth.scoped_session(tenant) as session:
+            serializer = serializers.KubernetesClusterSerializer(
+                session.find_kubernetes_cluster(cluster),
+                context = { 'request': request, 'tenant': tenant }
+            )
+        return response.Response(serializer.data)
+
+
+@provider_api_view(['GET'])
 def cluster_types(request, tenant):
     """
     Returns the cluster types available to the tenancy.
