@@ -53,8 +53,11 @@ class RefSerializer(serializers.Serializer):
     id = serializers.ReadOnlyField()
 
     def to_representation(self, obj):
+        # If the object is falsey, the representation is None
+        if not obj:
+            return None
         # If the given object is a scalar, convert it to a ref first
-        if isinstance(obj, (str, int)):
+        if not hasattr(obj, 'id'):
             obj = Ref(obj)
         result = super().to_representation(obj)
         # If the info to build a link is in the context, add it
@@ -169,20 +172,21 @@ class TenancySerializer(make_dto_serializer(dto.Tenancy)):
 QuotaSerializer = make_dto_serializer(dto.Quota)
 
 
-class ImageSerializer(make_dto_serializer(dto.Image, exclude = ['vm_type'])):
-    def to_representation(self, obj):
-        result = super().to_representation(obj)
-        # If the info to build a link is in the context, add it
-        request = self.context.get('request')
-        tenant = self.context.get('tenant')
-        if request and tenant:
-            result.setdefault('links', {})['self'] = request.build_absolute_uri(
-                reverse('jasmin_cloud:image_details', kwargs = {
-                    'tenant': tenant,
-                    'image': obj.id,
-                })
-            )
-        return result
+class ImageRefSerializer(RefSerializer):
+    def get_self_link(self, request, tenant, id):
+        return request.build_absolute_uri(
+            reverse('jasmin_cloud:image_details', kwargs = {
+                'tenant': tenant,
+                'image': id,
+            })
+        )
+
+
+ImageSerializer = type(
+    'ImageSerializer',
+    (ImageRefSerializer, make_dto_serializer(dto.Image, exclude = ['vm_type'])),
+    {}
+)
 
 
 class SizeRefSerializer(RefSerializer):
@@ -253,10 +257,10 @@ class MachineSerializer(
 ):
     name = serializers.CharField()
 
-    image = ImageSerializer(read_only = True)
+    image = ImageRefSerializer(source = "image_id", read_only = True)
     image_id = serializers.UUIDField(write_only = True)
 
-    size = SizeSerializer(read_only = True)
+    size = SizeRefSerializer(source = "size_id", read_only = True)
     size_id = serializers.RegexField('^[a-z0-9-]+$', write_only = True)
 
     status = MachineStatusSerializer(read_only = True)

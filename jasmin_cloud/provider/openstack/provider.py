@@ -2,11 +2,12 @@
 This module contains the provider implementation for OpenStack.
 """
 
+import base64
 import dataclasses
 import functools
-import logging
-import base64
 import hashlib
+import itertools
+import logging
 import random
 import re
 
@@ -99,6 +100,23 @@ def convert_exceptions(f):
             logger.exception('Could not connect to OpenStack API.')
             raise errors.CommunicationError('Could not connect to OpenStack API.')
     return wrapper
+
+
+class LazyRewindableGenerator:
+    """
+    Class for a lazily-initialised, rewindable generator.
+    """
+    def __init__(self, generator, *args, **kwargs):
+        def internal_generator():
+            yield from generator(*args, **kwargs)
+        self._generator = internal_generator
+        self._iterator = None
+
+    def __iter__(self):
+        if not self._iterator:
+            self._iterator = self._generator()
+        self._iterator, result = itertools.tee(self._iterator)
+        return result
 
 
 class Provider(base.Provider):
@@ -596,26 +614,28 @@ class ScopedSession(base.ScopedSession):
         7: 'Suspended',
     }
 
-    def _from_api_server(self, api_server, tenant_network):
+    def _from_api_server(self, api_server, tenant_network, images = None):
         """
-        See :py:meth:`.base.ScopedSession.find_machine`.
+        Returns a machine DTO for the given API server representation.
+
+        The additional arguments are the tenant network and an optional iterable of
+        the images for the tenancy (used to save fetching each image individually
+        when listing machines).
         """
-        # Make sure we can find the image and flavor specified
-        try:
-            image = self.find_image(api_server.image['id'])
-        except (TypeError, AttributeError, errors.ObjectNotFoundError):
-            image = None
-        try:
-            size = self.find_size(api_server.flavor['id'])
-        except (TypeError, AttributeError, errors.ObjectNotFoundError):
-            size = None
         # Try to get nat_allowed from the machine metadata
         # If the nat_allowed metadata is not present, use the image
         # If the image does not exist anymore, assume it is allowed
         try:
             nat_allowed = bool(int(api_server.metadata['jasmin_nat_allowed']))
         except (KeyError, TypeError):
-            nat_allowed = image.nat_allowed if image else True
+            if images:
+                image = next((i for i in images if i.id == api_server.image['id']), None)
+            else:
+                try:
+                    image = self._connection.image.images.get(api_server.image['id'])
+                except errors.ObjectNotFoundError:
+                    image = None
+            nat_allowed = bool(int(getattr(image, 'jasmin_nat_allowed', '1')))
         status = api_server.status
         fault = api_server.fault.get('message', None)
         task = api_server.task_state
@@ -632,8 +652,8 @@ class ScopedSession(base.ScopedSession):
         return dto.Machine(
             api_server.id,
             api_server.name,
-            image,
-            size,
+            api_server.image['id'],
+            api_server.flavor['id'],
             dto.MachineStatus(
                 getattr(dto.MachineStatusType, status, dto.MachineStatusType.OTHER),
                 status,
@@ -658,12 +678,17 @@ class ScopedSession(base.ScopedSession):
         api_servers = tuple(self._connection.compute.servers.all())
         self._log('Found %s servers', len(api_servers))
         # If no servers loaded, we don't need to discover the tenant network
+        # We also include a generator of images, so that they are only loaded once
         if api_servers:
             # Load the tenant network once and reuse it
             tenant_network = self._tenant_network()
+            # Pass the images in a way that they are only loaded the first
+            # time that they are iterated over
+            images = LazyRewindableGenerator(self._connection.image.images.all)
         else:
             tenant_network = None
-        return tuple(self._from_api_server(s, tenant_network) for s in api_servers)
+            images = []
+        return tuple(self._from_api_server(s, tenant_network, images) for s in api_servers)
 
     @convert_exceptions
     def find_machine(self, id):
@@ -786,12 +811,15 @@ class ScopedSession(base.ScopedSession):
         except errors.ObjectNotFoundError:
             return None
 
-    def _from_api_floatingip(self, api_floatingip):
+    def _from_api_floatingip(self, api_floatingip, ports = None):
         """
         Converts an OpenStack API floatingip object into a :py:class:`.dto.ExternalIp`.
         """
         if api_floatingip.port_id:
-            port = self._connection.network.ports.get(api_floatingip.port_id)
+            if ports:
+                port = ports[api_floatingip.port_id]
+            else:
+                port = self._connection.network.ports.get(api_floatingip.port_id)
             machine_id = port.device_id
         else:
             machine_id = None
@@ -807,12 +835,16 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.external_ips`.
         """
         self._log("Fetching floating ips")
-        fips = tuple(
-            self._from_api_floatingip(fip)
-            for fip in self._connection.network.floatingips.all()
-        )
+        fips = list(self._connection.network.floatingips.all())
         self._log("Found %s floating ips", len(fips))
-        return fips
+        # If any floating IPs were found, fetch all the ports in one go and index them
+        # by ID so we can locate the attached machines without making one request per port
+        if fips:
+            self._log("Fetching ports")
+            ports = { p.id: p for p in self._connection.network.ports.all() }
+        else:
+            ports = {}
+        return tuple(self._from_api_floatingip(fip, ports) for fip in fips)
 
     @convert_exceptions
     def allocate_external_ip(self):

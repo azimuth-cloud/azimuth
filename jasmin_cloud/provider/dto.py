@@ -120,10 +120,10 @@ class Machine:
     id: str
     #: The human-readable name of the machine
     name: str
-    #: The image used to deploy the machine
-    image: Image
-    #: The the size of the machine
-    size: Size
+    #: The ID of the image used to deploy the machine
+    image_id: str
+    #: The ID of the size of the machine
+    size_id: str
     #: The status of the machine
     status: MachineStatus
     #: The power state of the machine
