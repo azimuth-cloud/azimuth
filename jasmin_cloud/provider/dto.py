@@ -224,6 +224,10 @@ class KubernetesClusterTemplate:
     id: str
     #: The human-readable name of the template
     name: str
+    #: The Kubernetes version that this template will deploy
+    kubernetes_version: str
+    #: Indicates if the template supports HA for the control plane
+    ha_enabled: bool
     #: Indicates if this is a public template
     public: bool
     #: Indicates if this is a hidden/deprecated template
@@ -280,7 +284,7 @@ class KubernetesCluster:
     name: str
     #: The ID of the template for the cluster
     template_id: str
-    #: The Kubernetes version of the cluster
+    #: The Kubernetes version of the cluster, if known
     kubernetes_version: Optional[str]
     #: The status of the cluster
     status: KubernetesClusterStatus
@@ -290,6 +294,8 @@ class KubernetesCluster:
     health_status: Optional[KubernetesClusterHealthStatus]
     #: Optional description of the health status
     health_status_detail: Optional[Mapping[str, Any]]
+    #: The address to access the Kubernetes API if known
+    api_address: Optional[str]
     #: The number of masters
     master_count: int
     #: The current number of workers

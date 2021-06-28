@@ -1016,6 +1016,8 @@ class ScopedSession(base.ScopedSession):
         return dto.KubernetesClusterTemplate(
             template.uuid,
             template.name,
+            template.labels.get('kube_tag', 'default'),
+            template.master_lb_enabled,
             template.public,
             template.hidden,
             dateutil.parser.parse(template.created_at),
@@ -1030,11 +1032,11 @@ class ScopedSession(base.ScopedSession):
         self._log('Fetching available COE cluster templates')
         templates = list(self._connection.coe.cluster_templates.all())
         self._log('Found %s COE cluster templates', len(templates))
-        # Return only the templates that have Kubernetes as a COE
+        # Return only the templates that have Kubernetes as a COE and are not hidden
         return tuple(
             self._from_api_coe_cluster_template(template)
             for template in templates
-            if template.coe == "kubernetes"
+            if template.coe == "kubernetes" and not template.hidden
         )
 
     @convert_exceptions
@@ -1061,9 +1063,10 @@ class ScopedSession(base.ScopedSession):
             dto.KubernetesClusterStatus(cluster.status),
             cluster.status_reason or None,
             dto.KubernetesClusterHealthStatus(cluster.health_status)
-                if cluster.health_status
+                if getattr(cluster, 'health_status', None)
                 else None,
             cluster.health_status_reason,
+            cluster.api_address,
             cluster.master_count,
             cluster.node_count,
             cluster.master_flavor_id,
@@ -1086,12 +1089,20 @@ class ScopedSession(base.ScopedSession):
         self._log('Fetching available COE clusters')
         clusters = list(self._connection.coe.clusters.all())
         self._log('Found %s COE clusters', len(clusters))
+        # If we didn't find any clusters, we are done
+        if not clusters:
+            return clusters
+        # Load the cluster templates and index them by ID so that we can check the COE
+        # This means fewer requests than fetching each cluster template as needed
+        template_coes = {
+            template.uuid: template.coe
+            for template in self._connection.coe.cluster_templates.all()
+        }
         # Return only the clusters that have Kubernetes as a COE
-        # To do this, we need to look up the template
         return tuple(
             self._from_api_coe_cluster(cluster)
             for cluster in clusters
-            if cluster.cluster_template.coe == "kubernetes"
+            if template_coes[cluster.cluster_template_id] == "kubernetes"
         )
 
     @convert_exceptions
