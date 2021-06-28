@@ -693,6 +693,16 @@ def kubernetes_cluster_details(request, tenant, cluster):
         return response.Response(serializer.data)
 
 
+@provider_api_view(['POST'])
+def kubernetes_cluster_generate_kubeconfig(request, tenant, cluster):
+    """
+    Generate a kubeconfig file for the specified cluster.
+    """
+    with request.auth.scoped_session(tenant) as session:
+        kubeconfig = session.generate_kubeconfig_for_kubernetes_cluster(cluster)
+    return response.Response({ 'kubeconfig': kubeconfig })
+
+
 @provider_api_view(['GET'])
 def cluster_types(request, tenant):
     """

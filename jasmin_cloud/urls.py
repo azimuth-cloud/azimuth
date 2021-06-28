@@ -50,11 +50,18 @@ urlpatterns = [
         ])),
         path('kubernetes_clusters/', include([
             path('', views.kubernetes_clusters, name = 'kubernetes_clusters'),
-            path(
-                '<slug:cluster>/',
-                views.kubernetes_cluster_details,
-                name = 'kubernetes_cluster_details'
-            ),
+            path('<slug:cluster>/', include([
+                path(
+                    '',
+                    views.kubernetes_cluster_details,
+                    name = 'kubernetes_cluster_details'
+                ),
+                path(
+                    'kubeconfig/',
+                    views.kubernetes_cluster_generate_kubeconfig,
+                    name = 'kubernetes_cluster_generate_kubeconfig'
+                )
+            ])),
         ])),
         path('cluster_types/', include([
             path('', views.cluster_types, name = 'cluster_types'),

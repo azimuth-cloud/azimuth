@@ -10,8 +10,22 @@ import itertools
 import logging
 import random
 import re
+import textwrap
 
 import dateutil.parser
+
+from cryptography import x509
+from cryptography.x509.oid import NameOID
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.hashes import SHA256
+from cryptography.hazmat.primitives.serialization import (
+    Encoding,
+    PrivateFormat,
+    NoEncryption
+)
+
+import yaml
+
 
 import rackit
 
@@ -100,6 +114,25 @@ def convert_exceptions(f):
             logger.exception('Could not connect to OpenStack API.')
             raise errors.CommunicationError('Could not connect to OpenStack API.')
     return wrapper
+
+
+class base64_encoded_block(str):
+    """
+    Class representing a base64-encoded block that can be rendered in YAML.
+    """
+    @staticmethod
+    def pyyaml_presenter(dumper, data):
+        """
+        PYYaml presenter for a base64-encoded block.
+        """
+        return dumper.represent_scalar(
+            'tag:yaml.org,2002:str',
+            # base64-encode the input data and wrap the text at 64 characters
+            textwrap.fill(base64.b64encode(data.encode()).decode(), 64),
+            style = '|'
+        )
+
+yaml.add_representer(base64_encoded_block, base64_encoded_block.pyyaml_presenter)
 
 
 class LazyRewindableGenerator:
@@ -1220,6 +1253,83 @@ class ScopedSession(base.ScopedSession):
             )
         except errors.ObjectNotFoundError:
             return None
+
+    def _generate_csr_and_key(self):
+        """
+        Generate a CSR and private key to get signed by Kubernetes.
+        """
+        self._log("Generating CSR and private key")
+        key = rsa.generate_private_key(public_exponent = 65537, key_size = 3072)
+        csr = (
+            x509.CertificateSigningRequestBuilder()
+                .subject_name(x509.Name([
+                    x509.NameAttribute(NameOID.COMMON_NAME, u"admin"),
+                    x509.NameAttribute(NameOID.ORGANIZATION_NAME, u"system:masters")
+                ]))
+                .sign(key, SHA256())
+        )
+        return (
+            csr.public_bytes(Encoding.PEM).decode(),
+            key.private_bytes(
+                Encoding.PEM,
+                PrivateFormat.TraditionalOpenSSL,
+                NoEncryption()
+            ).decode()
+        )
+
+    @convert_exceptions
+    def generate_kubeconfig_for_kubernetes_cluster(self, cluster):
+        """
+        See :py:meth:`.base.ScopedSession.generate_kubeconfig_for_kubernetes_cluster`.
+        """
+        # Ensure the cluster is loaded
+        if not isinstance(cluster, dto.KubernetesCluster):
+            cluster = self.find_kubernetes_cluster(cluster)
+        # If the API address is not known yet, there is no point in continuing
+        if not cluster.api_address:
+            raise errors.InvalidOperationError("Kubernetes API address is not yet known.")
+        self._log("Generate kubeconfig for Kubernetes cluster '%s'", cluster.id)
+        csr, private_key = self._generate_csr_and_key()
+        self._log("Signing generated CSR with cluster CA for '%s'", cluster.id)
+        cert = self._connection.coe.certificates.create(cluster_uuid = cluster.id, csr = csr).pem
+        self._log("Fetching CA for cluster '%s'", cluster.id)
+        ca = self._connection.coe.certificates.get(cluster.id).pem
+        return yaml.dump(
+            {
+                "apiVersion": "v1",
+                "kind": "Config",
+                "preferences": {},
+                "clusters": [
+                    {
+                        "name": cluster.name,
+                        "cluster": {
+                            "server": cluster.api_address,
+                            "certificate-authority-data": base64_encoded_block(ca),
+                        },
+                    },
+                ],
+                "users": [
+                    {
+                        "name": "admin",
+                        "user": {
+                            "client-certificate-data": base64_encoded_block(cert),
+                            "client-key-data": base64_encoded_block(private_key),
+                        },
+                    },
+                ],
+                "contexts": [
+                    {
+                        "name": "default",
+                        "context": {
+                            "cluster": cluster.name,
+                            "user": "admin",
+                        },
+                    }
+                ],
+                "current-context": "default",
+            },
+            default_flow_style = False
+        )
 
     @property
     def cluster_manager(self):

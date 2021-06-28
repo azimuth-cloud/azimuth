@@ -376,12 +376,23 @@ class KubernetesClusterSerializer(
         request = self.context.get('request')
         tenant = self.context.get('tenant')
         if request and tenant:
-            result.setdefault('links', {})['self'] = request.build_absolute_uri(
-                reverse('jasmin_cloud:kubernetes_cluster_details', kwargs = {
-                    'tenant': tenant,
-                    'cluster': obj.id,
-                })
-            )
+            result.setdefault('links', {}).update({
+                'self': request.build_absolute_uri(
+                    reverse('jasmin_cloud:kubernetes_cluster_details', kwargs = {
+                        'tenant': tenant,
+                        'cluster': obj.id,
+                    })
+                ),
+                'kubeconfig': request.build_absolute_uri(
+                    reverse(
+                        'jasmin_cloud:kubernetes_cluster_generate_kubeconfig',
+                        kwargs = {
+                            'tenant': tenant,
+                            'cluster': obj.id,
+                        }
+                    )
+                ),
+            })
         return result
 
 

@@ -17,6 +17,15 @@ class ContainerInfraResource(Resource):
         resource_key = None
 
 
+class Certificate(ContainerInfraResource):
+    """
+    Resource for cluster certificates.
+    """
+    class Meta:
+        endpoint = "/certificates"
+        primary_key_field = 'cluster_uuid'
+
+
 class ClusterTemplate(ContainerInfraResource):
     """
     Resource for COE cluster templates.
@@ -46,5 +55,6 @@ class ContainerInfraService(Service):
     catalog_type = 'container-infra'
     path_prefix = '/v1'
 
+    certificates = RootResource(Certificate)
     cluster_templates = RootResource(ClusterTemplate)
     clusters = RootResource(Cluster)

@@ -611,6 +611,21 @@ class ScopedSession:
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
+    def generate_kubeconfig_for_kubernetes_cluster(self, cluster):
+        """
+        Generate a kubeconfig for the specified Kubernetes cluster.
+
+        Args:
+            cluster: The cluster to generate a kubeconfig file for.
+                     Can be an id or a :py:class:`~.dto.KubernetesCluster`.
+
+        Returns:
+            A kubeconfig file.
+        """
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
+
     def cluster_types(self):
         """
         Lists the available cluster types.
