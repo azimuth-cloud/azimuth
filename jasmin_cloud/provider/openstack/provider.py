@@ -10,6 +10,7 @@ import itertools
 import logging
 import random
 import re
+import string
 import textwrap
 
 import dateutil.parser
@@ -1113,6 +1114,7 @@ class ScopedSession(base.ScopedSession):
             template.name,
             template.labels.get('kube_tag', 'default'),
             template.master_lb_enabled,
+            template.labels.get("monitoring_enabled", "False").lower() == "true",
             template.public,
             template.hidden,
             dateutil.parser.parse(template.created_at),
@@ -1166,11 +1168,10 @@ class ScopedSession(base.ScopedSession):
             cluster.node_count,
             cluster.master_flavor_id,
             cluster.flavor_id,
-            cluster.labels.get("auto_scaling_enabled", "False") == "True",
+            cluster.labels.get("auto_scaling_enabled", "False").lower() == "true",
             cluster.labels.get("min_node_count"),
             cluster.labels.get("max_node_count"),
-            cluster.labels.get("auto_healing_enabled", "False") == "True",
-            cluster.labels.get("monitoring_enabled", "False") == "True",
+            cluster.labels.get("monitoring_enabled", "False").lower() == "true",
             cluster.labels.get("grafana_admin_password"),
             dateutil.parser.parse(cluster.created_at),
             dateutil.parser.parse(cluster.updated_at) if cluster.updated_at else None
@@ -1222,15 +1223,14 @@ class ScopedSession(base.ScopedSession):
         worker_count = None,
         min_worker_count = None,
         max_worker_count = None,
-        auto_healing_enabled = False,
         auto_scaling_enabled = False,
-        monitoring_enabled = False,
-        grafana_admin_password = None,
         ssh_key = None
     ):
         """
         See :py:meth:`.base.ScopedSession.create_kubernetes_cluster`.
         """
+        # Get the template so we can check whether to generate a Grafana password
+        template = self.find_kubernetes_cluster_template(template_id)
         self._log("Creating Kubernetes cluster '%s'", name)
         params = dict(
             name = name,
@@ -1241,19 +1241,23 @@ class ScopedSession(base.ScopedSession):
             # If not, then worker count will be set
             # Use the worker count or the minimum worker count, depending which is set
             node_count = worker_count or min_worker_count,
-            labels = dict(
-                auto_healing_enabled = auto_healing_enabled,
-                auto_scaling_enabled = auto_scaling_enabled,
-                monitoring_enabled = monitoring_enabled
-            )
+            labels = dict(auto_scaling_enabled = auto_scaling_enabled)
         )
         if auto_scaling_enabled:
             params['labels'].update(
                 min_node_count = min_worker_count,
                 max_node_count = max_worker_count
             )
-        if monitoring_enabled:
-            params['labels'].update(grafana_admin_password = grafana_admin_password)
+        if template.monitoring_enabled:
+            params['labels'].update(
+                # Generate a random password for Grafana
+                grafana_admin_password = ''.join(
+                    random.choices(
+                        string.ascii_letters + string.digits + string.punctuation,
+                        k = 32
+                    )
+                )
+            )
         if ssh_key:
             keypair = self._get_or_create_keypair(ssh_key)
             params.update(keypair = keypair.name)

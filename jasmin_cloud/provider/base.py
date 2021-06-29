@@ -556,10 +556,7 @@ class ScopedSession:
         worker_count = None,
         min_worker_count = None,
         max_worker_count = None,
-        auto_healing_enabled = False,
         auto_scaling_enabled = False,
-        monitoring_enabled = False,
-        grafana_admin_password = None,
         ssh_key = None
     ):
         """
@@ -573,11 +570,7 @@ class ScopedSession:
             worker_count: The number of workers if auto-scaling is not enabled.
             min_worker_count: The minimum number of workers if auto-scaling is enabled.
             max_worker_count: The maximum number of workers if auto-scaling is enabled.
-            auto_healing_enabled: Indicates if cluster auto-healing should be enabled.
             auto_scaling_enabled: Indicates if cluster auto-scaling should be enabled.
-            monitoring_enabled: Indicates if cluster monitoring should be enabled.
-            grafana_admin_password: The password for the Grafana admin user if
-                                    monitoring is enabled.
             ssh_key: The SSH key to inject into cluster nodes.
 
         Returns:

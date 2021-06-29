@@ -401,9 +401,6 @@ class CreateKubernetesClusterSerializer(serializers.Serializer):
     template_id = serializers.RegexField('^[a-z0-9-]+$')
     master_size_id = serializers.RegexField('^[a-z0-9-]+$')
     worker_size_id = serializers.RegexField('^[a-z0-9-]+$')
-    monitoring_enabled = serializers.BooleanField(default = False)
-    grafana_admin_password = serializers.CharField(required = False)
-    auto_healing_enabled = serializers.BooleanField(default = False)
     auto_scaling_enabled = serializers.BooleanField(default = False)
     # Worker count should be given if auto-scaling is not enabled
     worker_count = serializers.IntegerField(required = False, min_value = 1)
@@ -431,18 +428,10 @@ class CreateKubernetesClusterSerializer(serializers.Serializer):
                 errors['worker_count'] = [
                     'This field is required when auto-scaling is not enabled.',
                 ]
-        if data['monitoring_enabled'] and 'grafana_admin_password' not in data:
-            errors['grafana_admin_password'] = [
-                'This field is required when monitoring is enabled.',
-            ]
         if errors:
             raise serializers.ValidationError(errors)
         else:
             return data
-
-
-class UpdateKubernetesClusterSerializer(serializers.Serializer):
-    pass
 
 
 ClusterParameterSerializer = make_dto_serializer(dto.ClusterParameter)

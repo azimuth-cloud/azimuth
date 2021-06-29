@@ -652,31 +652,14 @@ def kubernetes_clusters(request, tenant):
         return response.Response(serializer.data)
 
 
-@provider_api_view(['GET', 'PUT', 'DELETE'])
+@provider_api_view(['GET', 'DELETE'])
 def kubernetes_cluster_details(request, tenant, cluster):
     """
     On ``GET`` requests, return the specified Kubernetes cluster.
 
-    On ``PUT`` requests, update the specified Kubernetes cluster.
-
     On ``DELETE`` requests, delete the specified Kubernetes cluster.
     """
-    if request.method == 'PUT':
-        with request.auth.scoped_session(tenant) as session:
-            input_serializer = serializers.UpdateKubernetesClusterSerializer(
-                data = request.data,
-                context = dict(session = session, cluster = cluster)
-            )
-            input_serializer.is_valid(raise_exception = True)
-            updated = session.update_kubernetes_cluster(
-                cluster,
-            )
-        output_serializer = serializers.KubernetesClusterSerializer(
-            updated,
-            context = { 'request': request, 'tenant': tenant }
-        )
-        return response.Response(output_serializer.data)
-    elif request.method == 'DELETE':
+    if request.method == 'DELETE':
         with request.auth.scoped_session(tenant) as session:
             deleted = session.delete_kubernetes_cluster(cluster)
         if deleted:

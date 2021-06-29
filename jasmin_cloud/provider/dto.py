@@ -3,7 +3,6 @@ This module defines data-transfer objects used by providers.
 """
 
 from dataclasses import dataclass
-import dataclasses
 from datetime import datetime
 import enum
 import io
@@ -206,29 +205,6 @@ class ExternalIp:
 
 
 @dataclass(frozen = True)
-class ClusterParameter:
-    """
-    Represents a parameter required by a cluster type.
-    """
-    #: The name of the parameter
-    name: str
-    #: A human-readable label for the parameter
-    label: str
-    #: A description of the parameter
-    description: str
-    #: The kind of the parameter
-    kind: str
-    #: A dictionary of kind-specific options for the parameter
-    options: Mapping[str, Any]
-    #: Indicates if the option is immutable, i.e. cannot be updated
-    immutable: bool
-    #: Indicates if the parameter is required
-    required: bool
-    #: A default value for the parameter
-    default: Any
-
-
-@dataclass(frozen = True)
 class KubernetesClusterTemplate:
     """
     Represents a template for Kubernetes clusters.
@@ -241,6 +217,8 @@ class KubernetesClusterTemplate:
     kubernetes_version: str
     #: Indicates if the template supports HA for the control plane
     ha_enabled: bool
+    #: Indicates if monitoring is enabled for the template
+    monitoring_enabled: bool
     #: Indicates if this is a public template
     public: bool
     #: Indicates if this is a hidden/deprecated template
@@ -323,8 +301,6 @@ class KubernetesCluster:
     min_worker_count: Optional[int]
     #: The maximum number of workers for auto-scaling
     max_worker_count: Optional[int]
-    #: Indicates if auto-healing is enabled
-    auto_healing_enabled: bool
     #: Indicates if monitoring is enabled
     monitoring_enabled: bool
     #: The Grafana admin password, if monitoring is enabled
@@ -333,6 +309,29 @@ class KubernetesCluster:
     created_at: datetime
     #: The datetime at which the cluster was updated
     updated_at: Optional[datetime]
+
+
+@dataclass(frozen = True)
+class ClusterParameter:
+    """
+    Represents a parameter required by a cluster type.
+    """
+    #: The name of the parameter
+    name: str
+    #: A human-readable label for the parameter
+    label: str
+    #: A description of the parameter
+    description: str
+    #: The kind of the parameter
+    kind: str
+    #: A dictionary of kind-specific options for the parameter
+    options: Mapping[str, Any]
+    #: Indicates if the option is immutable, i.e. cannot be updated
+    immutable: bool
+    #: Indicates if the parameter is required
+    required: bool
+    #: A default value for the parameter
+    default: Any
 
 
 @dataclass(frozen = True)
