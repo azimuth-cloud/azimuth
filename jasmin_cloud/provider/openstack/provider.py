@@ -292,6 +292,36 @@ class UnscopedSession(base.UnscopedSession):
             raise errors.InvalidOperationError("User does not belong to any projects.")
         return self._connection.scoped_connection(project)
 
+    def capabilities(self):
+        """
+        See :py:meth:`.base.UnscopedSession.capabilities`.
+        """
+        # We need a scoped connection to query the service catalog
+        # If the user does not belong to any projects, use the default capabilties
+        try:
+            conn = self._scoped_connection_for_first_project()
+        except errors.InvalidOperationError:
+            return dto.Capabilities()
+        # Check if the relevant services are available to the project
+        try:
+            _ = conn.block_store
+        except api.ServiceNotSupported:
+            supports_volumes = False
+        else:
+            supports_volumes = True
+        try:
+            _ = conn.coe
+        except api.ServiceNotSupported:
+            supports_kubernetes = False
+        else:
+            supports_kubernetes = True
+        return dto.Capabilities(
+            supports_volumes = supports_volumes,
+            supports_kubernetes = supports_kubernetes,
+            # Clusters are supported if there is a cluster engine
+            supports_clusters = bool(self._cluster_engine)
+        )
+
     @convert_exceptions
     def ssh_public_key(self, key_name):
         """

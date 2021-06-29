@@ -2,7 +2,9 @@
 Django views for interacting with the configured cloud provider.
 """
 
-import logging, functools
+import dataclasses
+import functools
+import logging
 
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -155,6 +157,7 @@ def session(request):
     return response.Response({
         'username': request.auth.username(),
         'token': request.auth.token(),
+        'capabilities': dataclasses.asdict(request.auth.capabilities()),
         'links': {
             'ssh_public_key': request.build_absolute_uri(reverse('jasmin_cloud:ssh_public_key')),
             'tenancies': request.build_absolute_uri(reverse('jasmin_cloud:tenancies')),

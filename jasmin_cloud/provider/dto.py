@@ -16,6 +16,19 @@ import requests
 
 
 @dataclass(frozen = True)
+class Capabilities:
+    """
+    Represents the capabilities of the cloud.
+    """
+    #: Indicates if the cloud supports volumes
+    supports_volumes: bool = False
+    #: Indicates if the cloud supports Kubernetes
+    supports_kubernetes: bool = False
+    #: Indicates if the cloud supports clusters
+    supports_clusters: bool = False
+
+
+@dataclass(frozen = True)
 class Tenancy:
     """
     Represents a tenancy/organisation on a cloud provider.

@@ -64,6 +64,15 @@ class UnscopedSession:
         """
         raise NotImplementedError
 
+    def capabilities(self):
+        """
+        Returns an object describing the capabilities of the cloud.
+
+        Returns:
+            A :py:class:`.dto.Capabilities` object.
+        """
+        raise NotImplementedError
+
     def ssh_public_key(self, key_name):
         """
         Return a named SSH public key.
