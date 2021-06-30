@@ -29,10 +29,14 @@ class NetworkResourceManager(ResourceManager):
     """
     Custom resource manager for networking resources.
 
-    Handles scoping list queries to the current project.
+    Handles scoping list queries to the current project unless specifically
+    asked not to by specifying ``project_id = None``.
     """
     def all(self, **params):
-        project_id = self.connection.session.auth.project_id
+        try:
+            project_id = params.pop('project_id')
+        except KeyError:
+            project_id = self.connection.session.auth.project_id
         if project_id:
             params.update(project_id = project_id)
         return super().all(**params)
@@ -68,6 +72,7 @@ class Network(NetworkResource):
     """
     class Meta:
         endpoint = "/networks"
+        aliases = dict(is_external = 'router:external')
 
     def _update_tags(self, tags):
         """

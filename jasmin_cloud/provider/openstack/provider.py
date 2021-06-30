@@ -161,6 +161,14 @@ class Provider(base.Provider):
         auth_url: The Keystone v3 authentication URL.
         domain: The domain to authenticate with (default ``Default``).
         interface: The OpenStack interface to connect using (default ``public``).
+        internal_net_template: Template for the name of the internal network to use
+                               (default ``None``).
+                               The current tenancy name can be templated in using the
+                               fragment ``{tenant_name}``.
+        external_net_template: Template for the name of the external network to use
+                               (default ``None``).
+                               The current tenancy name can be templated in using the
+                               fragment ``{tenant_name}``.
         internal_net_cidr: The CIDR for the internal network when it is
                            auto-created (default ``192.168.3.0/24``).
         az_backdoor_net_map: Mapping of availability zone to the UUID of the backdoor network
@@ -182,6 +190,8 @@ class Provider(base.Provider):
     def __init__(self, auth_url,
                        domain = 'Default',
                        interface = 'public',
+                       internal_net_template = None,
+                       external_net_template = None,
                        internal_net_cidr = '192.168.3.0/24',
                        az_backdoor_net_map = dict(),
                        backdoor_vnic_type = None,
@@ -192,6 +202,8 @@ class Provider(base.Provider):
         self._auth_url = auth_url.rstrip('/')
         self._domain = domain
         self._interface = interface
+        self._internal_net_template = internal_net_template
+        self._external_net_template = external_net_template
         self._internal_net_cidr = internal_net_cidr
         self._az_backdoor_net_map = az_backdoor_net_map or dict()
         self._backdoor_vnic_type = backdoor_vnic_type
@@ -217,6 +229,8 @@ class Provider(base.Provider):
             logger.info("Sucessfully authenticated user '%s'", username)
             return UnscopedSession(
                 conn,
+                internal_net_template = self._internal_net_template,
+                external_net_template = self._external_net_template,
                 internal_net_cidr = self._internal_net_cidr,
                 az_backdoor_net_map = self._az_backdoor_net_map,
                 backdoor_vnic_type = self._backdoor_vnic_type,
@@ -241,6 +255,8 @@ class Provider(base.Provider):
             logger.info("Sucessfully authenticated user '%s'", conn.username)
             return UnscopedSession(
                 conn,
+                internal_net_template = self._internal_net_template,
+                external_net_template = self._external_net_template,
                 internal_net_cidr = self._internal_net_cidr,
                 az_backdoor_net_map = self._az_backdoor_net_map,
                 backdoor_vnic_type = self._backdoor_vnic_type,
@@ -256,12 +272,16 @@ class UnscopedSession(base.UnscopedSession):
     provider_name = 'openstack'
 
     def __init__(self, connection,
+                       internal_net_template = None,
+                       external_net_template = None,
                        internal_net_cidr = '192.168.3.0/24',
                        az_backdoor_net_map = None,
                        backdoor_vnic_type = None,
                        cluster_app_cred_name = "caas-awx",
                        cluster_engine = None):
         self._connection = connection
+        self._internal_net_template = internal_net_template
+        self._external_net_template = external_net_template
         self._internal_net_cidr = internal_net_cidr
         self._az_backdoor_net_map = az_backdoor_net_map or dict()
         self._backdoor_vnic_type = backdoor_vnic_type
@@ -394,6 +414,8 @@ class UnscopedSession(base.UnscopedSession):
                 self.username(),
                 tenancy,
                 self._connection.scoped_connection(tenancy.id),
+                internal_net_template = self._internal_net_template,
+                external_net_template = self._external_net_template,
                 internal_net_cidr = self._internal_net_cidr,
                 az_backdoor_net_map = self._az_backdoor_net_map,
                 backdoor_vnic_type = self._backdoor_vnic_type,
@@ -422,6 +444,8 @@ class ScopedSession(base.ScopedSession):
     def __init__(self, username,
                        tenancy,
                        connection,
+                       internal_net_template = None,
+                       external_net_template = None,
                        internal_net_cidr = '192.168.3.0/24',
                        az_backdoor_net_map = None,
                        backdoor_vnic_type = None,
@@ -430,6 +454,8 @@ class ScopedSession(base.ScopedSession):
         self._username = username
         self._tenancy = tenancy
         self._connection = connection
+        self._internal_net_template = internal_net_template
+        self._external_net_template = external_net_template
         self._internal_net_cidr = internal_net_cidr
         self._az_backdoor_net_map = az_backdoor_net_map or dict()
         self._backdoor_vnic_type = backdoor_vnic_type
@@ -579,11 +605,37 @@ class ScopedSession(base.ScopedSession):
         self._log("Fetching flavor with id '%s'", id)
         return self._from_api_flavor(self._connection.compute.flavors.get(id))
 
-    def _tagged_network(self, tag):
+    def _tagged_network(self, net_type):
         """
         Returns the first network with the given tag, or None if there is not one.
         """
-        return next(self._connection.network.networks.all(tags = tag), None)
+        tag = "portal-{}".format(net_type)
+        network = next(self._connection.network.networks.all(tags = tag), None)
+        if network:
+            self._log("Using tagged %s network '%s'", net_type, network.name)
+        else:
+            self._log("Failed to find tagged %s network.", net_type, level = logging.WARN)
+        return network
+
+    def _templated_network(self, template, net_type):
+        """
+        Returns the network specified by the template, after interpolating with the tenant name.
+
+        If the network does not exist, that is a config error and an exception is raised.
+        """
+        net_name = template.format(tenant_name = self._tenancy.name)
+        network = self._connection.network.networks.find_by_name(net_name)
+        if network:
+            self._log("Found %s network '%s' using template.", net_type, network.name)
+            return network
+        else:
+            self._log(
+                "Failed to find %s network '%s' from template.",
+                net_type,
+                net_name,
+                level = logging.ERROR
+            )
+            raise errors.InvalidOperationError('Could not find {} network.'.format(net_type))
 
     def _tenant_network(self, create_network = False):
         """
@@ -592,22 +644,12 @@ class ScopedSession(base.ScopedSession):
         If create_network = True, a network will be created if one cannot be found.
         """
         # First, try to find a network that is tagged as the portal internal network
-        tagged_network = self._tagged_network('portal-internal')
+        tagged_network = self._tagged_network('internal')
         if tagged_network:
-            self._log("Using tagged internal network '%s'", tagged_network.name)
             return tagged_network
-        else:
-            self._log("Failed to find tagged internal network.")
-        # If there are no networks with that tag, try to find the network using the tenancy router
-        # Find the port that connects the tenancy network to a router
-        port = self._connection.network.ports.find_by_device_owner('network:router_interface')
-        if port:
-            # Get the network that is attached to that port
-            network = self._connection.network.networks.get(port.network_id)
-            self._log("Found internal network '%s' via router.", network.name)
-            return network
-        else:
-            self._log("Failed to find internal network via router.")
+        # Next, attempt to use the name template
+        if self._internal_net_template:
+            return self._templated_network(self._internal_net_template, 'internal')
         # If we get this far, we either create and return a network or return None
         if create_network:
             # Unfortunately, the tags cannot be set in the POST request
@@ -628,22 +670,29 @@ class ScopedSession(base.ScopedSession):
         Returns the external network that connects the tenant router to the outside world.
         """
         # First, try to find a network that is tagged as the portal external network
-        tagged_network = self._tagged_network('portal-external')
+        tagged_network = self._tagged_network('external')
         if tagged_network:
-            self._log("Using tagged external network '%s'", tagged_network.name)
             return tagged_network
-        else:
-            self._log("Failed to find tagged external network.")
-        # Otherwise find the external gateway for the tenancy router
-        router = next(self._connection.network.routers.all(), None)
-        if router and router.external_gateway_info:
-            external_network_id = router.external_gateway_info['network_id']
-            network = self._connection.network.networks.get(external_network_id)
-            self._log("Found external network '%s' via router", network.name)
-            return network
-        else:
-            self._log("Failed to find external network")
-            raise errors.InvalidOperationError('Could not find external network.')
+        # Next, attempt to use the name template
+        if self._external_net_template:
+            return self._templated_network(self._external_net_template, 'external')
+        # If there is exactly one external network available, use that
+        def gen_external_networks():
+            # Unfortunately, we need multiple queries here in case the user is an admin
+            params = { 'router:external': True }
+            # The unshared external networks belonging to the project
+            yield from self._connection.network.networks.all(**params, shared = False)
+            # The shared external networks belonging to any project
+            yield from self._connection.network.networks.all(
+                **params,
+                project_id = None,
+                shared = True
+            )
+        networks = list(gen_external_networks())
+        if len(networks) == 1:
+            return networks[0]
+        # Otherwise, require explicit configuration
+        raise errors.InvalidOperationError('Could not find external network.')
 
     def _get_or_create_keypair(self, ssh_key):
         """
@@ -692,23 +741,32 @@ class ScopedSession(base.ScopedSession):
         try:
             nat_allowed = bool(int(api_server.metadata['jasmin_nat_allowed']))
         except (KeyError, TypeError):
-            if images:
-                image = next((i for i in images if i.id == api_server.image['id']), None)
+            if api_server.image:
+                if images:
+                    image = next((i for i in images if i.id == api_server.image.id), None)
+                else:
+                    try:
+                        image = self._connection.image.images.get(api_server.image.id)
+                    except errors.ObjectNotFoundError:
+                        image = None
             else:
-                try:
-                    image = self._connection.image.images.get(api_server.image['id'])
-                except errors.ObjectNotFoundError:
-                    image = None
+                image = None
             nat_allowed = bool(int(getattr(image, 'jasmin_nat_allowed', '1')))
         status = api_server.status
         fault = api_server.fault.get('message', None)
         task = api_server.task_state
-        # Function to get the first IP of a particular type on the tenant network
+        # Function to get the first IP of a particular type for a machine
+        # We prefer to get an IP on the specified tenant network, but if the machine is
+        # not connected to that network we just return the first IP
         def ip_of_type(ip_type):
             return next(
                 (
                     a['addr']
-                    for a in api_server.addresses.get(tenant_network.name, [])
+                    for a in api_server.addresses.get(
+                        tenant_network.name,
+                        # If the tenant network is not in the addresses, use them all
+                        itertools.chain.from_iterable(api_server.addresses.values())
+                    )
                     if a['version'] == 4 and a['OS-EXT-IPS:type'] == ip_type
                 ),
                 None
@@ -716,8 +774,8 @@ class ScopedSession(base.ScopedSession):
         return dto.Machine(
             api_server.id,
             api_server.name,
-            api_server.image['id'],
-            api_server.flavor['id'],
+            getattr(api_server.image, 'id', None),
+            getattr(api_server.flavor, 'id', None),
             dto.MachineStatus(
                 getattr(dto.MachineStatusType, status, dto.MachineStatusType.OTHER),
                 status,
@@ -725,8 +783,8 @@ class ScopedSession(base.ScopedSession):
             ),
             self._POWER_STATES[api_server.power_state],
             task.capitalize() if task else None,
-            ip_of_type('fixed') if tenant_network else None,
-            ip_of_type('floating') if tenant_network else None,
+            ip_of_type('fixed'),
+            ip_of_type('floating'),
             nat_allowed,
             tuple(v['id'] for v in api_server.attached_volumes),
             api_server.user_id,
@@ -958,9 +1016,7 @@ class ScopedSession(base.ScopedSession):
         else:
             port = None
         if not port:
-            raise errors.ImproperlyConfiguredError(
-                'Machine is not connected to tenancy network.'
-            )
+            raise errors.InvalidOperationError('Machine is not connected to tenant network.')
         # If there is already a floating IP associated with the port, detach it
         current = self._connection.network.floatingips.find_by_port_id(port.id)
         if current:
@@ -1148,33 +1204,39 @@ class ScopedSession(base.ScopedSession):
             raise errors.ObjectNotFoundError('ClusterTemplate {} could not be found.'.format(id))
         return self._from_api_coe_cluster_template(template)
 
-    def _from_api_coe_cluster(self, cluster):
+    def _from_api_coe_cluster(self, api_cluster, flavors = None):
         """
         Converts a COE cluster into a :py:class:`.dto.KubernetesCluster`.
         """
+        # Annoyingly, the flavor "id"s can actually also be flavor names
+        # So convert them to ids if we need to
+        # To do this, we use an index of flavor name => id, which can optionally
+        # be passed in when listing multiple clusters
+        if not flavors:
+            flavors = { f.name: f.id for f in self._connection.compute.flavors.all() }
         return dto.KubernetesCluster(
-            cluster.uuid,
-            cluster.name,
-            cluster.cluster_template_id,
-            cluster.coe_version,
-            dto.KubernetesClusterStatus(cluster.status),
-            cluster.status_reason or None,
-            dto.KubernetesClusterHealthStatus(cluster.health_status)
-                if getattr(cluster, 'health_status', None)
+            api_cluster.uuid,
+            api_cluster.name,
+            api_cluster.cluster_template_id,
+            api_cluster.coe_version,
+            dto.KubernetesClusterStatus(api_cluster.status),
+            api_cluster.status_reason or None,
+            dto.KubernetesClusterHealthStatus(api_cluster.health_status)
+                if getattr(api_cluster, 'health_status', None)
                 else None,
-            cluster.health_status_reason,
-            cluster.api_address,
-            cluster.master_count,
-            cluster.node_count,
-            cluster.master_flavor_id,
-            cluster.flavor_id,
-            cluster.labels.get("auto_scaling_enabled", "False").lower() == "true",
-            cluster.labels.get("min_node_count"),
-            cluster.labels.get("max_node_count"),
-            cluster.labels.get("monitoring_enabled", "False").lower() == "true",
-            cluster.labels.get("grafana_admin_password"),
-            dateutil.parser.parse(cluster.created_at),
-            dateutil.parser.parse(cluster.updated_at) if cluster.updated_at else None
+            api_cluster.health_status_reason,
+            api_cluster.api_address,
+            api_cluster.master_count,
+            api_cluster.node_count,
+            flavors.get(api_cluster.master_flavor_id, api_cluster.master_flavor_id),
+            flavors.get(api_cluster.flavor_id, api_cluster.flavor_id),
+            api_cluster.labels.get("auto_scaling_enabled", "False").lower() == "true",
+            api_cluster.labels.get("min_node_count"),
+            api_cluster.labels.get("max_node_count"),
+            api_cluster.labels.get("monitoring_enabled", "False").lower() == "true",
+            api_cluster.labels.get("grafana_admin_password"),
+            dateutil.parser.parse(api_cluster.created_at),
+            dateutil.parser.parse(api_cluster.updated_at) if api_cluster.updated_at else None
         )
 
     @convert_exceptions

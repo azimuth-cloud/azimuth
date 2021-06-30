@@ -350,7 +350,11 @@ class Service(rackit.Connection):
         # If the service has a catalog type, add it to the connection
         if cls.catalog_type:
             # If no explicit name is given, use the catalog type
-            name = getattr(cls, 'name', cls.catalog_type.replace('-', '_'))
+            if hasattr(cls, 'name'):
+                name = cls.name
+            else:
+                name = cls.catalog_type.replace('-', '_')
+                cls.name = name
             descriptor = ServiceDescriptor(cls)
             setattr(Connection, name, descriptor)
             descriptor.__set_name__(Connection, name)
