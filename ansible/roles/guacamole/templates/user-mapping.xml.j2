@@ -1,0 +1,16 @@
+<user-mapping>
+    <authorize
+        username="portal"
+        password="{{ guacamole_password_hash }}"
+        encoding="md5"
+    >
+        <connection name="shell">
+            <protocol>ssh</protocol>
+            <param name="hostname">{{ ansible_docker0.ipv4.address }}</param>
+            <param name="port">22</param>
+            <param name="username">{{ guacamole_ssh_user }}</param>
+            <param name="private-key">{{ guacamole_ssh_private_key }}</param>
+            <param name="enable-sftp">true</param>
+        </connection>
+    </authorize>
+</user-mapping>
