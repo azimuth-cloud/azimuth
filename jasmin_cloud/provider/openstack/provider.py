@@ -2,14 +2,31 @@
 This module contains the provider implementation for OpenStack.
 """
 
-import functools
-import logging
 import base64
+import dataclasses
+import functools
 import hashlib
+import itertools
+import logging
 import random
 import re
+import string
+import textwrap
 
 import dateutil.parser
+
+from cryptography import x509
+from cryptography.x509.oid import NameOID
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.hashes import SHA256
+from cryptography.hazmat.primitives.serialization import (
+    Encoding,
+    PrivateFormat,
+    NoEncryption
+)
+
+import yaml
+
 
 import rackit
 
@@ -100,6 +117,42 @@ def convert_exceptions(f):
     return wrapper
 
 
+class base64_encoded_block(str):
+    """
+    Class representing a base64-encoded block that can be rendered in YAML.
+    """
+    @staticmethod
+    def pyyaml_presenter(dumper, data):
+        """
+        PYYaml presenter for a base64-encoded block.
+        """
+        return dumper.represent_scalar(
+            'tag:yaml.org,2002:str',
+            # base64-encode the input data and wrap the text at 64 characters
+            textwrap.fill(base64.b64encode(data.encode()).decode(), 64),
+            style = '|'
+        )
+
+yaml.add_representer(base64_encoded_block, base64_encoded_block.pyyaml_presenter)
+
+
+class LazyRewindableGenerator:
+    """
+    Class for a lazily-initialised, rewindable generator.
+    """
+    def __init__(self, generator, *args, **kwargs):
+        def internal_generator():
+            yield from generator(*args, **kwargs)
+        self._generator = internal_generator
+        self._iterator = None
+
+    def __iter__(self):
+        if not self._iterator:
+            self._iterator = self._generator()
+        self._iterator, result = itertools.tee(self._iterator)
+        return result
+
+
 class Provider(base.Provider):
     """
     Provider implementation for OpenStack.
@@ -108,6 +161,14 @@ class Provider(base.Provider):
         auth_url: The Keystone v3 authentication URL.
         domain: The domain to authenticate with (default ``Default``).
         interface: The OpenStack interface to connect using (default ``public``).
+        internal_net_template: Template for the name of the internal network to use
+                               (default ``None``).
+                               The current tenancy name can be templated in using the
+                               fragment ``{tenant_name}``.
+        external_net_template: Template for the name of the external network to use
+                               (default ``None``).
+                               The current tenancy name can be templated in using the
+                               fragment ``{tenant_name}``.
         internal_net_cidr: The CIDR for the internal network when it is
                            auto-created (default ``192.168.3.0/24``).
         az_backdoor_net_map: Mapping of availability zone to the UUID of the backdoor network
@@ -129,6 +190,8 @@ class Provider(base.Provider):
     def __init__(self, auth_url,
                        domain = 'Default',
                        interface = 'public',
+                       internal_net_template = None,
+                       external_net_template = None,
                        internal_net_cidr = '192.168.3.0/24',
                        az_backdoor_net_map = dict(),
                        backdoor_vnic_type = None,
@@ -139,6 +202,8 @@ class Provider(base.Provider):
         self._auth_url = auth_url.rstrip('/')
         self._domain = domain
         self._interface = interface
+        self._internal_net_template = internal_net_template
+        self._external_net_template = external_net_template
         self._internal_net_cidr = internal_net_cidr
         self._az_backdoor_net_map = az_backdoor_net_map or dict()
         self._backdoor_vnic_type = backdoor_vnic_type
@@ -164,6 +229,8 @@ class Provider(base.Provider):
             logger.info("Sucessfully authenticated user '%s'", username)
             return UnscopedSession(
                 conn,
+                internal_net_template = self._internal_net_template,
+                external_net_template = self._external_net_template,
                 internal_net_cidr = self._internal_net_cidr,
                 az_backdoor_net_map = self._az_backdoor_net_map,
                 backdoor_vnic_type = self._backdoor_vnic_type,
@@ -188,6 +255,8 @@ class Provider(base.Provider):
             logger.info("Sucessfully authenticated user '%s'", conn.username)
             return UnscopedSession(
                 conn,
+                internal_net_template = self._internal_net_template,
+                external_net_template = self._external_net_template,
                 internal_net_cidr = self._internal_net_cidr,
                 az_backdoor_net_map = self._az_backdoor_net_map,
                 backdoor_vnic_type = self._backdoor_vnic_type,
@@ -203,12 +272,16 @@ class UnscopedSession(base.UnscopedSession):
     provider_name = 'openstack'
 
     def __init__(self, connection,
+                       internal_net_template = None,
+                       external_net_template = None,
                        internal_net_cidr = '192.168.3.0/24',
                        az_backdoor_net_map = None,
                        backdoor_vnic_type = None,
                        cluster_app_cred_name = "caas-awx",
                        cluster_engine = None):
         self._connection = connection
+        self._internal_net_template = internal_net_template
+        self._external_net_template = external_net_template
         self._internal_net_cidr = internal_net_cidr
         self._az_backdoor_net_map = az_backdoor_net_map or dict()
         self._backdoor_vnic_type = backdoor_vnic_type
@@ -239,6 +312,36 @@ class UnscopedSession(base.UnscopedSession):
         except StopIteration:
             raise errors.InvalidOperationError("User does not belong to any projects.")
         return self._connection.scoped_connection(project)
+
+    def capabilities(self):
+        """
+        See :py:meth:`.base.UnscopedSession.capabilities`.
+        """
+        # We need a scoped connection to query the service catalog
+        # If the user does not belong to any projects, use the default capabilties
+        try:
+            conn = self._scoped_connection_for_first_project()
+        except errors.InvalidOperationError:
+            return dto.Capabilities()
+        # Check if the relevant services are available to the project
+        try:
+            _ = conn.block_store
+        except api.ServiceNotSupported:
+            supports_volumes = False
+        else:
+            supports_volumes = True
+        try:
+            _ = conn.coe
+        except api.ServiceNotSupported:
+            supports_kubernetes = False
+        else:
+            supports_kubernetes = True
+        return dto.Capabilities(
+            supports_volumes = supports_volumes,
+            supports_kubernetes = supports_kubernetes,
+            # Clusters are supported if there is a cluster engine
+            supports_clusters = bool(self._cluster_engine)
+        )
 
     @convert_exceptions
     def ssh_public_key(self, key_name):
@@ -311,6 +414,8 @@ class UnscopedSession(base.UnscopedSession):
                 self.username(),
                 tenancy,
                 self._connection.scoped_connection(tenancy.id),
+                internal_net_template = self._internal_net_template,
+                external_net_template = self._external_net_template,
                 internal_net_cidr = self._internal_net_cidr,
                 az_backdoor_net_map = self._az_backdoor_net_map,
                 backdoor_vnic_type = self._backdoor_vnic_type,
@@ -339,6 +444,8 @@ class ScopedSession(base.ScopedSession):
     def __init__(self, username,
                        tenancy,
                        connection,
+                       internal_net_template = None,
+                       external_net_template = None,
                        internal_net_cidr = '192.168.3.0/24',
                        az_backdoor_net_map = None,
                        backdoor_vnic_type = None,
@@ -347,6 +454,8 @@ class ScopedSession(base.ScopedSession):
         self._username = username
         self._tenancy = tenancy
         self._connection = connection
+        self._internal_net_template = internal_net_template
+        self._external_net_template = external_net_template
         self._internal_net_cidr = internal_net_cidr
         self._az_backdoor_net_map = az_backdoor_net_map or dict()
         self._backdoor_vnic_type = backdoor_vnic_type
@@ -496,11 +605,37 @@ class ScopedSession(base.ScopedSession):
         self._log("Fetching flavor with id '%s'", id)
         return self._from_api_flavor(self._connection.compute.flavors.get(id))
 
-    def _tagged_network(self, tag):
+    def _tagged_network(self, net_type):
         """
         Returns the first network with the given tag, or None if there is not one.
         """
-        return next(self._connection.network.networks.all(tags = tag), None)
+        tag = "portal-{}".format(net_type)
+        network = next(self._connection.network.networks.all(tags = tag), None)
+        if network:
+            self._log("Using tagged %s network '%s'", net_type, network.name)
+        else:
+            self._log("Failed to find tagged %s network.", net_type, level = logging.WARN)
+        return network
+
+    def _templated_network(self, template, net_type):
+        """
+        Returns the network specified by the template, after interpolating with the tenant name.
+
+        If the network does not exist, that is a config error and an exception is raised.
+        """
+        net_name = template.format(tenant_name = self._tenancy.name)
+        network = self._connection.network.networks.find_by_name(net_name)
+        if network:
+            self._log("Found %s network '%s' using template.", net_type, network.name)
+            return network
+        else:
+            self._log(
+                "Failed to find %s network '%s' from template.",
+                net_type,
+                net_name,
+                level = logging.ERROR
+            )
+            raise errors.InvalidOperationError('Could not find {} network.'.format(net_type))
 
     def _tenant_network(self, create_network = False):
         """
@@ -509,22 +644,12 @@ class ScopedSession(base.ScopedSession):
         If create_network = True, a network will be created if one cannot be found.
         """
         # First, try to find a network that is tagged as the portal internal network
-        tagged_network = self._tagged_network('portal-internal')
+        tagged_network = self._tagged_network('internal')
         if tagged_network:
-            self._log("Using tagged internal network '%s'", tagged_network.name)
             return tagged_network
-        else:
-            self._log("Failed to find tagged internal network.")
-        # If there are no networks with that tag, try to find the network using the tenancy router
-        # Find the port that connects the tenancy network to a router
-        port = self._connection.network.ports.find_by_device_owner('network:router_interface')
-        if port:
-            # Get the network that is attached to that port
-            network = self._connection.network.networks.get(port.network_id)
-            self._log("Found internal network '%s' via router.", network.name)
-            return network
-        else:
-            self._log("Failed to find internal network via router.")
+        # Next, attempt to use the name template
+        if self._internal_net_template:
+            return self._templated_network(self._internal_net_template, 'internal')
         # If we get this far, we either create and return a network or return None
         if create_network:
             # Unfortunately, the tags cannot be set in the POST request
@@ -545,22 +670,53 @@ class ScopedSession(base.ScopedSession):
         Returns the external network that connects the tenant router to the outside world.
         """
         # First, try to find a network that is tagged as the portal external network
-        tagged_network = self._tagged_network('portal-external')
+        tagged_network = self._tagged_network('external')
         if tagged_network:
-            self._log("Using tagged external network '%s'", tagged_network.name)
             return tagged_network
-        else:
-            self._log("Failed to find tagged external network.")
-        # Otherwise find the external gateway for the tenancy router
-        router = next(self._connection.network.routers.all(), None)
-        if router and router.external_gateway_info:
-            external_network_id = router.external_gateway_info['network_id']
-            network = self._connection.network.networks.get(external_network_id)
-            self._log("Found external network '%s' via router", network.name)
-            return network
-        else:
-            self._log("Failed to find external network")
-            raise errors.InvalidOperationError('Could not find external network.')
+        # Next, attempt to use the name template
+        if self._external_net_template:
+            return self._templated_network(self._external_net_template, 'external')
+        # If there is exactly one external network available, use that
+        def gen_external_networks():
+            # Unfortunately, we need multiple queries here in case the user is an admin
+            params = { 'router:external': True }
+            # The unshared external networks belonging to the project
+            yield from self._connection.network.networks.all(**params, shared = False)
+            # The shared external networks belonging to any project
+            yield from self._connection.network.networks.all(
+                **params,
+                project_id = None,
+                shared = True
+            )
+        networks = list(gen_external_networks())
+        if len(networks) == 1:
+            return networks[0]
+        # Otherwise, require explicit configuration
+        raise errors.InvalidOperationError('Could not find external network.')
+
+    def _get_or_create_keypair(self, ssh_key):
+        """
+        Returns a Nova keypair for the given SSH key.
+        """
+        # Keypairs are immutable, i.e. once created cannot be changed
+        # We create keys with names of the form "<username>-<truncated fingerprint>",
+        # which allows for us to recognise when a user has changed their key and create
+        # a new one
+        fingerprint = hashlib.md5(base64.b64decode(ssh_key.split()[1])).hexdigest()
+        key_name = '{username}-{fingerprint}'.format(
+            # Sanitise the username by replacing non-alphanumerics with -
+            username = sanitise_username(self._username),
+            # Truncate the fingerprint to 8 characters
+            fingerprint = fingerprint[:8]
+        )
+        try:
+            # We need to force a fetch so that the keypair is resolved
+            return self._connection.compute.keypairs.get(key_name, force = True)
+        except rackit.NotFound:
+            return self._connection.compute.keypairs.create(
+                name = key_name,
+                public_key = ssh_key
+            )
 
     _POWER_STATES = {
         0: 'Unknown',
@@ -571,35 +727,46 @@ class ScopedSession(base.ScopedSession):
         7: 'Suspended',
     }
 
-    def _from_api_server(self, api_server, tenant_network):
+    def _from_api_server(self, api_server, tenant_network, images = None):
         """
-        See :py:meth:`.base.ScopedSession.find_machine`.
+        Returns a machine DTO for the given API server representation.
+
+        The additional arguments are the tenant network and an optional iterable of
+        the images for the tenancy (used to save fetching each image individually
+        when listing machines).
         """
-        # Make sure we can find the image and flavor specified
-        try:
-            image = self.find_image(api_server.image['id'])
-        except (TypeError, AttributeError, errors.ObjectNotFoundError):
-            image = None
-        try:
-            size = self.find_size(api_server.flavor['id'])
-        except (TypeError, AttributeError, errors.ObjectNotFoundError):
-            size = None
         # Try to get nat_allowed from the machine metadata
         # If the nat_allowed metadata is not present, use the image
         # If the image does not exist anymore, assume it is allowed
         try:
             nat_allowed = bool(int(api_server.metadata['jasmin_nat_allowed']))
         except (KeyError, TypeError):
-            nat_allowed = image.nat_allowed if image else True
+            if api_server.image:
+                if images:
+                    image = next((i for i in images if i.id == api_server.image.id), None)
+                else:
+                    try:
+                        image = self._connection.image.images.get(api_server.image.id)
+                    except errors.ObjectNotFoundError:
+                        image = None
+            else:
+                image = None
+            nat_allowed = bool(int(getattr(image, 'jasmin_nat_allowed', '1')))
         status = api_server.status
         fault = api_server.fault.get('message', None)
         task = api_server.task_state
-        # Function to get the first IP of a particular type on the tenant network
+        # Function to get the first IP of a particular type for a machine
+        # We prefer to get an IP on the specified tenant network, but if the machine is
+        # not connected to that network we just return the first IP
         def ip_of_type(ip_type):
             return next(
                 (
                     a['addr']
-                    for a in api_server.addresses.get(tenant_network.name, [])
+                    for a in api_server.addresses.get(
+                        tenant_network.name,
+                        # If the tenant network is not in the addresses, use them all
+                        itertools.chain.from_iterable(api_server.addresses.values())
+                    )
                     if a['version'] == 4 and a['OS-EXT-IPS:type'] == ip_type
                 ),
                 None
@@ -607,17 +774,17 @@ class ScopedSession(base.ScopedSession):
         return dto.Machine(
             api_server.id,
             api_server.name,
-            image,
-            size,
-            dto.Machine.Status(
-                getattr(dto.Machine.Status.Type, status, dto.Machine.Status.Type.OTHER),
+            getattr(api_server.image, 'id', None),
+            getattr(api_server.flavor, 'id', None),
+            dto.MachineStatus(
+                getattr(dto.MachineStatusType, status, dto.MachineStatusType.OTHER),
                 status,
                 _replace_resource_names(fault) if fault else None
             ),
             self._POWER_STATES[api_server.power_state],
             task.capitalize() if task else None,
-            ip_of_type('fixed') if tenant_network else None,
-            ip_of_type('floating') if tenant_network else None,
+            ip_of_type('fixed'),
+            ip_of_type('floating'),
             nat_allowed,
             tuple(v['id'] for v in api_server.attached_volumes),
             api_server.user_id,
@@ -633,12 +800,17 @@ class ScopedSession(base.ScopedSession):
         api_servers = tuple(self._connection.compute.servers.all())
         self._log('Found %s servers', len(api_servers))
         # If no servers loaded, we don't need to discover the tenant network
+        # We also include a generator of images, so that they are only loaded once
         if api_servers:
             # Load the tenant network once and reuse it
             tenant_network = self._tenant_network()
+            # Pass the images in a way that they are only loaded the first
+            # time that they are iterated over
+            images = LazyRewindableGenerator(self._connection.image.images.all)
         else:
             tenant_network = None
-        return tuple(self._from_api_server(s, tenant_network) for s in api_servers)
+            images = []
+        return tuple(self._from_api_server(s, tenant_network, images) for s in api_servers)
 
     @convert_exceptions
     def find_machine(self, id):
@@ -697,25 +869,7 @@ class ScopedSession(base.ScopedSession):
             params['networks'].append({ 'port': port.id })
         # Get the keypair to inject
         if ssh_key:
-            # Keypairs are immutable, i.e. once created cannot be changed
-            # We create keys with names of the form "<username>-<truncated fingerprint>",
-            # which allows for us to recognise when a user has changed their key and create
-            # a new one
-            fingerprint = hashlib.md5(base64.b64decode(ssh_key.split()[1])).hexdigest()
-            key_name = '{username}-{fingerprint}'.format(
-                # Sanitise the username by replacing non-alphanumerics with -
-                username = sanitise_username(self._username),
-                # Truncate the fingerprint to 8 characters
-                fingerprint = fingerprint[:8]
-            )
-            try:
-                # We need to force a fetch so that the keypair is resolved
-                keypair = self._connection.compute.keypairs.get(key_name, force = True)
-            except rackit.NotFound:
-                keypair = self._connection.compute.keypairs.create(
-                    name = key_name,
-                    public_key = ssh_key
-                )
+            keypair = self._get_or_create_keypair(ssh_key)
             params.update(key_name = keypair.name)
         # Pass metadata onto the machine from the image if present
         metadata = dict(jasmin_organisation = self._tenancy.name)
@@ -779,12 +933,15 @@ class ScopedSession(base.ScopedSession):
         except errors.ObjectNotFoundError:
             return None
 
-    def _from_api_floatingip(self, api_floatingip):
+    def _from_api_floatingip(self, api_floatingip, ports = None):
         """
         Converts an OpenStack API floatingip object into a :py:class:`.dto.ExternalIp`.
         """
         if api_floatingip.port_id:
-            port = self._connection.network.ports.get(api_floatingip.port_id)
+            if ports:
+                port = ports[api_floatingip.port_id]
+            else:
+                port = self._connection.network.ports.get(api_floatingip.port_id)
             machine_id = port.device_id
         else:
             machine_id = None
@@ -800,12 +957,16 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.external_ips`.
         """
         self._log("Fetching floating ips")
-        fips = tuple(
-            self._from_api_floatingip(fip)
-            for fip in self._connection.network.floatingips.all()
-        )
+        fips = list(self._connection.network.floatingips.all())
         self._log("Found %s floating ips", len(fips))
-        return fips
+        # If any floating IPs were found, fetch all the ports in one go and index them
+        # by ID so we can locate the attached machines without making one request per port
+        if fips:
+            self._log("Fetching ports")
+            ports = { p.id: p for p in self._connection.network.ports.all() }
+        else:
+            ports = {}
+        return tuple(self._from_api_floatingip(fip, ports) for fip in fips)
 
     @convert_exceptions
     def allocate_external_ip(self):
@@ -855,9 +1016,7 @@ class ScopedSession(base.ScopedSession):
         else:
             port = None
         if not port:
-            raise errors.ImproperlyConfiguredError(
-                'Machine is not connected to tenancy network.'
-            )
+            raise errors.InvalidOperationError('Machine is not connected to tenant network.')
         # If there is already a floating IP associated with the port, detach it
         current = self._connection.network.floatingips.find_by_port_id(port.id)
         if current:
@@ -879,28 +1038,28 @@ class ScopedSession(base.ScopedSession):
         return self._from_api_floatingip(fip._update(port_id = None))
 
     _VOLUME_STATUSES = {
-        'creating': dto.Volume.Status.CREATING,
-        'available': dto.Volume.Status.AVAILABLE,
-        'reserved': dto.Volume.Status.ATTACHING,
-        'attaching': dto.Volume.Status.ATTACHING,
-        'detaching': dto.Volume.Status.DETACHING,
-        'in-use': dto.Volume.Status.IN_USE,
-        'deleting': dto.Volume.Status.DELETING,
-        'error': dto.Volume.Status.ERROR,
-        'error_deleting': dto.Volume.Status.ERROR,
-        'error_backing-up': dto.Volume.Status.ERROR,
-        'error_restoring': dto.Volume.Status.ERROR,
-        'error_extending': dto.Volume.Status.ERROR,
+        'creating': dto.VolumeStatus.CREATING,
+        'available': dto.VolumeStatus.AVAILABLE,
+        'reserved': dto.VolumeStatus.ATTACHING,
+        'attaching': dto.VolumeStatus.ATTACHING,
+        'detaching': dto.VolumeStatus.DETACHING,
+        'in-use': dto.VolumeStatus.IN_USE,
+        'deleting': dto.VolumeStatus.DELETING,
+        'error': dto.VolumeStatus.ERROR,
+        'error_deleting': dto.VolumeStatus.ERROR,
+        'error_backing-up': dto.VolumeStatus.ERROR,
+        'error_restoring': dto.VolumeStatus.ERROR,
+        'error_extending': dto.VolumeStatus.ERROR,
     }
 
     def _from_api_volume(self, api_volume):
         """
-        Converts an OpenStack SDK volume object into a :py:class:`.dto.Volume`.
+        Converts an OpenStack API volume object into a :py:class:`.dto.Volume`.
         """
         # Work out the volume status
         status = self._VOLUME_STATUSES.get(
             api_volume.status.lower(),
-            dto.Volume.Status.OTHER
+            dto.VolumeStatus.OTHER
         )
         try:
             attachment = api_volume.attachments[0]
@@ -953,7 +1112,7 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.delete_volume`.
         """
         volume = volume if isinstance(volume, dto.Volume) else self.find_volume(volume)
-        if volume.status not in [dto.Volume.Status.AVAILABLE, dto.Volume.Status.ERROR]:
+        if volume.status not in [dto.VolumeStatus.AVAILABLE, dto.VolumeStatus.ERROR]:
             raise errors.InvalidOperationError(
                 "Cannot delete volume with status {}.".format(volume.status.name)
             )
@@ -975,7 +1134,7 @@ class ScopedSession(base.ScopedSession):
         if volume.machine_id == machine:
             return volume
         # The volume must be available before attaching
-        if volume.status != dto.Volume.Status.AVAILABLE:
+        if volume.status != dto.VolumeStatus.AVAILABLE:
             raise errors.InvalidOperationError(
                 "Volume must be AVAILABLE before attaching."
             )
@@ -1001,6 +1160,272 @@ class ScopedSession(base.ScopedSession):
         # Refresh the volume in the cache
         self._connection.block_store.volumes.get(volume.id, force = True)
         return self.find_volume(volume.id)
+
+    def _from_api_coe_cluster_template(self, template):
+        """
+        Converts a COE cluster template into a :py:class:`.dto.KubernetesClusterTemplate`.
+        """
+        return dto.KubernetesClusterTemplate(
+            template.uuid,
+            template.name,
+            template.labels.get('kube_tag', 'default'),
+            template.master_lb_enabled,
+            template.labels.get("monitoring_enabled", "False").lower() == "true",
+            template.public,
+            template.hidden,
+            dateutil.parser.parse(template.created_at),
+            dateutil.parser.parse(template.updated_at) if template.updated_at else None
+        )
+
+    @convert_exceptions
+    def kubernetes_cluster_templates(self):
+        """
+        See :py:meth:`.base.ScopedSession.kubernetes_cluster_templates`.
+        """
+        self._log('Fetching available COE cluster templates')
+        templates = list(self._connection.coe.cluster_templates.all())
+        self._log('Found %s COE cluster templates', len(templates))
+        # Return only the templates that have Kubernetes as a COE and are not hidden
+        return tuple(
+            self._from_api_coe_cluster_template(template)
+            for template in templates
+            if template.coe == "kubernetes" and not template.hidden
+        )
+
+    @convert_exceptions
+    def find_kubernetes_cluster_template(self, id):
+        """
+        See :py:meth:`.base.ScopedSession.find_kubernetes_cluster_template`.
+        """
+        self._log("Fetching COE cluster template with id '%s'", id)
+        template = self._connection.coe.cluster_templates.get(id)
+        # Check that the COE is Kubernetes and bail if not
+        if template.coe != "kubernetes":
+            raise errors.ObjectNotFoundError('ClusterTemplate {} could not be found.'.format(id))
+        return self._from_api_coe_cluster_template(template)
+
+    def _from_api_coe_cluster(self, api_cluster, flavors = None):
+        """
+        Converts a COE cluster into a :py:class:`.dto.KubernetesCluster`.
+        """
+        # Annoyingly, the flavor "id"s can actually also be flavor names
+        # So convert them to ids if we need to
+        # To do this, we use an index of flavor name => id, which can optionally
+        # be passed in when listing multiple clusters
+        if not flavors:
+            flavors = { f.name: f.id for f in self._connection.compute.flavors.all() }
+        return dto.KubernetesCluster(
+            api_cluster.uuid,
+            api_cluster.name,
+            api_cluster.cluster_template_id,
+            api_cluster.coe_version,
+            dto.KubernetesClusterStatus(api_cluster.status),
+            api_cluster.status_reason or None,
+            dto.KubernetesClusterHealthStatus(api_cluster.health_status)
+                if getattr(api_cluster, 'health_status', None)
+                else None,
+            api_cluster.health_status_reason,
+            api_cluster.api_address,
+            api_cluster.master_count,
+            api_cluster.node_count,
+            flavors.get(api_cluster.master_flavor_id, api_cluster.master_flavor_id),
+            flavors.get(api_cluster.flavor_id, api_cluster.flavor_id),
+            api_cluster.labels.get("auto_scaling_enabled", "False").lower() == "true",
+            api_cluster.labels.get("min_node_count"),
+            api_cluster.labels.get("max_node_count"),
+            api_cluster.labels.get("monitoring_enabled", "False").lower() == "true",
+            api_cluster.labels.get("grafana_admin_password"),
+            dateutil.parser.parse(api_cluster.created_at),
+            dateutil.parser.parse(api_cluster.updated_at) if api_cluster.updated_at else None
+        )
+
+    @convert_exceptions
+    def kubernetes_clusters(self):
+        """
+        See :py:meth:`.base.ScopedSession.kubernetes_clusters`.
+        """
+        self._log('Fetching available COE clusters')
+        clusters = list(self._connection.coe.clusters.all())
+        self._log('Found %s COE clusters', len(clusters))
+        # If we didn't find any clusters, we are done
+        if not clusters:
+            return clusters
+        # Load the cluster templates and index them by ID so that we can check the COE
+        # This means fewer requests than fetching each cluster template as needed
+        template_coes = {
+            template.uuid: template.coe
+            for template in self._connection.coe.cluster_templates.all()
+        }
+        # Return only the clusters that have Kubernetes as a COE
+        return tuple(
+            self._from_api_coe_cluster(cluster)
+            for cluster in clusters
+            if template_coes[cluster.cluster_template_id] == "kubernetes"
+        )
+
+    @convert_exceptions
+    def find_kubernetes_cluster(self, id):
+        """
+        See :py:meth:`.base.ScopedSession.find_kubernetes_cluster`.
+        """
+        self._log("Fetching COE cluster with id '%s'", id)
+        cluster = self._connection.coe.clusters.get(id)
+        # Check that the COE is Kubernetes and bail if not
+        if cluster.cluster_template.coe != "kubernetes":
+            raise errors.ObjectNotFoundError('Cluster {} could not be found.'.format(id))
+        return self._from_api_coe_cluster(cluster)
+
+    @convert_exceptions
+    def create_kubernetes_cluster(
+        self,
+        name,
+        template_id,
+        master_size_id,
+        worker_size_id,
+        worker_count = None,
+        min_worker_count = None,
+        max_worker_count = None,
+        auto_scaling_enabled = False,
+        ssh_key = None
+    ):
+        """
+        See :py:meth:`.base.ScopedSession.create_kubernetes_cluster`.
+        """
+        # Get the template so we can check whether to generate a Grafana password
+        template = self.find_kubernetes_cluster_template(template_id)
+        self._log("Creating Kubernetes cluster '%s'", name)
+        params = dict(
+            name = name,
+            cluster_template_id = template_id,
+            master_flavor_id = master_size_id,
+            flavor_id = worker_size_id,
+            # If auto-scaling is enabled, min/max worker count will be set
+            # If not, then worker count will be set
+            # Use the worker count or the minimum worker count, depending which is set
+            node_count = worker_count or min_worker_count,
+            labels = dict(auto_scaling_enabled = auto_scaling_enabled)
+        )
+        if auto_scaling_enabled:
+            params['labels'].update(
+                min_node_count = min_worker_count,
+                max_node_count = max_worker_count
+            )
+        if template.monitoring_enabled:
+            params['labels'].update(
+                # Generate a random password for Grafana
+                grafana_admin_password = ''.join(
+                    random.choices(
+                        string.ascii_letters + string.digits + string.punctuation,
+                        k = 32
+                    )
+                )
+            )
+        if ssh_key:
+            keypair = self._get_or_create_keypair(ssh_key)
+            params.update(keypair = keypair.name)
+        cluster = self._connection.coe.clusters.create(**params)
+        return self._from_api_coe_cluster(cluster)
+
+    @convert_exceptions
+    def update_kubernetes_cluster(self, cluster, template):
+        """
+        See :py:meth:`.base.ScopedSession.update_kubernetes_cluster`.
+        """
+        return super().update_kubernetes_cluster(cluster, template)
+
+    @convert_exceptions
+    def delete_kubernetes_cluster(self, cluster):
+        """
+        See :py:meth:`.base.ScopedSession.delete_kubernetes_cluster`.
+        """
+        cluster = cluster.id if isinstance(cluster, dto.KubernetesCluster) else cluster
+        self._log("Deleting Kubernetes cluster '%s'", cluster)
+        self._connection.coe.clusters.delete(cluster)
+        try:
+            # The state doesn't change straight away, so replace it
+            return dataclasses.replace(
+                self.find_kubernetes_cluster(cluster),
+                status = dto.KubernetesClusterStatus.DELETE_IN_PROGRESS
+            )
+        except errors.ObjectNotFoundError:
+            return None
+
+    def _generate_csr_and_key(self):
+        """
+        Generate a CSR and private key to get signed by Kubernetes.
+        """
+        self._log("Generating CSR and private key")
+        key = rsa.generate_private_key(public_exponent = 65537, key_size = 3072)
+        csr = (
+            x509.CertificateSigningRequestBuilder()
+                .subject_name(x509.Name([
+                    x509.NameAttribute(NameOID.COMMON_NAME, u"admin"),
+                    x509.NameAttribute(NameOID.ORGANIZATION_NAME, u"system:masters")
+                ]))
+                .sign(key, SHA256())
+        )
+        return (
+            csr.public_bytes(Encoding.PEM).decode(),
+            key.private_bytes(
+                Encoding.PEM,
+                PrivateFormat.TraditionalOpenSSL,
+                NoEncryption()
+            ).decode()
+        )
+
+    @convert_exceptions
+    def generate_kubeconfig_for_kubernetes_cluster(self, cluster):
+        """
+        See :py:meth:`.base.ScopedSession.generate_kubeconfig_for_kubernetes_cluster`.
+        """
+        # Ensure the cluster is loaded
+        if not isinstance(cluster, dto.KubernetesCluster):
+            cluster = self.find_kubernetes_cluster(cluster)
+        # If the API address is not known yet, there is no point in continuing
+        if not cluster.api_address:
+            raise errors.InvalidOperationError("Kubernetes API address is not yet known.")
+        self._log("Generate kubeconfig for Kubernetes cluster '%s'", cluster.id)
+        csr, private_key = self._generate_csr_and_key()
+        self._log("Signing generated CSR with cluster CA for '%s'", cluster.id)
+        cert = self._connection.coe.certificates.create(cluster_uuid = cluster.id, csr = csr).pem
+        self._log("Fetching CA for cluster '%s'", cluster.id)
+        ca = self._connection.coe.certificates.get(cluster.id).pem
+        return yaml.dump(
+            {
+                "apiVersion": "v1",
+                "kind": "Config",
+                "preferences": {},
+                "clusters": [
+                    {
+                        "name": cluster.name,
+                        "cluster": {
+                            "server": cluster.api_address,
+                            "certificate-authority-data": base64_encoded_block(ca),
+                        },
+                    },
+                ],
+                "users": [
+                    {
+                        "name": "admin",
+                        "user": {
+                            "client-certificate-data": base64_encoded_block(cert),
+                            "client-key-data": base64_encoded_block(private_key),
+                        },
+                    },
+                ],
+                "contexts": [
+                    {
+                        "name": "default",
+                        "context": {
+                            "cluster": cluster.name,
+                            "user": "admin",
+                        },
+                    }
+                ],
+                "current-context": "default",
+            },
+            default_flow_style = False
+        )
 
     @property
     def cluster_manager(self):
@@ -1074,7 +1499,8 @@ class ScopedSession(base.ScopedSession):
             )
         else:
             error_message = None
-        return cluster._replace(
+        return dataclasses.replace(
+            cluster,
             parameter_values = params,
             tags = cluster.tags + stack_tags,
             error_message = error_message

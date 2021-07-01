@@ -3,6 +3,7 @@ Django REST framework serializers for objects from the :py:mod:`~.cloud.dto` pac
 """
 
 import collections
+import dataclasses
 
 from cryptography.exceptions import UnsupportedAlgorithm
 from cryptography.hazmat.primitives.serialization import load_ssh_public_key
@@ -30,15 +31,51 @@ def make_dto_serializer(dto_class, exclude = []):
     Returns:
         A subclass of ``rest_framework.serializers.Serializer``.
     """
+    if dataclasses.is_dataclass(dto_class):
+        fields = [f.name for f in dataclasses.fields(dto_class)]
+    else:
+        fields = dto_class._fields
     return type(
         dto_class.__name__ + 'Serializer',
         (serializers.Serializer, ),
         {
             name: serializers.ReadOnlyField()
-            for name in dto_class._fields
+            for name in fields
             if name not in exclude
         }
     )
+
+
+Ref = collections.namedtuple('Ref', ['id'])
+
+
+class RefSerializer(serializers.Serializer):
+    id = serializers.ReadOnlyField()
+
+    def to_representation(self, obj):
+        # If the object is falsey, the representation is None
+        if not obj:
+            return None
+        # If the given object is a scalar, convert it to a ref first
+        if not hasattr(obj, 'id'):
+            obj = Ref(obj)
+        result = super().to_representation(obj)
+        # If the info to build a link is in the context, add it
+        request = self.context.get('request')
+        tenant = self.context.get('tenant')
+        if request and tenant:
+            result.setdefault('links', {})['self'] = self.get_self_link(
+                request,
+                tenant,
+                obj.id
+            )
+        return result
+
+    def get_self_link(self, request, tenant, id):
+        """
+        Returns the self link for a ref.
+        """
+        raise NotImplementedError
 
 
 class SSHKeyUpdateSerializer(serializers.Serializer):
@@ -108,6 +145,16 @@ class TenancySerializer(make_dto_serializer(dto.Tenancy)):
                         'tenant': obj.id,
                     })
                 ),
+                'kubernetes_cluster_templates': request.build_absolute_uri(
+                    reverse('jasmin_cloud:kubernetes_cluster_templates', kwargs = {
+                        'tenant': obj.id,
+                    })
+                ),
+                'kubernetes_clusters': request.build_absolute_uri(
+                    reverse('jasmin_cloud:kubernetes_clusters', kwargs = {
+                        'tenant': obj.id,
+                    })
+                ),
                 'cluster_types': request.build_absolute_uri(
                     reverse('jasmin_cloud:cluster_types', kwargs = {
                         'tenant': obj.id,
@@ -125,77 +172,58 @@ class TenancySerializer(make_dto_serializer(dto.Tenancy)):
 QuotaSerializer = make_dto_serializer(dto.Quota)
 
 
-class ImageSerializer(make_dto_serializer(dto.Image, exclude = ['vm_type'])):
-    def to_representation(self, obj):
-        result = super().to_representation(obj)
-        # If the info to build a link is in the context, add it
-        request = self.context.get('request')
-        tenant = self.context.get('tenant')
-        if request and tenant:
-            result.setdefault('links', {})['self'] = request.build_absolute_uri(
-                reverse('jasmin_cloud:image_details', kwargs = {
-                    'tenant': tenant,
-                    'image': obj.id,
-                })
-            )
-        return result
-
-
-class SizeSerializer(make_dto_serializer(dto.Size)):
-    def to_representation(self, obj):
-        result = super().to_representation(obj)
-        # If the info to build a link is in the context, add it
-        request = self.context.get('request')
-        tenant = self.context.get('tenant')
-        if request and tenant:
-            result.setdefault('links', {})['self'] = request.build_absolute_uri(
-                reverse('jasmin_cloud:size_details', kwargs = {
-                    'tenant': tenant,
-                    'size': obj.id,
-                })
-            )
-        return result
-
-
-Ref = collections.namedtuple('Ref', ['id'])
-
-
-class VolumeRefSerializer(serializers.Serializer):
-    id = serializers.ReadOnlyField()
-
-    def to_representation(self, obj):
-        result = super().to_representation(obj)
-        # If the info to build a link is in the context, add it
-        request = self.context.get('request')
-        tenant = self.context.get('tenant')
-        if request and tenant:
-            result.setdefault('links', {})['self'] = request.build_absolute_uri(
-                reverse('jasmin_cloud:volume_details', kwargs = {
-                    'tenant': tenant,
-                    'volume': obj.id,
-                })
-            )
-        return result
-
-
-class MachineRefSerializer(serializers.Serializer):
-    id = serializers.ReadOnlyField()
-
-    def to_representation(self, obj):
-        result = super().to_representation(obj)
-        # If the info to build a link is in the context, add it
-        request = self.context.get('request')
-        tenant = self.context.get('tenant')
-        if request and tenant:
-            result.setdefault('links', {}).update({
-                'self': request.build_absolute_uri(
-                    reverse('jasmin_cloud:machine_details', kwargs = {
-                        'tenant': tenant,
-                        'machine': obj.id,
-                    })
-                ),
+class ImageRefSerializer(RefSerializer):
+    def get_self_link(self, request, tenant, id):
+        return request.build_absolute_uri(
+            reverse('jasmin_cloud:image_details', kwargs = {
+                'tenant': tenant,
+                'image': id,
             })
-        return result
+        )
+
+
+ImageSerializer = type(
+    'ImageSerializer',
+    (ImageRefSerializer, make_dto_serializer(dto.Image, exclude = ['vm_type'])),
+    {}
+)
+
+
+class SizeRefSerializer(RefSerializer):
+    def get_self_link(self, request, tenant, id):
+        return request.build_absolute_uri(
+            reverse('jasmin_cloud:size_details', kwargs = {
+                'tenant': tenant,
+                'size': id,
+            })
+        )
+
+
+SizeSerializer = type(
+    'SizeSerializer',
+    (SizeRefSerializer, make_dto_serializer(dto.Size)),
+    {}
+)
+
+
+class VolumeRefSerializer(RefSerializer):
+    def get_self_link(self, request, tenant, id):
+        return request.build_absolute_uri(
+            reverse('jasmin_cloud:volume_details', kwargs = {
+                'tenant': tenant,
+                'volume': id,
+            })
+        )
+
+
+class MachineRefSerializer(RefSerializer):
+    def get_self_link(self, request, tenant, id):
+        return request.build_absolute_uri(
+            reverse('jasmin_cloud:machine_details', kwargs = {
+                'tenant': tenant,
+                'machine': id,
+            })
+        )
 
 
 class VolumeSerializer(
@@ -203,12 +231,11 @@ class VolumeSerializer(
     make_dto_serializer(dto.Volume, exclude = ['status', 'machine_id'])
 ):
     status = serializers.ReadOnlyField(source = 'status.name')
-    machine = MachineRefSerializer(read_only = True, allow_null = True)
-
-    def to_representation(self, obj):
-        # Convert raw ids to refs before serializing
-        obj.machine = Ref(obj.machine_id) if obj.machine_id else None
-        return super().to_representation(obj)
+    machine = MachineRefSerializer(
+        source = "machine_id",
+        read_only = True,
+        allow_null = True
+    )
 
 
 class CreateVolumeSerializer(serializers.Serializer):
@@ -220,7 +247,7 @@ class UpdateVolumeSerializer(serializers.Serializer):
     machine_id = serializers.UUIDField(write_only = True, allow_null = True)
 
 
-class MachineStatusSerializer(make_dto_serializer(dto.Machine.Status)):
+class MachineStatusSerializer(make_dto_serializer(dto.MachineStatus)):
     type = serializers.ReadOnlyField(source = 'type.name')
 
 
@@ -230,18 +257,20 @@ class MachineSerializer(
 ):
     name = serializers.CharField()
 
-    image = ImageSerializer(read_only = True)
+    image = ImageRefSerializer(source = "image_id", read_only = True)
     image_id = serializers.UUIDField(write_only = True)
 
-    size = SizeSerializer(read_only = True)
+    size = SizeRefSerializer(source = "size_id", read_only = True)
     size_id = serializers.RegexField('^[a-z0-9-]+$', write_only = True)
 
     status = MachineStatusSerializer(read_only = True)
-    attached_volumes = VolumeRefSerializer(many = True, read_only = True)
+    attached_volumes = VolumeRefSerializer(
+        source = 'attached_volume_ids',
+        many = True,
+        read_only = True
+    )
 
     def to_representation(self, obj):
-        # Convert volume ids to refs before serializing
-        obj.attached_volumes = [Ref(v) for v in obj.attached_volume_ids]
         result = super().to_representation(obj)
         # If the info to build a link is in the context, add it
         request = self.context.get('request')
@@ -271,12 +300,14 @@ class MachineSerializer(
 
 
 class ExternalIPSerializer(make_dto_serializer(dto.ExternalIp)):
-    machine = MachineRefSerializer(read_only = True, allow_null = True)
+    machine = MachineRefSerializer(
+        source = "machine_id",
+        read_only = True,
+        allow_null = True
+    )
     machine_id = serializers.UUIDField(write_only = True, allow_null = True)
 
     def to_representation(self, obj):
-        # Convert raw ids to refs before serializing
-        obj.machine = Ref(obj.machine_id) if obj.machine_id else None
         result = super().to_representation(obj)
         # If the info to build a link is in the context, add it
         request = self.context.get('request')
@@ -291,8 +322,123 @@ class ExternalIPSerializer(make_dto_serializer(dto.ExternalIp)):
         return result
 
 
-class ClusterTypeRefSerializer(serializers.Serializer):
-    name = serializers.ReadOnlyField()
+class KubernetesClusterTemplateRefSerializer(RefSerializer):
+    def get_self_link(self, request, tenant, id):
+        return request.build_absolute_uri(
+            reverse('jasmin_cloud:kubernetes_cluster_template_details', kwargs = {
+                'tenant': tenant,
+                'template': id,
+            })
+        )
+
+
+KubernetesClusterTemplateSerializer = type(
+    'KubernetesClusterTemplateSerializer',
+    (
+        KubernetesClusterTemplateRefSerializer,
+        make_dto_serializer(dto.KubernetesClusterTemplate)
+    ),
+    {}
+)
+
+
+class KubernetesClusterSerializer(
+    make_dto_serializer(
+        dto.KubernetesCluster,
+        exclude = [
+            'template_id',
+            'master_size_id',
+            'worker_size_id',
+            'status',
+            'health_status'
+        ]
+    )
+):
+    master_size = SizeRefSerializer(source = 'master_size_id', read_only = True)
+    worker_size = SizeRefSerializer(source = 'worker_size_id', read_only = True)
+    template = KubernetesClusterTemplateRefSerializer(
+        source = 'template_id',
+        read_only = True
+    )
+    status = serializers.ReadOnlyField(
+        source = 'status.name',
+        read_only = True
+    )
+    health_status = serializers.ReadOnlyField(
+        source = 'health_status.name',
+        allow_null = True,
+        read_only = True
+    )
+
+    def to_representation(self, obj):
+        result = super().to_representation(obj)
+        # If the info to build a link is in the context, add it
+        request = self.context.get('request')
+        tenant = self.context.get('tenant')
+        if request and tenant:
+            result.setdefault('links', {}).update({
+                'self': request.build_absolute_uri(
+                    reverse('jasmin_cloud:kubernetes_cluster_details', kwargs = {
+                        'tenant': tenant,
+                        'cluster': obj.id,
+                    })
+                ),
+                'kubeconfig': request.build_absolute_uri(
+                    reverse(
+                        'jasmin_cloud:kubernetes_cluster_generate_kubeconfig',
+                        kwargs = {
+                            'tenant': tenant,
+                            'cluster': obj.id,
+                        }
+                    )
+                ),
+            })
+        return result
+
+
+class CreateKubernetesClusterSerializer(serializers.Serializer):
+    name = serializers.RegexField('^[a-z0-9-_]+$')
+    template_id = serializers.RegexField('^[a-z0-9-]+$')
+    master_size_id = serializers.RegexField('^[a-z0-9-]+$')
+    worker_size_id = serializers.RegexField('^[a-z0-9-]+$')
+    auto_scaling_enabled = serializers.BooleanField(default = False)
+    # Worker count should be given if auto-scaling is not enabled
+    worker_count = serializers.IntegerField(required = False, min_value = 1)
+    # If auto-scaling is enabled, min and max worker count should be given
+    min_worker_count = serializers.IntegerField(required = False, min_value = 1)
+    max_worker_count = serializers.IntegerField(required = False, min_value = 1)
+
+    def validate(self, data):
+        errors = {}
+        if data['auto_scaling_enabled']:
+            if 'min_worker_count' not in data:
+                errors['min_worker_count'] = [
+                    'This field is required when auto-scaling is enabled.',
+                ]
+            elif 'max_worker_count' not in data:
+                errors['max_worker_count'] = [
+                    'This field is required when auto-scaling is enabled.',
+                ]
+            elif data['max_worker_count'] < data['min_worker_count']:
+                errors['max_worker_count'] = [
+                    'Must be greater than or equal to min worker count.',
+                ]
+        else:
+            if 'worker_count' not in data:
+                errors['worker_count'] = [
+                    'This field is required when auto-scaling is not enabled.',
+                ]
+        if errors:
+            raise serializers.ValidationError(errors)
+        else:
+            return data
+
+
+ClusterParameterSerializer = make_dto_serializer(dto.ClusterParameter)
+
+
+class ClusterTypeSerializer(make_dto_serializer(dto.ClusterType)):
+    parameters = ClusterParameterSerializer(many = True, read_only = True)
 
     def to_representation(self, obj):
         result = super().to_representation(obj)
@@ -307,16 +453,6 @@ class ClusterTypeRefSerializer(serializers.Serializer):
                 })
             )
         return result
-
-
-ClusterTypeParameterSerializer = make_dto_serializer(dto.ClusterType.Parameter)
-
-
-class ClusterTypeSerializer(
-    ClusterTypeRefSerializer,
-    make_dto_serializer(dto.ClusterType)
-):
-    parameters = ClusterTypeParameterSerializer(many = True, read_only = True)
 
 
 class ClusterSerializer(make_dto_serializer(dto.Cluster)):

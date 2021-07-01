@@ -25,7 +25,7 @@ def build_validator(session, parameter_spec, prev_params = {}):
     Args:
         session: The current :py:class:`~.base.ScopedSession`.
                  Used to validate cloud resources.
-        parameter_spec: A list of :py:class:`~.dto.ClusterType.Parameter`s.
+        parameter_spec: A list of :py:class:`~.dto.ClusterParameter`s.
         prev_params: The previous parameters if applicable.
                      Used to validate immutability constraints.
 
@@ -305,7 +305,7 @@ def cloud_cluster_constraint(session, options, prev_value):
         return cluster
     # Only allow clusters that are in the READY state or were selected last time
     def is_ready(cluster):
-        if cluster.name == prev_value or cluster.status is dto.Cluster.Status.READY:
+        if cluster.name == prev_value or cluster.status is dto.ClusterStatus.READY:
             return cluster
         else:
             raise v.Invalid("Cluster is not ready.")

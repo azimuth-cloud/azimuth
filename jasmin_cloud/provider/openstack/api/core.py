@@ -85,8 +85,9 @@ class UnmanagedResource(rackit.UnmanagedResource):
         options_cls = UnmanagedResourceOptions
 
     def _fetch(self):
+        data = super()._fetch()
         # The data is under a key, which we need to extract
-        return super()._fetch()[self._opts.resource_key]
+        return data[self._opts.resource_key] if self._opts.resource_key else data
 
 
 class ResourceManager(rackit.ResourceManager):
@@ -95,11 +96,8 @@ class ResourceManager(rackit.ResourceManager):
     """
     def related_manager(self, resource_cls):
         # Modify related manager discovery to handle cross-service relationships
-        resource_cls = self.related_resource(resource_cls)
-        # Get the catalog type of the related resource
-        catalog_type = resource_cls._connection_cls.catalog_type
         # Use the main connection to get the service for the resource
-        service_name = catalog_type.replace('-', '_')
+        service_name = resource_cls._connection_cls.name
         service = getattr(self.connection.session.auth, service_name)
         # Then return the root manager for the resource class in that service
         root = service.root_manager(resource_cls)
@@ -352,7 +350,11 @@ class Service(rackit.Connection):
         # If the service has a catalog type, add it to the connection
         if cls.catalog_type:
             # If no explicit name is given, use the catalog type
-            name = getattr(cls, 'name', cls.catalog_type.replace('-', '_'))
+            if hasattr(cls, 'name'):
+                name = cls.name
+            else:
+                name = cls.catalog_type.replace('-', '_')
+                cls.name = name
             descriptor = ServiceDescriptor(cls)
             setattr(Connection, name, descriptor)
             descriptor.__set_name__(Connection, name)
@@ -368,13 +370,19 @@ class Service(rackit.Connection):
     def _find_message(self, obj):
         # Try to find a message property at any depth within the structure
         if isinstance(obj, dict):
-            try:
-                return obj['message']
-            except KeyError:
-                for item in obj.values():
-                    message = self._find_message(item)
-                    if message:
-                        return message
+            # Try a couple of different keys for error detail
+            for key in {'message', 'detail'}:
+                if key in obj:
+                    return obj[key]
+            for item in obj.values():
+                message = self._find_message(item)
+                if message:
+                    return message
+        elif isinstance(obj, list):
+            for item in obj:
+                message = self._find_message(item)
+                if message:
+                    return message
 
     def extract_error_message(self, response):
         """

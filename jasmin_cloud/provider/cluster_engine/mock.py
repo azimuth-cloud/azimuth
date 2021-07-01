@@ -2,6 +2,7 @@
 This module defines a mock implementation of a cluster engine.
 """
 
+import dataclasses
 import uuid
 import json
 from functools import reduce
@@ -54,7 +55,7 @@ class ClusterManager(base.ClusterManager):
                     c['id'],
                     c['name'],
                     c['cluster_type'],
-                    dto.Cluster.Status[c['status']],
+                    dto.ClusterStatus[c['status']],
                     None,
                     None,
                     c['parameter_values'],
@@ -80,7 +81,7 @@ class ClusterManager(base.ClusterManager):
             'id': id,
             'name': name,
             'cluster_type': cluster_type.name,
-            'status': dto.Cluster.Status.CONFIGURING.name,
+            'status': dto.ClusterStatus.CONFIGURING.name,
             'parameter_values': params,
             'created': datetime.now().isoformat(),
             'updated': datetime.now().isoformat(),
@@ -98,7 +99,7 @@ class ClusterManager(base.ClusterManager):
             if c['id'] == cluster:
                 c['parameter_values'].update(params)
                 c.update(
-                    status = dto.Cluster.Status.CONFIGURING.name,
+                    status = dto.ClusterStatus.CONFIGURING.name,
                     updated = datetime.now().isoformat()
                 )
                 break
@@ -115,7 +116,7 @@ class ClusterManager(base.ClusterManager):
         for c in clusters:
             if c['id'] == cluster:
                 c.update(
-                    status = dto.Cluster.Status.CONFIGURING.name,
+                    status = dto.ClusterStatus.CONFIGURING.name,
                     patched = datetime.now().isoformat()
                 )
                 break
@@ -132,4 +133,4 @@ class ClusterManager(base.ClusterManager):
         clusters = [c for c in clusters if c['id'] != cluster.id]
         with open(self._clusters_file, 'w') as fh:
             json.dump(clusters, fh, indent = 2)
-        return cluster._replace(status = dto.Cluster.Status.DELETING)
+        return dataclasses.replace(cluster, status = dto.ClusterStatus.DELETING)
