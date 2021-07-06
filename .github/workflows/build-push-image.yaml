@@ -9,12 +9,6 @@ jobs:
       - name: Check out the repository
         uses: actions/checkout@v2
 
-      - name: Calculate tags
-        id: image-tags
-        env:
-          REPOSITORY: ghcr.io/stackhpc/jasmin-cloud
-        run: ./scripts/image-tags.sh
-
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
         with:
@@ -38,13 +32,25 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Calculate metadata for image
+        id: image-meta
+        uses: docker/metadata-action@v3
+        with:
+          images: ghcr.io/stackhpc/jasmin-cloud
+          # Produce the branch name or tag and the SHA as tags
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=sha,prefix=
+
       - name: Build and push image
         uses: docker/build-push-action@v2
         with:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ steps.image-tags.outputs.TAGS }}
+          tags: ${{ steps.image-meta.outputs.tags }}
+          labels: ${{ steps.image-meta.outputs.labels }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
 
