@@ -824,6 +824,17 @@ class ScopedSession(base.ScopedSession):
         return self._from_api_server(server, tenant_network)
 
     @convert_exceptions
+    def fetch_logs_for_machine(self, machine):
+        """
+        See :py:meth:`.base.ScopedSession.fetch_logs_for_machine`.
+        """
+        machine = machine.id if isinstance(machine, dto.Machine) else machine
+        self._log("Fetching logs for machine '%s'", machine)
+        logs = self._connection.compute.servers.get(machine).logs()
+        # Split the logs into lines before returning them
+        return logs.splitlines()
+
+    @convert_exceptions
     def create_machine(self, name, image, size, ssh_key = None):
         """
         See :py:meth:`.base.ScopedSession.create_machine`.

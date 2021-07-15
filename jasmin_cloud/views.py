@@ -393,6 +393,15 @@ def machine_details(request, tenant, machine):
         return response.Response(serializer.data)
 
 
+@provider_api_view(['GET'])
+def machine_logs(request, tenant, machine):
+    """
+    Return the logs for the specified machine as a list of lines.
+    """
+    with request.auth.scoped_session(tenant) as session:
+        machine_logs = session.fetch_logs_for_machine(machine)
+    return response.Response(dict(logs = machine_logs))
+
 @provider_api_view(['POST'])
 def machine_start(request, tenant, machine):
     """
