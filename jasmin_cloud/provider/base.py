@@ -257,6 +257,20 @@ class ScopedSession:
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
+    def fetch_logs_for_machine(self, machine):
+        """
+        Returns the logs for the given machine.
+
+        Args:
+            machine: The machine. Can be a machine id or a :py:class:`~.dto.Machine`.
+
+        Returns:
+            A list of log lines for the specified machine.
+        """
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
+
     def create_machine(self, name, image, size, ssh_key):
         """
         Create a new machine in the tenancy.

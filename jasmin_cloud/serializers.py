@@ -277,6 +277,12 @@ class MachineSerializer(
         tenant = self.context.get('tenant')
         if request and tenant:
             result.setdefault('links', {}).update({
+                'logs': request.build_absolute_uri(
+                    reverse('jasmin_cloud:machine_logs', kwargs = {
+                        'tenant': tenant,
+                        'machine': obj.id,
+                    })
+                ),
                 'start': request.build_absolute_uri(
                     reverse('jasmin_cloud:machine_start', kwargs = {
                         'tenant': tenant,

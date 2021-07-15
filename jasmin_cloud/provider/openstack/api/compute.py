@@ -84,6 +84,12 @@ class Server(ResourceWithDetail):
     image = EmbeddedResource(Image)
     volume_attachments = NestedResource(VolumeAttachment)
 
+    def logs(self):
+        endpoint = self._manager.prepare_url(self, 'action')
+        params = { 'os-getConsoleOutput': {} }
+        response = self._manager.connection.api_post(endpoint, json = params)
+        return response.json()['output']
+
     def start(self):
         self._action('action', { 'os-start': None })
 

@@ -35,6 +35,7 @@ urlpatterns = [
             path('', views.machines, name = 'machines'),
             path('<slug:machine>/', include([
                 path('', views.machine_details, name = 'machine_details'),
+                path('logs/', views.machine_logs, name = 'machine_logs'),
                 path('start/', views.machine_start, name = 'machine_start'),
                 path('stop/', views.machine_stop, name = 'machine_stop'),
                 path('restart/', views.machine_restart, name = 'machine_restart'),
