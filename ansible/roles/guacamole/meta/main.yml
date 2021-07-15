@@ -1,8 +1,0 @@
----
-
-collections:
-  - ansible.posix
-  - community.docker
-
-dependencies:
-  - role: docker

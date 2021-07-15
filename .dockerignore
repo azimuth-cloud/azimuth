@@ -7,7 +7,3 @@ Dockerfile
 # Exclude Python caches
 **/__pycache__
 *.egg-info
-
-# Exclude directories not used in the image
-ansible
-scripts
