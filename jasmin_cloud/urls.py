@@ -39,6 +39,7 @@ urlpatterns = [
                 path('start/', views.machine_start, name = 'machine_start'),
                 path('stop/', views.machine_stop, name = 'machine_stop'),
                 path('restart/', views.machine_restart, name = 'machine_restart'),
+                path('console/', views.machine_console, name = 'machine_console'),
             ])),
         ])),
         path('kubernetes_cluster_templates/', include([

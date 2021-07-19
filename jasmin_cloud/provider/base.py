@@ -271,7 +271,7 @@ class ScopedSession:
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def create_machine(self, name, image, size, ssh_key):
+    def create_machine(self, name, image, size, ssh_key, metadata = None, userdata = None):
         """
         Create a new machine in the tenancy.
 
@@ -280,6 +280,8 @@ class ScopedSession:
             image: The image to use. Can be an image id or a :py:class:`~.dto.Image`.
             size: The size to use. Can be a size id or a :py:class:`~.dto.Size`.
             ssh_key: The SSH key to inject into the machine.
+            metadata: Dictionary of metadata key-value pairs to associate with the machine (optional).
+            userdata: User-data script to associate with the machine (optional).
 
         Returns:
             The created :py:class:`~.dto.Machine`.

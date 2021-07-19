@@ -99,14 +99,37 @@ class ProviderSetting(ObjectFactorySetting):
         return self._process_item(provider, '{}.{}'.format(instance.name, self.name))
 
 
+class AppsSettings(SettingsObject):
+    """
+    Settings for apps.
+    """
+    #: Indicates if apps are enabled
+    ENABLED = Setting(default = False)
+
+    #: The base domain for the app proxy
+    PROXY_BASE_DOMAIN = Setting()
+    #: The address of the app proxy SSHD service
+    #: Defaults to the base domain
+    PROXY_SSHD_HOST = Setting(default = lambda settings: settings.PROXY_BASE_DOMAIN)
+    #: The port for the app proxy SSHD service
+    PROXY_SSHD_PORT = Setting(default = 22)
+
+    #: The URL of the script to use to execute post-deploy actions
+    POST_DEPLOY_SCRIPT_URL = Setting(
+        default = "https://raw.githubusercontent.com/stackhpc/jasmin-cloud-post-deploy/main/bin/run-playbook-web"
+    )
+
+
 class JasminCloudSettings(SettingsObject):
     """
     Settings object for the ``JASMIN_CLOUD`` setting.
     """
     #: The name of the header containing the cloud token
     TOKEN_HEADER = Setting(default = 'HTTP_X_CLOUD_TOKEN')
+
     #: Cloud provider configuration
     PROVIDER = ProviderSetting()
+
     #: SSH key store configuration
     SSH_KEY_STORE = ObjectFactorySetting(
         # By default, use functionality from the provider to store SSH keys
@@ -129,8 +152,13 @@ class JasminCloudSettings(SettingsObject):
     })
     #: The minimum size for RSA keys (by default, 1024 bit keys are not allowed)
     SSH_RSA_MIN_BITS = Setting(default = 2048)
+
     #: AWX configuration
     AWX = NestedSetting(AwxSettings)
+
+    #: Configuration for apps
+    APPS = NestedSetting(AppsSettings)
+
     #: The clouds that are available
     #: Should be a mapping of name => (label, url) dictionaries
     AVAILABLE_CLOUDS = Setting()

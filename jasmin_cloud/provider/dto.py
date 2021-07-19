@@ -62,18 +62,14 @@ class Image:
     """
     #: The id of the image
     id: str
-    #: The VM-type of the image
-    #: When a machine is provisioned using the image, this is passed to the machine
-    #: as metadata allowing it to configure itself if required
-    vm_type: str
     #: The human-readable name of the image
     name: str
     #: Indicates if the image is public or private
     is_public: bool
-    #: Indicates if NAT is allowed for machines deployed from the image
-    nat_allowed: bool
     #: The size of the image in MB
     size: float
+    #: The metadata associated with the image
+    metadata: Mapping[str, Any]
 
 
 @dataclass(frozen = True)
@@ -146,10 +142,10 @@ class Machine:
     internal_ip: Optional[str]
     #: The external IPv4 address of the machine
     external_ip: Optional[str]
-    #: Indicates if NAT is allowed for the machine
-    nat_allowed: bool
     #: Tuple of ids of attached volumes for the machine
     attached_volume_ids: Sequence[str]
+    #: The metadata associated with the machine
+    metadata: Mapping[str, Any]
     #: The id or username of the user who deployed the machine
     owner: str
     #: The datetime at which the machine was deployed

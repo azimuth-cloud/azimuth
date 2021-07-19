@@ -4,8 +4,10 @@ Django views for interacting with the configured cloud provider.
 
 import dataclasses
 import functools
+import hashlib
 import logging
 
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.utils.encoding import smart_text
@@ -14,6 +16,8 @@ from docutils import core
 
 from rest_framework import decorators, permissions, response, status, exceptions as drf_exceptions
 from rest_framework.utils import formatting
+
+import requests
 
 from . import serializers
 from .keystore import errors as keystore_errors
@@ -157,7 +161,12 @@ def session(request):
     return response.Response({
         'username': request.auth.username(),
         'token': request.auth.token(),
-        'capabilities': dataclasses.asdict(request.auth.capabilities()),
+        # The capability to host apps is determined by the presence of an
+        # app proxy for the portal, not the cloud itself
+        'capabilities': dict(
+            dataclasses.asdict(request.auth.capabilities()),
+            supports_apps = bool(cloud_settings.APPS.ENABLED),
+        ),
         'links': {
             'ssh_public_key': request.build_absolute_uri(reverse('jasmin_cloud:ssh_public_key')),
             'tenancies': request.build_absolute_uri(reverse('jasmin_cloud:tenancies')),
@@ -244,13 +253,6 @@ def quotas(request, tenant):
 def images(request, tenant):
     """
     Returns the images available to the specified tenancy.
-
-    The image attributes are:
-
-    * ``id``: The id of the image.
-    * ``name``: The human-readable name of the image.
-    * ``is_public``: Indicates if the image is public or private.
-    * ``nat_allowed``: Indicates if NAT is allowed for machines deployed from the image.
     """
     with request.auth.scoped_session(tenant) as session:
         serializer = serializers.ImageSerializer(
@@ -265,13 +267,6 @@ def images(request, tenant):
 def image_details(request, tenant, image):
     """
     Returns the details for the specified image.
-
-    The image attributes are:
-
-    * ``id``: The id of the image.
-    * ``name``: The human-readable name of the image.
-    * ``is_public``: Indicates if the image is public or private.
-    * ``nat_allowed``: Indicates if NAT is allowed for machines deployed from the image.
     """
     with request.auth.scoped_session(tenant) as session:
         serializer = serializers.ImageSerializer(
@@ -285,13 +280,6 @@ def image_details(request, tenant, image):
 def sizes(request, tenant):
     """
     Returns the machine sizes available to the specified tenancy.
-
-    The size attributes are:
-
-    * ``id``: The id of the size.
-    * ``name``: The human-readable name of the size.
-    * ``cpus``: The number of CPUs.
-    * ``ram``: The amount of RAM (in MB).
     """
     with request.auth.scoped_session(tenant) as session:
         serializer = serializers.SizeSerializer(
@@ -306,13 +294,6 @@ def sizes(request, tenant):
 def size_details(request, tenant, size):
     """
     Returns the details for the specified machine size.
-
-    The size attributes are:
-
-    * ``id``: The id of the size.
-    * ``name``: The human-readable name of the size.
-    * ``cpus``: The number of CPUs.
-    * ``ram``: The amount of RAM (in MB).
     """
     with request.auth.scoped_session(tenant) as session:
         serializer = serializers.SizeSerializer(
@@ -336,9 +317,38 @@ def machines(request, tenant):
         }
     """
     if request.method == 'POST':
-        input_serializer = serializers.MachineSerializer(data = request.data)
+        input_serializer = serializers.CreateMachineSerializer(data = request.data)
         input_serializer.is_valid(raise_exception = True)
+        # The web console is not permitted if there is no app proxy
+        web_console_enabled = input_serializer.validated_data['web_console_enabled']
+        if web_console_enabled and not cloud_settings.APPS.ENABLED:
+            return response.Response(
+                {
+                    'detail': 'Web console is not available',
+                    'code': 'invalid_operation'
+                },
+                status = status.HTTP_409_CONFLICT
+            )
         with request.auth.scoped_session(tenant) as session:
+            # If the web console is enabled, build the settings
+            if web_console_enabled:
+                desktop_enabled = input_serializer.validated_data['desktop_enabled']
+                metadata = dict(
+                    web_console_enabled = 1,
+                    desktop_enabled = 1 if desktop_enabled else 0,
+                    app_proxy_sshd_host = cloud_settings.APPS.PROXY_SSHD_HOST,
+                    app_proxy_sshd_port = cloud_settings.APPS.PROXY_SSHD_PORT,
+                )
+                userdata = '\n'.join([
+                    "#!/usr/bin/env bash",
+                    "set -eo pipefail",
+                    "curl -fsSL {} | bash -s guacamole".format(
+                        cloud_settings.APPS.POST_DEPLOY_SCRIPT_URL
+                    )
+                ])
+            else:
+                metadata = None
+                userdata = None
             output_serializer = serializers.MachineSerializer(
                 session.create_machine(
                     input_serializer.validated_data['name'],
@@ -351,7 +361,9 @@ def machines(request, tenant):
                         request = request,
                         unscoped_session = request.auth,
                         scoped_session = session
-                    )
+                    ),
+                    metadata,
+                    userdata
                 ),
                 context = { 'request': request, 'tenant': tenant }
             )
@@ -441,6 +453,41 @@ def machine_restart(request, tenant, machine):
     return response.Response(serializer.data)
 
 
+@provider_api_view(['GET'])
+def machine_console(request, tenant, machine):
+    """
+    Redirects the user to the web console for the specified machine.
+    """
+    # Make sure that the user has permission to access the machine
+    with request.auth.scoped_session(tenant) as session:
+        machine = session.find_machine(machine)
+    # Check if the machine has the web console enabled
+    # If not, render an error page
+    if machine.metadata.get('web_console_enabled', '0') != '1':
+        return render(request, 'portal/console_not_available.html')
+    # The subdomain is a SHA1 hash of the project ID, instance ID and service name
+    key = tenant + machine.id + "console"
+    subdomain = hashlib.sha1(key.encode()).hexdigest()
+    console_url = "http://{}.{}/guacamole".format(
+        subdomain,
+        cloud_settings.APPS.PROXY_BASE_DOMAIN
+    )
+    # Try to exchange the known username and password for a token
+    resp = requests.post(
+        "{}/api/tokens".format(console_url),
+        # The playbook configures a dummy username and password
+        data = dict(username = "portal", password = "portal")
+    )
+    # If the result is a 404, render the console wait template
+    if resp.status_code == status.HTTP_404_NOT_FOUND:
+        return render(request, 'portal/console_not_ready.html')
+    # If the result is a 2XX, extract the token and append it to the URL
+    if 200 <= resp.status_code < 300:
+        console_url += "?token=" + resp.json()['authToken']
+    # Otherwise redirect to the console
+    return redirect(console_url)
+
+
 @provider_api_view(['GET', 'POST'])
 def external_ips(request, tenant):
     """
@@ -449,13 +496,7 @@ def external_ips(request, tenant):
 
     On ``POST`` requests, allocate a new external IP address for the tenancy from
     a pool. This functionality is not available for all providers. The request
-    body is ignored. The returned response will be the allocated IP::
-
-        {
-            "id": "<external ip id>",
-            "external_ip": "172.28.128.4",
-            "internal_ip": null
-        }
+    body is ignored.
     """
     if request.method == 'POST':
         with request.auth.scoped_session(tenant) as session:
@@ -489,6 +530,16 @@ def external_ip_details(request, tenant, ip):
         machine_id = input_serializer.validated_data['machine_id']
         with request.auth.scoped_session(tenant) as session:
             if machine_id:
+                # If attaching, we need to check if NAT is permitted for the machine
+                machine = session.find_machine(machine_id)
+                if machine.metadata.get('nat_allowed', '1') == '0':
+                    return response.Response(
+                        {
+                            'detail': 'Machine is not allowed to have an external IP address.',
+                            'code': 'invalid_operation'
+                        },
+                        status = status.HTTP_409_CONFLICT
+                    )
                 ip = session.attach_external_ip(ip, str(machine_id))
             else:
                 ip = session.detach_external_ip(ip)

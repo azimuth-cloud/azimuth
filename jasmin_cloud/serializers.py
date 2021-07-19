@@ -182,11 +182,16 @@ class ImageRefSerializer(RefSerializer):
         )
 
 
-ImageSerializer = type(
-    'ImageSerializer',
-    (ImageRefSerializer, make_dto_serializer(dto.Image, exclude = ['vm_type'])),
-    {}
-)
+class ImageSerializer(
+    ImageRefSerializer,
+    make_dto_serializer(dto.Image, exclude = ['metadata'])
+):
+    nat_allowed = serializers.SerializerMethodField()
+
+    def get_nat_allowed(self, obj):
+        # The value in the metadata will be a string 1 or 0
+        # If the metadata is not present, NAT is allowed
+        return obj.metadata.get('nat_allowed', '1') == '1'
 
 
 class SizeRefSerializer(RefSerializer):
@@ -253,22 +258,30 @@ class MachineStatusSerializer(make_dto_serializer(dto.MachineStatus)):
 
 class MachineSerializer(
     MachineRefSerializer,
-    make_dto_serializer(dto.Machine, exclude = ['attached_volume_ids'])
+    make_dto_serializer(dto.Machine, exclude = ['attached_volume_ids', 'metadata'])
 ):
-    name = serializers.CharField()
-
     image = ImageRefSerializer(source = "image_id", read_only = True)
-    image_id = serializers.UUIDField(write_only = True)
-
     size = SizeRefSerializer(source = "size_id", read_only = True)
-    size_id = serializers.RegexField('^[a-z0-9-]+$', write_only = True)
-
     status = MachineStatusSerializer(read_only = True)
     attached_volumes = VolumeRefSerializer(
         source = 'attached_volume_ids',
         many = True,
         read_only = True
     )
+
+    # Specific values derived from DTO metadata
+    nat_allowed = serializers.SerializerMethodField()
+    web_console_enabled = serializers.SerializerMethodField()
+
+    def get_nat_allowed(self, obj):
+        # The value in the metadata will be a string 1 or 0
+        # If the metadata is not present, NAT is allowed
+        return obj.metadata.get('nat_allowed', '1') == '1'
+
+    def get_web_console_enabled(self, obj):
+        # The value in the metadata will be a string 1 or 0
+        # If the metadata is not present, the web console is not enabled
+        return obj.metadata.get('web_console_enabled', '0') == '1'
 
     def to_representation(self, obj):
         result = super().to_representation(obj)
@@ -301,8 +314,22 @@ class MachineSerializer(
                         'machine': obj.id,
                     })
                 ),
+                'console': request.build_absolute_uri(
+                    reverse('jasmin_cloud:machine_console', kwargs = {
+                        'tenant': tenant,
+                        'machine': obj.id,
+                    })
+                ),
             })
         return result
+
+
+class CreateMachineSerializer(serializers.Serializer):
+    name = serializers.CharField(write_only = True)
+    image_id = serializers.UUIDField(write_only = True)
+    size_id = serializers.RegexField('^[a-z0-9-]+$', write_only = True)
+    web_console_enabled = serializers.BooleanField(default = False, write_only = True)
+    desktop_enabled = serializers.BooleanField(default = False, write_only = True)
 
 
 class ExternalIPSerializer(make_dto_serializer(dto.ExternalIp)):

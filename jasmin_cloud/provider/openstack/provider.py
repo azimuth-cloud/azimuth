@@ -136,23 +136,6 @@ class base64_encoded_block(str):
 yaml.add_representer(base64_encoded_block, base64_encoded_block.pyyaml_presenter)
 
 
-class LazyRewindableGenerator:
-    """
-    Class for a lazily-initialised, rewindable generator.
-    """
-    def __init__(self, generator, *args, **kwargs):
-        def internal_generator():
-            yield from generator(*args, **kwargs)
-        self._generator = internal_generator
-        self._iterator = None
-
-    def __iter__(self):
-        if not self._iterator:
-            self._iterator = self._generator()
-        self._iterator, result = itertools.tee(self._iterator)
-        return result
-
-
 class Provider(base.Provider):
     """
     Provider implementation for OpenStack.
@@ -161,6 +144,7 @@ class Provider(base.Provider):
         auth_url: The Keystone v3 authentication URL.
         domain: The domain to authenticate with (default ``Default``).
         interface: The OpenStack interface to connect using (default ``public``).
+        metadata_prefix: The prefix to use for all portal-related metadata (default ``portal_``).
         internal_net_template: Template for the name of the internal network to use
                                (default ``None``).
                                The current tenancy name can be templated in using the
@@ -190,6 +174,7 @@ class Provider(base.Provider):
     def __init__(self, auth_url,
                        domain = 'Default',
                        interface = 'public',
+                       metadata_prefix = 'portal_',
                        internal_net_template = None,
                        external_net_template = None,
                        internal_net_cidr = '192.168.3.0/24',
@@ -202,6 +187,7 @@ class Provider(base.Provider):
         self._auth_url = auth_url.rstrip('/')
         self._domain = domain
         self._interface = interface
+        self._metadata_prefix = metadata_prefix
         self._internal_net_template = internal_net_template
         self._external_net_template = external_net_template
         self._internal_net_cidr = internal_net_cidr
@@ -229,6 +215,7 @@ class Provider(base.Provider):
             logger.info("Sucessfully authenticated user '%s'", username)
             return UnscopedSession(
                 conn,
+                metadata_prefix = self._metadata_prefix,
                 internal_net_template = self._internal_net_template,
                 external_net_template = self._external_net_template,
                 internal_net_cidr = self._internal_net_cidr,
@@ -255,6 +242,7 @@ class Provider(base.Provider):
             logger.info("Sucessfully authenticated user '%s'", conn.username)
             return UnscopedSession(
                 conn,
+                metadata_prefix = self._metadata_prefix,
                 internal_net_template = self._internal_net_template,
                 external_net_template = self._external_net_template,
                 internal_net_cidr = self._internal_net_cidr,
@@ -272,6 +260,7 @@ class UnscopedSession(base.UnscopedSession):
     provider_name = 'openstack'
 
     def __init__(self, connection,
+                       metadata_prefix = 'portal_',
                        internal_net_template = None,
                        external_net_template = None,
                        internal_net_cidr = '192.168.3.0/24',
@@ -280,6 +269,7 @@ class UnscopedSession(base.UnscopedSession):
                        cluster_app_cred_name = "caas-awx",
                        cluster_engine = None):
         self._connection = connection
+        self._metadata_prefix = metadata_prefix
         self._internal_net_template = internal_net_template
         self._external_net_template = external_net_template
         self._internal_net_cidr = internal_net_cidr
@@ -414,6 +404,7 @@ class UnscopedSession(base.UnscopedSession):
                 self.username(),
                 tenancy,
                 self._connection.scoped_connection(tenancy.id),
+                metadata_prefix = self._metadata_prefix,
                 internal_net_template = self._internal_net_template,
                 external_net_template = self._external_net_template,
                 internal_net_cidr = self._internal_net_cidr,
@@ -444,6 +435,7 @@ class ScopedSession(base.ScopedSession):
     def __init__(self, username,
                        tenancy,
                        connection,
+                       metadata_prefix = 'portal_',
                        internal_net_template = None,
                        external_net_template = None,
                        internal_net_cidr = '192.168.3.0/24',
@@ -454,6 +446,7 @@ class ScopedSession(base.ScopedSession):
         self._username = username
         self._tenancy = tenancy
         self._connection = connection
+        self._metadata_prefix = metadata_prefix
         self._internal_net_template = internal_net_template
         self._external_net_template = external_net_template
         self._internal_net_cidr = internal_net_cidr
@@ -537,13 +530,16 @@ class ScopedSession(base.ScopedSession):
         """
         return dto.Image(
             api_image.id,
-            getattr(api_image, 'jasmin_type', 'UNKNOWN'),
             api_image.name,
             api_image.visibility == 'public',
-            # Unless specifically disallowed by a flag, NAT is allowed
-            bool(int(getattr(api_image, 'jasmin_nat_allowed', '1'))),
             # The image size is specified in bytes. Convert to MB.
-            float(api_image.size) / 1024.0 / 1024.0
+            float(api_image.size) / 1024.0 / 1024.0,
+            # Gather the metadata items with the specified prefix
+            metadata = {
+                key.removeprefix(self._metadata_prefix): value
+                for key, value in api_image._data.items()
+                if key.startswith(self._metadata_prefix)
+            }
         )
 
     @convert_exceptions
@@ -727,7 +723,7 @@ class ScopedSession(base.ScopedSession):
         7: 'Suspended',
     }
 
-    def _from_api_server(self, api_server, tenant_network, images = None):
+    def _from_api_server(self, api_server, tenant_network):
         """
         Returns a machine DTO for the given API server representation.
 
@@ -735,23 +731,6 @@ class ScopedSession(base.ScopedSession):
         the images for the tenancy (used to save fetching each image individually
         when listing machines).
         """
-        # Try to get nat_allowed from the machine metadata
-        # If the nat_allowed metadata is not present, use the image
-        # If the image does not exist anymore, assume it is allowed
-        try:
-            nat_allowed = bool(int(api_server.metadata['jasmin_nat_allowed']))
-        except (KeyError, TypeError):
-            if api_server.image:
-                if images:
-                    image = next((i for i in images if i.id == api_server.image.id), None)
-                else:
-                    try:
-                        image = self._connection.image.images.get(api_server.image.id)
-                    except errors.ObjectNotFoundError:
-                        image = None
-            else:
-                image = None
-            nat_allowed = bool(int(getattr(image, 'jasmin_nat_allowed', '1')))
         status = api_server.status
         fault = api_server.fault.get('message', None)
         task = api_server.task_state
@@ -785,8 +764,13 @@ class ScopedSession(base.ScopedSession):
             task.capitalize() if task else None,
             ip_of_type('fixed'),
             ip_of_type('floating'),
-            nat_allowed,
             tuple(v['id'] for v in api_server.attached_volumes),
+            # Return only the metadata items with the specified prefix
+            {
+                key.removeprefix(self._metadata_prefix): value
+                for key, value in api_server.metadata.items()
+                if key.startswith(self._metadata_prefix)
+            },
             api_server.user_id,
             dateutil.parser.parse(api_server.created)
         )
@@ -804,13 +788,9 @@ class ScopedSession(base.ScopedSession):
         if api_servers:
             # Load the tenant network once and reuse it
             tenant_network = self._tenant_network()
-            # Pass the images in a way that they are only loaded the first
-            # time that they are iterated over
-            images = LazyRewindableGenerator(self._connection.image.images.all)
         else:
             tenant_network = None
-            images = []
-        return tuple(self._from_api_server(s, tenant_network, images) for s in api_servers)
+        return tuple(self._from_api_server(s, tenant_network) for s in api_servers)
 
     @convert_exceptions
     def find_machine(self, id):
@@ -835,7 +815,7 @@ class ScopedSession(base.ScopedSession):
         return logs.splitlines()
 
     @convert_exceptions
-    def create_machine(self, name, image, size, ssh_key = None):
+    def create_machine(self, name, image, size, ssh_key, metadata = None, userdata = None):
         """
         See :py:meth:`.base.ScopedSession.create_machine`.
         """
@@ -848,17 +828,14 @@ class ScopedSession(base.ScopedSession):
             except errors.ObjectNotFoundError:
                 raise errors.BadInputError('Invalid image provided.')
         params.update(image_id = str(image.id))
-        # To find the metadata elements, we need the raw API image
-        # This will load from the cache
-        api_image = self._connection.image.images.get(image.id)
         size = size.id if isinstance(size, dto.Size) else size
         params.update(flavor_id = size)
-        self._log("Creating machine '%s' (image: %s, size: %s)", name, api_image.name, size)
+        self._log("Creating machine '%s' (image: %s, size: %s)", name, image.name, size)
         # Get the networks to use
-        # Always use the tenant network that is attached to the router
+        # Always use the tenant network, creating it if required
         params.update(networks = [{ 'uuid': self._tenant_network(True).id }])
         # If the image asks for the backdoor network, attach it
-        if getattr(api_image, 'jasmin_private_if', None):
+        if image.metadata.get(self._metadata_prefix + 'private_if'):
             if not self._az_backdoor_net_map:
                 raise errors.ImproperlyConfiguredError(
                     'Backdoor network required by image but not configured.'
@@ -882,19 +859,25 @@ class ScopedSession(base.ScopedSession):
         if ssh_key:
             keypair = self._get_or_create_keypair(ssh_key)
             params.update(key_name = keypair.name)
-        # Pass metadata onto the machine from the image if present
-        metadata = dict(jasmin_organisation = self._tenancy.name)
-        metadata.update({
-            item : getattr(api_image, item)
-            for item in {
-                'jasmin_nat_allowed',
-                'jasmin_type',
-                'jasmin_private_if',
-                'jasmin_activ_ver'
-            }
-            if getattr(api_image, item, None) is not None
+        # Build the machine metadata, starting with the tenant name
+        machine_metadata = { self._metadata_prefix + "tenant_name": self._tenancy.name }
+        # Copy metadata from the image
+        machine_metadata.update({
+            self._metadata_prefix + key: value
+            for key, value in image.metadata.items()
         })
-        params.update(metadata = metadata)
+        # Add any provided metadata to the default metadata
+        if metadata:
+            machine_metadata.update({
+                self._metadata_prefix + key: str(value)
+                for key, value in metadata.items()
+            })
+        params.update(metadata = machine_metadata)
+        # Add any user data script that was given - it must be base64-encoded
+        if userdata:
+            # The user data must be base64-encoded
+            userdata_b64 = base64.b64encode(userdata.encode()).decode()
+            params.update(user_data = userdata_b64)
         server = self._connection.compute.servers.create(params)
         return self.find_machine(server.id)
 
@@ -1006,20 +989,15 @@ class ScopedSession(base.ScopedSession):
         """
         See :py:meth:`.base.ScopedSession.attach_external_ip`.
         """
-        machine = machine if isinstance(machine, dto.Machine) else self.find_machine(machine)
+        machine = machine.id if isinstance(machine, dto.Machine) else machine
         ip = ip.id if isinstance(ip, dto.ExternalIp) else ip
-        # If NATing is not allowed for the machine, bail
-        if not machine.nat_allowed:
-            raise errors.InvalidOperationError(
-                'Machine is not allowed to have an external IP address.'
-            )
-        self._log("Attaching floating ip '%s' to server '%s'", ip, machine.id)
+        self._log("Attaching floating ip '%s' to server '%s'", ip, machine)
         # Get the port that attaches the machine to the tenant network
         tenant_network = self._tenant_network()
         if tenant_network:
             port = next(
                 self._connection.network.ports.all(
-                    device_id = machine.id,
+                    device_id = machine,
                     network_id = tenant_network.id
                 ),
                 None
