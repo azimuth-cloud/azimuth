@@ -1193,16 +1193,21 @@ class ScopedSession(base.ScopedSession):
             raise errors.ObjectNotFoundError('ClusterTemplate {} could not be found.'.format(id))
         return self._from_api_coe_cluster_template(template)
 
-    def _from_api_coe_cluster(self, api_cluster, flavors = None):
+    def _from_api_coe_cluster(self, api_cluster, api_template = None, flavors = None):
         """
         Converts a COE cluster into a :py:class:`.dto.KubernetesCluster`.
         """
-        # Annoyingly, the flavor "id"s can actually also be flavor names
+        # API template and flavors can be passed in to save on requests when listing
+        if api_template is None:
+            api_template = api_cluster.cluster_template
+        # Annoyingly, the cluster flavor "id"s can actually also be flavor names
         # So convert them to ids if we need to
         # To do this, we use an index of flavor name => id, which can optionally
-        # be passed in when listing multiple clusters
-        if not flavors:
+        # be passed in when listing clusters
+        if flavors is None:
             flavors = { f.name: f.id for f in self._connection.compute.flavors.all() }
+        def label_as_bool(obj, name, default = "false"):
+            return obj.labels.get(name, default).lower() == "true"
         return dto.KubernetesCluster(
             api_cluster.uuid,
             api_cluster.name,
@@ -1219,10 +1224,13 @@ class ScopedSession(base.ScopedSession):
             api_cluster.node_count,
             flavors.get(api_cluster.master_flavor_id, api_cluster.master_flavor_id),
             flavors.get(api_cluster.flavor_id, api_cluster.flavor_id),
-            api_cluster.labels.get("auto_scaling_enabled", "False").lower() == "true",
+            label_as_bool(api_cluster, "auto_scaling_enabled"),
             api_cluster.labels.get("min_node_count"),
             api_cluster.labels.get("max_node_count"),
-            api_cluster.labels.get("monitoring_enabled", "False").lower() == "true",
+            (
+                label_as_bool(api_cluster, "monitoring_enabled") or
+                label_as_bool(api_template, "monitoring_enabled")
+            ),
             api_cluster.labels.get("grafana_admin_password"),
             dateutil.parser.parse(api_cluster.created_at),
             dateutil.parser.parse(api_cluster.updated_at) if api_cluster.updated_at else None
@@ -1239,17 +1247,23 @@ class ScopedSession(base.ScopedSession):
         # If we didn't find any clusters, we are done
         if not clusters:
             return clusters
-        # Load the cluster templates and index them by ID so that we can check the COE
+        # Load the cluster templates and index them by ID so that we can use properties from them
         # This means fewer requests than fetching each cluster template as needed
         template_coes = {
-            template.uuid: template.coe
+            template.uuid: template
             for template in self._connection.coe.cluster_templates.all()
         }
+        # Create the mapping of flavor names to ids once for all clusters
+        flavors = { f.name: f.id for f in self._connection.compute.flavors.all() }
         # Return only the clusters that have Kubernetes as a COE
         return tuple(
-            self._from_api_coe_cluster(cluster)
+            self._from_api_coe_cluster(
+                cluster,
+                template_coes[cluster.cluster_template_id],
+                flavors
+            )
             for cluster in clusters
-            if template_coes[cluster.cluster_template_id] == "kubernetes"
+            if template_coes[cluster.cluster_template_id].coe == "kubernetes"
         )
 
     @convert_exceptions
@@ -1292,7 +1306,7 @@ class ScopedSession(base.ScopedSession):
             # If not, then worker count will be set
             # Use the worker count or the minimum worker count, depending which is set
             node_count = worker_count or min_worker_count,
-            labels = dict(auto_scaling_enabled = auto_scaling_enabled)
+            labels = dict(auto_scaling_enabled = str(auto_scaling_enabled).lower())
         )
         if auto_scaling_enabled:
             params['labels'].update(
