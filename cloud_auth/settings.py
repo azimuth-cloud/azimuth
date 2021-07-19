@@ -29,6 +29,8 @@ class CloudAuthSettings(SettingsObject):
     NEXT_URL_COOKIE_NAME = Setting(default = 'next-url')
     #: The allowed hosts for the next URL
     NEXT_URL_ALLOWED_HOSTS = Setting(default = set)
+    #: The default next URL if the given URL is not given or not permitted
+    NEXT_URL_DEFAULT_URL = Setting(default = None)
 
     #: The HTTP parameter to get the message code from
     MESSAGE_CODE_PARAM = Setting(default = 'code')

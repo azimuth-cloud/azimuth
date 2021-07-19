@@ -29,7 +29,7 @@ def get_next_url(request):
         allowed_hosts = { request.get_host(), *auth_settings.NEXT_URL_ALLOWED_HOSTS },
         require_https = request.is_secure(),
     )
-    return next_url if url_is_safe else None
+    return next_url if url_is_safe else auth_settings.NEXT_URL_DEFAULT_URL
 
 
 def set_next_url_cookie(response, next_url, secure):
