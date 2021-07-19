@@ -1,0 +1,9 @@
+# Exclude the dockerfile itself
+Dockerfile
+
+# Exclude pyenv environment file
+.python-version
+
+# Exclude Python caches
+**/__pycache__
+*.egg-info
