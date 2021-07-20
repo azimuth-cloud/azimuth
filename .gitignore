@@ -63,3 +63,6 @@ api/jasmin_cloud_site/settings.py
 venv
 
 node_modules
+
+Chart.lock
+chart/charts

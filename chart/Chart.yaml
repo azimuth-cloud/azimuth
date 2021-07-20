@@ -1,6 +1,19 @@
 apiVersion: v2
-appVersion: 8100e40
 description: Helm chart for deploying the JASMIN Cloud Portal.
 name: jasmin-cloud
 type: application
-version: 1.0.6-dev.0.monorepo.192
+# The version and appVersion are updated by the chart build script
+version: 0.1.0
+appVersion: main
+
+dependencies:
+  - name: consul
+    version: 0.32.1
+    repository: https://helm.releases.hashicorp.com
+    condition: appProxy.enabled
+
+  - name: tunnel-proxy-chart
+    version: 0.1.0-dev.0.main.34
+    repository: oci://ghcr.io/stackhpc
+    alias: appProxy
+    condition: appProxy.enabled

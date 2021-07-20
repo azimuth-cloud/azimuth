@@ -1,6 +1,8 @@
 {{- $settings := .Values.settings -}}
 {{- $authenticator := .Values.authenticator -}}
 {{- $provider := .Values.provider -}}
+{{- $appProxy := .Values.appProxy -}}
+{{- $apps := .Values.apps -}}
 {{- $clusterEngine := .Values.clusterEngine -}}
 {{- $keyStore := .Values.sshKeyStore -}}
 apiVersion: v1
@@ -64,7 +66,19 @@ stringData:
         {{- else }}
         {{- fail (printf "Unrecognised cloud provider '%s'" $provider.type) }}
         {{- end }}
-  05-ssh-key-store.yaml: |
+{{- if (or $appProxy.enabled $apps.enabled) }}
+  05-app-proxy.yaml: |
+    JASMIN_CLOUD:
+      APPS:
+        ENABLED: true
+        PROXY_BASE_DOMAIN: {{ tpl $apps.proxyBaseDomain . | quote }}
+        PROXY_SSHD_HOST: {{ tpl $apps.proxySSHDHost . | quote }}
+        PROXY_SSHD_PORT: {{ tpl (toString $apps.proxySSHDPort) . | quote }}
+        {{- with $apps.postDeployScriptUrl }}
+        POST_DEPLOY_SCRIPT_URL: {{ . | quote }}
+        {{- end }}
+{{- end }}
+  06-ssh-key-store.yaml: |
     JASMIN_CLOUD:
       SSH_KEY_STORE:
         {{- if (eq $keyStore.type "provider") }}
@@ -84,7 +98,7 @@ stringData:
         {{- end }}
 {{- if $clusterEngine.enabled }}
 {{- if (eq $clusterEngine.type "awx") }}
-  06-awx.yaml: |
+  07-awx.yaml: |
     JASMIN_CLOUD:
       AWX:
         ENABLED: true
@@ -111,7 +125,7 @@ stringData:
             {{- end }}
           {{- end }}
         {{- end }}
-  07-awx-passwords.py: |
+  08-awx-passwords.py: |
     import os
     # Read the AWX password from an environment variable that is populated from the specified secret
     JASMIN_CLOUD['AWX']['PASSWORD'] = os.environ['AWX_PASSWORD']

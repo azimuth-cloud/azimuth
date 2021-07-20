@@ -5,7 +5,7 @@ api:
   image:
     repository: ghcr.io/stackhpc/jasmin-cloud-api
     pullPolicy: IfNotPresent
-    tag: "{{ .Chart.appVersion }}"
+    tag: "{{ .Chart.AppVersion }}"
   imagePullSecrets: []
   replicaCount: 1
   podAnnotations: {}
@@ -27,7 +27,7 @@ ui:
   image:
     repository: ghcr.io/stackhpc/jasmin-cloud-ui
     pullPolicy: IfNotPresent
-    tag: "{{ .Chart.appVersion }}"
+    tag: "{{ .Chart.AppVersion }}"
   imagePullSecrets: []
   replicaCount: 1
   podAnnotations: {}
@@ -114,6 +114,36 @@ provider:
     # The CIDR to use for auto-created tenant internal networks
     # Defaults to 192.168.3.0/24 if not given, which should be OK for most circumstances
     internalNetCidr:
+
+# Settings for the app proxy, used to provide user access to apps
+appProxy:
+  # Whether the app proxy should be deployed or not
+  enabled: false
+  # Disable the Consul deployed by the tunnel-proxy
+  # We will deploy our own as we want to use it in other places
+  consul:
+    enabled: false
+  proxy:
+    # The base domain for the app proxy
+    baseDomain: # apps.cloud.example.local
+
+# Settings for apps
+# By default, this assumes that the internal app proxy is used
+apps:
+  # Determines whether apps are enabled or not
+  enabled: false
+  # The base domain for the app proxy
+  # Defaults to the domain for the internal app proxy
+  proxyBaseDomain: "{{ include \"jasmin-cloud.appProxyBaseDomain\" . }}"
+  # The proxy SSHD host
+  # By default it attempts to point to the SSHD service for the internal app proxy
+  # however this can be unreliable, especially for node-port services
+  proxySSHDHost: "{{ include \"jasmin-cloud.appProxySSHDHost\" . }}"
+  # The proxy SSHD port
+  # By default it attempts to point at the SSHD service for the internal app proxy
+  proxySSHDPort: "{{ include \"jasmin-cloud.appProxySSHDPort\" . }}"
+  # The URL of the post-deploy script to execute
+  postDeployScriptUrl:
 
 # The cluster engine to use for Cluster-as-a-Service support
 clusterEngine:

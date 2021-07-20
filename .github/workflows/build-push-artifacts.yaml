@@ -149,5 +149,6 @@ jobs:
       - name: Package and push chart
         env:
           HELM_EXPERIMENTAL_OCI: "1"
+          CHART_DIRECTORY: ./chart
           CHART_REPOSITORY: ghcr.io/stackhpc/jasmin-cloud-chart
         run: ./scripts/build-push-chart.py
