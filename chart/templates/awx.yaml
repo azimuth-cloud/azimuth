@@ -1,0 +1,8 @@
+{{- if (and .Values.clusterEngine.enabled (eq .Values.clusterEngine.type "awx") .Values.awx.enabled) }}
+apiVersion: awx.ansible.com/v1beta1
+kind: AWX
+metadata:
+  name: {{ include "jasmin-cloud.componentname" (list . "awx") }}
+  labels: {{ include "jasmin-cloud.componentLabels" (list . "awx") | nindent 4 }}
+spec: {{ toYaml .Values.awx.spec | nindent 2 }}
+{{- end }}

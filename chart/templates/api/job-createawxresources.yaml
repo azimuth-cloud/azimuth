@@ -1,0 +1,63 @@
+{{- $component := "createawxresources" -}}
+{{- $clusterEngine := .Values.clusterEngine -}}
+{{- if (and $clusterEngine.enabled (eq $clusterEngine.type "awx") $clusterEngine.awx.createResources) }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "jasmin-cloud.componentname" (list . $component) }}
+  labels: {{ include "jasmin-cloud.componentLabels" (list . $component) | nindent 4 }}
+  annotations:
+    # Include annotations to make this job a hook
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  template:
+    metadata:
+      labels: {{ include "jasmin-cloud.componentSelectorLabels" (list . $component) | nindent 8 }}
+    spec:
+      restartPolicy: OnFailure
+      {{- with .Values.api.imagePullSecrets }}
+      imagePullSecrets: {{ toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext: {{ toYaml .Values.api.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ $component }}
+          securityContext: {{ toYaml .Values.api.securityContext | nindent 12 }}
+          image: {{ printf "%s:%s" .Values.api.image.repository (tpl .Values.api.image.tag .) }}
+          imagePullPolicy: {{ .Values.api.image.pullPolicy }}
+          command: [django-admin, createawxresources]
+          env:
+            - name: AWX_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ tpl $clusterEngine.awx.passwordSecretName . | quote }}
+                  key: password
+            {{- with $clusterEngine.awx.adminPasswordSecretName }}
+            - name: AWX_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ tpl $clusterEngine.awx.adminPasswordSecretName . | quote }}
+                  key: password
+            {{- end }}
+          volumeMounts:
+            - name: runtime-settings
+              mountPath: /etc/django/settings.d
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      {{- with .Values.api.nodeSelector }}
+      nodeSelector: {{ toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.api.affinity }}
+      affinity: {{ toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.api.tolerations }}
+      tolerations: {{ toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: runtime-settings
+          secret:
+            secretName: {{ include "jasmin-cloud.componentname" (list . "api") }}
+        - name: tmp
+          emptyDir: {}
+{{- end }}

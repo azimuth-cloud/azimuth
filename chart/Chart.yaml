@@ -1,0 +1,6 @@
+apiVersion: v2
+appVersion: 8100e40
+description: Helm chart for deploying the JASMIN Cloud Portal.
+name: jasmin-cloud
+type: application
+version: 1.0.6-dev.0.monorepo.192

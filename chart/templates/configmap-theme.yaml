@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "jasmin-cloud.componentname" (list . "theme") }}
+  labels: {{ include "jasmin-cloud.componentLabels" (list . "theme") | nindent 4 }}
+data:
+  bootstrap.css: |
+    @import url({{ .Values.theme.bootstrapCssUrl }});
+    {{- with .Values.theme.customCss }}
+    {{- . | nindent 4 }}
+    {{- end }}

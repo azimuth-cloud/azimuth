@@ -1,3 +1,0 @@
-include *.ini *.md *.txt VERSION
-recursive-include jasmin_cloud *.ico *.png *.gif *.css *.eot *.ttf *.svg *.woff *.js *.jinja2 *.txt *.html *.xml
-recursive-include jasmin_cloud_site *.ico *.png *.gif *.css *.eot *.ttf *.svg *.woff *.js *.jinja2 *.txt *.html *.xml

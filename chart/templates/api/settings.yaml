@@ -1,0 +1,123 @@
+{{- $settings := .Values.settings -}}
+{{- $authenticator := .Values.authenticator -}}
+{{- $provider := .Values.provider -}}
+{{- $clusterEngine := .Values.clusterEngine -}}
+{{- $keyStore := .Values.sshKeyStore -}}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "jasmin-cloud.componentname" (list . "api") }}
+  labels: {{ include "jasmin-cloud.componentLabels" (list . "api") | nindent 4 }}
+type: Opaque
+stringData:
+  01-django.yaml: |
+    SECRET_KEY: {{ $settings.secretKey | default (randAlphaNum 64) }}
+    DEBUG: {{ $settings.debug }}
+    CSRF_COOKIE_SECURE: {{ $settings.secureCookies }}
+    SESSION_COOKIE_SECURE: {{ $settings.secureCookies }}
+  02-cloud-common.yaml: |
+    JASMIN_CLOUD:
+      AVAILABLE_CLOUDS:
+        {{- range $settings.availableClouds }}
+        {{ .name }}:
+          label: {{ .label | quote }}
+          url: {{ .url | quote }}
+        {{- end }}
+      CURRENT_CLOUD: {{ $settings.currentCloud }}
+  03-cloud-authenticator.yaml: |
+    CLOUD_AUTH:
+      AUTHENTICATOR:
+        {{- if (eq $authenticator.type "openstack-password") }}
+        FACTORY: cloud_auth.authenticator.openstack.PasswordAuthenticator
+        PARAMS:
+          AUTH_URL: {{ default $provider.openstack.authUrl $authenticator.openstackPassword.authUrl }}
+          DOMAIN: {{ default $provider.openstack.domain $authenticator.openstackPassword.domain }}
+          VERIFY_SSL: {{ default $provider.openstack.verifySsl $authenticator.openstackPassword.verifySsl }}
+        {{- else if (eq $authenticator.type "openstack-federation") }}
+        FACTORY: cloud_auth.authenticator.openstack.FederatedAuthenticator
+        PARAMS:
+          FEDERATION_URL: {{ $authenticator.openstackFederation.federationUrl }}
+        {{- else }}
+        {{- fail (printf "Unrecognised authenticator '%s'" $authenticator.type) }}
+        {{- end }}
+  04-cloud-provider.yaml: |
+    JASMIN_CLOUD:
+      PROVIDER:
+        {{- if (eq $provider.type "openstack") }}
+        FACTORY: jasmin_cloud.provider.openstack.Provider
+        PARAMS:
+          AUTH_URL: {{ $provider.openstack.authUrl }}
+          DOMAIN: {{ $provider.openstack.domain }}
+          VERIFY_SSL: {{ $provider.openstack.verifySsl }}
+          {{- with $provider.openstack.interface }}
+          INTERFACE: {{ $provider.openstack.interface }}
+          {{- end }}
+          {{- with $provider.openstack.internalNetTemplate }}
+          INTERNAL_NET_TEMPLATE: {{ . | quote }}
+          {{- end }}
+          {{- with $provider.openstack.externalNetTemplate }}
+          EXTERNAL_NET_TEMPLATE: {{ . | quote }}
+          {{- end }}
+          {{- with $provider.openstack.internalNetCidr }}
+          INTERNAL_NET_CIDR: {{ . | quote }}
+          {{- end }}
+        {{- else }}
+        {{- fail (printf "Unrecognised cloud provider '%s'" $provider.type) }}
+        {{- end }}
+  05-ssh-key-store.yaml: |
+    JASMIN_CLOUD:
+      SSH_KEY_STORE:
+        {{- if (eq $keyStore.type "provider") }}
+        FACTORY: jasmin_cloud.keystore.provider.ProviderKeyStore
+        {{- else if (eq $keyStore.type "dummy") }}
+        FACTORY: jasmin_cloud.keystore.dummy.DummyKeyStore
+        PARAMS:
+          KEY: {{ $keyStore.dummy.key | required "No key specified" }}
+        {{- else if (eq $keyStore.type "ldap") }}
+        FACTORY: jasmin_cloud.keystore.ldap.LdapKeyStore
+        PARAMS:
+          PRIMARY: {{ $keyStore.ldap.primary }}
+          REPLICAS: {{ toYaml $keyStore.ldap.replicas | nindent 8 }}
+          BASE_DN: {{ $keyStore.ldap.baseDn }}
+        {{- else }}
+        {{- fail (printf "Unrecognised key store '%s'" $keyStore.type) }}
+        {{- end }}
+{{- if $clusterEngine.enabled }}
+{{- if (eq $clusterEngine.type "awx") }}
+  06-awx.yaml: |
+    JASMIN_CLOUD:
+      AWX:
+        ENABLED: true
+        URL: {{ tpl $clusterEngine.awx.url . | quote }}
+        VERIFY_SSL: {{ $clusterEngine.awx.verifySsl }}
+        USERNAME: {{ $clusterEngine.awx.username }}
+        CREATE_TEAMS: {{ $clusterEngine.awx.createTeams }}
+        CREATE_TEAM_ALLOW_ALL_PERMISSION: {{ $clusterEngine.awx.createTeamAllowAllPermission }}
+        {{- with $clusterEngine.awx.adminUsername }}
+        ADMIN_USERNAME: {{ $clusterEngine.awx.adminUsername }}
+        {{- end }}
+        {{- with $clusterEngine.awx.defaultProjects }}
+        DEFAULT_PROJECTS:
+          {{- range . }}
+          - NAME: {{ .name | quote }}
+            GIT_URL: {{ .gitUrl }}
+            GIT_VERSION: {{ .gitVersion }}
+            METADATA_ROOT: {{ .metadataRoot }}
+            {{- with .playbooks }}
+            PLAYBOOKS: {{ toYaml . | nindent 14 }}
+            {{- end }}
+            {{- with .extraVars }}
+            EXTRA_VARS: {{ toYaml . | nindent 14 }}
+            {{- end }}
+          {{- end }}
+        {{- end }}
+  07-awx-passwords.py: |
+    import os
+    # Read the AWX password from an environment variable that is populated from the specified secret
+    JASMIN_CLOUD['AWX']['PASSWORD'] = os.environ['AWX_PASSWORD']
+    if 'AWX_ADMIN_PASSWORD' in os.environ:
+        JASMIN_CLOUD['AWX']['ADMIN_PASSWORD'] = os.environ['AWX_ADMIN_PASSWORD']
+{{- else }}
+{{- fail (printf "Unrecognised cluster engine '%s'" $clusterEngine.type) }}
+{{- end }}
+{{- end }}
