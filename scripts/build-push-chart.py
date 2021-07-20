@@ -108,17 +108,15 @@ def main():
     """
     # First, determine the versions to use
     version, app_version = get_versions()
-    print(version)
-    print(app_version)
     # Update the versions in the chart
     chart_directory = os.path.realpath("./chart")
     update_chart_versions(chart_directory, version, app_version)
     # Build the chart tag - the repository should be in the environment
     chart_tag = "{}:{}".format(os.environ['CHART_REPOSITORY'], version)
     # Save the chart to the local cache
-    print(["helm", "chart", "save", chart_directory, chart_tag])
+    cmd(["helm", "chart", "save", chart_directory, chart_tag])
     # Push the chart to the repository
-    print(["helm", "chart", "push", chart_tag])
+    cmd(["helm", "chart", "push", chart_tag])
 
 
 if __name__ == "__main__":
