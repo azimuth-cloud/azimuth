@@ -61,45 +61,6 @@ CAAS_CREDENTIAL_TYPES = [
         },
     },
     {
-        'name': CREDENTIAL_TYPE_NAMES['openstack_application_credential'],
-        'description': 'Authenticate with an OpenStack cloud using an application credential.',
-        'kind': 'cloud',
-        'inputs': {
-            'fields': [
-                {
-                    'type': 'string',
-                    'id': 'auth_url',
-                    'label': 'Auth URL',
-                },
-                {
-                    'type': 'string',
-                    'id': 'application_credential_id',
-                    'label': 'Application Credential ID',
-                },
-                {
-                    'type': 'string',
-                    'id': 'application_credential_secret',
-                    'label': 'Application Credential Secret',
-                    'secret': True,
-                },
-            ],
-            'required': [
-                'auth_url',
-                'application_credential_id',
-                'application_credential_secret',
-            ],
-        },
-        'injectors': {
-            'env': {
-                'OS_IDENTITY_API_VERSION': '3',
-                'OS_AUTH_TYPE': 'v3applicationcredential',
-                'OS_AUTH_URL': '{{ auth_url }}',
-                'OS_APPLICATION_CREDENTIAL_ID': '{{ application_credential_id }}',
-                'OS_APPLICATION_CREDENTIAL_SECRET': '{{ application_credential_secret }}',
-            },
-        },
-    },
-    {
         'name': CAAS_DEPLOY_KEYPAIR_CREDENTIAL_NAME,
         'description': 'SSH keypair used for CaaS deployments.',
         'kind': 'cloud',
@@ -225,26 +186,6 @@ class Command(BaseCommand):
             json = dict(id = credential.id)
         )
         return credential
-
-    def ensure_execution_environment(self, connection, organisation):
-        """
-        Ensure that the CaaS execution environment exists.
-        """
-        ee_name = f"{CAAS_ORGANISATION_NAME} EE"
-        ee = connection.execution_environments.find_by_name(ee_name)
-        if ee:
-            self.stdout.write(f"Updating execution environment '{ee_name}'")
-            ee = ee._update(image = cloud_settings.AWX.EXECUTION_ENVIRONMENT_IMAGE)
-        else:
-            self.stdout.write(f"Creating execution environment '{ee_name}'")
-            ee = connection.execution_environments.create(
-                name = ee_name,
-                organization = organisation.id,
-                image = cloud_settings.AWX.EXECUTION_ENVIRONMENT_IMAGE
-            )
-        # Set the execution environment as the default
-        connection.api_patch("/settings/system/", json = { "DEFAULT_EXECUTION_ENVIRONMENT": ee.id })
-        return ee
 
     def ensure_caas_deploy_keypair(self, connection, organisation, ct):
         """
@@ -469,7 +410,6 @@ class Command(BaseCommand):
             organisation,
             credential_types[CAAS_DEPLOY_KEYPAIR_CREDENTIAL_NAME]
         )
-        self.ensure_execution_environment(connection, organisation)
         self.ensure_template_inventory(connection, organisation)
         projects = self.ensure_projects(connection, organisation)
         self.ensure_job_templates(connection, projects, deploy_keypair_cred)

@@ -66,7 +66,7 @@ python api/manage.py runserver
 
 The API will then be available at http://localhost:8000/api.
 
-## React UI
+### React UI
 
 Once you have the development version of the API up, you can install a development version
 of the UI.

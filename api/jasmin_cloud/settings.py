@@ -50,8 +50,6 @@ class AwxSettings(SettingsObject):
     #: The password to use for admin operations
     #: Defaults to the same as the CaaS password
     ADMIN_PASSWORD = Setting(default = lambda settings: settings.PASSWORD)
-    #: The image to use for the CaaS execution environment
-    EXECUTION_ENVIRONMENT_IMAGE = Setting(default = 'quay.io/ansible/awx-ee:0.2.0')
     #: List of default projects to create
     DEFAULT_PROJECTS = Setting(default = [
         {

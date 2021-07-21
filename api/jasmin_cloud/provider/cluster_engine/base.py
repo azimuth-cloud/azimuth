@@ -8,18 +8,12 @@ from dataclasses import dataclass
 @dataclass
 class Credential:
     """
-    Dataclass for a credential that is passed from the provider to interact with
-    a cloud.
+    DTO for a credential that is passed from the provider to interact with a cloud.
 
-    For persistent (i.e. long-lived) credentials that are created once and reused,
-    data may be empty or None after the first use. However the credential type and
-    persistent flag should still be given in order for the engine to locate the 
-    stored credential.
+    Credentials should be ephemeral and have an expiry, e.g. a token.
     """
     #: The credential type
     type: str
-    #: Indicates if the credential is a persistent credential or not
-    persistent: bool
     #: The credential data
     data: dict
 
