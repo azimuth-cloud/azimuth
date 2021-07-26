@@ -314,7 +314,7 @@ class Command(BaseCommand):
         # Work out what extra vars we should use for the job template
         # Start with the common extra vars
         extra_vars_spec = project_spec.get('EXTRA_VARS', {})
-        extra_vars = extra_vars_spec.get('__ALL__', {})
+        extra_vars = dict(extra_vars_spec.get('__ALL__', {}))
         # Update with specific variables for the playbook
         extra_vars.update(extra_vars_spec.get(playbook, {}))
         # The metadata root should be in the project spec

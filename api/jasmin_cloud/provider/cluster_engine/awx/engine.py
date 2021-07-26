@@ -489,6 +489,7 @@ class ClusterManager(base.ClusterManager):
         inventory.variable_data._update(
             dict(
                 params,
+                cluster_id = inventory.id,
                 cluster_name = name,
                 cluster_type = cluster_type,
                 cluster_user_ssh_public_key = ssh_key
