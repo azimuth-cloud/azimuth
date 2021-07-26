@@ -2,6 +2,7 @@
 This module contains the cluster engine implementation for AWX.
 """
 
+import dataclasses
 import logging
 import json
 import re
@@ -22,6 +23,20 @@ logger = logging.getLogger(__name__)
 #: Maps credential types to AWX credential type names
 #: Currently, only OpenStack tokens are supported
 CREDENTIAL_TYPE_NAMES = dict(openstack_token = 'OpenStack Token')
+
+
+@dataclasses.dataclass
+class FakeTeam:
+    """
+    Returned in place of a real team in the case where teams should be auto-created.
+    This is used to defer the creation of a team until a write is required.
+    """
+    #: The name of the team
+    name: str
+    #: Indicates whether the team should be granted access to all job templates
+    #: This is used when listing cluster types using a fake team and when reifying the team
+    #: Corresponds to create_team_allow_all_permission = True
+    allow_all: bool
 
 
 class Engine(base.Engine):
@@ -51,63 +66,39 @@ class Engine(base.Engine):
         self._create_teams = create_teams
         self._create_team_allow_all_permission = create_team_allow_all_permission
 
-    def _create_team(self, connection, organisation, name):
-        """
-        Create the specified team and, if configured, the allow-all permission.
-        """
-        team = connection.teams.create(name = name, organization = organisation.id)
-        if self._create_team_allow_all_permission:
-            # Find the execute role for the organisation
-            execute_role = next(
-                role
-                for role in connection.roles.all()
-                if (
-                    role.name.lower() == 'execute' and
-                    role.summary_fields.get('resource_type') == 'organization' and
-                    role.summary_fields.get('resource_id') == organisation.id
-                )
-            )
-            # Associate the role with the newly created team
-            connection.api_post(f"/teams/{team.id}/roles/", json = dict(id = execute_role.id))
-        return team
-
     def create_manager(self, username, tenancy):
         """
         See :py:meth:`.base.Engine.create_manager`.
         """
-        logger.info("Starting AWX connection")
+        logger.info("[%s] Starting AWX connection", username)
         connection = api.Connection(
             self._url,
             self._username,
             self._password,
             self._verify_ssl
         )
-        try:
-            organisation = next(connection.organisations.all(), None)
-            if not organisation:
-                raise errors.ImproperlyConfiguredError('Could not find organisation.')
-            template_inventory = connection.inventories.find_by_name(self._template_inventory)
-            if not template_inventory:
-                raise errors.ImproperlyConfiguredError('Could not find template inventory.')
-        except:
-            connection.close()
-            raise
+        organisation = next(connection.organisations.all(), None)
+        if not organisation:
+            raise errors.ImproperlyConfiguredError('Could not find organisation.')
+        # Try to find the team named after the tenancy
         team = next(connection.teams.all(name__iexact = tenancy.name), None)
         if team:
-            logger.info("Found AWX team '%s'", team.name)
+            logger.info("[%s] Found AWX team '%s'", username, team.name)
         elif self._create_teams:
-            logger.info("Creating AWX team '%s'", tenancy.name)
-            team = self._create_team(connection, organisation, tenancy.name)
+            # If no team was found but we want to create teams on demand, use a fake team
+            # until a write is required
+            logger.info("[%s] Using fake team for '%s'", username, tenancy.name)
+            team = FakeTeam(tenancy.name, self._create_team_allow_all_permission)
         if team:
             return ClusterManager(
                 username,
                 connection,
                 organisation,
-                template_inventory,
+                self._template_inventory,
                 team
             )
         else:
-            logger.warn("Could not find AWX team '%s'", tenancy.name)
+            logger.warn("[%s] Could not find AWX team '%s'", username, tenancy.name)
             connection.close()
             return None
 
@@ -141,6 +132,86 @@ class ClusterManager(base.ClusterManager):
             **kwargs
         )
 
+    def _ensure_team(self):
+        """
+        Ensures that the team associated with this manager is a actual team. If the
+        team is a fake team it will be created at this point.
+
+        Because this creates resources in AWX, it should only be executed before a
+        write request.
+        """
+        # If the team is not a fake team, then it is a real team and we are done
+        if not isinstance(self._team, FakeTeam):
+            return
+        fake_team = self._team
+        # Create the team
+        self._log("Reifying fake team")
+        self._team = self._connection.teams.create(
+            name = fake_team.name,
+            organization = self._organisation.id
+        )
+        # Create the allow all permission if required
+        # This is represented in AWX as holding the execute role for the entire organisation
+        if fake_team.allow_all:
+            self._log("Granting allow-all permission to team")
+            execute_role = next(
+                role
+                for role in self._connection.roles.all()
+                if (
+                    role.name.lower() == 'execute' and
+                    role.summary_fields.get('resource_type') == 'organization' and
+                    role.summary_fields.get('resource_id') == self._organisation.id
+                )
+            )
+            # Associate the role with the newly created team
+            self._connection.api_post(
+                f"/teams/{self._team.id}/roles/",
+                json = dict(id = execute_role.id)
+            )
+
+    def _fetch_team_permissions(self):
+        """
+        Returns a tuple of (allow_all, job_template_names) indicating the permissions
+        granted to the team associated with this manager to access job templates.
+
+        It can accept a fake team or a real team.
+        If given a real team, the roles for the team are queried.
+        If given a fake team, job_template_names will always be empty and allow_all will
+        depend on the value of create_team_allow_all_permission given to the engine.
+        """
+        # If we have a fake team, just return the value of allow_all
+        if isinstance(self._team, FakeTeam):
+            self._log("Using permissions from fake team")
+            return (self._team.allow_all, {})
+        # If we have a real team, start by fetching the roles
+        self._log("Fetching roles for team")
+        roles = list(self._team.roles.all())
+        # If the team has the execute permission on the organisation, then they are
+        # permitted to access all the templates
+        allow_all = any(
+            (
+                role.name.lower() == 'execute' and
+                role.summary_fields['resource_type'] == 'organization' and
+                role.summary_fields['resource_id'] == self._organisation.id
+            )
+            for role in roles
+        )
+        if allow_all:
+            self._log("Team has execute permission for organisation")
+            return (True, {})
+        # Otherwise, the team may have been granted the execute permission on
+        # individual job templates
+        permitted = {
+            role.summary_fields['resource_id']
+            for role in roles
+            if (
+                role.name.lower() == 'execute' and
+                role.summary_fields['resource_type'] == 'job_template'
+            )
+        }
+        self._log("Found %s permitted job templates", len(permitted))
+        return (False, permitted)
+
     def _from_job_template(self, job_template):
         """
         Returns a cluster template from the given job template.
@@ -156,41 +227,15 @@ class ClusterManager(base.ClusterManager):
         """
         See :py:meth:`.base.ClusterManager.cluster_types`.
         """
-        # Get the names of the job temaplates that the team has been
-        # granted execute access for
-        self._log("Fetching team permissions")
-        # First, get the team roles
-        roles = list(self._team.roles.all())
-        # If the team has the execute permission on the organisation, then they are
-        # permitted to access all the templates
-        all_permitted = any(
-            (
-                role.name.lower() == 'execute' and
-                role.summary_fields['resource_type'] == 'organization' and
-                role.summary_fields['resource_id'] == self._organisation.id
-            )
-            for role in roles
-        )
-        # Otherwise, the team may have been granted the execute permission on
-        # individual job templates
-        if all_permitted:
-            permitted = {}
-        else:
-            permitted = {
-                role.summary_fields['resource_name']
-                for role in roles
-                if (
-                    role.name.lower() == 'execute' and
-                    role.summary_fields['resource_type'] == 'job_template'
-                )
-            }
-        self._log("Found %s permitted job templates", len(permitted))
-        if all_permitted or permitted:
+        # Get the names of the job templates that the team has been granted execute access to
+        allow_all, permitted = self._fetch_team_permissions()
+        # Only fetch the job templates if there are some permissions to check
+        if allow_all or permitted:
             # Fetch the job templates, filter the allowed ones and return the cluster types
             return tuple(
                 self._from_job_template(jt)
                 for jt in self._connection.job_templates.all()
-                if all_permitted or jt.name in permitted
+                if allow_all or jt.id in permitted
             )
         else:
             return ()
@@ -209,12 +254,6 @@ class ClusterManager(base.ClusterManager):
         """
         Returns a cluster from the given inventory.
         """
-        # Get the inventory variables
-        params = inventory.variable_data._as_dict()
-        # Extract the parameters that aren't really parameters
-        name = params.pop('cluster_name')
-        cluster_type = params.pop('cluster_type')
-        params.pop('cluster_user_ssh_public_key')
         # Get the jobs for the inventory
         jobs = self._connection.jobs.all(inventory = inventory.id, order_by = '-started')
         # The status of the cluster is the status of the latest job
@@ -281,6 +320,12 @@ class ClusterManager(base.ClusterManager):
             updated = updated or job.finished
             if json.loads(job.extra_vars).get('cluster_upgrade_system_packages', False):
                 patched = patched or job.finished
+        # Get the inventory variables
+        params = inventory.variable_data._as_dict()
+        # Extract the parameters that aren't really parameters
+        name = params.pop('cluster_name')
+        cluster_type = params.pop('cluster_type')
+        params.pop('cluster_user_ssh_public_key')
         return dto.Cluster(
             inventory.id,
             name,
@@ -353,7 +398,7 @@ class ClusterManager(base.ClusterManager):
             '-',
             # Combine the username and team name with some randomness to avoid collisions
             "{}-{}-{}".format(
-                self.username,
+                self._username,
                 self._team.name,
                 uuid.uuid4().hex[:16]
             )
@@ -396,6 +441,13 @@ class ClusterManager(base.ClusterManager):
         """
         if isinstance(cluster_type, dto.ClusterType):
             cluster_type = cluster_type.name
+        # Ensure that the team exists
+        self._ensure_team()
+        # Try to find the template inventory
+        # There is no point proceeding if this fails
+        template_inventory = self._connection.inventories.find_by_name(self._template_inventory)
+        if not template_inventory:
+            raise errors.ImproperlyConfiguredError('Could not find template inventory.')
         # Get the AWX credential to use from the given data
         # Do this before anything else as there is no point proceeding if the credential
         # is not recognised
@@ -431,7 +483,7 @@ class ClusterManager(base.ClusterManager):
                 raise errors.BadInputError("A cluster called '{}' aleady exists.".format(name))
         # Start to build the new inventory for the new cluster
         self._log("Copying template inventory as '%s'", inventory_name)
-        inventory = self._connection.inventories.copy(self._template_inventory.id, inventory_name)
+        inventory = self._connection.inventories.copy(template_inventory.id, inventory_name)
         # Update the inventory variables
         self._log("Setting inventory variables for '%s'", inventory.name)
         inventory.variable_data._update(
@@ -461,6 +513,8 @@ class ClusterManager(base.ClusterManager):
         # currently running job
         if isinstance(cluster, dto.Cluster):
             cluster = cluster.id
+        # Ensure that the team exists
+        self._ensure_team()
         # Get the AWX credential to use from the given data
         # Do this before anything else as there is no point proceeding if the credential
         # is not recognised
@@ -489,6 +543,8 @@ class ClusterManager(base.ClusterManager):
         # currently running job
         if isinstance(cluster, dto.Cluster):
             cluster = cluster.id
+        # Ensure that the team exists
+        self._ensure_team()
         # Get the AWX credential to use from the given data
         # Do this before anything else as there is no point proceeding if the credential
         # is not recognised
@@ -516,6 +572,8 @@ class ClusterManager(base.ClusterManager):
         # Start by re-fetching the cluster - it might already have been deleted
         if isinstance(cluster, dto.Cluster):
             cluster = cluster.id
+        # Ensure that the team exists
+        self._ensure_team()
         # Get the AWX credential to use from the given data
         # Do this before anything else as there is no point proceeding if the credential
         # is not recognised
