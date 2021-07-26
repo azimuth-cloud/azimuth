@@ -36,7 +36,9 @@ const ClusterTypePanel = ({ clusterType, selected, onSelect }) => (
         <Card>
             <Card.Header as="h5">{clusterType.label}</Card.Header>
             <Card.Body className="text-center">
-                <p><Image src={clusterType.logo} fluid /></p>
+                <Image src={clusterType.logo} fluid />
+            </Card.Body>
+            <Card.Body className="border-top text-center px-3 py-2">
                 <ReactMarkdown source={clusterType.description} />
             </Card.Body>
             <Card.Footer className="text-center">
@@ -94,7 +96,7 @@ const ClusterTypeForm = ({ clusterTypes, selected, onSelect, goNext }) => {
 
 
 const ClusterParametersForm = ({
-    clusterType: { label, logo, parameters },
+    clusterType: { label, description, logo, parameters },
     tenancy,
     tenancyActions,
     onSubmit,
@@ -133,8 +135,15 @@ const ClusterParametersForm = ({
             <Modal.Body>
                 <Row className="cluster-parameters-type justify-content-center mb-3">
                     <Col xs="auto">
-                        <Image src={logo} fluid className="me-3" />
-                        <strong>{label}</strong>
+                        <div className="d-flex align-items-center">
+                            <div className="me-3">
+                                <Image src={logo} fluid />
+                            </div>
+                            <div>
+                                <h4>{label}</h4>
+                                <span className="text-muted">{description}</span>
+                            </div>
+                        </div>
                     </Col>
                 </Row>
                 <Field
