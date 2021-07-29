@@ -259,17 +259,42 @@ class Command(BaseCommand):
             )
         )
 
+    def ensure_project_ee(self, connection, organisation, project_spec):
+        """
+        Ensure that the execution environment for the project exists, if configured.
+        """
+        ee_spec = project_spec.get('EXECUTION_ENVIRONMENT')
+        if not ee_spec:
+            self.stdout.write("Using global default execution environment")
+            return None
+        ee_name = f"{project_spec['NAME']} EE"
+        ee = connection.execution_environments.find_by_name(ee_name)
+        params = dict(
+            image = ee_spec['IMAGE'],
+            organization = organisation.id,
+            pull = "always" if ee_spec.get('ALWAYS_PULL', False) else "missing"
+        )
+        if ee:
+            self.stdout.write(f"Updating execution environment '{ee.name}'")
+            ee = ee._update(**params)
+        else:
+            self.stdout.write(f"Creating execution environment '{ee_name}'")
+            ee = connection.execution_environments.create(name = ee_name, **params)
+        return ee
+
     def ensure_project(self, connection, organisation, project_spec):
         """
         Ensure that the given project exists.
         """
+        project_ee = self.ensure_project_ee(connection, organisation, project_spec)
         project = connection.projects.find_by_name(project_spec['NAME'])
         params = dict(
             scm_type = 'git',
             scm_url = project_spec['GIT_URL'],
             scm_branch = project_spec['GIT_VERSION'],
             organization = organisation.id,
-            scm_update_on_launch = True
+            scm_update_on_launch = project_spec.get('ALWAYS_UPDATE', False),
+            default_environment = getattr(project_ee, 'id', None)
         )
         if project:
             self.stdout.write(f"Updating project '{project.name}'")

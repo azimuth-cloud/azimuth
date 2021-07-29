@@ -175,6 +175,8 @@ JASMIN_CLOUD = {
     #     #   * METADATA_ROOT - The base URL for cluster metadata files.
     #     # 
     #     # The following keys are optional:
+    #     #   * ALWAYS_UPDATE - Boolean indicating if the project should be updated to the latest
+    #     #                     commit for the branch every time a job is executed. Defaults to false.
     #     #   * PLAYBOOKS - List of playbooks to create job templates for.
     #     #                 If not given, a job template is created for each playbook
     #     #                 in the project.
@@ -182,6 +184,11 @@ JASMIN_CLOUD = {
     #     #                  are dictionaries of Ansible extra_vars for those playbooks.
     #     #                  The special key '__ALL__' can be used to set common extra_vars
     #     #                  for all playbooks in a project.
+    #     #   * EXECUTION_ENVIRONMENT - A dictionary containing settings for a custom
+    #     #                             execution environment, containing the keys:
+    #     #     * IMAGE - The image for the execution environment (required).
+    #     #     * ALWAYS_PULL - Boolean indicating if the image should be pulled every time it is
+    #     #                     used or only when it is missing. Defaults to false.
     #     'DEFAULT_PROJECTS': [
     #         {
     #             'NAME': 'My Site Appliances',

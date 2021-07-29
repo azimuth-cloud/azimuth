@@ -307,7 +307,8 @@ class ClusterManager(base.ClusterManager):
                             order_by = '-created'
                         )
                     ),
-                    None
+                    # If there is no task, indicate that we are waiting to be scheduled
+                    'Waiting to be scheduled'
                 )
         # If we haven't found the update or patch time, traverse the rest of the jobs until we find them
         while not updated or not patched:
