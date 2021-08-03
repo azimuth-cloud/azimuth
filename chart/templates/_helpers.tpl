@@ -79,6 +79,20 @@ Labels for a component resource.
 {{- end -}}
 
 {{/*
+Tries to derive the Consul server address to use from the internal Consul settings.
+
+This template may be used from dependencies and must still return the correct value.
+In particular, this affects the top-level .Values and limits the checks that can be
+done. It also means the chart name must be hard-coded.
+*/}}
+{{- define "jasmin-cloud.consulServerAddress" -}}
+{{- $name := "jasmin-cloud" }}
+{{- $fullName := contains $name .Release.Name | ternary .Release.Name (printf "%s-%s" .Release.Name $name) -}}
+{{- $consulReleaseName := printf "%s-consul" $fullName | lower | trunc 63 | trimSuffix "-" -}}
+{{- printf "%s-consul-server:8500" $consulReleaseName -}}
+{{- end -}}
+
+{{/*
 Tries to derive the app proxy base domain from the internal app proxy settings.
 */}}
 {{- define "jasmin-cloud.appProxyBaseDomain" -}}

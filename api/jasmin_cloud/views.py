@@ -342,7 +342,7 @@ def machines(request, tenant):
                 userdata = '\n'.join([
                     "#!/usr/bin/env bash",
                     "set -eo pipefail",
-                    "curl -fsSL {} | bash -s guacamole".format(
+                    "curl -fsSL {} | bash -s console".format(
                         cloud_settings.APPS.POST_DEPLOY_SCRIPT_URL
                     )
                 ])

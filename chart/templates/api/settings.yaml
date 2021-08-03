@@ -108,7 +108,18 @@ stringData:
         CREATE_TEAMS: {{ $clusterEngine.awx.createTeams }}
         CREATE_TEAM_ALLOW_ALL_PERMISSION: {{ $clusterEngine.awx.createTeamAllowAllPermission }}
         {{- with $clusterEngine.awx.adminUsername }}
-        ADMIN_USERNAME: {{ $clusterEngine.awx.adminUsername }}
+        ADMIN_USERNAME: {{ . }}
+        {{- end }}
+        {{- if $clusterEngine.terraformBackend.enabled }}
+        {{- if (eq $clusterEngine.terraformBackend.type "consul") }}
+        EXTRA_CREDENTIALS:
+          - NAME: CaaS Consul
+            TYPE: Hashicorp Consul
+            INPUTS:
+              address: {{ tpl $clusterEngine.terraformBackend.consul.address . | quote }}
+        {{- else }}
+        {{- fail (printf "Unsupported terraform backend '%s'" $clusterEngine.terraformBackend.type) }}
+        {{- end }}
         {{- end }}
         {{- with $clusterEngine.awx.defaultProjects }}
         DEFAULT_PROJECTS:
@@ -132,6 +143,6 @@ stringData:
     if 'AWX_ADMIN_PASSWORD' in os.environ:
         JASMIN_CLOUD['AWX']['ADMIN_PASSWORD'] = os.environ['AWX_ADMIN_PASSWORD']
 {{- else }}
-{{- fail (printf "Unrecognised cluster engine '%s'" $clusterEngine.type) }}
+{{- fail (printf "Unsupported cluster engine '%s'" $clusterEngine.type) }}
 {{- end }}
 {{- end }}

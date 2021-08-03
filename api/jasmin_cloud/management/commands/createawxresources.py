@@ -26,6 +26,8 @@ from ...provider.cluster_engine.awx import api
 CAAS_ORGANISATION_NAME = "CaaS"
 
 CAAS_DEPLOY_KEYPAIR_CREDENTIAL_NAME = 'CaaS Deploy Keypair'
+CAAS_CONSUL_CREDENTIAL_NAME = 'Hashicorp Consul'
+
 CAAS_CREDENTIAL_TYPES = [
     {
         'name': CREDENTIAL_TYPE_NAMES['openstack_token'],
@@ -47,6 +49,7 @@ CAAS_CREDENTIAL_TYPES = [
                     'type': 'string',
                     'id': 'token',
                     'label': 'Token',
+                    'secret': True,
                 },
             ],
             'required': ['auth_url', 'project_id', 'token'],
@@ -91,6 +94,46 @@ CAAS_CREDENTIAL_TYPES = [
                 'cluster_ssh_private_key_file': '{{ tower.filename }}',
                 # Also set a variable containing the public key
                 'cluster_deploy_ssh_public_key': '{{ public_key }}',
+            },
+        },
+    },
+    {
+        'name': CAAS_CONSUL_CREDENTIAL_NAME,
+        'description': 'Credentials for a Hashicorp Consul instance.',
+        'kind': 'cloud',
+        'inputs': {
+            'fields': [
+                {
+                    'type': 'string',
+                    'id': 'address',
+                    'label': 'Consul address (including port)',
+                },
+                {
+                    'type': 'boolean',
+                    'id': 'http_ssl',
+                    'label': 'Use SSL?',
+                },
+                {
+                    'type': 'string',
+                    'id': 'access_token',
+                    'label': 'Access token (optional)',
+                    'secret': True,
+                },
+                {
+                    'type': 'string',
+                    'id': 'http_auth',
+                    'label': 'Basic Auth credentials (optional)',
+                    'secret': True,
+                }
+            ],
+            'required': ['address'],
+        },
+        'injectors': {
+            'env': {
+                'CONSUL_HTTP_ADDR': '{{ address }}',
+                'CONSUL_HTTP_TOKEN': '{{ access_token }}',
+                'CONSUL_HTTP_SSL': '{% if http_ssl %}true{% endif %}',
+                'CONSUL_HTTP_AUTH': '{{ http_auth }}',
             },
         },
     },
@@ -259,6 +302,34 @@ class Command(BaseCommand):
             )
         )
 
+    def ensure_extra_credential(self, connection, organisation, credential_types, cred_spec):
+        """
+        Ensure that the specified extra credential exists.
+        """
+        # Try to find the credential type from the name
+        credential = connection.credentials.find_by_name(cred_spec['NAME'])
+        params = dict(
+            credential_type = credential_types[cred_spec['TYPE']].id,
+            organization = organisation.id,
+            inputs = cred_spec['INPUTS']
+        )
+        if credential:
+            self.stdout.write(f"Updating credential '{credential.name}'")
+            credential = credential._update(**params)
+        else:
+            self.stdout.write(f"Creating credential '{cred_spec['NAME']}'")
+            credential = connection.credentials.create(name = cred_spec['NAME'], **params)
+        return credential
+
+    def ensure_extra_credentials(self, connection, organisation, credential_types):
+        """
+        Ensure that any extra credentials that are configured exist.
+        """
+        return [
+            self.ensure_extra_credential(connection, organisation, credential_types, cred_spec)
+            for cred_spec in cloud_settings.AWX.EXTRA_CREDENTIALS
+        ]
+
     def ensure_project_ee(self, connection, organisation, project_spec):
         """
         Ensure that the execution environment for the project exists, if configured.
@@ -325,7 +396,7 @@ class Command(BaseCommand):
         project_spec,
         project,
         playbook,
-        deploy_keypair_cred
+        credentials
     ):
         """
         Ensures that a job template exists for the given project and playbook.
@@ -367,12 +438,13 @@ class Command(BaseCommand):
             self.stdout.write(f"Creating job template '{template_name}'")
             job_template = connection.job_templates.create(name = template_name, **params)
         existing_creds = [c['id'] for c in job_template.summary_fields['credentials']]
-        if deploy_keypair_cred.id not in existing_creds:
-            self.stdout.write("Associating CaaS deploy keypair with job template")
-            # Associate the deploy keypair credential with the job template
+        # Update credential associations where required
+        unassociated_creds = [c for c in credentials if c.id not in existing_creds]
+        for cred in unassociated_creds:
+            self.stdout.write(f"Associating credential '{cred.name}' with job template")
             connection.api_post(
                 f"/job_templates/{job_template.id}/credentials/",
-                json = dict(id = deploy_keypair_cred.id)
+                json = dict(id = cred.id)
             )
         return job_template
 
@@ -381,7 +453,7 @@ class Command(BaseCommand):
         connection,
         project_spec,
         project,
-        deploy_keypair_cred
+        credentials
     ):
         """
         Ensures that a job template exists for each playbook in a project.
@@ -399,12 +471,12 @@ class Command(BaseCommand):
                 project_spec,
                 project,
                 playbook,
-                deploy_keypair_cred
+                credentials
             )
             for playbook in playbooks
         ]
 
-    def ensure_job_templates(self, connection, projects, deploy_keypair_cred):
+    def ensure_job_templates(self, connection, projects, credentials):
         """
         Ensure that a job template exists for each playbook in each project.
         """
@@ -415,7 +487,7 @@ class Command(BaseCommand):
                 connection,
                 project_spec,
                 project,
-                deploy_keypair_cred
+                credentials
             )
         ]
 
@@ -436,5 +508,7 @@ class Command(BaseCommand):
             credential_types[CAAS_DEPLOY_KEYPAIR_CREDENTIAL_NAME]
         )
         self.ensure_template_inventory(connection, organisation)
+        credentials = self.ensure_extra_credentials(connection, organisation, credential_types)
+        credentials.insert(0, deploy_keypair_cred)
         projects = self.ensure_projects(connection, organisation)
-        self.ensure_job_templates(connection, projects, deploy_keypair_cred)
+        self.ensure_job_templates(connection, projects, credentials)

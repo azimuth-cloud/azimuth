@@ -7,13 +7,8 @@ version: 0.1.0
 appVersion: main
 
 dependencies:
-  - name: consul
-    version: 0.32.1
-    repository: https://helm.releases.hashicorp.com
-    condition: appProxy.enabled
-
-  - name: tunnel-proxy-chart
-    version: 0.1.0-dev.0.main.34
+  - name: tunnel-server
+    version: 0.1.0-dev.0.main.36
     repository: oci://ghcr.io/stackhpc
     alias: appProxy
     condition: appProxy.enabled

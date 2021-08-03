@@ -50,6 +50,8 @@ class AwxSettings(SettingsObject):
     #: The password to use for admin operations
     #: Defaults to the same as the CaaS password
     ADMIN_PASSWORD = Setting(default = lambda settings: settings.PASSWORD)
+    #: A list of extra credentials to create which will be attached to projects
+    EXTRA_CREDENTIALS = Setting(default = [])
     #: List of default projects to create
     DEFAULT_PROJECTS = Setting(default = [
         {
@@ -114,7 +116,7 @@ class AppsSettings(SettingsObject):
 
     #: The URL of the script to use to execute post-deploy actions
     POST_DEPLOY_SCRIPT_URL = Setting(
-        default = "https://raw.githubusercontent.com/stackhpc/jasmin-cloud-post-deploy/main/bin/run-playbook-web"
+        default = "https://raw.githubusercontent.com/stackhpc/ansible-collection-cloud-portal-tools/main/bin/run-playbook"
     )
 
 

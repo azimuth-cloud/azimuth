@@ -119,13 +119,15 @@ provider:
 appProxy:
   # Whether the app proxy should be deployed or not
   enabled: false
-  # Disable the Consul deployed by the tunnel-proxy
-  # We will deploy our own as we want to use it in other places
+  # Prevent the tunnel-proxy chart from deploy it's own Consul
+  # We will deploy our own as we want to use it in other places as well
   consul:
     enabled: false
   proxy:
     # The base domain for the app proxy
-    baseDomain: # apps.cloud.example.local
+    baseDomain:
+    # By default, use the consul server for the internal Consul
+    consulServerAddress: "{{ include \"jasmin-cloud.consulServerAddress\" . }}"
 
 # Settings for apps
 # By default, this assumes that the internal app proxy is used
@@ -146,6 +148,14 @@ apps:
   proxySSHDPort: "{{ include \"jasmin-cloud.appProxySSHDPort\" . }}"
   # The URL of the post-deploy script to execute
   postDeployScriptUrl:
+
+# Configuration for the internal Consul instance
+consul:
+  # Indicates whether the internal Consul instance should be created
+  # This only applies if Consul is required for a feature that is enabled, e.g.
+  # the app proxy or as a Terraform backend for the cluster engine
+  enabled: true
+  spec: {}
 
 # The cluster engine to use for Cluster-as-a-Service support
 clusterEngine:
@@ -202,11 +212,22 @@ clusterEngine:
       #     # This special key can be used to set common extra_vars for all playbooks in a project
       #     __ALL__: { var1: value1, var2: value2 }
       #     cluster1-playbook.yml: { var1: "override value1" }
+  # Configuration for the Terraform backend
+  terraformBackend:
+    # Indicates if the Terraform backend should be configured
+    enabled: true
+    # The type of the Terraform backend to use (currently only consul is supported)
+    type: consul
+    # Configuration for the consul backend
+    consul:
+      # The address, including port, of the Consul server to use
+      # By default, use the internal Consul
+      address: "{{ include \"jasmin-cloud.consulServerAddress\" . }}"
 
 # Configuration for the internal AWX instance
 awx:
   # Indicates whether the internal AWX instance should be created
-  # As well as this flag, it will only be created if the cluster engine is enabled with type AWX
+  # This only applies if the cluster engine is enabled with type AWX
   enabled: true
   # The spec for the internal AWX instance
   spec:

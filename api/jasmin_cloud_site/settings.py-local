@@ -143,6 +143,20 @@ JASMIN_CLOUD = {
         },
     },
 
+    # Settings for app proxy support (optional)
+    # 'APPS': {
+    #     # Indicates if apps are enabled
+    #     'ENABLED': True,
+    #     # The base domain for the app proxy
+    #     'PROXY_BASE_DOMAIN': 'apps.cloud.example.com',
+    #     # The address of the app proxy SSHD service
+    #     # Defaults to the base domain if not given
+    #     # 'PROXY_SSHD_HOST': 'proxy.cloud.example.com',
+    #     # The port for the app proxy SSHD service
+    #     # Defaults to 22 (standard SSH port) if not given
+    #     # 'PROXY_SSHD_PORT': 32222,
+    # },
+
     # AWX settings for Cluster-as-a-Service support (optional)
     # 'AWX': {
     #     # Indicates whether AWX support should be enabled
@@ -166,6 +180,21 @@ JASMIN_CLOUD = {
     #     # if different from the username and password for CaaS operations
     #     'ADMIN_USERNAME': 'admin',
     #     'ADMIN_PASSWORD': 'secretadminpassword'
+    #     # Any extra credentials to create and associate with the created projects below
+    #     #
+    #     # Each item should have the keys:
+    #     #   * NAME - The name of the credential.
+    #     #   * TYPE - The name of the credential type.
+    #     #   * INPUTS - The inputs for the credential.
+    #     'EXTRA_CREDENTIALS': [
+    #         {
+    #             'NAME': 'CaaS Consul',
+    #             'TYPE': 'Hashicorp Consul',
+    #             'INPUTS': {
+    #                 'address': 'jasmin-cloud-consul-consul-server:8500',
+    #             },
+    #         },
+    #     ],
     #     # Definition of the default projects and job templates.
     #     #
     #     # Each item should have the required keys:
