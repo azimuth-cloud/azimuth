@@ -93,6 +93,7 @@ const UpdateClusterParametersMenuItem = ({
             </DropdownItem>
             <Modal
                 backdrop="static"
+                size="lg"
                 onHide={close}
                 show={visible}
             >

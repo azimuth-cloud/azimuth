@@ -602,14 +602,17 @@ class ScopedSession(base.ScopedSession):
             self._log("Failed to find tagged %s network.", net_type, level = logging.WARN)
         return network
 
-    def _templated_network(self, template, net_type):
+    def _templated_network(self, template, net_type, **params):
         """
         Returns the network specified by the template, after interpolating with the tenant name.
 
         If the network does not exist, that is a config error and an exception is raised.
         """
         net_name = template.format(tenant_name = self._tenancy.name)
-        network = self._connection.network.networks.find_by_name(net_name)
+        network = next(
+            self._connection.network.networks.all(name = net_name, **params),
+            None
+        )
         if network:
             self._log("Found %s network '%s' using template.", net_type, network.name)
             return network
@@ -660,7 +663,11 @@ class ScopedSession(base.ScopedSession):
             return tagged_network
         # Next, attempt to use the name template
         if self._external_net_template:
-            return self._templated_network(self._external_net_template, 'external')
+            return self._templated_network(
+                self._external_net_template,
+                'external',
+                project_id = None
+            )
         # If there is exactly one external network available, use that
         def gen_external_networks():
             # Unfortunately, we need multiple queries here in case the user is an admin
