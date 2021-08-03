@@ -204,6 +204,10 @@ clusterEngine:
       #   ##
       #   # OPTIONAL KEYS
       #   ##
+      #   # Indicates if the project should be updated to the latest version on each job launch
+      #   # Can be useful during development but recommend to leave as false in production
+      #   # Defaults to false if not given
+      #   alwaysUpdate: true
       #   # List of playbooks to create job templates for
       #   # If not given, a job template is created for each playbook in the project
       #   playbooks: ['cluster1-playbook.yml', 'cluster2-playbook.yml']
@@ -212,6 +216,12 @@ clusterEngine:
       #     # This special key can be used to set common extra_vars for all playbooks in a project
       #     __ALL__: { var1: value1, var2: value2 }
       #     cluster1-playbook.yml: { var1: "override value1" }
+      #   # (ADVANCED) Definition of a custom execution environment for the project
+      #   executionEnvironment:
+      #     # The image to use (required)
+      #     image: registry.example.com/org/image:tag
+      #     # Whether to re-pull the image each time it is required (defaults to false if not given)
+      #     alwaysPull: true
   # Configuration for the Terraform backend
   terraformBackend:
     # Indicates if the Terraform backend should be configured

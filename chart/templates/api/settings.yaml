@@ -128,6 +128,16 @@ stringData:
             GIT_URL: {{ .gitUrl }}
             GIT_VERSION: {{ .gitVersion }}
             METADATA_ROOT: {{ .metadataRoot }}
+            {{- with .alwaysUpdate }}
+            ALWAYS_UPDATE: {{ . | ternary "true" "false" }}
+            {{- end }}
+            {{- with .executionEnvironment }}
+            EXECUTION_ENVIRONMENT:
+              IMAGE: {{ .image | quote }}
+              {{- with .alwaysPull }}
+              ALWAYS_PULL: {{ .alwaysPull | ternary "true" "false" }}
+              {{- end }}
+            {{- end }}
             {{- with .playbooks }}
             PLAYBOOKS: {{ toYaml . | nindent 14 }}
             {{- end }}
