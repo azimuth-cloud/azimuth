@@ -299,9 +299,11 @@ class ClusterManager(base.ClusterManager):
                 else:
                     status = dto.ClusterStatus.DELETING
                 # Find the name of the currently executing task
+                # Use a combination of the task and the role that it comes from (if present)
+                # However we remove any galaxy namespaces from the role if present
                 task = next(
                     (
-                        event.task
+                        f"{event.role.split('.')[-1]} : {event.task}" if event.role else event.task
                         for event in latest.job_events.all(
                             event = 'playbook_on_task_start',
                             order_by = '-created'
