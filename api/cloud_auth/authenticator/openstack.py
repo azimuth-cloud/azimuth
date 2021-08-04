@@ -13,15 +13,45 @@ from .base import BaseAuthenticator
 from .form import FormAuthenticator
 
 
-class PasswordAuthenticator(FormAuthenticator):
+class OpenStackAuthenticator(BaseAuthenticator):
+    """
+    Base class for OpenStack authenticators.
+    """
+    def __init__(self, auth_url, verify_ssl = True):
+        self.auth_url = auth_url.rstrip('/')
+        self.token_url = f"{self.auth_url}/auth/tokens"
+        self.verify_ssl = verify_ssl
+
+    def refresh_token(self, token):
+        response = requests.post(
+            self.token_url,
+            json = dict(
+                auth = dict(
+                    identity = dict(
+                        methods = ['token'],
+                        token = dict(id = token)
+                    )
+                )
+            ),
+            verify = self.verify_ssl
+        )
+        # If the response is a success, return the token
+        if response.status_code == 201:
+            token = response.headers['X-Subject-Token']
+            expires = response.json()['token']['expires_at']
+            return token, expires
+        # For all other statuses, raise the corresponding exception
+        response.raise_for_status()
+
+
+class PasswordAuthenticator(OpenStackAuthenticator, FormAuthenticator):
     """
     Authenticator that authenticates with an OpenStack cloud using the
     password authentication method.
     """
     def __init__(self, auth_url, domain = 'default', verify_ssl = True):
-        self.token_url = auth_url.rstrip('/') + '/auth/tokens'
+        super().__init__(auth_url, verify_ssl)
         self.domain = domain
-        self.verify_ssl = verify_ssl
 
     def authenticate(self, form_data):
         # Authenticate the user by submitting an appropriate request to the token URL
@@ -45,7 +75,9 @@ class PasswordAuthenticator(FormAuthenticator):
         )
         # If the response is a success, return the token
         if response.status_code == 201:
-            return response.headers['X-Subject-Token']
+            token = response.headers['X-Subject-Token']
+            expires = response.json()['token']['expires_at']
+            return token, expires
         # If the response is an authentication error, return null
         if response.status_code == 401:
             return None
@@ -53,7 +85,7 @@ class PasswordAuthenticator(FormAuthenticator):
         response.raise_for_status()
 
 
-class FederatedAuthenticator(BaseAuthenticator):
+class FederatedAuthenticator(OpenStackAuthenticator):
     """
     Authenticator that authenticates with an OpenStack cloud using federated identity.
 
@@ -65,8 +97,9 @@ class FederatedAuthenticator(BaseAuthenticator):
     """
     uses_crossdomain_post_requests = True
 
-    def __init__(self, federation_url):
-        self.federation_url = federation_url
+    def __init__(self, auth_url, provider, verify_ssl = True):
+        super().__init__(auth_url, verify_ssl)
+        self.federation_url = "{}/auth/OS-FEDERATION/websso/{}".format(self.auth_url, provider)
 
     def auth_start(self, request):
         origin_url = request.build_absolute_uri(reverse('cloud_auth:complete'))
@@ -75,4 +108,18 @@ class FederatedAuthenticator(BaseAuthenticator):
 
     def auth_complete(self, request):
         # The token should be in the POST data
-        return request.POST.get('token')
+        token = request.POST.get('token')
+        if not token:
+            return None
+        # Because we only receive the token, we need to make another request to check when it expires
+        response = requests.get(
+            self.token_url,
+            headers = { 'X-Auth-Token': token, 'X-Subject-Token': token },
+            verify = self.verify_ssl
+        )
+        # If the response is a success, return the token
+        if response.status_code == 200:
+            expires = response.json()['token']['expires_at']
+            return token, expires
+        # For all other statuses, raise the corresponding exception
+        response.raise_for_status()
