@@ -2,6 +2,8 @@
 This module defines the interface for a cloud provider.
 """
 
+from typing import Any, Iterable, Mapping, Optional, Union
+
 from . import dto, errors, validation
 
 
@@ -9,31 +11,18 @@ class Provider:
     """
     Class for a cloud provider.
     """
-    def authenticate(self, username, password):
+    def authenticate(self, username: str, password: str) -> 'UnscopedSession':
         """
         Creates a new unscoped session for this provider using the given credentials.
-
-        Args:
-            username: The username to authenticate with.
-            password: The password to authenticate with.
-
-        Returns:
-            An :py:class:`UnscopedSession` for the user.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def from_token(self, token):
+    def from_token(self, token: str) -> 'UnscopedSession':
         """
         Creates an unscoped session from the given token as returned from the
         ``token`` method of the corresponding :py:class:`UnscopedSession`.
-
-        Args:
-            token: The token to use.
-
-        Returns:
-            A :py:class:`UnscopedSession`.
         """
         raise NotImplementedError
 
@@ -43,86 +32,54 @@ class UnscopedSession:
     Class for an authenticated session with a cloud provider. It is unscoped in
     the sense that is not bound to a particular tenancy.
     """
-    def token(self):
+    def token(self) -> str:
         """
         Returns the token for this session.
 
         The returned token should be consumable by the ``from_token`` method of the
         corresponding :py:class:`Provider`.
-
-        Returns:
-            A string token.
         """
         raise NotImplementedError
 
-    def username(self):
+    def username(self) -> str:
         """
         Returns the username for this session.
-
-        Returns:
-            A string username.
         """
         raise NotImplementedError
 
-    def capabilities(self):
+    def capabilities(self) -> dto.Capabilities:
         """
         Returns an object describing the capabilities of the cloud.
-
-        Returns:
-            A :py:class:`.dto.Capabilities` object.
         """
         raise NotImplementedError
 
-    def ssh_public_key(self, key_name):
+    def ssh_public_key(self, key_name: str) -> str:
         """
         Return a named SSH public key.
-
-        Args:
-            key_name: The name of the SSH public key to return.
-
-        Returns:
-            The SSH public key as a string.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def update_ssh_public_key(self, key_name, public_key):
+    def update_ssh_public_key(self, key_name: str, public_key: str) -> str:
         """
-        Update a stored SSH public key.
-
-        Args:
-            key_name: The name of the SSH public key to update.
-            public_key: The new SSH public key.
-
-        Returns:
-            The new SSH public key as a string.
+        Update a stored SSH public key and returns the new SSH key.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def tenancies(self):
+    def tenancies(self) -> Iterable[dto.Tenancy]:
         """
         Get the tenancies available to the authenticated user.
-
-        Returns:
-            An iterable of :py:class:`~.dto.Tenancy` objects.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def scoped_session(self, tenancy):
+    def scoped_session(self, tenancy: Union[dto.Tenancy, str]) -> 'ScopedSession':
         """
         Get a scoped session for the given tenancy.
-
-        Args:
-            tenancy: The tenancy to get a scoped session for. Can be a tenancy id
-                or a :py:class:`~.dto.Tenancy` object.
-
-        Returns:
-            A :py:class:`~ScopedSession` for the tenancy.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
@@ -157,7 +114,7 @@ class ScopedSession:
     """
     Class for a tenancy-scoped session.
     """
-    def quotas(self):
+    def quotas(self) -> Iterable[dto.Quota]:
         """
         Returns quota information for the tenancy.
 
@@ -174,390 +131,276 @@ class ScopedSession:
           * ``volumes``: The number of volumes in the tenancy.
 
         The absence of these resources indicates that there is no specific limit.
-
-        Returns:
-            An iterable of :py:class:`~.dto.Quota` objects.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def images(self):
+    def images(self) -> Iterable[dto.Image]:
         """
         Lists the images available to the tenancy.
-
-        Returns:
-            An iterable of :py:class:`~.dto.Image` objects.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def find_image(self, id):
+    def find_image(self, id: str) -> dto.Image:
         """
         Finds an image by id.
-
-        Args:
-            id: The id of the image to find.
-
-        Returns:
-            An :py:class:`~.dto.Image` object.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def sizes(self):
+    def sizes(self) -> Iterable[dto.Size]:
         """
         Lists the machine sizes available to the tenancy.
-
-        Returns:
-            An iterable of :py:class:`~.dto.Size` objects.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def find_size(self, id):
+    def find_size(self, id: str) -> dto.Size:
         """
         Finds a size by id.
-
-        Args:
-            id: The id of the size to find.
-
-        Returns:
-            A :py:class:`~.dto.Size` object.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def machines(self):
+    def machines(self) -> Iterable[dto.Machine]:
         """
         Lists the machines in the tenancy.
-
-        Returns:
-            An iterable of :py:class:`~.dto.Machine`\ s.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def find_machine(self, id):
+    def find_machine(self, id: str) -> dto.Machine:
         """
         Finds a machine by id.
-
-        Args:
-            id: The id of the machine to find.
-
-        Returns:
-            A :py:class:`~.dto.Machine` object.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def fetch_logs_for_machine(self, machine):
+    def fetch_logs_for_machine(self, machine: Union[dto.Machine, str]) -> Iterable[str]:
         """
-        Returns the logs for the given machine.
-
-        Args:
-            machine: The machine. Can be a machine id or a :py:class:`~.dto.Machine`.
-
-        Returns:
-            A list of log lines for the specified machine.
+        Returns the log lines for the given machine.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def create_machine(self, name, image, size, ssh_key, metadata = None, userdata = None):
+    def create_machine(
+        self,
+        name: str,
+        image: Union[dto.Image, str],
+        size: Union[dto.Size, str],
+        ssh_key: Optional[str] = None,
+        metadata: Optional[Mapping[str, str]] = None,
+        userdata: Optional[str] = None
+    ) -> dto.Machine:
         """
         Create a new machine in the tenancy.
-
-        Args:
-            name: The name of the machine.
-            image: The image to use. Can be an image id or a :py:class:`~.dto.Image`.
-            size: The size to use. Can be a size id or a :py:class:`~.dto.Size`.
-            ssh_key: The SSH key to inject into the machine.
-            metadata: Dictionary of metadata key-value pairs to associate with the machine (optional).
-            userdata: User-data script to associate with the machine (optional).
-
-        Returns:
-            The created :py:class:`~.dto.Machine`.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def resize_machine(self, machine, size):
+    def resize_machine(
+        self,
+        machine: Union[dto.Machine, str],
+        size: Union[dto.Size, str]
+    ) -> dto.Machine:
         """
         Change the size of a machine.
-
-        Args:
-            machine: The machine. Can be a machine id or a :py:class:`~.dto.Machine`.
-            size: The size to use. Can be a size id or a :py:class:`~.dto.Size`.
-
-        Returns:
-            The updated :py:class:`~.dto.Machine`.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def start_machine(self, machine):
+    def start_machine(self, machine: Union[dto.Machine, str]) -> dto.Machine:
         """
         Start the specified machine.
-
-        Args:
-            machine: The machine. Can be a machine id or a :py:class:`~.dto.Machine`.
-
-        Returns:
-            The updated :py:class:`~.dto.Machine`.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def stop_machine(self, machine):
+    def stop_machine(self, machine: Union[dto.Machine, str]) -> dto.Machine:
         """
         Stop the specified machine.
-
-        Args:
-            machine: The machine. Can be a machine id or a :py:class:`~.dto.Machine`.
-
-        Returns:
-            The updated :py:class:`~.dto.Machine`.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def restart_machine(self, machine):
+    def restart_machine(self, machine: Union[dto.Machine, str]) -> dto.Machine:
         """
         Restart the specified machine.
-
-        Args:
-            machine: The machine. Can be a machine id or a :py:class:`~.dto.Machine`.
-
-        Returns:
-            The updated :py:class:`~.dto.Machine`.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def delete_machine(self, machine):
+    def delete_machine(self, machine: Union[dto.Machine, str]) -> Optional[dto.Machine]:
         """
         Delete the specified machine.
-
-        Args:
-            machine: The machine. Can be a machine id or a :py:class:`~.dto.Machine`.
-
-        Returns:
-            The updated :py:class:`~.dto.Machine` if it has transitioned to a
-            deleting status, or ``None`` if it has already been deleted.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def external_ips(self):
+    def fetch_firewall_rules_for_machine(
+        self,
+        machine: Union[dto.Machine, str]
+    ) -> Iterable[dto.FirewallGroup]:
+        """
+        Returns the firewall rules for the machine.
+        """
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
+
+    def add_firewall_rule_to_machine(
+        self,
+        machine: Union[dto.Machine, str],
+        rule: dto.FirewallRule
+    ) -> Iterable[dto.FirewallGroup]:
+        """
+        Adds a firewall rule to the specified machine and returns the new set of rules.
+        """
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
+
+    def external_ips(self) -> Iterable[dto.ExternalIp]:
         """
         Returns the external IP addresses that are currently allocated to the
         tenancy.
-
-        Returns:
-            An iterable of :py:class:`~.dto.ExternalIp`\ s.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def find_external_ip(self, ip):
+    def find_external_ip(self, id: str) -> dto.ExternalIp:
         """
         Finds an external IP by id.
-
-        Returns:
-            A :py:class:`~.dto.ExternalIp` object.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def allocate_external_ip(self):
+    def allocate_external_ip(self) -> dto.ExternalIp:
         """
         Allocates a new external IP address for the tenancy from a pool and returns
         it.
-
-        Returns:
-            The allocated :py:class:`~.dto.ExternalIp` (should raise on failure).
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def attach_external_ip(self, ip, machine):
+    def attach_external_ip(
+        self,
+        ip: Union[dto.ExternalIp, str],
+        machine: Union[dto.Machine, str]
+    ) -> dto.ExternalIp:
         """
         Attaches an external IP to a machine.
-
-        Args:
-            ip: The IP address to attach. Can be the id of an external IP address
-                or a :py:class:`~.dto.ExternalIp`.
-            machine: The machine. Can be a machine id or a :py:class:`~.dto.Machine`.
-
-        Returns:
-            The updated :py:class:`~.dto.ExternalIp` object (should raise on failure).
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def detach_external_ip(self, ip):
+    def detach_external_ip(self, ip: Union[dto.ExternalIp, str]) -> dto.ExternalIp:
         """
         Detaches the given external IP from whichever machine it is currently
         attached to.
-
-        Args:
-            ip: The IP address to detach. Can be the id of an external IP address
-                or a :py:class:`~.dto.ExternalIp`.
-
-        Returns:
-            The updated :py:class:`~.dto.ExternalIp` object (should raise on failure).
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def volumes(self):
+    def volumes(self) -> Iterable[dto.Volume]:
         """
         Lists the volumes currently available to the tenancy.
-
-        Returns:
-            An iterable of :py:class:`~.dto.Volume`\ s.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def find_volume(self, id):
+    def find_volume(self, id: str) -> dto.Volume:
         """
         Finds a volume by id.
-
-        Args:
-            id: The id of the volume to find.
-
-        Returns:
-            A :py:class:`~.dto.Volume` object.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def create_volume(self, name, size):
+    def create_volume(self, name: str, size: int) -> dto.Volume:
         """
         Create a new volume in the tenancy.
-
-        Args:
-            name: The name of the volume.
-            size: The size of the volume in GB.
-
-        Returns:
-            A :py:class:`~.dto.Volume` object.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def delete_volume(self, volume):
+    def delete_volume(self, volume: Union[dto.Volume, str]) -> Optional[dto.Volume]:
         """
         Delete the specified volume.
-
-        Args:
-            volume: The volume to delete. Can be a volume id or a :py:class:`~.dto.Volume`.
-
-        Returns:
-            The updated :py:class:`~.dto.Volume` if it has transitioned to a
-            deleting status, or ``None`` if it has already been deleted.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def attach_volume(self, volume, machine):
+    def attach_volume(
+        self,
+        volume: Union[dto.Volume, str],
+        machine: Union[dto.Machine, str]
+    ) -> dto.Volume:
         """
         Attaches the specified volume to the specified machine.
-
-        Args:
-            volume: The volume to attach. Can be a volume id or a :py:class:`~.dto.Volume`.
-            machine: The machine. Can be a machine id or a :py:class:`~.dto.Machine`.
-
-        Returns:
-            The updated :py:class:`~.dto.Volume`.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def detach_volume(self, volume):
+    def detach_volume(self, volume: Union[dto.Volume, str]) -> dto.Volume:
         """
         Detaches the specified volume from the machine it is attached to.
-
-        Args:
-            volume: The volume to detach. Can be a volume id or a :py:class:`~.dto.Volume`.
-
-        Returns:
-            The updated :py:class:`~.dto.Volume`.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def kubernetes_cluster_templates(self):
+    def kubernetes_cluster_templates(self) -> Iterable[dto.KubernetesClusterTemplate]:
         """
         Lists the Kubernetes cluster templates currently available to the tenancy.
-
-        Returns:
-            An iterable of :py:class:`~.dto.KubernetesClusterTemplate`\ s.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def find_kubernetes_cluster_template(self, id):
+    def find_kubernetes_cluster_template(self, id: str) -> dto.KubernetesClusterTemplate:
         """
         Finds a Kubernetes cluster template by id.
-
-        Args:
-            id: The id of the Kubernetes cluster template to find.
-
-        Returns:
-            A :py:class:`~.dto.KubernetesClusterTemplate` object.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def kubernetes_clusters(self):
+    def kubernetes_clusters(self) -> Iterable[dto.KubernetesCluster]:
         """
         Lists the Kubernetes clusters currently available to the tenancy.
-
-        Returns:
-            An iterable of :py:class:`~.dto.KubernetesCluster`\ s.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def find_kubernetes_cluster(self, id):
+    def find_kubernetes_cluster(self, id: str) -> dto.KubernetesCluster:
         """
         Finds a Kubernetes cluster by id.
-
-        Args:
-            id: The id of the Kubernetes cluster to find.
-
-        Returns:
-            A :py:class:`~.dto.KubernetesCluster` object.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
@@ -565,151 +408,99 @@ class ScopedSession:
 
     def create_kubernetes_cluster(
         self,
-        name,
-        template_id,
-        master_size_id,
-        worker_size_id,
-        worker_count = None,
-        min_worker_count = None,
-        max_worker_count = None,
-        auto_scaling_enabled = False,
-        ssh_key = None
-    ):
+        name: str,
+        template: Union[dto.KubernetesClusterTemplate, str],
+        master_size: Union[dto.Size, str],
+        worker_size: Union[dto.Size, str],
+        worker_count: Optional[int] = None,
+        min_worker_count: Optional[int] = None,
+        max_worker_count: Optional[int] = None,
+        auto_scaling_enabled: bool = False,
+        ssh_key: Optional[str] = None
+    ) -> dto.KubernetesCluster:
         """
         Create a new Kubernetes cluster in the tenancy.
-
-        Args:
-            name: The name of the cluster.
-            template_id: The ID of the template to use for the cluster.
-            master_size_id: The ID of the size to use for masters.
-            worker_size_id: The ID of the size to use for workers.
-            worker_count: The number of workers if auto-scaling is not enabled.
-            min_worker_count: The minimum number of workers if auto-scaling is enabled.
-            max_worker_count: The maximum number of workers if auto-scaling is enabled.
-            auto_scaling_enabled: Indicates if cluster auto-scaling should be enabled.
-            ssh_key: The SSH key to inject into cluster nodes.
-
-        Returns:
-            A :py:class:`~.dto.KubernetesCluster` object.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def update_kubernetes_cluster(self, cluster, template):
+    def update_kubernetes_cluster(
+        self,
+        cluster: Union[dto.KubernetesCluster, str],
+        template: Union[dto.KubernetesClusterTemplate, str]
+    ) -> dto.KubernetesCluster:
         """
         Update the specified Kubernetes cluster.
-
-        Args:
-            cluster: The cluster to update.
-                     Can be an id or a :py:class:`~.dto.KubernetesCluster`.
-            template: The template to use for the cluster.
-                      Can be an id or a :py:class:`~.dto.KubernetesClusterTemplate`.
-
-        Returns:
-            The updated :py:class:`~.dto.KubernetesCluster`.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def delete_kubernetes_cluster(self, cluster):
+    def delete_kubernetes_cluster(
+        self,
+        cluster: Union[dto.KubernetesCluster, str]
+    ) -> Optional[dto.KubernetesCluster]:
         """
         Delete the specified Kubernetes cluster.
-
-        Args:
-            cluster: The cluster to delete.
-                     Can be an id or a :py:class:`~.dto.KubernetesCluster`.
-
-        Returns:
-            The updated :py:class:`~.dto.KubernetesCluster` if it has transitioned to a
-            deleting status, or ``None`` if it has already been deleted.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def generate_kubeconfig_for_kubernetes_cluster(self, cluster):
+    def generate_kubeconfig_for_kubernetes_cluster(
+        self,
+        cluster: Union[dto.KubernetesCluster, str]
+    ) -> str:
         """
         Generate a kubeconfig for the specified Kubernetes cluster.
-
-        Args:
-            cluster: The cluster to generate a kubeconfig file for.
-                     Can be an id or a :py:class:`~.dto.KubernetesCluster`.
-
-        Returns:
-            A kubeconfig file.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def cluster_types(self):
+    def cluster_types(self) -> Iterable[dto.ClusterType]:
         """
         Lists the available cluster types.
-
-        Returns:
-            An iterable of :py:class:`~.dto.ClusterType`s.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def find_cluster_type(self, name):
+    def find_cluster_type(self, name: str) -> dto.ClusterType:
         """
         Find a cluster type by name.
-
-        Args:
-            name: The name of the cluster type.
-
-        Returns:
-            A :py:class:`~.dto.ClusterType`.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def clusters(self):
+    def clusters(self) -> Iterable[dto.Cluster]:
         """
         List the clusters that are deployed.
-
-        Returns:
-            An iterable of :py:class:`~.dto.Cluster`s.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def find_cluster(self, id):
+    def find_cluster(self, id: str) -> dto.Cluster:
         """
         Find a cluster by id.
-
-        Args:
-            id: The id of the cluster.
-
-        Returns:
-            A :py:class:`~.dto.Cluster`.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def validate_cluster_params(self, cluster_type, params, prev_params = {}):
+    def validate_cluster_params(
+        self,
+        cluster_type: Union[dto.ClusterType, str],
+        params: Mapping[str, Any],
+        prev_params: Mapping[str, Any] = {}
+    ) -> Mapping[str, Any]:
         """
         Validates the given parameter values against the given cluster type.
 
-        Args:
-            cluster_type: The cluster type to validate against.
-                          Can be a name or a :py:class:`~.dto.ClusterType`.
-            params: Dictionary of parameters to validate.
-            prev_params: The previous parameters if applicable.
-                         Used to validate immutability constraints.
-
-        Returns:
-            The validated parameters.
-
-        Raises:
-            If validation fails, a :py:class:`~.errors.ValidationError` is raised.
+        If validation fails, :py:class:`~.errors.ValidationError` should be raised.
         """
         if not isinstance(cluster_type, dto.ClusterType):
             cluster_type = self.find_cluster_type(cluster_type)
@@ -720,67 +511,43 @@ class ScopedSession:
         )
         return validator(params)
 
-    def create_cluster(self, name, cluster_type, params, ssh_key):
+    def create_cluster(
+        self,
+        name: str,
+        cluster_type: Union[dto.ClusterType, str],
+        params: Mapping[str, Any],
+        ssh_key: str
+    ) -> dto.Cluster:
         """
         Creates a new cluster with the given name, type and parameters.
-
-        Args:
-            name: The name of the cluster.
-            cluster_type: The cluster type.
-                          Can be a name or a :py:class:`~.dto.ClusterType`.
-            params: Dictionary of parameter values as required by the
-                    cluster type.
-            ssh_key: The SSH public key for access to cluster nodes.
-
-        Returns:
-            A :py:class:`~.dto.Cluster`.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def update_cluster(self, cluster, params):
+    def update_cluster(
+        self,
+        cluster: Union[dto.Cluster, str],
+        params: Mapping[str, Any]
+    ) -> dto.Cluster:
         """
         Updates an existing cluster with the given parameters.
-
-        Args:
-            cluster: The cluster to update.
-                     Can be an id or a :py:class:`~.dto.Cluster`.
-            params: Dictionary of parameters values as required by the
-                    cluster type.
-
-        Returns:
-            The updated :py:class:`~.dto.Cluster`.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def patch_cluster(self, cluster):
+    def patch_cluster(self, cluster: Union[dto.Cluster, str]) -> dto.Cluster:
         """
         Patches an existing cluster.
-
-        Args:
-            cluster: The cluster to update.
-                     Can be an id or a :py:class:`~.dto.Cluster`.
-
-        Returns:
-            The :py:class:`~.dto.Cluster` being patched.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def delete_cluster(self, cluster):
+    def delete_cluster(self, cluster: Union[dto.Cluster, str]) -> Optional[dto.Cluster]:
         """
         Deletes an existing cluster.
-
-        Args:
-            cluster: The cluster to update.
-                     Can be an id or a :py:class:`~.dto.Cluster`.
-
-        Returns:
-            The deleted :py:class:`~.dto.Cluster`.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
