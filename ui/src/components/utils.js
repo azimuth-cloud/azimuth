@@ -380,6 +380,8 @@ export const Select = React.forwardRef(
             sortOptions,
             getOptionLabel = option => option.label,
             getOptionValue = option => option.value,
+            form,
+            style,
             ...props
         },
         forwardedRef
@@ -408,9 +410,8 @@ export const Select = React.forwardRef(
         // Calculate the classes to add
         const classNames = ["react-select__wrapper"];
         if( className ) classNames.push(className);
-        // Render the select with a hidden text input that implements required
         return (
-            <div className={classNames.join(' ')}>
+            <div className={classNames.join(' ')} style={style}>
                 <ReactSelect
                     {...props}
                     options={sortedOptions}
@@ -439,6 +440,7 @@ export const Select = React.forwardRef(
                     // When the hidden input is focused as part of the required validation,
                     // pass the focus onto the select
                     onFocus={() => selectRef.current.focus()}
+                    form={form}
                     required={required}
                     disabled={disabled}
                 />

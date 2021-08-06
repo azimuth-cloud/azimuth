@@ -16,6 +16,8 @@ import Table from 'react-bootstrap/Table';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBan, faPlus, faSyncAlt } from '@fortawesome/free-solid-svg-icons';
 
+import get from 'lodash/get';
+
 import {
     sortBy,
     ControlWithValidationMessage,
@@ -26,7 +28,7 @@ import {
 } from '../../utils';
 
 
-const rawProtocols = ["ANY", "ICMP", "UDP", "TCP"];
+const knownProtocols = ["ANY", "ICMP", "UDP", "TCP"];
 
 const knownServices = {
     'SSH': { protocol: 'TCP', port: 22 },
@@ -53,30 +55,22 @@ const knownPorts = Object.assign(
  */
 const firewallRuleForm = (machine, machineActions) => {
     const [direction, setDirection] = useState('INBOUND');
-    const [protocol, setProtocol] = useState('TCP');
-    const [selectedProtocol, setSelectedProtocol_] = useState('SSH');
+    const [service, setService_] = useState('SSH');
+    const [protocol, setProtocol] = useState(knownServices['SSH'].protocol);
     const [port, setPort] = useState(knownServices['SSH'].port);
     const [remoteCidr, setRemoteCidr] = useState('');
 
-    const availableProtocols = [...rawProtocols, ...Object.keys(knownServices)];
-
-    // Some of the protocols available for selection are L7, which we need to change
-    // into L4 + fixed port
-    const setSelectedProtocol = protocol => {
-        setSelectedProtocol_(protocol);
-        if( knownServices.hasOwnProperty(protocol) ) {
-            setProtocol(knownServices[protocol].protocol);
-            setPort(knownServices[protocol].port);
-        }
-        else {
-            setProtocol(protocol);
-            setPort('');
-        }
+    // When a service is selected, set the protocol and port
+    const setService = selected => {
+        setService_(selected);
+        // The service will either be a key from knownServices or "CUSTOM", in which case we default to TCP
+        setProtocol(get(knownServices, [selected, 'protocol'], 'TCP'));
+        setPort(get(knownServices, [selected, 'port'], ''));
     };
 
     const reset = () => {
         setDirection('INBOUND');
-        setSelectedProtocol('SSH');
+        setService('SSH');
         setRemoteCidr('');
     };
     const setStateFromEvent = setter => evt => setter(evt.target.value);
@@ -101,49 +95,73 @@ const firewallRuleForm = (machine, machineActions) => {
         <Form id="add-firewall-rule" onSubmit={handleSubmit}></Form>,
         <tbody>
             <tr className="table-success">
-                <th colSpan={6}>Add a firewall rule</th>
+                <th colSpan={7}>Add a firewall rule</th>
             </tr>
             <tr>
                 <td>
-                    <div style={{ width: '150px' }}>
+                    <FormControl
+                        form="add-firewall-rule"
+                        id="direction"
+                        as={Select}
+                        required
+                        options={[
+                            { label: 'OUTBOUND', value: 'OUTBOUND' },
+                            { label: 'INBOUND', value: 'INBOUND' }
+                        ]}
+                        // Render the options in the order we supplied them
+                        sortOptions={options => options}
+                        value={direction}
+                        onChange={setDirection}
+                        style={{ width: '150px' }}
+                        disabled={
+                            machine.addingFirewallRule ||
+                            machine.removingFirewallRule
+                        }
+                    />
+                </td>
+                <td>
+                    <ControlWithValidationMessage>
                         <FormControl
                             form="add-firewall-rule"
-                            id="direction"
+                            id="service"
                             as={Select}
                             required
                             options={[
-                                { label: 'OUTBOUND', value: 'OUTBOUND' },
-                                { label: 'INBOUND', value: 'INBOUND' }
+                                ...Object.keys(knownServices).map(s => ({ label: s, value: s })),
+                                { label: "CUSTOM", value: "CUSTOM" }
                             ]}
                             // Render the options in the order we supplied them
                             sortOptions={options => options}
-                            value={direction}
-                            onChange={setDirection}
+                            value={service}
+                            onChange={setService}
+                            style={{ width: '120px' }}
                             disabled={
                                 machine.addingFirewallRule ||
                                 machine.removingFirewallRule
                             }
                         />
-                    </div>
+                    </ControlWithValidationMessage>
                 </td>
                 <td>
-                    <div style={{ width: '100px' }}>
+                    <ControlWithValidationMessage>
                         <FormControl
                             form="add-firewall-rule"
                             id="protocol"
                             as={Select}
                             required
-                            options={availableProtocols.map(p => ({ label: p, value: p }))}
+                            options={knownProtocols.map(p => ({ label: p, value: p }))}
                             // Render the options in the order we supplied them
                             sortOptions={options => options}
-                            value={selectedProtocol}
-                            onChange={setSelectedProtocol}
+                            value={protocol}
+                            onChange={setProtocol}
+                            style={{ width: '120px' }}
                             disabled={
                                 machine.addingFirewallRule ||
-                                machine.removingFirewallRule
+                                machine.removingFirewallRule ||
+                                service !== "CUSTOM"
                             }
                         />
-                    </div>
+                    </ControlWithValidationMessage>
                 </td>
                 <td>
                     <ControlWithValidationMessage>
@@ -162,7 +180,8 @@ const firewallRuleForm = (machine, machineActions) => {
                             disabled={
                                 machine.addingFirewallRule ||
                                 machine.removingFirewallRule ||
-                                !["UDP", "TCP"].includes(selectedProtocol)
+                                service !== "CUSTOM" ||
+                                !["UDP", "TCP"].includes(protocol)
                             }
                         />
                     </ControlWithValidationMessage>
@@ -210,17 +229,6 @@ const firewallRuleForm = (machine, machineActions) => {
         </tbody>,
         reset
     ];
-};
-
-
-const FirewallRulePortRange = ({ portRange }) => {
-    if( !portRange ) return "ANY";
-    const [minPort, maxPort] = portRange;
-    if( minPort === maxPort ) {
-        const service = knownPorts[minPort];
-        return service ? `${minPort} (${service})` : minPort;
-    }
-    return `${minPort} - ${maxPort}`;
 };
 
 
@@ -273,6 +281,7 @@ export const MachineFirewallMenuItem = ({ machine, machineActions, ...props }) =
                             <thead>
                                 <tr>
                                     <th>Direction</th>
+                                    <th>Service</th>
                                     <th>Protocol</th>
                                     <th>Port(s)</th>
                                     <th>Remote IP range</th>
@@ -283,40 +292,52 @@ export const MachineFirewallMenuItem = ({ machine, machineActions, ...props }) =
                             {sortedGroups.filter(group => group.rules.length > 0).map(group => (
                                 <tbody key={group.name}>
                                     <tr className={group.editable ? 'table-primary' : 'table-secondary text-muted'}>
-                                        <th colSpan={6}>{group.name}</th>
+                                        <th colSpan={7}>{group.name}</th>
                                     </tr>
-                                    {sortRules(group.rules).map(rule => (
-                                        <tr key={rule.id} className={group.editable ? undefined : 'text-muted'}>
-                                            <td>{rule.direction}</td>
-                                            <td>{rule.protocol}</td>
-                                            <td><FirewallRulePortRange portRange={rule.port_range} /></td>
-                                            <td>{rule.remote_cidr || '-'}</td>
-                                            <td>{rule.remote_group || '-'}</td>
-                                            <td style={{ width: '1%' }}>
-                                                {group.editable && (
-                                                    <Button
-                                                        variant="danger"
-                                                        title="Remove firewall rule"
-                                                        onClick={() => machineActions.removeFirewallRule(rule.id)}
-                                                        disabled={
-                                                            machine.addingFirewallRule ||
-                                                            machine.removingFirewallRule
-                                                        }
-                                                    >
-                                                        <FontAwesomeIcon
-                                                            icon={
-                                                                machine.removingFirewallRule === rule.id ?
-                                                                    faSyncAlt :
-                                                                    faBan
+                                    {sortRules(group.rules).map(rule => {
+                                        let service = '-';
+                                        let portRange = 'ANY';
+                                        if( rule.port_range ) {
+                                            const [minPort, maxPort] = rule.port_range;
+                                            if( minPort === maxPort && knownPorts.hasOwnProperty(minPort) ) {
+                                                service = knownPorts[minPort];
+                                            }
+                                            portRange = minPort === maxPort ? minPort : `${minPort} - ${maxPort}`;
+                                        }
+                                        return (
+                                            <tr key={rule.id} className={group.editable ? undefined : 'text-muted'}>
+                                                <td>{rule.direction}</td>
+                                                <td>{service}</td>
+                                                <td>{rule.protocol}</td>
+                                                <td>{portRange}</td>
+                                                <td>{rule.remote_cidr || '-'}</td>
+                                                <td>{rule.remote_group || '-'}</td>
+                                                <td style={{ width: '1%' }}>
+                                                    {group.editable && (
+                                                        <Button
+                                                            variant="danger"
+                                                            title="Remove firewall rule"
+                                                            onClick={() => machineActions.removeFirewallRule(rule.id)}
+                                                            disabled={
+                                                                machine.addingFirewallRule ||
+                                                                machine.removingFirewallRule
                                                             }
-                                                            fixedWidth
-                                                            spin={machine.removingFirewallRule === rule.id}
-                                                        />
-                                                    </Button>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))}
+                                                        >
+                                                            <FontAwesomeIcon
+                                                                icon={
+                                                                    machine.removingFirewallRule === rule.id ?
+                                                                        faSyncAlt :
+                                                                        faBan
+                                                                }
+                                                                fixedWidth
+                                                                spin={machine.removingFirewallRule === rule.id}
+                                                            />
+                                                        </Button>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             ))}
                             {formElementsComponent}
