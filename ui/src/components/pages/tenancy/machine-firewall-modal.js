@@ -26,11 +26,18 @@ import {
 } from '../../utils';
 
 
-const knownPorts = {
-    22: 'SSH',
-    80: 'HTTP',
-    443: 'HTTPS',
+const rawProtocols = ["ANY", "ICMP", "UDP", "TCP"];
+
+const knownServices = {
+    'SSH': { protocol: 'TCP', port: 22 },
+    'HTTP': { protocol: 'TCP', port: 80 },
+    'HTTPS': { protocol: 'TCP', port: 443 }
 };
+
+const knownPorts = Object.assign(
+    {},
+    ...Object.entries(knownServices).map(([service, { port }]) => ({ [port]: service }))
+);
 
 
 /**
@@ -47,22 +54,32 @@ const knownPorts = {
 const firewallRuleForm = (machine, machineActions) => {
     const [direction, setDirection] = useState('INBOUND');
     const [protocol, setProtocol] = useState('TCP');
-    const [port, setPort] = useState('');
+    const [selectedProtocol, setSelectedProtocol_] = useState('SSH');
+    const [port, setPort] = useState(knownServices['SSH'].port);
     const [remoteCidr, setRemoteCidr] = useState('');
+
+    const availableProtocols = [...rawProtocols, ...Object.keys(knownServices)];
+
+    // Some of the protocols available for selection are L7, which we need to change
+    // into L4 + fixed port
+    const setSelectedProtocol = protocol => {
+        setSelectedProtocol_(protocol);
+        if( knownServices.hasOwnProperty(protocol) ) {
+            setProtocol(knownServices[protocol].protocol);
+            setPort(knownServices[protocol].port);
+        }
+        else {
+            setProtocol(protocol);
+            setPort('');
+        }
+    };
 
     const reset = () => {
         setDirection('INBOUND');
-        setProtocol('TCP');
-        setPort('');
+        setSelectedProtocol('SSH');
         setRemoteCidr('');
     };
     const setStateFromEvent = setter => evt => setter(evt.target.value);
-
-    // When the protocol changes to a protocol that doesn't need a port, reset it
-    useEffect(
-        () => { if( !["UDP", "TCP"].includes(protocol) ) setPort(''); },
-        [protocol]
-    );
 
     // When the state changes from adding to not adding, reset the form
     useEffect(
@@ -116,16 +133,11 @@ const firewallRuleForm = (machine, machineActions) => {
                             id="protocol"
                             as={Select}
                             required
-                            options={[
-                                { label: 'ANY', value: 'ANY'},
-                                { label: 'ICMP', value: 'ICMP'},
-                                { label: 'UDP', value: 'UDP'},
-                                { label: 'TCP', value: 'TCP'}
-                            ]}
+                            options={availableProtocols.map(p => ({ label: p, value: p }))}
                             // Render the options in the order we supplied them
                             sortOptions={options => options}
-                            value={protocol}
-                            onChange={setProtocol}
+                            value={selectedProtocol}
+                            onChange={setSelectedProtocol}
                             disabled={
                                 machine.addingFirewallRule ||
                                 machine.removingFirewallRule
@@ -150,7 +162,7 @@ const firewallRuleForm = (machine, machineActions) => {
                             disabled={
                                 machine.addingFirewallRule ||
                                 machine.removingFirewallRule ||
-                                !["UDP", "TCP"].includes(protocol)
+                                !["UDP", "TCP"].includes(selectedProtocol)
                             }
                         />
                     </ControlWithValidationMessage>
