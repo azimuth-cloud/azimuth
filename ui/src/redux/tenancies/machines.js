@@ -33,6 +33,18 @@ export const actions = {
     FETCH_LOGS_SUCCEEDED: 'TENANCIES/MACHINE/FETCH_LOGS_SUCCEEDED',
     FETCH_LOGS_FAILED: 'TENANCIES/MACHINE/FETCH_LOGS_FAILED',
 
+    FETCH_FIREWALL_RULES: 'TENANCIES/MACHINE/FETCH_FIREWALL_RULES',
+    FETCH_FIREWALL_RULES_SUCCEEDED: 'TENANCIES/MACHINE/FETCH_FIREWALL_RULES_SUCCEEDED',
+    FETCH_FIREWALL_RULES_FAILED: 'TENANCIES/MACHINE/FETCH_FIREWALL_RULES_FAILED',
+
+    ADD_FIREWALL_RULE: 'TENANCIES/MACHINE/ADD_FIREWALL_RULE',
+    ADD_FIREWALL_RULE_SUCCEEDED: 'TENANCIES/MACHINE/ADD_FIREWALL_RULE_SUCCEEDED',
+    ADD_FIREWALL_RULE_FAILED: 'TENANCIES/MACHINE/ADD_FIREWALL_RULE_FAILED',
+
+    REMOVE_FIREWALL_RULE: 'TENANCIES/MACHINE/REMOVE_FIREWALL_RULE',
+    REMOVE_FIREWALL_RULE_SUCCEEDED: 'TENANCIES/MACHINE/REMOVE_FIREWALL_RULE_SUCCEEDED',
+    REMOVE_FIREWALL_RULE_FAILED: 'TENANCIES/MACHINE/REMOVE_FIREWALL_RULE_FAILED',
+
     START: 'TENANCIES/MACHINE/START',
     START_SUCCEEDED: 'TENANCIES/MACHINE/START_SUCCEEDED',
     START_FAILED: 'TENANCIES/MACHINE/START_FAILED',
@@ -52,8 +64,8 @@ export const actionCreators = {
 
     fetchLogs: (tenancyId, machineId) => ({
         type: actions.FETCH_LOGS,
-        tenancyId: tenancyId,
-        machineId: machineId,
+        tenancyId,
+        machineId,
         apiRequest: true,
         // All errors are reported via the modal UI
         failSilently: true,
@@ -64,10 +76,50 @@ export const actionCreators = {
             method: 'GET'
         }
     }),
+    fetchFirewallRules: (tenancyId, machineId) => ({
+        type: actions.FETCH_FIREWALL_RULES,
+        tenancyId,
+        machineId,
+        apiRequest: true,
+        // All errors are reported via the modal UI
+        failSilently: true,
+        successAction: actions.FETCH_FIREWALL_RULES_SUCCEEDED,
+        failureAction: actions.FETCH_FIREWALL_RULES_FAILED,
+        options: {
+            url: `/api/tenancies/${tenancyId}/machines/${machineId}/firewall_rules/`,
+            method: 'GET'
+        }
+    }),
+    addFirewallRule: (tenancyId, machineId, data) => ({
+        type: actions.ADD_FIREWALL_RULE,
+        tenancyId,
+        machineId,
+        apiRequest: true,
+        successAction: actions.ADD_FIREWALL_RULE_SUCCEEDED,
+        failureAction: actions.ADD_FIREWALL_RULE_FAILED,
+        options: {
+            url: `/api/tenancies/${tenancyId}/machines/${machineId}/firewall_rules/`,
+            method: 'POST',
+            body: data || {}
+        }
+    }),
+    removeFirewallRule: (tenancyId, machineId, ruleId) => ({
+        type: actions.REMOVE_FIREWALL_RULE,
+        tenancyId,
+        machineId,
+        ruleId,
+        apiRequest: true,
+        successAction: actions.REMOVE_FIREWALL_RULE_SUCCEEDED,
+        failureAction: actions.REMOVE_FIREWALL_RULE_FAILED,
+        options: {
+            url: `/api/tenancies/${tenancyId}/machines/${machineId}/firewall_rules/${ruleId}/`,
+            method: 'DELETE'
+        }
+    }),
     start: (tenancyId, machineId) => ({
         type: actions.START,
-        tenancyId: tenancyId,
-        machineId: machineId,
+        tenancyId,
+        machineId,
         apiRequest: true,
         successAction: actions.START_SUCCEEDED,
         failureAction: actions.START_FAILED,
@@ -78,8 +130,8 @@ export const actionCreators = {
     }),
     stop: (tenancyId, machineId) => ({
         type: actions.STOP,
-        tenancyId: tenancyId,
-        machineId: machineId,
+        tenancyId,
+        machineId,
         apiRequest: true,
         successAction: actions.STOP_SUCCEEDED,
         failureAction: actions.STOP_FAILED,
@@ -90,8 +142,8 @@ export const actionCreators = {
     }),
     restart: (tenancyId, machineId) => ({
         type: actions.RESTART,
-        tenancyId: tenancyId,
-        machineId: machineId,
+        tenancyId,
+        machineId,
         apiRequest: true,
         successAction: actions.RESTART_SUCCEEDED,
         failureAction: actions.RESTART_FAILED,
@@ -155,6 +207,172 @@ export function reducer(state, action) {
                             state,
                             action.request.machineId,
                             { fetchLogsError: action.payload, fetchingLogs: false }
+                        )
+                    ),
+                };
+            else
+                return state;
+        case actions.FETCH_FIREWALL_RULES:
+            // Only register the fetch if we know about the machine
+            if( state.data.hasOwnProperty(action.machineId) )
+                return {
+                    ...state,
+                    data: Object.assign(
+                        {},
+                        state.data,
+                        nextStateEntry(
+                            state,
+                            action.machineId,
+                            { fetchingFirewallRules: true }
+                        )
+                    ),
+                };
+            else
+                return state;
+        case actions.FETCH_FIREWALL_RULES_SUCCEEDED:
+            // Only store the logs if we already know about the machine
+            if( state.data.hasOwnProperty(action.request.machineId) )
+                return {
+                    ...state,
+                    data: Object.assign(
+                        {},
+                        state.data,
+                        nextStateEntry(
+                            state,
+                            action.request.machineId,
+                            {
+                                firewallRules: action.payload,
+                                fetchingFirewallRules: false,
+                                fetchFirewallRulesError: undefined
+                            }
+                        )
+                    ),
+                };
+            else
+                return state;
+        case actions.FETCH_FIREWALL_RULES_FAILED:
+            // Only store the error if we already know about the machine
+            if( state.data.hasOwnProperty(action.request.machineId) )
+                return {
+                    ...state,
+                    data: Object.assign(
+                        {},
+                        state.data,
+                        nextStateEntry(
+                            state,
+                            action.request.machineId,
+                            {
+                                fetchFirewallRulesError: action.payload,
+                                fetchingFirewallRules: false
+                            }
+                        )
+                    ),
+                };
+            else
+                return state;
+        case actions.ADD_FIREWALL_RULE:
+            // Only register the fetch if we know about the machine
+            if( state.data.hasOwnProperty(action.machineId) )
+                return {
+                    ...state,
+                    data: Object.assign(
+                        {},
+                        state.data,
+                        nextStateEntry(
+                            state,
+                            action.machineId,
+                            { addingFirewallRule: true }
+                        )
+                    ),
+                };
+            else
+                return state;
+        case actions.ADD_FIREWALL_RULE_SUCCEEDED:
+            // Only store the logs if we already know about the machine
+            if( state.data.hasOwnProperty(action.request.machineId) )
+                return {
+                    ...state,
+                    data: Object.assign(
+                        {},
+                        state.data,
+                        nextStateEntry(
+                            state,
+                            action.request.machineId,
+                            {
+                                firewallRules: action.payload,
+                                addingFirewallRule: false
+                            }
+                        )
+                    ),
+                };
+            else
+                return state;
+        case actions.ADD_FIREWALL_RULE_FAILED:
+            // Only store the error if we already know about the machine
+            if( state.data.hasOwnProperty(action.request.machineId) )
+                return {
+                    ...state,
+                    data: Object.assign(
+                        {},
+                        state.data,
+                        nextStateEntry(
+                            state,
+                            action.request.machineId,
+                            { addingFirewallRule: false }
+                        )
+                    ),
+                };
+            else
+                return state;
+        case actions.REMOVE_FIREWALL_RULE:
+            // Only register the fetch if we know about the machine
+            if( state.data.hasOwnProperty(action.machineId) )
+                return {
+                    ...state,
+                    data: Object.assign(
+                        {},
+                        state.data,
+                        nextStateEntry(
+                            state,
+                            action.machineId,
+                            { removingFirewallRule: action.ruleId }
+                        )
+                    ),
+                };
+            else
+                return state;
+        case actions.REMOVE_FIREWALL_RULE_SUCCEEDED:
+            // Only store the logs if we already know about the machine
+            if( state.data.hasOwnProperty(action.request.machineId) )
+                return {
+                    ...state,
+                    data: Object.assign(
+                        {},
+                        state.data,
+                        nextStateEntry(
+                            state,
+                            action.request.machineId,
+                            {
+                                firewallRules: action.payload,
+                                removingFirewallRule: undefined
+                            }
+                        )
+                    ),
+                };
+            else
+                return state;
+        case actions.REMOVE_FIREWALL_RULE_FAILED:
+            // Only store the error if we already know about the machine
+            if( state.data.hasOwnProperty(action.request.machineId) )
+                return {
+                    ...state,
+                    data: Object.assign(
+                        {},
+                        state.data,
+                        nextStateEntry(
+                            state,
+                            action.request.machineId,
+                            { removingFirewallRule: undefined }
                         )
                     ),
                 };

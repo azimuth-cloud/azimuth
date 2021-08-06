@@ -319,26 +319,47 @@ def machines(request, tenant):
     if request.method == 'POST':
         input_serializer = serializers.CreateMachineSerializer(data = request.data)
         input_serializer.is_valid(raise_exception = True)
+        # Start building the parameters for the machine
+        params = dict(
+            name = input_serializer.validated_data['name'],
+            image = input_serializer.validated_data['image_id'],
+            size = input_serializer.validated_data['size_id']
+        )
         # The web console is not permitted if there is no app proxy
         web_console_enabled = input_serializer.validated_data['web_console_enabled']
         if web_console_enabled and not cloud_settings.APPS.ENABLED:
             return response.Response(
                 {
-                    'detail': 'Web console is not available',
+                    'detail': 'Web console is not available.',
                     'code': 'invalid_operation'
                 },
                 status = status.HTTP_409_CONFLICT
             )
-        with request.auth.scoped_session(tenant) as session:
-            # If the web console is enabled, build the settings
-            if web_console_enabled:
-                desktop_enabled = input_serializer.validated_data['desktop_enabled']
+        # If an SSH key is given, add it to the params
+        # We also decide whether to require the SSH key or not
+        try:
+            params.update(
+                ssh_key = cloud_settings.SSH_KEY_STORE.get_key(
+                    request.user.username,
+                    request = request,
+                    unscoped_session = request.auth,
+                )
+            )
+        except keystore_errors.KeyNotFound:
+            # An SSH key is required unless the web console is enabled
+            if not web_console_enabled:
+                raise
+        # If the web console is enabled, use the machine metadata and userdata to
+        # configure it
+        if web_console_enabled:
+            desktop_enabled = input_serializer.validated_data['desktop_enabled']
+            params.update(
                 metadata = dict(
                     web_console_enabled = 1,
                     desktop_enabled = 1 if desktop_enabled else 0,
                     app_proxy_sshd_host = cloud_settings.APPS.PROXY_SSHD_HOST,
                     app_proxy_sshd_port = cloud_settings.APPS.PROXY_SSHD_PORT,
-                )
+                ),
                 userdata = '\n'.join([
                     "#!/usr/bin/env bash",
                     "set -eo pipefail",
@@ -346,27 +367,13 @@ def machines(request, tenant):
                         cloud_settings.APPS.POST_DEPLOY_SCRIPT_URL
                     )
                 ])
-            else:
-                metadata = None
-                userdata = None
-            output_serializer = serializers.MachineSerializer(
-                session.create_machine(
-                    input_serializer.validated_data['name'],
-                    input_serializer.validated_data['image_id'],
-                    input_serializer.validated_data['size_id'],
-                    cloud_settings.SSH_KEY_STORE.get_key(
-                        request.user.username,
-                        # Pass the request and the sessions as keyword options
-                        # so that the key store can use them if it needs to
-                        request = request,
-                        unscoped_session = request.auth,
-                        scoped_session = session
-                    ),
-                    metadata,
-                    userdata
-                ),
-                context = { 'request': request, 'tenant': tenant }
             )
+        with request.auth.scoped_session(tenant) as session:
+            machine = session.create_machine(**params)
+        output_serializer = serializers.MachineSerializer(
+            machine,
+            context = { 'request': request, 'tenant': tenant }
+        )
         return response.Response(output_serializer.data, status = status.HTTP_201_CREATED)
     else:
         with request.auth.scoped_session(tenant) as session:
@@ -413,6 +420,62 @@ def machine_logs(request, tenant, machine):
     with request.auth.scoped_session(tenant) as session:
         machine_logs = session.fetch_logs_for_machine(machine)
     return response.Response(dict(logs = machine_logs))
+
+
+@provider_api_view(['GET', 'POST'])
+def machine_firewall_rules(request, tenant, machine):
+    """
+    On ``GET`` requests, return the firewall rules for the specified machine.
+
+    On ``POST`` requests, create a new firewall rule for the machine. The
+    request body should look like::
+
+        {
+            "direction": "INBOUND",
+            "protocol": "TCP",
+            "port": 22,
+            "remote_cidr": "0.0.0.0/0"
+        }
+    """
+    if request.method == 'POST':
+        input_serializer = serializers.CreateFirewallRuleSerializer(data = request.data)
+        input_serializer.is_valid(raise_exception = True)
+        with request.auth.scoped_session(tenant) as session:
+            output_serializer = serializers.FirewallGroupSerializer(
+                session.add_firewall_rule_to_machine(
+                    machine,
+                    input_serializer.validated_data['direction'],
+                    input_serializer.validated_data['protocol'],
+                    input_serializer.validated_data['port'],
+                    input_serializer.validated_data['remote_cidr'],
+                ),
+                many = True,
+                context = { 'request': request, 'tenant': tenant }
+            )
+        return response.Response(output_serializer.data, status = status.HTTP_201_CREATED)
+    else:
+        with request.auth.scoped_session(tenant) as session:
+            serializer = serializers.FirewallGroupSerializer(
+                session.fetch_firewall_rules_for_machine(machine),
+                many = True,
+                context = { 'request': request, 'tenant': tenant }
+            )
+        return response.Response(serializer.data)
+
+
+@provider_api_view(['DELETE'])
+def machine_firewall_rule_details(request, tenant, machine, rule):
+    """
+    Delete the specified firewall rule.
+    """
+    with request.auth.scoped_session(tenant) as session:
+        output_serializer = serializers.FirewallGroupSerializer(
+            session.remove_firewall_rule_from_machine(machine, rule),
+            many = True,
+            context = { 'request': request, 'tenant': tenant }
+        )
+        return response.Response(output_serializer.data)
+
 
 @provider_api_view(['POST'])
 def machine_start(request, tenant, machine):

@@ -371,7 +371,7 @@ class Service(rackit.Connection):
         # Try to find a message property at any depth within the structure
         if isinstance(obj, dict):
             # Try a couple of different keys for error detail
-            for key in {'message', 'detail'}:
+            for key in ('message', 'detail'):
                 if key in obj:
                     return obj[key]
             for item in obj.values():

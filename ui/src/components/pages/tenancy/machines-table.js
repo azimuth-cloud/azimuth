@@ -24,6 +24,7 @@ import { bindArgsToActions, formatSize, Loading, useSortable } from '../../utils
 
 import { AttachExternalIpMenuItem } from './external-ip-modal';
 import { MachineLogsMenuItem } from './machine-logs-modal';
+import { MachineFirewallMenuItem } from './machine-firewall-modal';
 
 
 const ConfirmDeleteMenuItem = ({ name, onConfirm }) => {
@@ -172,6 +173,10 @@ const MachineActionsDropdown = ({
         >
             Detach external IP
         </DropdownItem>
+        <MachineFirewallMenuItem
+            machine={machine}
+            machineActions={machineActions}
+        />
         <DropdownItem
             onSelect={machineActions.start}
             disabled={['ACTIVE', 'ERROR'].includes(machine.status.type)}

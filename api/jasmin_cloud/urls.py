@@ -40,6 +40,14 @@ urlpatterns = [
                 path('stop/', views.machine_stop, name = 'machine_stop'),
                 path('restart/', views.machine_restart, name = 'machine_restart'),
                 path('console/', views.machine_console, name = 'machine_console'),
+                path('firewall_rules/', include([
+                    path('', views.machine_firewall_rules, name = 'machine_firewall_rules'),
+                    path(
+                        '<slug:rule>/',
+                        views.machine_firewall_rule_details,
+                        name = 'machine_firewall_rule_details'
+                    )
+                ])),
             ])),
         ])),
         path('kubernetes_cluster_templates/', include([

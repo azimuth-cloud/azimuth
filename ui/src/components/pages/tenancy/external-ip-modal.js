@@ -4,6 +4,7 @@
 
 import React, { useState } from 'react';
 
+import Alert from 'react-bootstrap/Alert';
 import Button from 'react-bootstrap/Button';
 import DropdownItem from 'react-bootstrap/DropdownItem';
 import Modal from 'react-bootstrap/Modal';
@@ -50,6 +51,10 @@ export const AttachExternalIpMenuItem = ({
                 </Modal.Header>
                 <Form disabled={!!externalIps.creating} onSubmit={handleSubmit}>
                     <Modal.Body>
+                        <Alert variant="warning" className="text-center">
+                            Remember to check the firewall rules to ensure traffic{" "}
+                            can reach the machine on the required ports.
+                        </Alert>
                         <Field name="externalIp" label="External IP">
                             <ExternalIpSelectControl
                                 resource={externalIps}

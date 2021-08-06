@@ -4,6 +4,7 @@ Django REST framework serializers for objects from the :py:mod:`~.cloud.dto` pac
 
 import collections
 import dataclasses
+import ipaddress
 
 from cryptography.exceptions import UnsupportedAlgorithm
 from cryptography.hazmat.primitives.serialization import load_ssh_public_key
@@ -320,6 +321,12 @@ class MachineSerializer(
                         'machine': obj.id,
                     })
                 ),
+                'firewall_rules': request.build_absolute_uri(
+                    reverse('jasmin_cloud:machine_firewall_rules', kwargs = {
+                        'tenant': tenant,
+                        'machine': obj.id,
+                    })
+                ),
             })
         return result
 
@@ -330,6 +337,67 @@ class CreateMachineSerializer(serializers.Serializer):
     size_id = serializers.RegexField('^[a-z0-9-]+$', write_only = True)
     web_console_enabled = serializers.BooleanField(default = False, write_only = True)
     desktop_enabled = serializers.BooleanField(default = False, write_only = True)
+
+
+class FirewallRuleSerializer(
+    make_dto_serializer(dto.FirewallRule, exclude = ['direction', 'protocol'])
+):
+    direction = serializers.ReadOnlyField(source = 'direction.name')
+    protocol = serializers.ReadOnlyField(source = 'protocol.name')
+
+
+
+class FirewallGroupSerializer(
+    make_dto_serializer(dto.FirewallGroup, exclude = ['rules'])
+):
+    rules = FirewallRuleSerializer(many = True, read_only = True)
+
+
+class CreateFirewallRuleSerializer(serializers.Serializer):
+    direction = serializers.ChoiceField(
+        choices = [d.name for d in dto.FirewallRuleDirection],
+        write_only = True
+    )
+    protocol = serializers.ChoiceField(
+        choices = [p.name for p in dto.FirewallRuleProtocol],
+        write_only = True
+    )
+    port = serializers.IntegerField(
+        allow_null = True,
+        min_value = 1,
+        max_value = 65535,
+        write_only = True
+    )
+    remote_cidr = serializers.CharField(
+        allow_blank = True,
+        allow_null = True,
+        write_only = True
+    )
+
+    def validate_direction(self, value):
+        """
+        Converts a string direction into an enum member.
+        """
+        return dto.FirewallRuleDirection[value]
+
+    def validate_protocol(self, value):
+        """
+        Converts a string protocol into an enum member.
+        """
+        return dto.FirewallRuleProtocol[value]
+
+    def validate_remote_cidr(self, value):
+        """
+        Check that the given value is a valid CIDR.
+        """
+        if value:
+            try:
+                _ = ipaddress.IPv4Network(value)
+            except (ipaddress.AddressValueError, ipaddress.NetmaskValueError):
+                raise serializers.ValidationError(['Not a valid IPv4 CIDR.'])
+            return value
+        else:
+            return None
 
 
 class ExternalIPSerializer(make_dto_serializer(dto.ExternalIp)):

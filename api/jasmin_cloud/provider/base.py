@@ -2,7 +2,7 @@
 This module defines the interface for a cloud provider.
 """
 
-from typing import Any, Iterable, Mapping, Optional, Union
+from typing import Any, Iterable, Mapping, Optional, Tuple, Union
 
 from . import dto, errors, validation
 
@@ -266,10 +266,27 @@ class ScopedSession:
     def add_firewall_rule_to_machine(
         self,
         machine: Union[dto.Machine, str],
-        rule: dto.FirewallRule
+        # See the DTO for details of the options
+        direction: dto.FirewallRuleDirection,
+        protocol: dto.FirewallRuleProtocol,
+        port: Optional[int] = None,
+        remote_cidr: Optional[str] = None
     ) -> Iterable[dto.FirewallGroup]:
         """
         Adds a firewall rule to the specified machine and returns the new set of rules.
+        """
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
+
+    def remove_firewall_rule_from_machine(
+        self,
+        machine: Union[dto.Machine, str],
+        firewall_rule: Union[dto.FirewallRule, str]
+    ) -> Iterable[dto.FirewallGroup]:
+        """
+        Removes the specified firewall rule from the machine and returns the new set
+        of rules.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)

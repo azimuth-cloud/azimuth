@@ -26,19 +26,26 @@ const CreateMachineModal = ({
     imageActions,
     sizes,
     sizeActions,
+    sshKey,
     capabilities,
     ...props
 }) => {
     const [name, setName] = useState('');
     const [image, setImage] = useState('');
     const [size, setSize] = useState('');
-    const [webConsoleEnabled, setWebConsoleEnabled] = useState(false);
+    // If the user has no SSH key, default the web console to true
+    const [webConsoleEnabled, setWebConsoleEnabled_] = useState(!sshKey.ssh_public_key);
     const [desktopEnabled, setDesktopEnabled] = useState(false);
+    // When the web console is disabled, also disable the desktop
+    const setWebConsoleEnabled = enabled => {
+        setWebConsoleEnabled_(enabled);
+        if( !enabled ) setDesktopEnabled(false);
+    };
     const reset = () => {
         setName('');
         setImage('');
         setSize('');
-        setWebConsoleEnabled(false);
+        setWebConsoleEnabled(!sshKey.ssh_public_key);
         setDesktopEnabled(false);
     };
 
@@ -63,7 +70,7 @@ const CreateMachineModal = ({
     };
 
     return (
-        <Modal backdrop="static" onHide={handleClose} {...props}>
+        <Modal backdrop="static" size="lg" onHide={handleClose} {...props}>
             <Modal.Header closeButton>
                 <Modal.Title>Create a new machine</Modal.Title>
             </Modal.Header>
@@ -109,17 +116,29 @@ const CreateMachineModal = ({
                     {capabilities.supports_apps && (
                         <Field
                             name="web_console_enabled"
-                            helpText={(
+                            helpText={
                                 <>
-                                    Installs{" "}
-                                    <a href="https://guacamole.apache.org/" target="_blank">
-                                        Apache Guacamole
-                                    </a>{" "}
-                                    to provide access to the machine via a web browser.
+                                    {!sshKey.ssh_public_key && (
+                                        <p className="mb-1 text-warning">
+                                            <strong>
+                                                This option has been automatically selected because
+                                                you do not have an SSH public key configured.
+                                            </strong>
+                                        </p>
+                                    )}
+                                    <p className="mb-0">
+                                        Installs{" "}
+                                        <a href="https://guacamole.apache.org/" target="_blank">
+                                            Apache Guacamole
+                                        </a>{" "}
+                                        to provide access to the machine via a web browser.
+                                    </p>
                                 </>
-                            )}
+                            }
                         >
                             <BSForm.Check
+                                // If the user has no SSH key, force this to stay true
+                                disabled={!sshKey.ssh_public_key}
                                 label="Enable web console?"
                                 checked={webConsoleEnabled}
                                 onChange={setWebConsoleEnabledFromEvent}
@@ -129,7 +148,7 @@ const CreateMachineModal = ({
                     {webConsoleEnabled && (
                         <Field
                             name="desktop_enabled"
-                            helpText="WARNING: The remote desktop can take a long time to configure."
+                            helpText="WARNING: The remote desktop can take a long time to install and configure."
                         >
                             <BSForm.Check
                                 label="Enable remote desktop for web console?"
@@ -151,7 +170,7 @@ const CreateMachineModal = ({
 };
 
 
-export const CreateMachineButton = ({ sshKey, disabled, creating, ...props }) => {
+export const CreateMachineButton = ({ sshKey, capabilities, disabled, creating, ...props }) => {
     const [visible, setVisible] = useState(false);
     const open = () => setVisible(true);
     const close = () => setVisible(false);
@@ -170,14 +189,31 @@ export const CreateMachineButton = ({ sshKey, disabled, creating, ...props }) =>
                 />
                 {creating ? 'Creating machine...' : 'New machine'}
             </Button>
-            <ConnectedSSHKeyRequiredModal
-                show={visible}
-                onSuccess={close}
-                onCancel={close}
-                showWarning={true}
-            >
-                <CreateMachineModal creating={creating} {...props} />
-            </ConnectedSSHKeyRequiredModal>
+            {capabilities.supports_apps ? (
+                <CreateMachineModal
+                    show={visible}
+                    onSuccess={close}
+                    onCancel={close}
+                    creating={creating}
+                    sshKey={sshKey}
+                    capabilities={capabilities}
+                    {...props}
+                />
+            ) : (
+                <ConnectedSSHKeyRequiredModal
+                    show={visible}
+                    onSuccess={close}
+                    onCancel={close}
+                    showWarning={true}
+                >
+                    <CreateMachineModal
+                        creating={creating}
+                        sshKey={sshKey}
+                        capabilities={capabilities}
+                        {...props}
+                    />
+                </ConnectedSSHKeyRequiredModal>
+            )}
         </>
     );
 };

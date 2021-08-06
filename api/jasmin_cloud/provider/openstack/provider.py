@@ -44,7 +44,8 @@ _REPLACEMENTS = [
     ('Instance', 'Machine'),
     ('flavorRef', 'size'),
     ('flavor', 'size'),
-    ('Flavor', 'Size')
+    ('Flavor', 'Size'),
+    ('Security group rule', 'Firewall rule'),
 ]
 def _replace_resource_names(message):
     return functools.reduce(
@@ -811,7 +812,7 @@ class ScopedSession(base.ScopedSession):
         return logs.splitlines()
 
     @convert_exceptions
-    def create_machine(self, name, image, size, ssh_key, metadata = None, userdata = None):
+    def create_machine(self, name, image, size, ssh_key = None, metadata = None, userdata = None):
         """
         See :py:meth:`.base.ScopedSession.create_machine`.
         """
@@ -918,10 +919,128 @@ class ScopedSession(base.ScopedSession):
         for port in self._connection.network.ports.all(device_id = machine):
             port._delete()
         self._connection.compute.servers.delete(machine)
+        # Once the machine is deleted, delete the instance security group
+        secgroup_name = 'instance-{}'.format(machine)
+        secgroup = self._connection.network.security_groups.find_by_name(secgroup_name)
+        if secgroup:
+            secgroup._delete()
         try:
             return self.find_machine(machine)
         except errors.ObjectNotFoundError:
             return None
+
+    def _api_rule_is_supported(self, api_rule):
+        # Only consider IPv4 rules for protocols we recognise
+        return (
+            api_rule['ethertype'] == 'IPv4' and
+            (
+                api_rule['protocol'] is None or
+                api_rule['protocol'].upper() in { p.name for p in dto.FirewallRuleProtocol }
+            )
+        )
+
+    def _from_api_security_group_rule(self, secgroup_names, api_rule):
+        params = dict(
+            id = api_rule['id'],
+            direction = dto.FirewallRuleDirection[api_rule['direction'].upper()],
+            protocol = (
+                dto.FirewallRuleProtocol[api_rule['protocol'].upper()]
+                if api_rule['protocol'] is not None
+                else dto.FirewallRuleProtocol.ANY
+            )
+        )
+        if api_rule['port_range_max']:
+            params.update(
+                port_range = (
+                    api_rule['port_range_min'],
+                    api_rule['port_range_max']
+                )
+            )
+        if api_rule['remote_group_id']:
+            params.update(remote_group = secgroup_names[api_rule['remote_group_id']])
+        else:
+            params.update(remote_cidr = api_rule['remote_ip_prefix'] or '0.0.0.0/0')
+        return dto.FirewallRule(**params)
+
+    @convert_exceptions
+    def fetch_firewall_rules_for_machine(self, machine):
+        machine = machine.id if isinstance(machine, dto.Machine) else machine
+        # All we get from the machine is security group names
+        # This means that we need to load all the security groups to find them
+        self._log("Fetching security groups")
+        security_groups = list(self._connection.network.security_groups.all())
+        # Index the names of the security groups so we can easily resolve them later
+        secgroup_names = { s.id: s.name for s in security_groups }
+        self._log("Filtering machine security groups for '%s'", machine)
+        # Filter the security groups that apply to the machine
+        machine = self._connection.compute.servers.get(machine)
+        machine_security_groups = [
+            group
+            for group in security_groups
+            if group.name in { sg['name'] for sg in machine.security_groups }
+        ]
+        # The instance security group is the only editable one
+        instance_secgroup = "instance-{}".format(machine.id)
+        return [
+            dto.FirewallGroup(
+                name = group.name,
+                editable = group.name == instance_secgroup,
+                rules = [
+                    self._from_api_security_group_rule(secgroup_names, rule)
+                    for rule in group.security_group_rules
+                    if self._api_rule_is_supported(rule)
+                ]
+            )
+            for group in machine_security_groups
+        ]
+
+    @convert_exceptions
+    def add_firewall_rule_to_machine(
+        self,
+        machine,
+        direction,
+        protocol,
+        port = None,
+        remote_cidr = None
+    ):
+        machine = machine.id if isinstance(machine, dto.Machine) else machine
+        self._log("Finding instance security group for '%s'", machine)
+        secgroup_name = "instance-{}".format(machine)
+        secgroup = self._connection.network.security_groups.find_by_name(secgroup_name)
+        if secgroup:
+            self._log("Found existing security group '%s'", secgroup_name)
+        else:
+            self._log("Creating security group '%s'", secgroup_name)
+            secgroup = self._connection.network.security_groups.create(
+                name = secgroup_name,
+                description = "Instance rules for {}".format(machine)
+            )
+            # Delete the default rules
+            for rule in secgroup.security_group_rules:
+                self._connection.network.security_group_rules.delete(rule['id'])
+            self._connection.compute.servers.get(machine).add_security_group(secgroup.name)
+        # Now we have the group, we can add the rule
+        params = dict(
+            security_group_id = secgroup.id,
+            ethertype = "IPv4",
+            direction = "ingress" if direction is dto.FirewallRuleDirection.INBOUND else "egress"
+        )
+        if protocol != dto.FirewallRuleProtocol.ANY:
+            params.update(protocol = protocol.name.lower())
+        # Only use the port when protocol is UDP or TCP
+        if protocol.requires_port() and port:
+            params.update(port_range_min = port, port_range_max = port)
+        if remote_cidr:
+            params.update(remote_ip_prefix = remote_cidr)
+        _ = self._connection.network.security_group_rules.create(**params)
+        return self.fetch_firewall_rules_for_machine(machine)
+
+    @convert_exceptions
+    def remove_firewall_rule_from_machine(self, machine, rule):
+        machine = machine.id if isinstance(machine, dto.Machine) else machine
+        rule = rule.id if isinstance(rule, dto.FirewallRule) else rule
+        self._connection.network.security_group_rules.delete(rule)
+        return self.fetch_firewall_rules_for_machine(machine)
 
     def _from_api_floatingip(self, api_floatingip, ports = None):
         """
@@ -1278,9 +1397,9 @@ class ScopedSession(base.ScopedSession):
     def create_kubernetes_cluster(
         self,
         name,
-        template_id,
-        master_size_id,
-        worker_size_id,
+        template,
+        master_size,
+        worker_size,
         worker_count = None,
         min_worker_count = None,
         max_worker_count = None,
@@ -1291,13 +1410,20 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.create_kubernetes_cluster`.
         """
         # Get the template so we can check whether to generate a Grafana password
-        template = self.find_kubernetes_cluster_template(template_id)
+        template = (
+            template
+            if isinstance(template, dto.dto.KubernetesClusterTemplate)
+            else self.find_kubernetes_cluster_template(template)
+        )
+        # Convert the sizes to IDs if DTOs were given
+        master_size = master_size.id if isinstance(master_size, dto.Size) else master_size
+        worker_size = worker_size.id if isinstance(worker_size, dto.Size) else worker_size
         self._log("Creating Kubernetes cluster '%s'", name)
         params = dict(
             name = name,
-            cluster_template_id = template_id,
-            master_flavor_id = master_size_id,
-            flavor_id = worker_size_id,
+            cluster_template_id = template.id,
+            master_flavor_id = master_size,
+            flavor_id = worker_size,
             # If auto-scaling is enabled, min/max worker count will be set
             # If not, then worker count will be set
             # Use the worker count or the minimum worker count, depending which is set

@@ -260,14 +260,20 @@ export const Form = ({ children, disabled = false, onSubmit, ...props }) => {
 };
 
 
-// Component that renders a Bootstrap form control with the HTML5 validation state
-const ControlWithValidationMessage = ({ children, ...props }) => {
+/**
+ * Component that renders a Bootstrap form control with the HTML5 validation state
+ */
+export const ControlWithValidationMessage = ({ children, ...props }) => {
     // Maintain the validation message from the last invalid event as internal state
     const [validationMessage, setValidationMessage] = useState('');
     // The control is invalid if the message is non-empty
     const isInvalid = validationMessage !== '';
     // When the invalid event is raised, set the validation message
-    const onInvalid = evt => setValidationMessage(evt.target.validationMessage);
+    const onInvalid = evt => setValidationMessage(
+        evt.target.value ?
+            evt.target.title || evt.target.validationMessage :
+            evt.target.validationMessage
+    );
     // When the value is changed, clear the validation message until the next
     // validation is requested
     const onChange = (...args) => {

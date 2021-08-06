@@ -82,6 +82,24 @@ class Network(NetworkResource):
         conn.api_put("{}/tags".format(self._path), json = dict(tags = tags))
 
 
+class SecurityGroup(NetworkResource):
+    """
+    Represents a security group.
+    """
+    class Meta:
+        endpoint = "/security-groups"
+        resource_list_key = "security_groups"
+
+
+class SecurityGroupRule(NetworkResource):
+    """
+    Represents a security group rule.
+    """
+    class Meta:
+        endpoint = "/security-group-rules"
+        resource_list_key = "security_group_rules"
+
+
 class Subnet(NetworkResource):
     """
     Represents a subnet.
@@ -110,5 +128,7 @@ class NetworkService(Service):
     floatingips = RootResource(FloatingIp)
     ports = RootResource(Port)
     networks = RootResource(Network)
+    security_groups = RootResource(SecurityGroup)
+    security_group_rules = RootResource(SecurityGroupRule)
     subnets = RootResource(Subnet)
     routers = RootResource(Router)

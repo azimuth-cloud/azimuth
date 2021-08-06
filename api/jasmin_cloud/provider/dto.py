@@ -8,7 +8,7 @@ import enum
 import io
 import json
 import re
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any, Mapping, Optional, Sequence, Tuple
 
 import yaml
 import requests
@@ -150,6 +150,70 @@ class Machine:
     owner: str
     #: The datetime at which the machine was deployed
     created: datetime
+
+
+class FirewallRuleDirection(enum.Enum):
+    """
+    Enum representing the possible directions for a firewall rule.
+    """
+    INBOUND = "INBOUND"
+    OUTBOUND = "OUTBOUND"
+    # Add ingress and egress as aliases for inbound and outbound
+    INGRESS = "INBOUND"
+    EGRESS = "OUTBOUND"
+
+
+@enum.unique
+class FirewallRuleProtocol(enum.Enum):
+    """
+    Enum representing the possible protocols for a firewall rule.
+    """
+    ANY = "ANY"
+    ICMP = "ICMP"
+    UDP = "UDP"
+    TCP = "TCP"
+
+    def requires_port(self):
+        """
+        Indicates if the protocol requires a port or not.
+        """
+        return self in {self.__class__.UDP, self.__class__.TCP}
+
+
+@dataclass(frozen = True)
+class FirewallRule:
+    """
+    Represents a firewall rule applying to a host.
+    """
+    #: The id of the firewall rule
+    id: str
+    #: The direction for the firewall rule
+    direction: FirewallRuleDirection
+    #: The protocol for the firewall rule
+    protocol: FirewallRuleProtocol
+    #: The port range matched by the firewall rule, if applicable
+    port_range: Optional[Tuple[int, int]] = None
+    #: The remote CIDR matched by the firewall rule, if applicable
+    remote_cidr: Optional[str] = None
+    #: The name of the remote firewall group matched by the firewall rule, if applicable
+    remote_group: Optional[str] = None
+
+
+@dataclass(frozen = True)
+class FirewallGroup:
+    """
+    Represents a group in the firewall.
+
+    This means a group in two senses - a set of rules and a set of hosts that
+    have the group applied.
+    """
+    #: The name of the firewall group
+    name: str
+    #: The rules for the firewall group
+    rules: Sequence[FirewallRule]
+    #: Indicates if the rules in the group are editable
+    #: Generally, this will only be the case for the instance-level rules
+    editable: bool = False
 
 
 @enum.unique

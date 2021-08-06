@@ -236,6 +236,11 @@ const ClusterStatus = ({ cluster }) => (
     </span>
 );
 
+const ClusterTask = ({ cluster: { task } }) => {
+    const label = truncate(task, { length: 40 });
+    return <ProgressBar animated striped label={label} now={100} />;
+};
+
 
 const ClusterPatched = ({ cluster: { patched }}) => {
     const threshold = moment().subtract(2, 'weeks');
@@ -312,12 +317,7 @@ const ClusterRow = ({ cluster, clusterActions, tenancy, tenancyActions }) => {
             <td>{cluster.name}</td>
             <td>{get(clusterTypes, [cluster.cluster_type, 'label'], '-')}</td>
             <td><ClusterStatus cluster={cluster} /></td>
-            <td>
-                {cluster.task ?
-                    <ProgressBar animated striped label={truncate(cluster.task)} now={100} /> :
-                    '-'
-                }
-            </td>
+            <td>{cluster.task ? <ClusterTask cluster={cluster} /> : '-'}</td>
             <td>{moment(cluster.created).fromNow()}</td>
             <td>{cluster.updated ? moment(cluster.updated).fromNow() : '-'}</td>
             <td>{cluster.patched ? <ClusterPatched cluster={cluster} /> : '-'}</td>

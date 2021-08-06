@@ -20,7 +20,6 @@ class KeyStore:
         *,
         request = None,
         unscoped_session = None,
-        scoped_session = None
     ):
         """
         Returns the SSH public key for the given username.
@@ -29,7 +28,6 @@ class KeyStore:
             username: The username to locate an SSH key for.
             request: The active request.
             unscoped_session: The active unscoped session.
-            scoped_session: The active scoped session.
 
         Returns:
             The SSH public key.
@@ -43,7 +41,6 @@ class KeyStore:
         *,
         request = None,
         unscoped_session = None,
-        scoped_session = None
     ):
         """
         Update the SSH public key for the given username.
@@ -53,7 +50,6 @@ class KeyStore:
             public_key: The new SSH public key.
             request: The active request.
             unscoped_session: The active unscoped session.
-            scoped_session: The active scoped session.
 
         Returns:
             The new SSH public key.

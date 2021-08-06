@@ -99,6 +99,9 @@ class Server(ResourceWithDetail):
     def reboot(self, reboot_type):
         self._action('action', { 'reboot': { 'type': reboot_type } })
 
+    def add_security_group(self, name):
+        self._action('action', { 'addSecurityGroup': { 'name': name } })
+
 
 class AbsoluteLimits(UnmanagedResource):
     """
