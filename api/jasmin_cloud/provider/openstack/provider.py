@@ -603,7 +603,7 @@ class ScopedSession(base.ScopedSession):
             self._log("Failed to find tagged %s network.", net_type, level = logging.WARN)
         return network
 
-    def _templated_network(self, template, net_type, **params):
+    def _templated_network(self, template, net_type):
         """
         Returns the network specified by the template, after interpolating with the tenant name.
 
@@ -611,7 +611,12 @@ class ScopedSession(base.ScopedSession):
         """
         net_name = template.format(tenant_name = self._tenancy.name)
         network = next(
-            self._connection.network.networks.all(name = net_name, **params),
+            # Consider all the networks available to the project, but use ones
+            # owned by the project in preference
+            itertools.chain(
+                self._connection.network.networks.all(name = net_name),
+                self._connection.network.networks.all(name = net_name, project_id = None),
+            ),
             None
         )
         if network:
@@ -664,23 +669,15 @@ class ScopedSession(base.ScopedSession):
             return tagged_network
         # Next, attempt to use the name template
         if self._external_net_template:
-            return self._templated_network(
-                self._external_net_template,
-                'external',
-                project_id = None
-            )
+            return self._templated_network(self._external_net_template, 'external')
         # If there is exactly one external network available, use that
         def gen_external_networks():
             # Unfortunately, we need multiple queries here in case the user is an admin
             params = { 'router:external': True }
-            # The unshared external networks belonging to the project
-            yield from self._connection.network.networks.all(**params, shared = False)
-            # The shared external networks belonging to any project
-            yield from self._connection.network.networks.all(
-                **params,
-                project_id = None,
-                shared = True
-            )
+            # Consider the networks belonging to the project first
+            yield from self._connection.network.networks.all(**params)
+            # Then consider the external networks from other projects that are shared with this one
+            yield from self._connection.network.networks.all(**params, project_id = None)
         networks = list(gen_external_networks())
         if len(networks) == 1:
             return networks[0]
@@ -739,7 +736,7 @@ class ScopedSession(base.ScopedSession):
                 (
                     a['addr']
                     for a in api_server.addresses.get(
-                        tenant_network.name,
+                        getattr(tenant_network, 'name', None),
                         # If the tenant network is not in the addresses, use them all
                         itertools.chain.from_iterable(api_server.addresses.values())
                     )
