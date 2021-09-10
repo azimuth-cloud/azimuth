@@ -1597,6 +1597,8 @@ class ScopedSession(base.ScopedSession):
         # Add any tags attached to the stack
         try:
             stack = self._connection.orchestration.stacks.find_by_stack_name(cluster.name)
+        except api.ServiceNotSupported:
+            stack = None
         except rackit.NotFound:
             stack = None
         # We use this format because tags might exist on the stack but be None
