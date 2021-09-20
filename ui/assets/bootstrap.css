@@ -1,0 +1,19 @@
+/**
+ * We use this file to include the bootstrap CSS + any themes.
+ *
+ * Doing this allows us to replace this file in the container at runtime to use a
+ * different theme, rather than having to rebuild the image.
+*/
+@import url(https://cdn.jsdelivr.net/npm/bootswatch@5.0.1/dist/pulse/bootstrap.min.css);
+
+/*
+ * This rule is required to make a focused react-select look like other inputs
+ * There is no remotely easy way to sync these styles so they must be set based on the theme
+ */
+.react-select__wrapper:focus-within {
+    color: #444;
+    background-color: #fff;
+    border-color: var(--bs-primary);
+    outline: 0;
+    box-shadow: 0 0 5px rgb(100 65 164 / 40%);
+}

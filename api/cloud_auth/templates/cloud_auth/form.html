@@ -1,0 +1,34 @@
+{% extends "cloud_auth/base.html" %}
+
+{% load cloud_auth_tags %}
+
+{% block head_title %}Sign in{% endblock %}
+
+{% block content %}
+<div class="row justify-content-md-center">
+    <div class="modal position-relative d-block mt-5">
+        <div class="modal-dialog">
+            <form method="POST" action="{% url "cloud_auth:complete" %}">
+                {% csrf_token %}
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Sign in</h5>
+                    </div>
+                    <div class="modal-body">
+                        {% auth_message %}
+                        {% for field in form %}
+                        <div {% if not forloop.last %}class="mb-3"{% endif %}>
+                            <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                            {% field_with_classes field "form-control" %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Sign in</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

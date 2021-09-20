@@ -1,0 +1,14 @@
+{{- $consulEnabled := .Values.consul.enabled -}}
+{{- $appProxyEnabled := .Values.appProxy.enabled -}}
+{{- $clusterEngineEnabled := .Values.clusterEngine.enabled -}}
+{{- $terraformBackendEnabled := .Values.clusterEngine.terraformBackend.enabled -}}
+{{- $terraformBackendConsul := eq .Values.clusterEngine.terraformBackend.type "consul" -}}
+{{- $consulRequired := or $appProxyEnabled (and $clusterEngineEnabled $terraformBackendEnabled $terraformBackendConsul) -}}
+{{- if and $consulRequired $consulEnabled }}
+apiVersion: charts.stackhpc.com/v1alpha1
+kind: Consul
+metadata:
+  name: {{ include "jasmin-cloud.componentname" (list . "consul") }}
+  labels: {{ include "jasmin-cloud.componentLabels" (list . "consul") | nindent 4 }}
+spec: {{ toYaml .Values.consul.spec | nindent 2 }}
+{{- end }}

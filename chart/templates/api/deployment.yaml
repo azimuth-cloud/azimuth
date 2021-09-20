@@ -1,0 +1,88 @@
+{{- $component := "api" -}}
+{{- $values := get .Values $component -}}
+{{- $clusterEngine := .Values.clusterEngine -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "jasmin-cloud.componentname" (list . $component) }}
+  labels: {{ include "jasmin-cloud.componentLabels" (list . $component) | nindent 4 }}
+spec:
+  replicas: {{ $values.replicaCount }}
+  selector:
+    matchLabels: {{ include "jasmin-cloud.componentSelectorLabels" (list . $component) | nindent 6 }}
+  template:
+    metadata:
+      labels: {{ include "jasmin-cloud.componentSelectorLabels" (list . $component) | nindent 8 }}
+      annotations:
+        # Force deployment to roll if the config changes
+        # https://helm.sh/docs/howto/charts_tips_and_tricks/#automatically-roll-deployments
+        checksum/settings: {{ include (print $.Template.BasePath "/api/settings.yaml") . | sha256sum }}
+        checksum/theme: {{ include (print $.Template.BasePath "/configmap-theme.yaml") . | sha256sum }}
+        {{- with $values.podAnnotations }}
+        {{ toYaml . | indent 8 | trim }}
+        {{- end }}
+    spec:
+      {{- with $values.imagePullSecrets }}
+      imagePullSecrets: {{ toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext: {{ toYaml $values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ $component }}
+          securityContext: {{ toYaml $values.securityContext | nindent 12 }}
+          image: {{ printf "%s:%s" $values.image.repository (tpl $values.image.tag .) }}
+          imagePullPolicy: {{ $values.image.pullPolicy }}
+          {{- if (and $clusterEngine.enabled (eq $clusterEngine.type "awx")) }}
+          env:
+            - name: AWX_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ tpl $clusterEngine.awx.passwordSecretName . | quote }}
+                  key: password
+            {{- with $clusterEngine.awx.adminPasswordSecretName }}
+            - name: AWX_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ tpl $clusterEngine.awx.adminPasswordSecretName . | quote }}
+                  key: password
+            {{- end }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /_status/
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /_status/
+              port: http
+          resources: {{ toYaml $values.resources | nindent 12 }}
+          volumeMounts:
+            - name: runtime-settings
+              mountPath: /etc/django/settings.d
+              readOnly: true
+            - name: theme-css
+              mountPath: /var/django/staticfiles/bootstrap.css
+              subPath: bootstrap.css
+            - name: tmp
+              mountPath: /tmp
+      {{- with $values.nodeSelector }}
+      nodeSelector: {{ toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $values.affinity }}
+      affinity: {{ toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $values.tolerations }}
+      tolerations: {{ toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: runtime-settings
+          secret:
+            secretName: {{ include "jasmin-cloud.componentname" (list . $component) }}
+        - name: theme-css
+          configMap:
+            name: {{ include "jasmin-cloud.componentname" (list . "theme") }}
+        - name: tmp
+          emptyDir: {}

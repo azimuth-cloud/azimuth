@@ -1,0 +1,15 @@
+{{- $component := "ui" -}}
+{{- $values := get .Values $component -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "jasmin-cloud.componentname" (list . $component) }}
+  labels: {{ include "jasmin-cloud.componentLabels" (list . $component) | nindent 4 }}
+spec:
+  type: {{ $values.service.type }}
+  ports:
+    - port: {{ $values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector: {{ include "jasmin-cloud.componentSelectorLabels" (list . $component) | nindent 4 }}

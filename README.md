@@ -1,51 +1,91 @@
 # jasmin-cloud
 
-The `jasmin-cloud` project provides an API for administration of tenancies in
-the JASMIN Cloud.
+The `jasmin-cloud` project provides a portal for the administration of tenancies in an
+[OpenStack](https://www.openstack.org/) cloud.
 
-## Documentation
+It has two sub-components  - a REST API written in [Python](https://www.python.org/) using
+the [Django REST framework](https://www.django-rest-framework.org/) and a UI written in
+[React](https://reactjs.org/).
 
-Documentation for `jasmin-cloud` can be found on the [project wiki](https://github.com/cedadev/jasmin-cloud/wiki).
+The code for both components, along with artifacts for building [Docker](https://www.docker.com/)
+images and a [Helm chart](https://helm.sh/) for deploying to [Kubernetes](https://kubernetes.io/)
+are included in this repository.
 
-## Quickstart guide
+## Using the Helm chart
 
-First of all, follow instructions at https://github.com/stackhpc/jasmin-cloud-ui#build-instructions to setup the frontend.
+The Helm chart is stored in an OCI repository, which requires experimental features in
+Helm 3 to be enabled. See https://helm.sh/docs/topics/registries/ for more information.
 
-Then place the following inside `/etc/nginx/sites-enabled/default` and `service nginx restart`.
+To see the available versions, please consult the repository on
+[GitHub packages](https://github.com/orgs/stackhpc/packages/container/package/jasmin-cloud-chart).
 
-    server {
-        listen 80 default_server;
-        listen [::]:80 default_server;
+```sh
+helm chart pull ghcr.io/stackhpc/jasmin-cloud-chart:<version>
+helm chart export ghcr.io/stackhpc/jasmin-cloud-chart:<version>
+helm upgrade -i jasmin-cloud ./jasmin-cloud -f values.yaml
+```
 
-        root /var/www/html;
+To see the available options, check the [chart's values.yaml](./chart/values.yaml).
 
-        index index.html index.htm index.nginx-debian.html;
+## Setting up a local development environment
 
-        server_name _;
+First, check out the code:
 
-        location / {
-            root /home/ubuntu/jasmin-cloud-ui/dist;
-            try_files $uri /index.html;
-        }
+```sh
+git clone https://github.com/stackhpc/jasmin-cloud.git
+cd jasmin-cloud
+# Switch to the required branch
+```
 
-        location /api {
-            proxy_pass http://127.0.0.1:8000/api;
-            sub_filter "http://127.0.0.1:8000" $http_host;
-            sub_filter_once off;
-        }
+### REST API
 
-        location /static {
-            proxy_pass http://127.0.0.1:8000/static;
-            sub_filter "http://127.0.0.1:8000" $http_host;
-            sub_filter_once off;
-        }
-    }
+The API requires a recent version of Python 3, which you must first install.
 
-Finally, start the API server:
+Then create and activate a new virtual environment and install the API project:
 
-    virtualenv venv
-    source venv/bin/activate
-    pip install -r requirements.txt
-    cp jasmin_cloud_site/settings{-local.py,}.py
-    vi jasmin_cloud_site/settings.py
-    python manage.py runserver
+```sh
+python -m venv ./venv
+source ./venv/bin/activate
+pip install git+https://github.com/cedadev/django-settings-object.git#egg=settings_object
+pip install git+https://github.com/cedadev/jasmin-ldap.git#egg=jasmin_ldap
+pip install git+https://github.com/cedadev/rackit.git#egg=rackit
+pip install -e ./api
+```
+
+Install the local settings:
+
+```sh
+cp api/jasmin_cloud_site/settings.py-local api/jasmin_cloud_site/settings.py
+```
+
+Modify the settings to match your cloud, then run the development server:
+
+```sh
+python api/manage.py runserver
+```
+
+The API will then be available at http://localhost:8000/api.
+
+### React UI
+
+Once you have the development version of the API up, you can install a development version
+of the UI.
+
+To install and run the UI, you will need recent versions of [Node](https://nodejs.dev/) and
+[yarn](https://yarnpkg.com/) installed.
+
+Install the dependencies using `yarn`:
+
+```sh
+yarn --cwd ./ui install --frozen-lockfile
+```
+
+Then start the development server:
+
+```sh
+yarn --cwd ./ui serve 
+```
+
+This will start the JASMIN Cloud UI at `http://localhost:3000`. The development server will
+proxy API requests to `http://localhost:8000` so that the UI and API appear at the same
+address, as they will when deployed in production.

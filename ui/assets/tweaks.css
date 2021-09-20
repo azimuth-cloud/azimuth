@@ -1,0 +1,186 @@
+/**
+ * This file contains CSS tweaks required for the cloud portal.
+ */
+
+
+/* These rules make stacked modals sit nicely */
+.modal-backdrop.show ~ .modal-backdrop.show { z-index: 1080; }
+.modal.show ~ .modal.show { z-index: 2000; }
+
+
+/**
+ * These rules tweak the react-select styles to work better as a Bootstrap form control
+ */
+/* Remove the padding that form-control applies (let react-bootstrap do it instead) */
+.react-select__wrapper { padding: 0 !important; }
+/* Propogate the border-radius property to the react-select control to avoid clipping */
+.react-select__wrapper > div, .react-select__control { border-radius: inherit !important; }
+/* Remove the border and box shadow from the control as form-control also sets them */
+.react-select__control { border: none !important; box-shadow: none !important; }
+/* Make sure the menus appear above most things */
+.react-select__menu { z-index: 999 !important; }
+
+
+/* If styling a button as a link, make it look like a link */
+.btn-link { padding: 0 !important; }
+.btn-link:focus { box-shadow: none !important; }
+
+
+/* Without this, dropdown menus are clipped by the responsive wrapper */
+.table-responsive {
+    /* 300px should accommodate most menus */
+    padding-bottom: 300px;
+    margin-bottom: -300px;
+}
+
+
+/**
+ * Styles for status pills.
+ */
+.status-pill {
+    position: relative;
+    border: 1px solid var(--bs-gray);
+    padding: .5rem 1rem;
+    text-align: center;
+    border-radius: 50rem;
+}
+.status-pill:before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    opacity: 0.065;
+    border-radius: 50rem;
+}
+.status-pill-title {
+    color: var(--bs-gray);
+}
+.status-pill-primary {
+    border-color: var(--bs-primary);
+    color: var(--bs-primary);
+}
+.status-pill-primary:before {
+    background-color: var(--bs-primary);
+}
+.status-pill-secondary {
+    border-color: var(--bs-secondary);
+    color: var(--bs-secondary);
+}
+.status-pill-secondary:before {
+    background-color: var(--bs-secondary);
+}
+.status-pill-success {
+    border-color: var(--bs-success);
+    color: var(--bs-success);
+}
+.status-pill-success:before {
+    background-color: var(--bs-success);
+}
+.status-pill-danger {
+    border-color: var(--bs-danger);
+    color: var(--bs-danger);
+}
+.status-pill-danger:before {
+    background-color: var(--bs-danger);
+}
+.status-pill-warning {
+    border-color: var(--bs-warning);
+    color: var(--bs-warning);
+}
+.status-pill-warning:before {
+    background-color: var(--bs-warning);
+}
+.status-pill-info {
+    border-color: var(--bs-info);
+    color: var(--bs-info);
+}
+.status-pill-info:before {
+    background-color: var(--bs-info);
+}
+.status-pill-muted {
+    border-color: var(--bs-gray);
+    color: var(--bs-gray);
+}
+.status-pill-muted:before {
+    background-color: var(--bs-light);
+}
+
+
+/**
+ * Styles for rendering pre elements in a modal.
+ */
+.modal pre {
+    background-color: var(--bs-dark);
+    color: var(--bs-light);
+    padding: 1rem;
+    max-height: 400px;
+    overflow: scroll;
+}
+
+
+/**
+ * Styles for the notifications container.
+ */
+.notifications-container {
+    position: fixed;
+    top: 0;
+    right: 0;
+    min-width: 350px;
+    z-index: 9999; /* This means notifications will appear above modals */
+    margin: 1rem;
+}
+.notifications-container .toast {
+    border-width: 3px;
+    margin-bottom: 1rem;
+}
+.notifications-container .toast:last-child {
+    margin-bottom: 0;
+}
+.notifications-container .toast-body {
+    max-height: 200px;
+    overflow: scroll;
+}
+
+
+/**
+ * Adjustments to tables containing resource representations.
+ */
+.resource-table th {
+    vertical-align: bottom;
+}
+.resource-table td {
+    vertical-align: middle;
+    white-space: nowrap;
+}
+.resource-table .progress {
+    height: auto;
+    font-size: 0.85rem;
+}
+.resource-table .progress-bar {
+    padding: 0.25rem 1rem;
+}
+.resource-table .overlay-trigger {
+    cursor: pointer;
+}
+/* The last column of a resource table is always an actions column
+   which should shrink to fit the content */
+.resource-table tr > td:last-child {
+    width: 1%;
+}
+
+
+/**
+ * Custom styles for the cluster-type cards.
+ */
+.cluster-type-select .card .img-fluid {
+    margin: 0 auto;
+    max-height: 120px;
+}
+.card-body > :last-child {
+    margin-bottom: 0;
+}
+.cluster-parameters-type .img-fluid {
+    max-height: 80px;
+}

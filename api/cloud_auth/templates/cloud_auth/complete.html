@@ -1,0 +1,18 @@
+{% extends "cloud_auth/base.html" %}
+
+
+{% block head_title %}Authentication successful{% endblock %}
+
+
+{% block content %}
+<div class="row">
+    <div class="col text-center">
+        <div class="alert d-inline-block alert-success mt-5" role="alert">
+            <h4 class="alert-heading">Authentication successful</h4>
+            <hr>
+            <p>You have successfully authenticated, but have not been redirected anywhere.</p>
+            <p class="mb-0">This may indicate a problem with the system that initiated the authentication.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

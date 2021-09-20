@@ -1,0 +1,23 @@
+asgiref==3.3.4
+certifi==2021.5.30
+cffi==1.14.5
+chardet==4.0.0
+cryptography==3.4.7
+Django==3.2.4
+django-settings-object @ git+https://github.com/cedadev/django-settings-object.git@2b66c0fc5eae92972df5210b4bc43f7d95ad9ceb
+djangorestframework==3.12.4
+docutils==0.17.1
+idna==2.10
+jasmin-ldap @ git+https://github.com/cedadev/jasmin-ldap.git@ad21e8f7d8d82e33e5bf48820bf5f9e630a53d8d
+ldap3==2.9
+pyasn1==0.4.8
+pycparser==2.20
+python-dateutil==2.8.1
+pytz==2021.1
+PyYAML==5.4.1
+rackit @ git+https://github.com/cedadev/rackit.git@8924cc6f3272b551c6c4b1776f9ba76e925a3d1a
+requests==2.25.1
+six==1.16.0
+sqlparse==0.4.1
+urllib3==1.26.5
+voluptuous==0.12.1

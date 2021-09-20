@@ -1,0 +1,14 @@
+apiVersion: v2
+description: Helm chart for deploying the JASMIN Cloud Portal.
+name: jasmin-cloud
+type: application
+# The version and appVersion are updated by the chart build script
+version: 0.1.0
+appVersion: main
+
+dependencies:
+  - name: tunnel-server
+    version: 0.1.0-dev.0.main.36
+    repository: oci://ghcr.io/stackhpc
+    alias: appProxy
+    condition: appProxy.enabled

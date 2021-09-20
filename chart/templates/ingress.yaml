@@ -1,0 +1,54 @@
+{{- define "jasmin-cloud.ingress.path" -}}
+{{- $context := index . 0 -}}
+{{- $path := index . 1 -}}
+{{- $component := index . 2 -}}
+{{- $serviceName := include "jasmin-cloud.componentname" (list $context $component) -}}
+{{- $newStyle := semverCompare ">=1.19-0" $context.Capabilities.KubeVersion.GitVersion -}}
+path: {{ $path }}
+{{- if $newStyle }}
+pathType: Prefix
+{{- end }}
+backend:
+  {{- if $newStyle }}
+  service:
+    name: {{ $serviceName }}
+    port:
+      number: 8080
+  {{- else }}
+  serviceName: {{ $serviceName }}
+  servicePort: 8080
+  {{- end }}
+{{- end -}}
+
+{{- if .Values.ingress.enabled -}}
+{{- if semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion -}}
+apiVersion: networking.k8s.io/v1
+{{- else if semverCompare ">=1.14-0" .Capabilities.KubeVersion.GitVersion -}}
+apiVersion: networking.k8s.io/v1beta1
+{{- else -}}
+apiVersion: extensions/v1beta1
+{{- end }}
+kind: Ingress
+metadata:
+  name: {{ include "jasmin-cloud.fullname" . }}
+  labels: {{ include "jasmin-cloud.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations: {{ toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.ingress.tlsSecretName }}
+  tls:
+    - hosts: [{{ .Values.ingress.host | quote }}]
+      secretName: {{ .Values.ingress.tlsSecretName }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.host | quote }}
+      http:
+        paths:
+          # Send the /api, /auth and /static paths to the api backend
+          - {{ include "jasmin-cloud.ingress.path" (list . "/api" "api") | indent 12 | trim }}
+          - {{ include "jasmin-cloud.ingress.path" (list . "/auth" "api") | indent 12 | trim }}
+          - {{ include "jasmin-cloud.ingress.path" (list . "/static" "api") | indent 12 | trim }}
+          # Send everything else to the ui backend
+          - {{ include "jasmin-cloud.ingress.path" (list . "/" "ui") | indent 12 | trim }}
+{{- end }}

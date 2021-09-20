@@ -52,10 +52,17 @@ coverage.xml
 # PyBuilder
 target/
 
-# pyenv version file
+# pyenv version file
 .python-version
 
 # Settings
-jasmin_cloud_site/settings.py
+api/jasmin_cloud_site/settings.py
 
 .vscode
+
+venv
+
+node_modules
+
+Chart.lock
+chart/charts
