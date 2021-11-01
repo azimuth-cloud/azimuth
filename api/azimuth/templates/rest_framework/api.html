@@ -1,10 +1,10 @@
 {% extends "rest_framework/base.html" %}
-{% load jasmin_cloud_tags %}
+{% load azimuth_tags %}
 
-{% block title %}{% if name %}{{ name }} | {% endif %}{% jasmin_cloud_current_cloud %} API{% endblock %}
+{% block title %}{% if name %}{{ name }} | {% endif %}{% azimuth_current_cloud %} API{% endblock %}
 
 {% block branding %}
-    <a class="navbar-brand" rel="nofollow" href="#">{% jasmin_cloud_current_cloud %} API</a>
+    <a class="navbar-brand" rel="nofollow" href="#">{% azimuth_current_cloud %} API</a>
 {% endblock %}
 
 {% block userlinks %}

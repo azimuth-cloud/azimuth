@@ -15,7 +15,7 @@ register = template.Library()
 
 
 @register.simple_tag()
-def jasmin_cloud_current_cloud():
+def azimuth_current_cloud():
     """
     Insert the name of the current cloud.
     """

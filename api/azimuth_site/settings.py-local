@@ -34,7 +34,7 @@ LOGGING = {
 INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'cloud_auth',
-    'jasmin_cloud',
+    'azimuth',
     'rest_framework',
 ]
 
@@ -45,10 +45,10 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'cloud_auth.middleware.SessionTokenMiddleware',
-    'jasmin_cloud.middleware.CleanupProviderMiddleware',
+    'azimuth.middleware.CleanupProviderMiddleware',
 ]
 
-ROOT_URLCONF = 'jasmin_cloud_site.urls'
+ROOT_URLCONF = 'azimuth_site.urls'
 
 TEMPLATES = [
     {
@@ -64,7 +64,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'jasmin_cloud_site.wsgi.application'
+WSGI_APPLICATION = 'azimuth_site.wsgi.application'
 
 
 # No databases
@@ -88,8 +88,8 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
 
 
 REST_FRAMEWORK = {
-    'VIEW_DESCRIPTION_FUNCTION': 'jasmin_cloud.views.get_view_description',
-    'DEFAULT_AUTHENTICATION_CLASSES': ['jasmin_cloud.authentication.TokenHeaderAuthentication'],
+    'VIEW_DESCRIPTION_FUNCTION': 'azimuth.views.get_view_description',
+    'DEFAULT_AUTHENTICATION_CLASSES': ['azimuth.authentication.TokenHeaderAuthentication'],
     'UNAUTHENTICATED_USER': None,
 }
 
@@ -110,7 +110,7 @@ CLOUD_AUTH = {
 }
 
 
-JASMIN_CLOUD = {
+AZIMUTH = {
     'AVAILABLE_CLOUDS': {
         'example': {
             'label': 'Example Cloud',
@@ -122,7 +122,7 @@ JASMIN_CLOUD = {
     # The cloud provider to use
     'PROVIDER': {
         # The provider factory to use (currently only OpenStack is supported)
-        'FACTORY': 'jasmin_cloud.provider.openstack.Provider',
+        'FACTORY': 'azimuth.provider.openstack.Provider',
         'PARAMS': {
             # OpenStack auth URL
             'AUTH_URL': 'https://keystone.cloud.example.com/v3',
@@ -191,7 +191,7 @@ JASMIN_CLOUD = {
     #             'NAME': 'CaaS Consul',
     #             'TYPE': 'Hashicorp Consul',
     #             'INPUTS': {
-    #                 'address': 'jasmin-cloud-consul-consul-server:8500',
+    #                 'address': 'azimuth-consul-server:8500',
     #             },
     #         },
     #     ],
@@ -235,6 +235,6 @@ JASMIN_CLOUD = {
     # However if you already have users' SSH keys in an external system, e.g. LDAP, you can implement
     # the key store interface to fetch them
     # 'SSH_KEY_STORE': {
-    #     'FACTORY': 'jasmin_cloud.keystore.provider.ProviderKeyStore',
+    #     'FACTORY': 'azimuth.keystore.provider.ProviderKeyStore',
     # },
 }

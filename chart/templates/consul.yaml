@@ -8,7 +8,7 @@
 apiVersion: charts.stackhpc.com/v1alpha1
 kind: Consul
 metadata:
-  name: {{ include "jasmin-cloud.componentname" (list . "consul") }}
-  labels: {{ include "jasmin-cloud.componentLabels" (list . "consul") | nindent 4 }}
+  name: {{ include "azimuth.componentname" (list . "consul") }}
+  labels: {{ include "azimuth.componentLabels" (list . "consul") | nindent 4 }}
 spec: {{ toYaml .Values.consul.spec | nindent 2 }}
 {{- end }}

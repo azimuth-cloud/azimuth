@@ -1,7 +1,7 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "jasmin-cloud.name" -}}
+{{- define "azimuth.name" -}}
 {{- default .Chart.Name .Values.nameOverride | lower | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
@@ -10,7 +10,7 @@ Create a default fully qualified name for a chart-level resource.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 If release name contains chart name it will be used as a full name.
 */}}
-{{- define "jasmin-cloud.fullname" -}}
+{{- define "azimuth.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | lower | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -26,35 +26,35 @@ If release name contains chart name it will be used as a full name.
 {{/*
 Create a fully qualified name for a component resource.
 */}}
-{{- define "jasmin-cloud.componentname" -}}
+{{- define "azimuth.componentname" -}}
 {{- $context := index . 0 }}
 {{- $componentName := index . 1 }}
-{{- $fullName := include "jasmin-cloud.fullname" $context }}
+{{- $fullName := include "azimuth.fullname" $context }}
 {{- printf "%s-%s" $fullName $componentName | lower | trunc 63 | trimSuffix "-" }}
 {{- end -}}
 
 {{/*
 Selector labels for a chart-level resource.
 */}}
-{{- define "jasmin-cloud.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "jasmin-cloud.name" . }}
+{{- define "azimuth.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "azimuth.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
 Selector labels for a component resource.
 */}}
-{{- define "jasmin-cloud.componentSelectorLabels" -}}
+{{- define "azimuth.componentSelectorLabels" -}}
 {{- $context := index . 0 }}
 {{- $componentName := index . 1 }}
-{{- include "jasmin-cloud.selectorLabels" $context }}
+{{- include "azimuth.selectorLabels" $context }}
 app.kubernetes.io/component: {{ $componentName }}
 {{- end -}}
 
 {{/*
 Common labels for all resources.
 */}}
-{{- define "jasmin-cloud.commonLabels" -}}
+{{- define "azimuth.commonLabels" -}}
 helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | lower | trunc 63 | trimSuffix "-" }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- if .Chart.AppVersion }}
@@ -65,17 +65,17 @@ app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{/*
 Labels for a chart-level resource.
 */}}
-{{- define "jasmin-cloud.labels" -}}
-{{ include "jasmin-cloud.commonLabels" . }}
-{{ include "jasmin-cloud.selectorLabels" . }}
+{{- define "azimuth.labels" -}}
+{{ include "azimuth.commonLabels" . }}
+{{ include "azimuth.selectorLabels" . }}
 {{- end }}
 
 {{/*
 Labels for a component resource.
 */}}
-{{- define "jasmin-cloud.componentLabels" -}}
-{{ include "jasmin-cloud.commonLabels" (index . 0) }}
-{{ include "jasmin-cloud.componentSelectorLabels" . }}
+{{- define "azimuth.componentLabels" -}}
+{{ include "azimuth.commonLabels" (index . 0) }}
+{{ include "azimuth.componentSelectorLabels" . }}
 {{- end -}}
 
 {{/*
@@ -85,8 +85,8 @@ This template may be used from dependencies and must still return the correct va
 In particular, this affects the top-level .Values and limits the checks that can be
 done. It also means the chart name must be hard-coded.
 */}}
-{{- define "jasmin-cloud.consulServerAddress" -}}
-{{- $name := "jasmin-cloud" }}
+{{- define "azimuth.consulServerAddress" -}}
+{{- $name := "azimuth" }}
 {{- $fullName := contains $name .Release.Name | ternary .Release.Name (printf "%s-%s" .Release.Name $name) -}}
 {{- $consulReleaseName := printf "%s-consul" $fullName | lower | trunc 63 | trimSuffix "-" -}}
 {{- printf "%s-consul-server:8500" $consulReleaseName -}}
@@ -95,7 +95,7 @@ done. It also means the chart name must be hard-coded.
 {{/*
 Tries to derive the app proxy base domain from the internal app proxy settings.
 */}}
-{{- define "jasmin-cloud.appProxyBaseDomain" -}}
+{{- define "azimuth.appProxyBaseDomain" -}}
 {{- if .Values.appProxy.enabled -}}
 {{- .Values.appProxy.proxy.baseDomain -}}
 {{- else -}}
@@ -111,7 +111,7 @@ the user to specify the host.
 
 In other cases, i.e. NodePort service or not enabled, fallback to the app proxy base domain.
 */}}
-{{- define "jasmin-cloud.appProxySSHDHost" -}}
+{{- define "azimuth.appProxySSHDHost" -}}
 {{- if not .Values.appProxy.enabled -}}
 {{- tpl .Values.apps.proxyBaseDomain . -}}
 {{- else if (eq .Values.appProxy.sshd.service.type "NodePort") -}}
@@ -130,7 +130,7 @@ If the internal app proxy is not enabled, use port 22.
 If the service is a NodePort service, use the specified node port.
 If the service is a LoadBalancer service, use the service port.
 */}}
-{{- define "jasmin-cloud.appProxySSHDPort" -}}
+{{- define "azimuth.appProxySSHDPort" -}}
 {{- if not .Values.appProxy.enabled -}}
 22
 {{- else if (eq .Values.appProxy.sshd.service.type "NodePort") -}}

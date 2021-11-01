@@ -1,5 +1,5 @@
 """
-Root URL configuration for the JASMIN Cloud API site.
+Root URL configuration for the Azimuth API.
 """
 
 from django.urls import path, include
@@ -19,6 +19,6 @@ urlpatterns = [
     # We can't use any of the /api URLs as they either require authentication
     # or don't accept use of the GET method
     path('_status/', status, name = 'status'),
-    path('api/', include('jasmin_cloud.urls', namespace = 'jasmin_cloud')),
+    path('api/', include('azimuth.urls', namespace = 'azimuth')),
     path('auth/', include('cloud_auth.urls', namespace = 'cloud_auth')),
 ]

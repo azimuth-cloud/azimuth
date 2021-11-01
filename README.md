@@ -1,6 +1,6 @@
-# jasmin-cloud
+# azimuth
 
-The `jasmin-cloud` project provides a portal for the administration of tenancies in an
+The Azimuth project provides a portal for the administration of tenancies in an
 [OpenStack](https://www.openstack.org/) cloud.
 
 It has two sub-components  - a REST API written in [Python](https://www.python.org/) using
@@ -13,16 +13,11 @@ are included in this repository.
 
 ## Using the Helm chart
 
-The Helm chart is stored in an OCI repository, which requires experimental features in
-Helm 3 to be enabled. See https://helm.sh/docs/topics/registries/ for more information.
-
-To see the available versions, please consult the repository on
-[GitHub packages](https://github.com/orgs/stackhpc/packages/container/package/jasmin-cloud-chart).
+A Helm repository is available for the project:
 
 ```sh
-helm chart pull ghcr.io/stackhpc/jasmin-cloud-chart:<version>
-helm chart export ghcr.io/stackhpc/jasmin-cloud-chart:<version>
-helm upgrade -i jasmin-cloud ./jasmin-cloud -f values.yaml
+helm repo add azimuth https://stackhpc.github.io/azimuth
+helm upgrade -i azimuth azimuth/azimuth -f values.yaml
 ```
 
 To see the available options, check the [chart's values.yaml](./chart/values.yaml).
@@ -32,8 +27,8 @@ To see the available options, check the [chart's values.yaml](./chart/values.yam
 First, check out the code:
 
 ```sh
-git clone https://github.com/stackhpc/jasmin-cloud.git
-cd jasmin-cloud
+git clone https://github.com/stackhpc/azimuth.git
+cd azimuth
 # Switch to the required branch
 ```
 
@@ -55,7 +50,7 @@ pip install -e ./api
 Install the local settings:
 
 ```sh
-cp api/jasmin_cloud_site/settings.py-local api/jasmin_cloud_site/settings.py
+cp api/azimuth_site/settings.py-local api/azimuth_site/settings.py
 ```
 
 Modify the settings to match your cloud, then run the development server:
@@ -86,6 +81,6 @@ Then start the development server:
 yarn --cwd ./ui serve 
 ```
 
-This will start the JASMIN Cloud UI at `http://localhost:3000`. The development server will
+This will start the Azimuth UI at `http://localhost:3000`. The development server will
 proxy API requests to `http://localhost:8000` so that the UI and API appear at the same
 address, as they will when deployed in production.

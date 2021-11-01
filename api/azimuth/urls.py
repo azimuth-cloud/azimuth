@@ -1,5 +1,5 @@
 """
-URL definitions for the ``jasmin_cloud`` Django app.
+URL definitions for the ``azimuth`` Django app.
 """
 
 from django.urls import path, include
@@ -7,7 +7,7 @@ from django.urls import path, include
 from . import views
 
 
-app_name = 'jasmin_cloud'
+app_name = 'azimuth'
 urlpatterns = [
     path('', views.cloud_info, name = 'cloud_info'),
     path('session/', views.session, name = 'session'),

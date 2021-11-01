@@ -56,7 +56,7 @@ target/
 .python-version
 
 # Settings
-api/jasmin_cloud_site/settings.py
+api/azimuth_site/settings.py
 
 .vscode
 

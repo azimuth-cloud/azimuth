@@ -3,7 +3,7 @@ fullnameOverride: ""
 
 api:
   image:
-    repository: ghcr.io/stackhpc/jasmin-cloud-api
+    repository: ghcr.io/stackhpc/azimuth-api
     pullPolicy: IfNotPresent
     tag: "{{ .Chart.AppVersion }}"
   imagePullSecrets: []
@@ -25,7 +25,7 @@ api:
 
 ui:
   image:
-    repository: ghcr.io/stackhpc/jasmin-cloud-ui
+    repository: ghcr.io/stackhpc/azimuth-ui
     pullPolicy: IfNotPresent
     tag: "{{ .Chart.AppVersion }}"
   imagePullSecrets: []
@@ -127,7 +127,7 @@ appProxy:
     # The base domain for the app proxy
     baseDomain:
     # By default, use the consul server for the internal Consul
-    consulServerAddress: "{{ include \"jasmin-cloud.consulServerAddress\" . }}"
+    consulServerAddress: "{{ include \"azimuth.consulServerAddress\" . }}"
 
 # Settings for apps
 # By default, this assumes that the internal app proxy is used
@@ -137,15 +137,15 @@ apps:
   enabled: false
   # The base domain for the app proxy
   # Defaults to the domain for the internal app proxy
-  proxyBaseDomain: "{{ include \"jasmin-cloud.appProxyBaseDomain\" . }}"
+  proxyBaseDomain: "{{ include \"azimuth.appProxyBaseDomain\" . }}"
   # The proxy SSHD host
   # By default it tries to infer the SSHD host for the internal app proxy
   # However it may sometimes be necessary to help the chart out, especially when
   # using LoadBalancer services
-  proxySSHDHost: "{{ include \"jasmin-cloud.appProxySSHDHost\" . }}"
+  proxySSHDHost: "{{ include \"azimuth.appProxySSHDHost\" . }}"
   # The proxy SSHD port
   # By default it attempts to infer the SSHD port for the internal app proxy
-  proxySSHDPort: "{{ include \"jasmin-cloud.appProxySSHDPort\" . }}"
+  proxySSHDPort: "{{ include \"azimuth.appProxySSHDPort\" . }}"
   # The URL of the post-deploy script to execute
   postDeployScriptUrl:
 
@@ -168,7 +168,7 @@ clusterEngine:
   awx:
     # The AWX or Ansible Tower URL
     # The URL is treated as a template when rendering resources
-    url: http://{{ include "jasmin-cloud.componentname" (list . "awx-service") }}
+    url: http://{{ include "azimuth.componentname" (list . "awx-service") }}
     # Whether to verify SSL with the AWX/Tower API
     verifySsl: true
     # The username to use for the AWX/Tower API
@@ -177,7 +177,7 @@ clusterEngine:
     # The name of a secret to get the AWX password from
     # This is treated as a template when rendering resources
     # By default, this will be the admin password secret for the internal instance
-    passwordSecretName: "{{ include \"jasmin-cloud.componentname\" (list . \"awx-admin-password\") }}"
+    passwordSecretName: "{{ include \"azimuth.componentname\" (list . \"awx-admin-password\") }}"
     # Indicates whether teams should be created automatically
     createTeams: true
     # Indicates whether automatically-created teams should be granted access
@@ -232,7 +232,7 @@ clusterEngine:
     consul:
       # The address, including port, of the Consul server to use
       # By default, use the internal Consul
-      address: "{{ include \"jasmin-cloud.consulServerAddress\" . }}"
+      address: "{{ include \"azimuth.consulServerAddress\" . }}"
 
 # Configuration for the internal AWX instance
 awx:
@@ -245,7 +245,7 @@ awx:
     garbage_collect_secrets: true
 
 # The SSH key store to use
-# The JASMIN Cloud Portal asks this store for the SSH key for a user
+# The portal asks this store for the SSH key for a user
 sshKeyStore:
   # The type of key store to use (provider, dummy and ldap are supported)
   type: provider

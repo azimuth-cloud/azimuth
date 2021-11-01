@@ -1,5 +1,5 @@
 """
-Django REST Framwork authentication backend for the jasmin_cloud app.
+Django REST Framwork authentication backend for the azimuth app.
 """
 
 import logging

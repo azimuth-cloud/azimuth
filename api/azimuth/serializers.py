@@ -117,52 +117,52 @@ class TenancySerializer(make_dto_serializer(dto.Tenancy)):
         if request:
             result.setdefault('links', {}).update({
                 'quotas': request.build_absolute_uri(
-                    reverse('jasmin_cloud:quotas', kwargs = {
+                    reverse('azimuth:quotas', kwargs = {
                         'tenant': obj.id,
                     })
                 ),
                 'images': request.build_absolute_uri(
-                    reverse('jasmin_cloud:images', kwargs = {
+                    reverse('azimuth:images', kwargs = {
                         'tenant': obj.id,
                     })
                 ),
                 'sizes': request.build_absolute_uri(
-                    reverse('jasmin_cloud:sizes', kwargs = {
+                    reverse('azimuth:sizes', kwargs = {
                         'tenant': obj.id,
                     })
                 ),
                 'volumes': request.build_absolute_uri(
-                    reverse('jasmin_cloud:volumes', kwargs = {
+                    reverse('azimuth:volumes', kwargs = {
                         'tenant': obj.id,
                     })
                 ),
                 'external_ips': request.build_absolute_uri(
-                    reverse('jasmin_cloud:external_ips', kwargs = {
+                    reverse('azimuth:external_ips', kwargs = {
                         'tenant': obj.id,
                     })
                 ),
                 'machines': request.build_absolute_uri(
-                    reverse('jasmin_cloud:machines', kwargs = {
+                    reverse('azimuth:machines', kwargs = {
                         'tenant': obj.id,
                     })
                 ),
                 'kubernetes_cluster_templates': request.build_absolute_uri(
-                    reverse('jasmin_cloud:kubernetes_cluster_templates', kwargs = {
+                    reverse('azimuth:kubernetes_cluster_templates', kwargs = {
                         'tenant': obj.id,
                     })
                 ),
                 'kubernetes_clusters': request.build_absolute_uri(
-                    reverse('jasmin_cloud:kubernetes_clusters', kwargs = {
+                    reverse('azimuth:kubernetes_clusters', kwargs = {
                         'tenant': obj.id,
                     })
                 ),
                 'cluster_types': request.build_absolute_uri(
-                    reverse('jasmin_cloud:cluster_types', kwargs = {
+                    reverse('azimuth:cluster_types', kwargs = {
                         'tenant': obj.id,
                     })
                 ),
                 'clusters': request.build_absolute_uri(
-                    reverse('jasmin_cloud:clusters', kwargs = {
+                    reverse('azimuth:clusters', kwargs = {
                         'tenant': obj.id,
                     })
                 ),
@@ -176,7 +176,7 @@ QuotaSerializer = make_dto_serializer(dto.Quota)
 class ImageRefSerializer(RefSerializer):
     def get_self_link(self, request, tenant, id):
         return request.build_absolute_uri(
-            reverse('jasmin_cloud:image_details', kwargs = {
+            reverse('azimuth:image_details', kwargs = {
                 'tenant': tenant,
                 'image': id,
             })
@@ -198,7 +198,7 @@ class ImageSerializer(
 class SizeRefSerializer(RefSerializer):
     def get_self_link(self, request, tenant, id):
         return request.build_absolute_uri(
-            reverse('jasmin_cloud:size_details', kwargs = {
+            reverse('azimuth:size_details', kwargs = {
                 'tenant': tenant,
                 'size': id,
             })
@@ -215,7 +215,7 @@ SizeSerializer = type(
 class VolumeRefSerializer(RefSerializer):
     def get_self_link(self, request, tenant, id):
         return request.build_absolute_uri(
-            reverse('jasmin_cloud:volume_details', kwargs = {
+            reverse('azimuth:volume_details', kwargs = {
                 'tenant': tenant,
                 'volume': id,
             })
@@ -225,7 +225,7 @@ class VolumeRefSerializer(RefSerializer):
 class MachineRefSerializer(RefSerializer):
     def get_self_link(self, request, tenant, id):
         return request.build_absolute_uri(
-            reverse('jasmin_cloud:machine_details', kwargs = {
+            reverse('azimuth:machine_details', kwargs = {
                 'tenant': tenant,
                 'machine': id,
             })
@@ -292,37 +292,37 @@ class MachineSerializer(
         if request and tenant:
             result.setdefault('links', {}).update({
                 'logs': request.build_absolute_uri(
-                    reverse('jasmin_cloud:machine_logs', kwargs = {
+                    reverse('azimuth:machine_logs', kwargs = {
                         'tenant': tenant,
                         'machine': obj.id,
                     })
                 ),
                 'start': request.build_absolute_uri(
-                    reverse('jasmin_cloud:machine_start', kwargs = {
+                    reverse('azimuth:machine_start', kwargs = {
                         'tenant': tenant,
                         'machine': obj.id,
                     })
                 ),
                 'stop': request.build_absolute_uri(
-                    reverse('jasmin_cloud:machine_stop', kwargs = {
+                    reverse('azimuth:machine_stop', kwargs = {
                         'tenant': tenant,
                         'machine': obj.id,
                     })
                 ),
                 'restart': request.build_absolute_uri(
-                    reverse('jasmin_cloud:machine_restart', kwargs = {
+                    reverse('azimuth:machine_restart', kwargs = {
                         'tenant': tenant,
                         'machine': obj.id,
                     })
                 ),
                 'console': request.build_absolute_uri(
-                    reverse('jasmin_cloud:machine_console', kwargs = {
+                    reverse('azimuth:machine_console', kwargs = {
                         'tenant': tenant,
                         'machine': obj.id,
                     })
                 ),
                 'firewall_rules': request.build_absolute_uri(
-                    reverse('jasmin_cloud:machine_firewall_rules', kwargs = {
+                    reverse('azimuth:machine_firewall_rules', kwargs = {
                         'tenant': tenant,
                         'machine': obj.id,
                     })
@@ -415,7 +415,7 @@ class ExternalIPSerializer(make_dto_serializer(dto.ExternalIp)):
         tenant = self.context.get('tenant')
         if request and tenant:
             result.setdefault('links', {})['self'] = request.build_absolute_uri(
-                reverse('jasmin_cloud:external_ip_details', kwargs = {
+                reverse('azimuth:external_ip_details', kwargs = {
                     'tenant': tenant,
                     'ip': obj.id,
                 })
@@ -426,7 +426,7 @@ class ExternalIPSerializer(make_dto_serializer(dto.ExternalIp)):
 class KubernetesClusterTemplateRefSerializer(RefSerializer):
     def get_self_link(self, request, tenant, id):
         return request.build_absolute_uri(
-            reverse('jasmin_cloud:kubernetes_cluster_template_details', kwargs = {
+            reverse('azimuth:kubernetes_cluster_template_details', kwargs = {
                 'tenant': tenant,
                 'template': id,
             })
@@ -479,14 +479,14 @@ class KubernetesClusterSerializer(
         if request and tenant:
             result.setdefault('links', {}).update({
                 'self': request.build_absolute_uri(
-                    reverse('jasmin_cloud:kubernetes_cluster_details', kwargs = {
+                    reverse('azimuth:kubernetes_cluster_details', kwargs = {
                         'tenant': tenant,
                         'cluster': obj.id,
                     })
                 ),
                 'kubeconfig': request.build_absolute_uri(
                     reverse(
-                        'jasmin_cloud:kubernetes_cluster_generate_kubeconfig',
+                        'azimuth:kubernetes_cluster_generate_kubeconfig',
                         kwargs = {
                             'tenant': tenant,
                             'cluster': obj.id,
@@ -548,7 +548,7 @@ class ClusterTypeSerializer(make_dto_serializer(dto.ClusterType)):
         tenant = self.context.get('tenant')
         if request and tenant:
             result.setdefault('links', {})['self'] = request.build_absolute_uri(
-                reverse('jasmin_cloud:cluster_type_details', kwargs = {
+                reverse('azimuth:cluster_type_details', kwargs = {
                     'tenant': tenant,
                     'cluster_type': obj.name,
                 })
@@ -567,13 +567,13 @@ class ClusterSerializer(make_dto_serializer(dto.Cluster)):
         if request and tenant:
             result.setdefault('links', {}).update({
                 'self': request.build_absolute_uri(
-                    reverse('jasmin_cloud:cluster_details', kwargs = {
+                    reverse('azimuth:cluster_details', kwargs = {
                         'tenant': tenant,
                         'cluster': obj.id,
                     })
                 ),
                 'patch': request.build_absolute_uri(
-                    reverse('jasmin_cloud:cluster_patch', kwargs = {
+                    reverse('azimuth:cluster_patch', kwargs = {
                         'tenant': tenant,
                         'cluster': obj.id,
                     })

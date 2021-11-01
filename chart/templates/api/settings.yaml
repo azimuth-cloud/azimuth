@@ -8,8 +8,8 @@
 apiVersion: v1
 kind: Secret
 metadata:
-  name: {{ include "jasmin-cloud.componentname" (list . "api") }}
-  labels: {{ include "jasmin-cloud.componentLabels" (list . "api") | nindent 4 }}
+  name: {{ include "azimuth.componentname" (list . "api") }}
+  labels: {{ include "azimuth.componentLabels" (list . "api") | nindent 4 }}
 type: Opaque
 stringData:
   01-django.yaml: |
@@ -18,7 +18,7 @@ stringData:
     CSRF_COOKIE_SECURE: {{ $settings.secureCookies }}
     SESSION_COOKIE_SECURE: {{ $settings.secureCookies }}
   02-cloud-common.yaml: |
-    JASMIN_CLOUD:
+    AZIMUTH:
       AVAILABLE_CLOUDS:
         {{- range $settings.availableClouds }}
         {{ .name }}:
@@ -43,10 +43,10 @@ stringData:
         {{- fail (printf "Unrecognised authenticator '%s'" $authenticator.type) }}
         {{- end }}
   04-cloud-provider.yaml: |
-    JASMIN_CLOUD:
+    AZIMUTH:
       PROVIDER:
         {{- if (eq $provider.type "openstack") }}
-        FACTORY: jasmin_cloud.provider.openstack.Provider
+        FACTORY: azimuth.provider.openstack.Provider
         PARAMS:
           AUTH_URL: {{ $provider.openstack.authUrl }}
           DOMAIN: {{ $provider.openstack.domain }}
@@ -68,7 +68,7 @@ stringData:
         {{- end }}
 {{- if (or $appProxy.enabled $apps.enabled) }}
   05-app-proxy.yaml: |
-    JASMIN_CLOUD:
+    AZIMUTH:
       APPS:
         ENABLED: true
         PROXY_BASE_DOMAIN: {{ tpl $apps.proxyBaseDomain . | quote }}
@@ -79,16 +79,16 @@ stringData:
         {{- end }}
 {{- end }}
   06-ssh-key-store.yaml: |
-    JASMIN_CLOUD:
+    AZIMUTH:
       SSH_KEY_STORE:
         {{- if (eq $keyStore.type "provider") }}
-        FACTORY: jasmin_cloud.keystore.provider.ProviderKeyStore
+        FACTORY: azimuth.keystore.provider.ProviderKeyStore
         {{- else if (eq $keyStore.type "dummy") }}
-        FACTORY: jasmin_cloud.keystore.dummy.DummyKeyStore
+        FACTORY: azimuth.keystore.dummy.DummyKeyStore
         PARAMS:
           KEY: {{ $keyStore.dummy.key | required "No key specified" }}
         {{- else if (eq $keyStore.type "ldap") }}
-        FACTORY: jasmin_cloud.keystore.ldap.LdapKeyStore
+        FACTORY: azimuth.keystore.ldap.LdapKeyStore
         PARAMS:
           PRIMARY: {{ $keyStore.ldap.primary }}
           REPLICAS: {{ toYaml $keyStore.ldap.replicas | nindent 8 }}
@@ -99,7 +99,7 @@ stringData:
 {{- if $clusterEngine.enabled }}
 {{- if (eq $clusterEngine.type "awx") }}
   07-awx.yaml: |
-    JASMIN_CLOUD:
+    AZIMUTH:
       AWX:
         ENABLED: true
         URL: {{ tpl $clusterEngine.awx.url . | quote }}
@@ -149,9 +149,9 @@ stringData:
   08-awx-passwords.py: |
     import os
     # Read the AWX password from an environment variable that is populated from the specified secret
-    JASMIN_CLOUD['AWX']['PASSWORD'] = os.environ['AWX_PASSWORD']
+    AZIMUTH['AWX']['PASSWORD'] = os.environ['AWX_PASSWORD']
     if 'AWX_ADMIN_PASSWORD' in os.environ:
-        JASMIN_CLOUD['AWX']['ADMIN_PASSWORD'] = os.environ['AWX_ADMIN_PASSWORD']
+        AZIMUTH['AWX']['ADMIN_PASSWORD'] = os.environ['AWX_ADMIN_PASSWORD']
 {{- else }}
 {{- fail (printf "Unsupported cluster engine '%s'" $clusterEngine.type) }}
 {{- end }}

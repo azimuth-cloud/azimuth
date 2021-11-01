@@ -1,5 +1,5 @@
 """
-Base definitions for the ``jasmin_cloud.keystore`` package.
+Base definitions for the ``azimuth.keystore`` package.
 """
 
 from .errors import UnsupportedOperation

@@ -1,6 +1,6 @@
 apiVersion: v2
-description: Helm chart for deploying the JASMIN Cloud Portal.
-name: jasmin-cloud
+description: Helm chart for deploying the Azimuth Portal.
+name: azimuth
 type: application
 # The version and appVersion are updated by the chart build script
 version: 0.1.0

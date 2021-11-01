@@ -543,7 +543,7 @@ class ScopedSession(base.ScopedSession):
         images = list(
             image
             for image in self._connection.image.images.all(status = 'active')
-            if not int(getattr(image, 'jasmin_cluster_image', '0'))
+            if not int(getattr(image, 'azimuth_cluster_image', '0'))
         )
         self._log('Found %s images', len(images))
         return tuple(self._from_api_image(i) for i in images)

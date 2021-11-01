@@ -4,8 +4,8 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "jasmin-cloud.componentname" (list . $component) }}
-  labels: {{ include "jasmin-cloud.componentLabels" (list . $component) | nindent 4 }}
+  name: {{ include "azimuth.componentname" (list . $component) }}
+  labels: {{ include "azimuth.componentLabels" (list . $component) | nindent 4 }}
   annotations:
     # Include annotations to make this job a hook
     "helm.sh/hook": post-install,post-upgrade
@@ -13,7 +13,7 @@ metadata:
 spec:
   template:
     metadata:
-      labels: {{ include "jasmin-cloud.componentSelectorLabels" (list . $component) | nindent 8 }}
+      labels: {{ include "azimuth.componentSelectorLabels" (list . $component) | nindent 8 }}
     spec:
       restartPolicy: OnFailure
       {{- with .Values.api.imagePullSecrets }}
@@ -57,7 +57,7 @@ spec:
       volumes:
         - name: runtime-settings
           secret:
-            secretName: {{ include "jasmin-cloud.componentname" (list . "api") }}
+            secretName: {{ include "azimuth.componentname" (list . "api") }}
         - name: tmp
           emptyDir: {}
 {{- end }}

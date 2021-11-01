@@ -20,7 +20,7 @@ TEMPLATES = [
 INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'cloud_auth',
-    'jasmin_cloud',
+    'azimuth',
     'rest_framework',
 ]
 
@@ -31,19 +31,19 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'cloud_auth.middleware.SessionTokenMiddleware',
-    'jasmin_cloud.middleware.CleanupProviderMiddleware',
+    'azimuth.middleware.CleanupProviderMiddleware',
 ]
 
-ROOT_URLCONF = 'jasmin_cloud_site.urls'
+ROOT_URLCONF = 'azimuth_site.urls'
 
-WSGI_APPLICATION = 'jasmin_cloud_site.wsgi.application'
+WSGI_APPLICATION = 'azimuth_site.wsgi.application'
 
 # Use cookie sessions so that we don't need a database
 SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
 
 REST_FRAMEWORK = {
-    'VIEW_DESCRIPTION_FUNCTION': 'jasmin_cloud.views.get_view_description',
-    'DEFAULT_AUTHENTICATION_CLASSES': ['jasmin_cloud.authentication.TokenHeaderAuthentication'],
+    'VIEW_DESCRIPTION_FUNCTION': 'azimuth.views.get_view_description',
+    'DEFAULT_AUTHENTICATION_CLASSES': ['azimuth.authentication.TokenHeaderAuthentication'],
     'UNAUTHENTICATED_USER': None,
 }
 

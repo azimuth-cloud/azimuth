@@ -1,8 +1,3 @@
-#####
-## Docker image for the JASMIN Cloud API
-#####
-
-
 FROM python:3.9
 
 # Create the user that will be used to run the app
@@ -58,4 +53,4 @@ RUN django-admin collectstatic
 EXPOSE 8080
 USER $APP_UID
 ENTRYPOINT ["tini", "-g", "--"]
-CMD ["gunicorn", "--config", "/etc/gunicorn/conf.py", "jasmin_cloud_site.wsgi:application"]
+CMD ["gunicorn", "--config", "/etc/gunicorn/conf.py", "azimuth_site.wsgi:application"]

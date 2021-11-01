@@ -1,5 +1,5 @@
 """
-Settings helpers for the ``jasmin_cloud`` Django app.
+Settings helpers for the ``azimuth`` Django app.
 """
 
 from settings_object import (
@@ -84,7 +84,7 @@ class ProviderSetting(ObjectFactorySetting):
             instance.AWX.ENABLED
         ):
             provider['PARAMS']['CLUSTER_ENGINE'] = dict(
-                FACTORY = 'jasmin_cloud.provider.cluster_engine.awx.Engine',
+                FACTORY = 'azimuth.provider.cluster_engine.awx.Engine',
                 PARAMS = dict(
                     URL = instance.AWX.URL,
                     USERNAME = instance.AWX.USERNAME,
@@ -120,9 +120,9 @@ class AppsSettings(SettingsObject):
     )
 
 
-class JasminCloudSettings(SettingsObject):
+class AzimuthSettings(SettingsObject):
     """
-    Settings object for the ``JASMIN_CLOUD`` setting.
+    Settings object for the ``AZIMUTH`` setting.
     """
     #: The name of the header containing the cloud token
     TOKEN_HEADER = Setting(default = 'HTTP_X_CLOUD_TOKEN')
@@ -134,7 +134,7 @@ class JasminCloudSettings(SettingsObject):
     SSH_KEY_STORE = ObjectFactorySetting(
         # By default, use functionality from the provider to store SSH keys
         default = dict(
-            FACTORY = 'jasmin_cloud.keystore.provider.ProviderKeyStore',
+            FACTORY = 'azimuth.keystore.provider.ProviderKeyStore',
         )
     )
     #: An iterable of allowed SSH key types
@@ -166,4 +166,4 @@ class JasminCloudSettings(SettingsObject):
     CURRENT_CLOUD = Setting()
 
 
-cloud_settings = JasminCloudSettings('JASMIN_CLOUD')
+cloud_settings = AzimuthSettings('AZIMUTH')

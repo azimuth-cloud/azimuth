@@ -148,7 +148,7 @@ def cloud_info(request):
         'available_clouds': cloud_settings.AVAILABLE_CLOUDS,
         'current_cloud': cloud_settings.CURRENT_CLOUD,
         'links': {
-            'session': request.build_absolute_uri(reverse('jasmin_cloud:session'))
+            'session': request.build_absolute_uri(reverse('azimuth:session'))
         }
     })
 
@@ -168,8 +168,8 @@ def session(request):
             supports_apps = bool(cloud_settings.APPS.ENABLED),
         ),
         'links': {
-            'ssh_public_key': request.build_absolute_uri(reverse('jasmin_cloud:ssh_public_key')),
-            'tenancies': request.build_absolute_uri(reverse('jasmin_cloud:tenancies')),
+            'ssh_public_key': request.build_absolute_uri(reverse('azimuth:ssh_public_key')),
+            'tenancies': request.build_absolute_uri(reverse('azimuth:tenancies')),
         }
     })
 

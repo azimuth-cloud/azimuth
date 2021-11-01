@@ -1,7 +1,3 @@
-#####
-## Image for running the JASMIN Cloud UI
-#####
-
 ##
 ## Build stage
 ##
