@@ -5,7 +5,7 @@
 ##
 ## Build stage
 ##
-FROM node AS build
+FROM node:lts AS build
 
 # Install the dependencies separately using only the required files
 # This allows better use of the build cache

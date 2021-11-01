@@ -3,7 +3,7 @@
 #####
 
 
-FROM python:3.9.5
+FROM python:3.9
 
 # Create the user that will be used to run the app
 ENV APP_UID 1001
@@ -29,9 +29,9 @@ ENV PYTHONUNBUFFERED 1
 # Install gunicorn as the WSGI server, whitenoise to handle static files and
 # django-flexi-settings for smart handling of settings
 RUN pip install --no-cache-dir \
-      'gunicorn==20.0.4' \
-      'whitenoise==5.2.0' \
-      'git+https://github.com/stackhpc/django-flexi-settings.git@9540ccdaff70b075658bfe5550e5b3626d5e95cd#egg=django_flexi_settings'
+      'gunicorn==20.1.0' \
+      'whitenoise==5.3.0' \
+      'git+https://github.com/stackhpc/django-flexi-settings.git@079359cc1e2d380a15ae6149ebffbcdae8094276#egg=django_flexi_settings'
 
 # Install Gunicorn config
 COPY ./etc/gunicorn /etc/gunicorn
