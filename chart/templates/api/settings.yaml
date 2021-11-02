@@ -1,7 +1,6 @@
 {{- $settings := .Values.settings -}}
 {{- $authenticator := .Values.authenticator -}}
 {{- $provider := .Values.provider -}}
-{{- $appProxy := .Values.appProxy -}}
 {{- $apps := .Values.apps -}}
 {{- $clusterEngine := .Values.clusterEngine -}}
 {{- $keyStore := .Values.sshKeyStore -}}
@@ -66,14 +65,14 @@ stringData:
         {{- else }}
         {{- fail (printf "Unrecognised cloud provider '%s'" $provider.type) }}
         {{- end }}
-{{- if (or $appProxy.enabled $apps.enabled) }}
+{{- if .Values.tags.apps }}
   05-app-proxy.yaml: |
     AZIMUTH:
       APPS:
         ENABLED: true
-        PROXY_BASE_DOMAIN: {{ tpl $apps.proxyBaseDomain . | quote }}
-        PROXY_SSHD_HOST: {{ tpl $apps.proxySSHDHost . | quote }}
-        PROXY_SSHD_PORT: {{ tpl (toString $apps.proxySSHDPort) . | quote }}
+        PROXY_BASE_DOMAIN: {{ tpl $apps.baseDomain . | quote }}
+        PROXY_SSHD_HOST: {{ tpl $apps.sshdHost . | quote }}
+        PROXY_SSHD_PORT: {{ tpl (toString $apps.sshdPort) . | quote }}
         {{- with $apps.postDeployScriptUrl }}
         POST_DEPLOY_SCRIPT_URL: {{ . | quote }}
         {{- end }}
@@ -96,7 +95,7 @@ stringData:
         {{- else }}
         {{- fail (printf "Unrecognised key store '%s'" $keyStore.type) }}
         {{- end }}
-{{- if $clusterEngine.enabled }}
+{{- if .Values.tags.clusters }}
 {{- if (eq $clusterEngine.type "awx") }}
   07-awx.yaml: |
     AZIMUTH:

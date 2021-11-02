@@ -29,7 +29,7 @@ spec:
       containers:
         - name: {{ $component }}
           securityContext: {{ toYaml $values.securityContext | nindent 12 }}
-          image: {{ printf "%s:%s" $values.image.repository (tpl $values.image.tag .) }}
+          image: {{ printf "%s:%s" $values.image.repository (default .Chart.AppVersion $values.image.tag) }}
           imagePullPolicy: {{ $values.image.pullPolicy }}
           ports:
             - name: http

@@ -1,33 +1,5 @@
-{{- define "azimuth.ingress.path" -}}
-{{- $context := index . 0 -}}
-{{- $path := index . 1 -}}
-{{- $component := index . 2 -}}
-{{- $serviceName := include "azimuth.componentname" (list $context $component) -}}
-{{- $newStyle := semverCompare ">=1.19-0" $context.Capabilities.KubeVersion.GitVersion -}}
-path: {{ $path }}
-{{- if $newStyle }}
-pathType: Prefix
-{{- end }}
-backend:
-  {{- if $newStyle }}
-  service:
-    name: {{ $serviceName }}
-    port:
-      number: 8080
-  {{- else }}
-  serviceName: {{ $serviceName }}
-  servicePort: 8080
-  {{- end }}
-{{- end -}}
-
 {{- if .Values.ingress.enabled -}}
-{{- if semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion -}}
 apiVersion: networking.k8s.io/v1
-{{- else if semverCompare ">=1.14-0" .Capabilities.KubeVersion.GitVersion -}}
-apiVersion: networking.k8s.io/v1beta1
-{{- else -}}
-apiVersion: extensions/v1beta1
-{{- end }}
 kind: Ingress
 metadata:
   name: {{ include "azimuth.fullname" . }}
@@ -36,19 +8,47 @@ metadata:
   annotations: {{ toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  {{- if .Values.ingress.tlsSecretName }}
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- if .Values.ingress.tls.enabled }}
   tls:
-    - hosts: [{{ .Values.ingress.host | quote }}]
-      secretName: {{ .Values.ingress.tlsSecretName }}
+    - hosts:
+        - {{ .Values.ingress.host | quote }}
+      secretName: {{ tpl .Values.ingress.tls.secretName . }}
   {{- end }}
   rules:
     - host: {{ .Values.ingress.host | quote }}
       http:
         paths:
-          # Send the /api, /auth and /static paths to the api backend
-          - {{ include "azimuth.ingress.path" (list . "/api" "api") | indent 12 | trim }}
-          - {{ include "azimuth.ingress.path" (list . "/auth" "api") | indent 12 | trim }}
-          - {{ include "azimuth.ingress.path" (list . "/static" "api") | indent 12 | trim }}
-          # Send everything else to the ui backend
-          - {{ include "azimuth.ingress.path" (list . "/" "ui") | indent 12 | trim }}
+          # Send the /api, /auth and /static paths to the api
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "azimuth.componentname" (list . "api") }}
+                port:
+                  name: http
+          - path: /auth
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "azimuth.componentname" (list . "api") }}
+                port:
+                  name: http
+          - path: /static
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "azimuth.componentname" (list . "api") }}
+                port:
+                  name: http
+          # Send everything else to the ui
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "azimuth.componentname" (list . "ui") }}
+                port:
+                  name: http
 {{- end }}

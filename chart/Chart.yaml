@@ -7,8 +7,16 @@ version: 0.1.0
 appVersion: main
 
 dependencies:
-  - name: tunnel-server
-    version: 0.1.0-dev.0.main.36
-    repository: oci://ghcr.io/stackhpc
-    alias: appProxy
-    condition: appProxy.enabled
+  - name: consul
+    version: ~0.35.0
+    repository: https://helm.releases.hashicorp.com
+    # Consul is required when either apps or clusters are enabled unless specifically disabled
+    condition: consul.enabled
+    tags: [apps, clusters]
+
+  - name: zenith-server
+    version: 0.1.0-dev.0.main.70
+    repository: https://stackhpc.github.io/zenith
+    # Zenith is required when apps are enabled unless specifically disabled
+    condition: zenith.enabled
+    tags: [apps]

@@ -1,6 +1,6 @@
 {{- $component := "createawxresources" -}}
 {{- $clusterEngine := .Values.clusterEngine -}}
-{{- if (and $clusterEngine.enabled (eq $clusterEngine.type "awx") $clusterEngine.awx.createResources) }}
+{{- if (and .Values.tags.clusters (eq $clusterEngine.type "awx") $clusterEngine.awx.createResources) }}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -25,7 +25,9 @@ spec:
           securityContext: {{ toYaml .Values.api.securityContext | nindent 12 }}
           image: {{ printf "%s:%s" .Values.api.image.repository (tpl .Values.api.image.tag .) }}
           imagePullPolicy: {{ .Values.api.image.pullPolicy }}
-          command: [django-admin, createawxresources]
+          command:
+            - django-admin
+            - createawxresources
           env:
             - name: AWX_PASSWORD
               valueFrom:

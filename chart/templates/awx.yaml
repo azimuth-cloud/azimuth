@@ -1,4 +1,4 @@
-{{- if (and .Values.clusterEngine.enabled (eq .Values.clusterEngine.type "awx") .Values.awx.enabled) }}
+{{- if (and .Values.tags.clusters (eq .Values.clusterEngine.type "awx") .Values.awx.enabled) }}
 apiVersion: awx.ansible.com/v1beta1
 kind: AWX
 metadata:

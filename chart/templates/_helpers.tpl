@@ -85,59 +85,58 @@ This template may be used from dependencies and must still return the correct va
 In particular, this affects the top-level .Values and limits the checks that can be
 done. It also means the chart name must be hard-coded.
 */}}
-{{- define "azimuth.consulServerAddress" -}}
+{{- define "azimuth.consul.address" -}}
 {{- $name := "azimuth" }}
 {{- $fullName := contains $name .Release.Name | ternary .Release.Name (printf "%s-%s" .Release.Name $name) -}}
-{{- $consulReleaseName := printf "%s-consul" $fullName | lower | trunc 63 | trimSuffix "-" -}}
-{{- printf "%s-consul-server:8500" $consulReleaseName -}}
+{{- printf "%s-consul-server" $fullName -}}
 {{- end -}}
 
 {{/*
-Tries to derive the app proxy base domain from the internal app proxy settings.
+Tries to derive the app proxy base domain from the internal Zenith settings.
 */}}
-{{- define "azimuth.appProxyBaseDomain" -}}
-{{- if .Values.appProxy.enabled -}}
-{{- .Values.appProxy.proxy.baseDomain -}}
+{{- define "azimuth.apps.baseDomain" -}}
+{{- if dig "enabled" true .Values.zenith -}}
+{{- .Values.zenith.sync.config.kubernetes.ingress.baseDomain -}}
 {{- else -}}
-{{- fail "apps.proxyBaseDomain is required when appProxy.enabled is false" -}}
+{{- fail "apps.baseDomain is required when zenith.enabled is false" -}}
 {{- end -}}
 {{- end -}}
 
 {{/*
-Tries to derive the SSHD host from the app proxy settings.
+Tries to derive the SSHD host from the internal Zenith settings.
 
 If the service is a LoadBalancer service, use the static IP if given or force
 the user to specify the host.
 
 In other cases, i.e. NodePort service or not enabled, fallback to the app proxy base domain.
 */}}
-{{- define "azimuth.appProxySSHDHost" -}}
-{{- if not .Values.appProxy.enabled -}}
-{{- tpl .Values.apps.proxyBaseDomain . -}}
-{{- else if (eq .Values.appProxy.sshd.service.type "NodePort") -}}
-{{- tpl .Values.apps.proxyBaseDomain . -}}
-{{- else if (eq .Values.appProxy.sshd.service.type "LoadBalancer") -}}
-{{- .Values.appProxy.sshd.service.loadBalancerIP | required "You must specify either appProxy.sshd.service.loadBalancerIP or apps.proxySSHDHost" -}}
+{{- define "azimuth.apps.sshdHost" -}}
+{{- if not (dig "enabled" true .Values.zenith) -}}
+{{- tpl .Values.apps.baseDomain . -}}
+{{- else if (eq .Values.zenith.sshd.service.type "NodePort") -}}
+{{- tpl .Values.apps.baseDomain . -}}
+{{- else if (eq .Values.zenith.sshd.service.type "LoadBalancer") -}}
+{{- .Values.zenith.sshd.service.loadBalancerIP | required "You must specify either zenith.sshd.service.loadBalancerIP or apps.sshdHost" -}}
 {{- else -}}
-{{- fail "App proxy SSHD service type must be one of NodePort or LoadBalancer" -}}
+{{- fail "zenith.sshd.service.type must be one of NodePort or LoadBalancer" -}}
 {{- end -}}
 {{- end -}}
 
 {{/*
-Tries to derive the SSHD port from the app proxy settings.
+Tries to derive the SSHD port from the internal Zenith settings.
 
-If the internal app proxy is not enabled, use port 22.
+If the internal Zenith is not enabled, use port 22.
 If the service is a NodePort service, use the specified node port.
 If the service is a LoadBalancer service, use the service port.
 */}}
-{{- define "azimuth.appProxySSHDPort" -}}
-{{- if not .Values.appProxy.enabled -}}
+{{- define "azimuth.apps.sshdPort" -}}
+{{- if not (dig "enabled" true .Values.zenith) -}}
 22
-{{- else if (eq .Values.appProxy.sshd.service.type "NodePort") -}}
-{{- .Values.appProxy.sshd.service.nodePort -}}
-{{- else if (eq .Values.appProxy.sshd.service.type "LoadBalancer") -}}
-{{- .Values.appProxy.sshd.service.port -}}
+{{- else if (eq .Values.zenith.sshd.service.type "NodePort") -}}
+{{- .Values.zenith.sshd.service.nodePort -}}
+{{- else if (eq .Values.zenith.sshd.service.type "LoadBalancer") -}}
+{{- .Values.zenith.sshd.service.port -}}
 {{- else -}}
-{{- fail "App proxy SSHD service type must be one of NodePort or LoadBalancer" -}}
+{{- fail "zenith.sshd.service.type must be one of NodePort or LoadBalancer" -}}
 {{- end -}}
 {{- end -}}

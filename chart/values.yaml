@@ -1,11 +1,18 @@
 nameOverride: ""
 fullnameOverride: ""
 
+# Tags for optional features
+tags:
+  # Setting this tag to true enables apps via a Zenith app proxy
+  apps: false
+  # Setting this tag to true enables the Cluster-as-a-Service
+  clusters: false
+
 api:
   image:
     repository: ghcr.io/stackhpc/azimuth-api
     pullPolicy: IfNotPresent
-    tag: "{{ .Chart.AppVersion }}"
+    tag: # Defaults to the chart appVersion
   imagePullSecrets: []
   replicaCount: 1
   podAnnotations: {}
@@ -27,7 +34,7 @@ ui:
   image:
     repository: ghcr.io/stackhpc/azimuth-ui
     pullPolicy: IfNotPresent
-    tag: "{{ .Chart.AppVersion }}"
+    tag: # Defaults to the chart appVersion
   imagePullSecrets: []
   replicaCount: 1
   podAnnotations: {}
@@ -49,10 +56,12 @@ ingress:
   enabled: false
   host: cloud.example.local
   annotations: {}
-    # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
-  # TLS is enabled if this is given
-  tlsSecretName:
+  className:
+  tls:
+    # Indicates if TLS should be enabled
+    enabled: false
+    # The name of the secret containing the certificate, if TLS is enabled
+    secretName: "{{ include \"azimuth.fullname\" . }}-tls"
 
 settings:
   # The Django secret key
@@ -115,52 +124,47 @@ provider:
     # Defaults to 192.168.3.0/24 if not given, which should be OK for most circumstances
     internalNetCidr:
 
-# Settings for the internal app proxy, used to provide user access to apps
-appProxy:
-  # Whether the app proxy should be deployed or not
-  enabled: false
-  # Prevent the tunnel-proxy chart from deploy it's own Consul
+# Configuration for the internal Consul instance
+# See https://www.consul.io/docs/k8s/helm
+consul: {}
+  # Set this to disable the internal Consul instance
+  # enabled: false
+
+# Settings for the internal Zenith instance, used to provide user access to apps
+zenith:
+  # Set this to disable the internal Zenith instance
+  # enabled: false
+  # Prevent Zenith from deploying it's own Consul
   # We will deploy our own as we want to use it in other places as well
   consul:
     enabled: false
-  proxy:
-    # The base domain for the app proxy
-    baseDomain:
-    # By default, use the consul server for the internal Consul
-    consulServerAddress: "{{ include \"azimuth.consulServerAddress\" . }}"
+  sync:
+    config:
+      consul:
+        address: "{{ include \"azimuth.consul.address\" . }}"
+      kubernetes:
+        ingress:
+          baseDomain:
 
 # Settings for apps
 # By default, this assumes that the internal app proxy is used
 apps:
-  # Determines whether apps are enabled or not
-  # If the internal app proxy is enabled, this is automatically true
-  enabled: false
   # The base domain for the app proxy
   # Defaults to the domain for the internal app proxy
-  proxyBaseDomain: "{{ include \"azimuth.appProxyBaseDomain\" . }}"
+  baseDomain: "{{ include \"azimuth.apps.baseDomain\" . }}"
   # The proxy SSHD host
   # By default it tries to infer the SSHD host for the internal app proxy
   # However it may sometimes be necessary to help the chart out, especially when
   # using LoadBalancer services
-  proxySSHDHost: "{{ include \"azimuth.appProxySSHDHost\" . }}"
+  sshdHost: "{{ include \"azimuth.apps.sshdHost\" . }}"
   # The proxy SSHD port
   # By default it attempts to infer the SSHD port for the internal app proxy
-  proxySSHDPort: "{{ include \"azimuth.appProxySSHDPort\" . }}"
+  sshdPort: "{{ include \"azimuth.apps.sshdPort\" . }}"
   # The URL of the post-deploy script to execute
   postDeployScriptUrl:
 
-# Configuration for the internal Consul instance
-consul:
-  # Indicates whether the internal Consul instance should be created
-  # This only applies if Consul is required for a feature that is enabled, e.g.
-  # the app proxy or as a Terraform backend for the cluster engine
-  enabled: true
-  spec: {}
-
 # The cluster engine to use for Cluster-as-a-Service support
 clusterEngine:
-  # Whether the cluster engine should be enabled or not
-  enabled: false
   # The type of cluster engine to use (currently only AWX is supported)
   type: awx
   # Parameters for the awx cluster engine
@@ -232,7 +236,7 @@ clusterEngine:
     consul:
       # The address, including port, of the Consul server to use
       # By default, use the internal Consul
-      address: "{{ include \"azimuth.consulServerAddress\" . }}"
+      address: "{{ include \"azimuth.consul.address\" . }}:8500"
 
 # Configuration for the internal AWX instance
 awx:

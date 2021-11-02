@@ -29,9 +29,9 @@ spec:
       containers:
         - name: {{ $component }}
           securityContext: {{ toYaml $values.securityContext | nindent 12 }}
-          image: {{ printf "%s:%s" $values.image.repository (tpl $values.image.tag .) }}
+          image: {{ printf "%s:%s" $values.image.repository (default .Chart.AppVersion $values.image.tag) }}
           imagePullPolicy: {{ $values.image.pullPolicy }}
-          {{- if (and $clusterEngine.enabled (eq $clusterEngine.type "awx")) }}
+          {{- if (and .Values.tags.clusters (eq $clusterEngine.type "awx")) }}
           env:
             - name: AWX_PASSWORD
               valueFrom:
