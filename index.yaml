@@ -1,0 +1,28 @@
+apiVersion: v1
+entries:
+  azimuth:
+  - apiVersion: v2
+    appVersion: f86546d
+    created: "2021-11-02T09:04:54.042358932Z"
+    dependencies:
+    - condition: consul.enabled
+      name: consul
+      repository: https://helm.releases.hashicorp.com
+      tags:
+      - apps
+      - clusters
+      version: ~0.35.0
+    - condition: zenith.enabled
+      name: zenith-server
+      repository: https://stackhpc.github.io/zenith
+      tags:
+      - apps
+      version: 0.1.0-dev.0.main.70
+    description: Helm chart for deploying the Azimuth Portal.
+    digest: 59fa2e1d4d601c0f82a82a07bc8ca1529c8968b46dae099ff83a563cba4f59f1
+    name: azimuth
+    type: application
+    urls:
+    - azimuth-0.1.0-dev.0.master.492.tgz
+    version: 0.1.0-dev.0.master.492
+generated: "2021-11-02T09:04:54.022111484Z"
