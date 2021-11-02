@@ -357,8 +357,8 @@ def machines(request, tenant):
                 metadata = dict(
                     web_console_enabled = 1,
                     desktop_enabled = 1 if desktop_enabled else 0,
-                    app_proxy_sshd_host = cloud_settings.APPS.PROXY_SSHD_HOST,
-                    app_proxy_sshd_port = cloud_settings.APPS.PROXY_SSHD_PORT,
+                    apps_sshd_host = cloud_settings.APPS.SSHD_HOST,
+                    apps_sshd_port = cloud_settings.APPS.SSHD_PORT,
                 ),
                 userdata = '\n'.join([
                     "#!/usr/bin/env bash",
@@ -533,7 +533,7 @@ def machine_console(request, tenant, machine):
     subdomain = hashlib.sha1(key.encode()).hexdigest()
     console_url = "http://{}.{}/guacamole".format(
         subdomain,
-        cloud_settings.APPS.PROXY_BASE_DOMAIN
+        cloud_settings.APPS.BASE_DOMAIN
     )
     # Try to exchange the known username and password for a token
     resp = requests.post(

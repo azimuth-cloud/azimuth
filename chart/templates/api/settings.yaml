@@ -71,9 +71,9 @@ stringData:
     AZIMUTH:
       APPS:
         ENABLED: true
-        PROXY_BASE_DOMAIN: {{ tpl $apps.baseDomain . | quote }}
-        PROXY_SSHD_HOST: {{ tpl $apps.sshdHost . | quote }}
-        PROXY_SSHD_PORT: {{ tpl (toString $apps.sshdPort) . | quote }}
+        BASE_DOMAIN: {{ tpl $apps.baseDomain . | quote }}
+        SSHD_HOST: {{ tpl $apps.sshdHost . | quote }}
+        SSHD_PORT: {{ tpl (toString $apps.sshdPort) . | quote }}
         {{- with $apps.postDeployScriptUrl }}
         POST_DEPLOY_SCRIPT_URL: {{ . | quote }}
         {{- end }}

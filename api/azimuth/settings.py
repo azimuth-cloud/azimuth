@@ -107,12 +107,12 @@ class AppsSettings(SettingsObject):
     ENABLED = Setting(default = False)
 
     #: The base domain for the app proxy
-    PROXY_BASE_DOMAIN = Setting()
+    BASE_DOMAIN = Setting()
     #: The address of the app proxy SSHD service
     #: Defaults to the base domain
-    PROXY_SSHD_HOST = Setting(default = lambda settings: settings.PROXY_BASE_DOMAIN)
+    SSHD_HOST = Setting(default = lambda settings: settings.BASE_DOMAIN)
     #: The port for the app proxy SSHD service
-    PROXY_SSHD_PORT = Setting(default = 22)
+    SSHD_PORT = Setting(default = 22)
 
     #: The URL of the script to use to execute post-deploy actions
     POST_DEPLOY_SCRIPT_URL = Setting(

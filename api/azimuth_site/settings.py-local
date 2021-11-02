@@ -148,13 +148,13 @@ AZIMUTH = {
     #     # Indicates if apps are enabled
     #     'ENABLED': True,
     #     # The base domain for the app proxy
-    #     'PROXY_BASE_DOMAIN': 'apps.cloud.example.com',
+    #     'BASE_DOMAIN': 'apps.cloud.example.com',
     #     # The address of the app proxy SSHD service
     #     # Defaults to the base domain if not given
-    #     # 'PROXY_SSHD_HOST': 'proxy.cloud.example.com',
+    #     # 'SSHD_HOST': 'proxy.cloud.example.com',
     #     # The port for the app proxy SSHD service
     #     # Defaults to 22 (standard SSH port) if not given
-    #     # 'PROXY_SSHD_PORT': 32222,
+    #     # 'SSHD_PORT': 32222,
     # },
 
     # AWX settings for Cluster-as-a-Service support (optional)
