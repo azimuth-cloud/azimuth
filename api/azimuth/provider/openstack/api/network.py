@@ -115,6 +115,15 @@ class Router(NetworkResource):
     class Meta:
         endpoint = "/routers"
 
+    def _add_interface(self, params = None, **kwargs):
+        """
+        Add an interface to the router.
+        """
+        params = params.copy() if params else dict()
+        params.update(kwargs)
+        url = "{}/add_router_interface".format(self._path)
+        self._manager.connection.api_put(url, json = params)
+
 
 class NetworkService(Service):
     """

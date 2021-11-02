@@ -62,8 +62,8 @@ const CreateMachineModal = ({
             name,
             image_id: image,
             size_id: size,
-            web_console_enabled: webConsoleEnabled,
-            desktop_enabled: desktopEnabled
+            web_console_enabled: capabilities.supports_apps && webConsoleEnabled,
+            desktop_enabled: capabilities.supports_apps && webConsoleEnabled && desktopEnabled
         });
         reset();
         onSuccess();
@@ -113,7 +113,7 @@ const CreateMachineModal = ({
                             onChange={setSize}
                         />
                     </Field>
-                    {capabilities.supports_apps && (
+                    {capabilities.supports_apps && (<>
                         <Field
                             name="web_console_enabled"
                             helpText={
@@ -144,19 +144,18 @@ const CreateMachineModal = ({
                                 onChange={setWebConsoleEnabledFromEvent}
                             />
                         </Field>
-                    )}
-                    {webConsoleEnabled && (
                         <Field
                             name="desktop_enabled"
                             helpText="WARNING: The remote desktop can take a long time to install and configure."
                         >
                             <BSForm.Check
                                 label="Enable remote desktop for web console?"
+                                disabled={!webConsoleEnabled}
                                 checked={desktopEnabled}
                                 onChange={setDesktopEnabledFromEvent}
                             />
                         </Field>
-                    )}
+                    </>)}
                 </Modal.Body>
                 <Modal.Footer>
                     <Button variant="success" type="submit">

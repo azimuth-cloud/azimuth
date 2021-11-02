@@ -59,6 +59,7 @@ stringData:
           {{- with $provider.openstack.externalNetTemplate }}
           EXTERNAL_NET_TEMPLATE: {{ . | quote }}
           {{- end }}
+          CREATE_INTERNAL_NET: {{ $provider.openstack.createInternalNet }}
           {{- with $provider.openstack.internalNetCidr }}
           INTERNAL_NET_CIDR: {{ . | quote }}
           {{- end }}
