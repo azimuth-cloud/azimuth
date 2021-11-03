@@ -15,8 +15,9 @@ dependencies:
     tags: [apps, clusters]
 
   - name: zenith-server
-    version: 0.1.0-dev.0.main.70
+    version: 0.1.0-dev.0.main.71
     repository: https://stackhpc.github.io/zenith
+    alias: zenith
     # Zenith is required when apps are enabled unless specifically disabled
     condition: zenith.enabled
     tags: [apps]

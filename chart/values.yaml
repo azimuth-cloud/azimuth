@@ -59,8 +59,9 @@ ingress:
   className:
   tls:
     # Indicates if TLS should be enabled
-    enabled: false
-    # The name of the secret containing the certificate, if TLS is enabled
+    enabled: true
+    # If TLS is enabled, this is the name of the secret containing the certificate
+    # (or that will contain the certificate when cert-manager is used)
     secretName: "{{ include \"azimuth.fullname\" . }}-tls"
 
 settings:
@@ -149,18 +150,16 @@ zenith:
           baseDomain:
 
 # Settings for apps
-# By default, this assumes that the internal app proxy is used
+# By default, this assumes that the internal Zenith is used
 apps:
-  # The base domain for the app proxy
-  # Defaults to the domain for the internal app proxy
+  # The base domain for apps
+  # By default, the domain of the internal Zenith is used
   baseDomain: "{{ include \"azimuth.apps.baseDomain\" . }}"
-  # The proxy SSHD host
-  # By default it tries to infer the SSHD host for the internal app proxy
-  # However it may sometimes be necessary to help the chart out, especially when
-  # using LoadBalancer services
+  # The Zenith SSHD host
+  # By default it attempts to infer the SSHD host for the internal Zenith
   sshdHost: "{{ include \"azimuth.apps.sshdHost\" . }}"
-  # The proxy SSHD port
-  # By default it attempts to infer the SSHD port for the internal app proxy
+  # The Zenith SSHD port
+  # By default it attempts to infer the SSHD port for the internal Zenith
   sshdPort: "{{ include \"azimuth.apps.sshdPort\" . }}"
   # The URL of the post-deploy script to execute
   postDeployScriptUrl:
