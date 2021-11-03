@@ -145,9 +145,6 @@ zenith:
     config:
       consul:
         address: "{{ include \"azimuth.consul.address\" . }}"
-      kubernetes:
-        ingress:
-          baseDomain:
 
 # Settings for apps
 # By default, this assumes that the internal Zenith is used
