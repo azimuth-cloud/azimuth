@@ -116,7 +116,7 @@ class AppsSettings(SettingsObject):
 
     #: The URL of the script to use to execute post-deploy actions
     POST_DEPLOY_SCRIPT_URL = Setting(
-        default = "https://raw.githubusercontent.com/stackhpc/ansible-collection-cloud-portal-tools/main/bin/run-playbook"
+        default = "https://raw.githubusercontent.com/stackhpc/ansible-collection-azimuth-tools/main/bin/run-playbook"
     )
 
 

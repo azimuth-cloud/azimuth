@@ -2,7 +2,7 @@
  * This module contains the modal dialog for machine creation.
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import Button from 'react-bootstrap/Button';
 import BSForm from 'react-bootstrap/Form';
@@ -33,8 +33,10 @@ const CreateMachineModal = ({
     const [name, setName] = useState('');
     const [image, setImage] = useState('');
     const [size, setSize] = useState('');
-    // If the user has no SSH key, default the web console to true
-    const [webConsoleEnabled, setWebConsoleEnabled_] = useState(!sshKey.ssh_public_key);
+    // This is just the user-selected value of webConsoleEnabled
+    const [webConsoleEnabled_, setWebConsoleEnabled_] = useState(false);
+    // The actual value depends on the user-selected value + SSH key state
+    const webConsoleEnabled = webConsoleEnabled_ || !sshKey.ssh_public_key;
     const [desktopEnabled, setDesktopEnabled] = useState(false);
     // When the web console is disabled, also disable the desktop
     const setWebConsoleEnabled = enabled => {
@@ -45,7 +47,7 @@ const CreateMachineModal = ({
         setName('');
         setImage('');
         setSize('');
-        setWebConsoleEnabled(!sshKey.ssh_public_key);
+        setWebConsoleEnabled(false);
         setDesktopEnabled(false);
     };
 
