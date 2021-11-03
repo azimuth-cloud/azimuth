@@ -2,8 +2,33 @@ apiVersion: v1
 entries:
   azimuth:
   - apiVersion: v2
+    appVersion: ad8cbea
+    created: "2021-11-03T15:26:04.720922032Z"
+    dependencies:
+    - condition: consul.enabled
+      name: consul
+      repository: https://helm.releases.hashicorp.com
+      tags:
+      - apps
+      - clusters
+      version: ~0.35.0
+    - alias: zenith
+      condition: zenith.enabled
+      name: zenith-server
+      repository: https://stackhpc.github.io/zenith
+      tags:
+      - apps
+      version: 0.1.0-dev.0.main.71
+    description: Helm chart for deploying the Azimuth Portal.
+    digest: a155ebd4681a53058055560ff4ad03d7ee88bd383a7c3ee142d55a4e046e001a
+    name: azimuth
+    type: application
+    urls:
+    - azimuth-0.1.0-dev.0.master.496.tgz
+    version: 0.1.0-dev.0.master.496
+  - apiVersion: v2
     appVersion: e84d968
-    created: "2021-11-03T13:59:58.753042833Z"
+    created: "2021-11-03T15:26:04.707319449Z"
     dependencies:
     - condition: consul.enabled
       name: consul
@@ -27,7 +52,7 @@ entries:
     version: 0.1.0-dev.0.master.495
   - apiVersion: v2
     appVersion: 9f6645c
-    created: "2021-11-03T13:59:58.73496082Z"
+    created: "2021-11-03T15:26:04.694114268Z"
     dependencies:
     - condition: consul.enabled
       name: consul
@@ -51,7 +76,7 @@ entries:
     version: 0.1.0-dev.0.master.494
   - apiVersion: v2
     appVersion: 17ca3e2
-    created: "2021-11-03T13:59:58.716738207Z"
+    created: "2021-11-03T15:26:04.680998288Z"
     dependencies:
     - condition: consul.enabled
       name: consul
@@ -75,7 +100,7 @@ entries:
     version: 0.1.0-dev.0.master.493
   - apiVersion: v2
     appVersion: f86546d
-    created: "2021-11-03T13:59:58.698447395Z"
+    created: "2021-11-03T15:26:04.6666933Z"
     dependencies:
     - condition: consul.enabled
       name: consul
@@ -97,4 +122,4 @@ entries:
     urls:
     - azimuth-0.1.0-dev.0.master.492.tgz
     version: 0.1.0-dev.0.master.492
-generated: "2021-11-03T13:59:58.678816481Z"
+generated: "2021-11-03T15:26:04.651719709Z"
