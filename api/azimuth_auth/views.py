@@ -64,7 +64,7 @@ def redirect_to_login(code = None):
     """
     Redirect to the login endpoint with an optional code.
     """
-    redirect_to = reverse('cloud_auth:login')
+    redirect_to = reverse('azimuth_auth:login')
     if code:
         redirect_to = "{}?{}".format(
             redirect_to,
@@ -101,7 +101,7 @@ def complete(request):
             if next_url:
                 response = redirect(next_url)
             else:
-                response = render(request, 'cloud_auth/complete.html')
+                response = render(request, 'azimuth_auth/complete.html')
             # On a successful authentication, we also want to clear the next URL cookie
             return set_next_url_cookie(response, None, request.is_secure())
         else:
@@ -128,4 +128,4 @@ def logout(request):
             return redirect_to_login('logout_successful')
     else:
         # On GET requests, show the confirm page
-        return render(request, "cloud_auth/logout_confirm.html", dict(next_url = next_url))
+        return render(request, "azimuth_auth/logout_confirm.html", dict(next_url = next_url))

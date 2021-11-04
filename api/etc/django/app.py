@@ -19,7 +19,7 @@ TEMPLATES = [
 
 INSTALLED_APPS = [
     'django.contrib.staticfiles',
-    'cloud_auth',
+    'azimuth_auth',
     'azimuth',
     'rest_framework',
 ]
@@ -30,7 +30,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'cloud_auth.middleware.SessionTokenMiddleware',
+    'azimuth_auth.middleware.SessionTokenMiddleware',
     'azimuth.middleware.CleanupProviderMiddleware',
 ]
 

@@ -26,16 +26,16 @@ stringData:
         {{- end }}
       CURRENT_CLOUD: {{ $settings.currentCloud }}
   03-cloud-authenticator.yaml: |
-    CLOUD_AUTH:
+    AZIMUTH_AUTH:
       AUTHENTICATOR:
         {{- if (eq $authenticator.type "openstack-password") }}
-        FACTORY: cloud_auth.authenticator.openstack.PasswordAuthenticator
+        FACTORY: azimuth_auth.authenticator.openstack.PasswordAuthenticator
         PARAMS:
           AUTH_URL: {{ default $provider.openstack.authUrl $authenticator.openstackPassword.authUrl }}
           DOMAIN: {{ default $provider.openstack.domain $authenticator.openstackPassword.domain }}
           VERIFY_SSL: {{ default $provider.openstack.verifySsl $authenticator.openstackPassword.verifySsl }}
         {{- else if (eq $authenticator.type "openstack-federation") }}
-        FACTORY: cloud_auth.authenticator.openstack.FederatedAuthenticator
+        FACTORY: azimuth_auth.authenticator.openstack.FederatedAuthenticator
         PARAMS:
           FEDERATION_URL: {{ $authenticator.openstackFederation.federationUrl }}
         {{- else }}

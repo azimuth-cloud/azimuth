@@ -33,7 +33,7 @@ LOGGING = {
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.staticfiles',
-    'cloud_auth',
+    'azimuth_auth',
     'azimuth',
     'rest_framework',
 ]
@@ -44,7 +44,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'cloud_auth.middleware.SessionTokenMiddleware',
+    'azimuth_auth.middleware.SessionTokenMiddleware',
     'azimuth.middleware.CleanupProviderMiddleware',
 ]
 
@@ -94,10 +94,10 @@ REST_FRAMEWORK = {
 }
 
 
-CLOUD_AUTH = {
+AZIMUTH_AUTH = {
     'AUTHENTICATOR': {
         # The authenticator factory to use
-        'FACTORY': 'cloud_auth.authenticator.openstack.PasswordAuthenticator',
+        'FACTORY': 'azimuth_auth.authenticator.openstack.PasswordAuthenticator',
         'PARAMS': {
             # OpenStack auth URL
             'AUTH_URL': 'https://keystone.cloud.example.com/v3',

@@ -24,7 +24,7 @@ class FormAuthenticator(BaseAuthenticator):
     Base class for an authenticator that gathers information from a form.
     """
     form_class = UsernamePasswordForm
-    template = "cloud_auth/form.html"
+    template = "azimuth_auth/form.html"
 
     def get_form(self, *args, **kwargs):
         """

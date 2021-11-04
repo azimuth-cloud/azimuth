@@ -18,7 +18,7 @@ def field_with_classes(field, *classes):
     return field.as_widget(attrs = { 'class': ' '.join(classes) })
 
 
-@register.inclusion_tag('cloud_auth/message.html', takes_context = True)
+@register.inclusion_tag('azimuth_auth/message.html', takes_context = True)
 def auth_message(context):
     """
     Renders the message corresponding to the code in the request.

@@ -20,5 +20,5 @@ urlpatterns = [
     # or don't accept use of the GET method
     path('_status/', status, name = 'status'),
     path('api/', include('azimuth.urls', namespace = 'azimuth')),
-    path('auth/', include('cloud_auth.urls', namespace = 'cloud_auth')),
+    path('auth/', include('azimuth_auth.urls', namespace = 'azimuth_auth')),
 ]

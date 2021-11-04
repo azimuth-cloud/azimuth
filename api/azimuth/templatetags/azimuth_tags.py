@@ -7,7 +7,7 @@ from django.urls import NoReverseMatch, reverse
 from django.utils.html import escape, format_html
 from django.utils.safestring import mark_safe
 
-from cloud_auth.settings import auth_settings
+from azimuth_auth.settings import auth_settings
 from ..settings import cloud_settings
 
 
@@ -23,11 +23,11 @@ def azimuth_current_cloud():
 
 
 @register.simple_tag(takes_context = True)
-def cloud_auth_login(context):
+def azimuth_auth_login(context):
     """
     Include a login snippet using cloud-auth.
     """
-    login_url = reverse('cloud_auth:login')
+    login_url = reverse('azimuth_auth:login')
     snippet = "<li><a href='{href}?{param}={next}'>Sign in</a></li>"
     snippet = format_html(
         snippet,
@@ -39,11 +39,11 @@ def cloud_auth_login(context):
 
 
 @register.simple_tag(takes_context = True)
-def cloud_auth_logout(context):
+def azimuth_auth_logout(context):
     """
     Include a logout snippet using cloud-auth.
     """
-    logout_url = reverse('cloud_auth:logout')
+    logout_url = reverse('azimuth_auth:logout')
     snippet = """<li class="dropdown">
         <a href="#" class="dropdown-toggle" data-toggle="dropdown">
             {user}

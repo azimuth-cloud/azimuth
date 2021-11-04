@@ -9,8 +9,8 @@
 
 {% block userlinks %}
     {% if user.is_authenticated %}
-        {% cloud_auth_logout %}
+        {% azimuth_auth_logout %}
     {% else %}
-        {% cloud_auth_login %}
+        {% azimuth_auth_login %}
     {% endif %}
 {% endblock %}

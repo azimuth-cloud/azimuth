@@ -102,7 +102,7 @@ class FederatedAuthenticator(OpenStackAuthenticator):
         self.federation_url = "{}/auth/OS-FEDERATION/websso/{}".format(self.auth_url, provider)
 
     def auth_start(self, request):
-        origin_url = request.build_absolute_uri(reverse('cloud_auth:complete'))
+        origin_url = request.build_absolute_uri(reverse('azimuth_auth:complete'))
         redirect_url = "{}?{}".format(self.federation_url, urlencode({ 'origin': origin_url }))
         return redirect(redirect_url)
 

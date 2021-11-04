@@ -7,7 +7,7 @@ from settings_object import SettingsObject, Setting, MergedDictSetting, ObjectFa
 
 class CloudAuthSettings(SettingsObject):
     """
-    Settings object for the ``CLOUD_AUTH`` setting.
+    Settings object for the ``AZIMUTH_AUTH`` setting.
     """
     #: The authenticator to use
     AUTHENTICATOR = ObjectFactorySetting()
@@ -49,4 +49,4 @@ class CloudAuthSettings(SettingsObject):
     })
 
 
-auth_settings = CloudAuthSettings('CLOUD_AUTH')
+auth_settings = CloudAuthSettings('AZIMUTH_AUTH')
