@@ -532,9 +532,13 @@ def machine_console(request, tenant, machine):
     # The subdomain is in the metadata of the machine
     subdomain = machine.metadata["apps_console_subdomain"]
     console_url = "http://{}.{}".format(subdomain, cloud_settings.APPS.BASE_DOMAIN)
-    # Try to fetch the console URL without redirects
-    # While it returns a 404, the console is not ready
-    resp = requests.get(console_url, allow_redirects = False)
+    # Try to fetch the console readiness URL
+    # While it returns a 404 or a certificate error (because cert-manager is still
+    # negotiating the certificate), the console is not ready
+    try:
+        resp = requests.get(f"{console_url}/_ready")
+    except requests.exceptions.SSLError:
+        return render(request, "portal/console_not_ready.html")
     if resp.status_code == status.HTTP_404_NOT_FOUND:
         return render(request, "portal/console_not_ready.html")
     else:
