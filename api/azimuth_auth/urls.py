@@ -1,5 +1,5 @@
 """
-URL definitions for the cloud-auth package.
+URL definitions for the Azimuth auth package.
 """
 
 from django.urls import path

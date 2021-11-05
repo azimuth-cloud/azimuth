@@ -175,6 +175,31 @@ def session(request):
     })
 
 
+@provider_api_view(["GET"])
+def session_verify(request):
+    """
+    Verify the current session.
+
+    This endpoint can be used to check for the presence of an authenticated session,
+    and also project-level authorization by specifying the x-auth-openstack-project
+    header.
+
+    In particular, this is used by the Zenith proxy to impose authentication and authorization
+    on exposed apps.
+    """
+    # If we get to here, the user is already authenticated
+    # If they are not, a 401 will have been returned
+    content = { "authenticated": True }
+    # If the tenancy ID header is present, verify that the user belongs to the tenancy
+    tenancy_id = request.META.get(cloud_settings.VERIFY_TENANCY_ID_HEADER)
+    if tenancy_id:
+        if any(t.id == tenancy_id for t in request.auth.tenancies()):
+            content["authorized"] = True
+        else:
+            raise drf_exceptions.PermissionDenied()
+    return response.Response(content)
+
+
 @provider_api_view(["GET", "PUT"])
 def ssh_public_key(request):
     """

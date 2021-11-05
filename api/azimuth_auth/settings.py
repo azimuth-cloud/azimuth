@@ -1,5 +1,5 @@
 """
-Settings for the cloud-auth package.
+Settings for the Azimuth auth package.
 """
 
 from settings_object import SettingsObject, Setting, MergedDictSetting, ObjectFactorySetting

@@ -1,5 +1,5 @@
 """
-Django REST Framwork authentication backend for the azimuth app.
+Django REST Framwork authentication backend for the Azimuth app.
 """
 
 import logging
@@ -28,7 +28,7 @@ class AuthenticatedUser:
 
 class TokenHeaderAuthentication(BaseAuthentication):
     """
-    Authentication backend that uses a token set by the cloud-auth app for authentication.
+    Authentication backend that uses a token set by Azimuth auth for authentication.
     """
     def authenticate(self, request):
         # First, see if the token header is set

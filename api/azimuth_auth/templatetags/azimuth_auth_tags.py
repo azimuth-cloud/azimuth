@@ -1,5 +1,5 @@
 """
-Custom template tags for the cloud-auth package.
+Custom template tags for the Azimuth auth package.
 """
 
 from django import template

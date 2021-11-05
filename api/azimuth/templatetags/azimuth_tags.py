@@ -1,9 +1,9 @@
 """
-Custom template tags for the cloud-auth package.
+Custom template tags for the Azimuth auth package.
 """
 
 from django import template
-from django.urls import NoReverseMatch, reverse
+from django.urls import reverse
 from django.utils.html import escape, format_html
 from django.utils.safestring import mark_safe
 
@@ -25,7 +25,7 @@ def azimuth_current_cloud():
 @register.simple_tag(takes_context = True)
 def azimuth_auth_login(context):
     """
-    Include a login snippet using cloud-auth.
+    Include a login snippet using Azimuth auth.
     """
     login_url = reverse('azimuth_auth:login')
     snippet = "<li><a href='{href}?{param}={next}'>Sign in</a></li>"
@@ -41,7 +41,7 @@ def azimuth_auth_login(context):
 @register.simple_tag(takes_context = True)
 def azimuth_auth_logout(context):
     """
-    Include a logout snippet using cloud-auth.
+    Include a logout snippet using Azimuth auth.
     """
     logout_url = reverse('azimuth_auth:logout')
     snippet = """<li class="dropdown">

@@ -1,5 +1,5 @@
 """
-Views for the cloud-auth package.
+Views for the Azimuth auth package.
 """
 
 from urllib.parse import urlencode

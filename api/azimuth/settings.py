@@ -32,7 +32,7 @@ class AwxSettings(SettingsObject):
     #: The password to use for CaaS operations
     PASSWORD = Setting()
     #: The name of the template inventory
-    TEMPLATE_INVENTORY = Setting(default = 'openstack')
+    TEMPLATE_INVENTORY = Setting(default = "openstack")
     #: Determines whether teams should be created on demand
     #: If set to false, then teams must be created manually in AWX, giving admins
     #: control of which tenancies have CaaS enabled and which do not
@@ -55,10 +55,10 @@ class AwxSettings(SettingsObject):
     #: List of default projects to create
     DEFAULT_PROJECTS = Setting(default = [
         {
-            'NAME': 'Demo Appliances',
-            'GIT_URL': 'https://github.com/stackhpc/demo-appliances.git',
-            'GIT_VERSION': 'master',
-            'METADATA_ROOT': 'https://raw.githubusercontent.com/stackhpc/demo-appliances/master/ui-meta',
+            "NAME": "Demo Appliances",
+            "GIT_URL": "https://github.com/stackhpc/demo-appliances.git",
+            "GIT_VERSION": "master",
+            "METADATA_ROOT": "https://raw.githubusercontent.com/stackhpc/demo-appliances/master/ui-meta",
         }
     ])
 
@@ -70,7 +70,7 @@ class ProviderSetting(ObjectFactorySetting):
     """
     def __get__(self, instance, owner):
         if not instance:
-            raise TypeError('Settings cannot be accessed as class attributes')
+            raise TypeError("Settings cannot be accessed as class attributes")
         try:
             provider = instance.user_settings[self.name]
         except KeyError:
@@ -79,12 +79,12 @@ class ProviderSetting(ObjectFactorySetting):
         # then inject one here
         if (
             isinstance(provider, dict) and
-            'FACTORY' in provider and
-            'CLUSTER_ENGINE' not in provider['PARAMS'] and
+            "FACTORY" in provider and
+            "CLUSTER_ENGINE" not in provider["PARAMS"] and
             instance.AWX.ENABLED
         ):
-            provider['PARAMS']['CLUSTER_ENGINE'] = dict(
-                FACTORY = 'azimuth.provider.cluster_engine.awx.Engine',
+            provider["PARAMS"]["CLUSTER_ENGINE"] = dict(
+                FACTORY = "azimuth.provider.cluster_engine.awx.Engine",
                 PARAMS = dict(
                     URL = instance.AWX.URL,
                     USERNAME = instance.AWX.USERNAME,
@@ -96,7 +96,7 @@ class ProviderSetting(ObjectFactorySetting):
                 )
             )
         # Process the given specification
-        return self._process_item(provider, '{}.{}'.format(instance.name, self.name))
+        return self._process_item(provider, "{}.{}".format(instance.name, self.name))
 
 
 class AppsSettings(SettingsObject):
@@ -125,7 +125,10 @@ class AzimuthSettings(SettingsObject):
     Settings object for the ``AZIMUTH`` setting.
     """
     #: The name of the header containing the cloud token
-    TOKEN_HEADER = Setting(default = 'HTTP_X_CLOUD_TOKEN')
+    TOKEN_HEADER = Setting(default = "HTTP_X_CLOUD_TOKEN")
+
+    #: The name of the header that may contain the tenancy id for a verification
+    VERIFY_TENANCY_ID_HEADER = Setting(default = "HTTP_X_AUTH_TENANCY_ID")
 
     #: Cloud provider configuration
     PROVIDER = ProviderSetting()
@@ -134,21 +137,21 @@ class AzimuthSettings(SettingsObject):
     SSH_KEY_STORE = ObjectFactorySetting(
         # By default, use functionality from the provider to store SSH keys
         default = dict(
-            FACTORY = 'azimuth.keystore.provider.ProviderKeyStore',
+            FACTORY = "azimuth.keystore.provider.ProviderKeyStore",
         )
     )
     #: An iterable of allowed SSH key types
     SSH_ALLOWED_KEY_TYPES = Setting(default = {
         # By default, DSA keys are not permitted
-        # 'ssh-dss',
+        # "ssh-dss",
         # RSA keys are permitted, subject to SSH_RSA_MIN_BITS below
-        'ssh-rsa',
+        "ssh-rsa",
         # All three sizes of ECDSA are permitted
-        'ecdsa-sha2-nistp256',
-        'ecdsa-sha2-nistp384',
-        'ecdsa-sha2-nistp521',
+        "ecdsa-sha2-nistp256",
+        "ecdsa-sha2-nistp384",
+        "ecdsa-sha2-nistp521",
         # ED25519 is permitted by default
-        'ssh-ed25519',
+        "ssh-ed25519",
     })
     #: The minimum size for RSA keys (by default, 1024 bit keys are not allowed)
     SSH_RSA_MIN_BITS = Setting(default = 2048)
@@ -166,4 +169,4 @@ class AzimuthSettings(SettingsObject):
     CURRENT_CLOUD = Setting()
 
 
-cloud_settings = AzimuthSettings('AZIMUTH')
+cloud_settings = AzimuthSettings("AZIMUTH")

@@ -1,5 +1,5 @@
 """
-Django middlewares for the cloud-auth package.
+Django middlewares for the Azimuth auth package.
 """
 
 from datetime import datetime, timedelta
@@ -15,10 +15,10 @@ logger = logging.getLogger(__name__)
 
 class BaseMiddleware:
     """
-    Base class for other cloud-auth middlewares.
+    Base class for other Azimuth auth middlewares.
 
-    Each cloud-auth middleware implements a particular method by which a token
-    may be provided, e.g. bearer tokens or session data.
+    Each middleware implements a particular method by which a token may be provided,
+    e.g. bearer tokens or session data.
     """
     def __init__(self, get_response):
         self.get_response = get_response
