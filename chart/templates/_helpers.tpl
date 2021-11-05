@@ -2,7 +2,7 @@
 Expand the name of the chart.
 */}}
 {{- define "azimuth.name" -}}
-{{- default .Chart.Name .Values.nameOverride | lower | trunc 63 | trimSuffix "-" }}
+{{- .Chart.Name | lower | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
@@ -11,15 +11,10 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 If release name contains chart name it will be used as a full name.
 */}}
 {{- define "azimuth.fullname" -}}
-{{- if .Values.fullnameOverride }}
-{{- .Values.fullnameOverride | lower | trunc 63 | trimSuffix "-" }}
-{{- else }}
-{{- $name := default .Chart.Name .Values.nameOverride }}
-{{- if contains $name .Release.Name }}
+{{- if contains .Chart.Name .Release.Name }}
 {{- .Release.Name | lower | trunc 63 | trimSuffix "-" }}
 {{- else }}
-{{- printf "%s-%s" .Release.Name $name | lower | trunc 63 | trimSuffix "-" }}
-{{- end }}
+{{- printf "%s-%s" .Release.Name .Chart.Name | lower | trunc 63 | trimSuffix "-" }}
 {{- end }}
 {{- end }}
 
@@ -86,8 +81,12 @@ In particular, this affects the top-level .Values and limits the checks that can
 done. It also means the chart name must be hard-coded.
 */}}
 {{- define "azimuth.consul.address" -}}
-{{- $name := "azimuth" }}
-{{- $fullName := contains $name .Release.Name | ternary .Release.Name (printf "%s-%s" .Release.Name $name) -}}
+{{- $fullName := "" }}
+{{- if contains "azimuth" .Release.Name }}
+{{- $fullName = .Release.Name | lower | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- $fullName = printf "%s-azimuth" .Release.Name | lower | trunc 63 | trimSuffix "-" }}
+{{- end }}
 {{- printf "%s-consul-server" $fullName -}}
 {{- end -}}
 
@@ -95,7 +94,9 @@ done. It also means the chart name must be hard-coded.
 Tries to derive the app proxy base domain from the internal Zenith settings.
 */}}
 {{- define "azimuth.apps.baseDomain" -}}
-{{- if dig "enabled" true .Values.zenith -}}
+{{- if .Values.global.ingress.baseDomain }}
+{{- .Values.global.ingress.baseDomain }}
+{{- else if dig "enabled" true .Values.zenith -}}
 {{- .Values.zenith.sync.config.kubernetes.ingress.baseDomain -}}
 {{- else -}}
 {{- fail "apps.baseDomain is required when zenith.enabled is false" -}}

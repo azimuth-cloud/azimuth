@@ -19,12 +19,15 @@ stringData:
   02-cloud-common.yaml: |
     AZIMUTH:
       AVAILABLE_CLOUDS:
+        {{ $settings.currentCloud.name }}:
+          label: {{ $settings.currentCloud.label }}
+          url: https://{{ tpl .Values.ingress.host . }}/dashboard
         {{- range $settings.availableClouds }}
         {{ .name }}:
           label: {{ .label | quote }}
           url: {{ .url | quote }}
         {{- end }}
-      CURRENT_CLOUD: {{ $settings.currentCloud }}
+      CURRENT_CLOUD: {{ $settings.currentCloud.name }}
   03-cloud-authenticator.yaml: |
     AZIMUTH_AUTH:
       AUTHENTICATOR:

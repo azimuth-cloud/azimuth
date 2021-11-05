@@ -1,12 +1,30 @@
-nameOverride: ""
-fullnameOverride: ""
-
 # Tags for optional features
 tags:
   # Setting this tag to true enables apps via a Zenith app proxy
   apps: false
   # Setting this tag to true enables the Cluster-as-a-Service
   clusters: false
+
+# Global variables used for defining things that need to span charts
+global:
+  # The ingress configuration
+  ingress:
+    # The base domain under which the portal and all exposed apps will live
+    # There must be a common shared domain in order for the cookie authentication
+    # to work between the Azimuth portal and applications exposed using Zenith
+    baseDomain:
+    # The name of the ingress class to use
+    className:
+    # Custom annotations for ingress resources, e.g. to specify cert-manager config
+    annotations: {}
+    # TLS configuration
+    tls:
+      # Indicates if TLS should be enabled
+      enabled: true
+      # The secret to use for the TLS certificate and key
+      # If the secret already exists, it should contain a wildcard certificate for
+      # the given base domain
+      secretName:
 
 api:
   image:
@@ -53,16 +71,23 @@ ui:
   affinity: {}
 
 ingress:
-  enabled: false
-  host: cloud.example.local
+  # The subdomain of the configured base domain to use for the portal
+  subdomain: portal
+  # The hostname to use for the portal
+  host: "{{ .Values.ingress.subdomain }}.{{ .Values.global.ingress.baseDomain }}"
+  # The ingress class to use
+  # This overrides the class specified in global if given
+  # className:
+  # Annotations for the portal ingress
+  # These are combined with any annotations specified in global
   annotations: {}
-  className:
-  tls:
+  # TLS configuration for the portal ingress
+  # This is merged with the global configuration
+  tls: {}
     # Indicates if TLS should be enabled
-    enabled: true
-    # If TLS is enabled, this is the name of the secret containing the certificate
-    # (or that will contain the certificate when cert-manager is used)
-    secretName: "{{ include \"azimuth.fullname\" . }}-tls"
+    # enabled: true
+    # The name of a secret containing the portal TLS certificate and key
+    # secretName:
 
 settings:
   # The Django secret key
@@ -73,13 +98,15 @@ settings:
   debug: false
   # Allow cookies to be sent over HTTPS only (MUST be true in production)
   secureCookies: true
-  # The available clouds
-  availableClouds:
-    - name: example
-      label: 'Example Cloud'
-      url: http://cloud.example.local/dashboard
+  # The available clouds, in addition to this one
+  availableClouds: []
+    # - name: example
+    #   label: 'Example Cloud'
+    #   url: http://cloud.example.local/dashboard
   # The current cloud
-  currentCloud: example
+  currentCloud:
+    name: example
+    label: Example
 
 # The authenticator to use
 # The parameters for the provider will be re-used where appropriate

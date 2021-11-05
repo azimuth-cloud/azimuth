@@ -180,12 +180,12 @@ def session_verify(request):
     """
     Verify the current session.
 
-    This endpoint can be used to check for the presence of an authenticated session,
-    and also project-level authorization by specifying the x-auth-openstack-project
-    header.
+    This endpoint can be used to check for the presence of an authenticated session
+    and optionally for tenancy-level authorization by specifying the configured header
+    (defaults to ``X-Auth-Tenancy-Id``).
 
-    In particular, this is used by the Zenith proxy to impose authentication and authorization
-    on exposed apps.
+    In particular, this is used by Zenith to impose authentication and authorization for
+    exposed apps.
     """
     # If we get to here, the user is already authenticated
     # If they are not, a 401 will have been returned
