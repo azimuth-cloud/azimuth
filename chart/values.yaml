@@ -13,6 +13,8 @@ global:
     # There must be a common shared domain in order for the cookie authentication
     # to work between the Azimuth portal and applications exposed using Zenith
     baseDomain:
+    # The subdomain that the portal will use
+    portalSubdomain: portal
     # The name of the ingress class to use
     className:
     # Custom annotations for ingress resources, e.g. to specify cert-manager config
@@ -42,7 +44,7 @@ api:
     runAsNonRoot: true
   service:
     type: ClusterIP
-    port: 8080
+    port: 80
   resources: {}
   nodeSelector: {}
   tolerations: []
@@ -64,17 +66,15 @@ ui:
     runAsNonRoot: true
   service:
     type: ClusterIP
-    port: 8080
+    port: 80
   resources: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
 
 ingress:
-  # The subdomain of the configured base domain to use for the portal
-  subdomain: portal
   # The hostname to use for the portal
-  host: "{{ .Values.ingress.subdomain }}.{{ .Values.global.ingress.baseDomain }}"
+  host: "{{ .Values.global.ingress.portalSubdomain }}.{{ .Values.global.ingress.baseDomain }}"
   # The ingress class to use
   # This overrides the class specified in global if given
   # className:
@@ -172,6 +172,12 @@ zenith:
     config:
       consul:
         address: "{{ include \"azimuth.consul.address\" . }}"
+      kubernetes:
+        ingress:
+          # Configure Zenith ingress authentication to use Azimuth for authentication
+          auth:
+            url: "{{ include \"azimuth.auth.verifyUrl\" . }}"
+            signinUrl: "{{ include \"azimuth.auth.signinUrl\" . }}"
 
 # Settings for apps
 # By default, this assumes that the internal Zenith is used

@@ -70,7 +70,14 @@ stringData:
         {{- fail (printf "Unrecognised cloud provider '%s'" $provider.type) }}
         {{- end }}
 {{- if .Values.tags.apps }}
-  05-app-proxy.yaml: |
+  05-apps.yaml: |
+    # In order for the app authentication to work correctly, the session
+    # cookie needs to apply for all apps
+    SESSION_COOKIE_DOMAIN: ".{{ include "azimuth.apps.baseDomain" . }}"
+    # We also need to allow redirects to the apps
+    AZIMUTH_AUTH:
+      NEXT_URL_ALLOWED_DOMAINS:
+        - {{ tpl $apps.baseDomain . | quote }}
     AZIMUTH:
       APPS:
         ENABLED: true

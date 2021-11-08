@@ -141,3 +141,24 @@ If the service is a LoadBalancer service, use the service port.
 {{- fail "zenith.sshd.service.type must be one of NodePort or LoadBalancer" -}}
 {{- end -}}
 {{- end -}}
+
+{{/*
+Tries to derive the Zenith auth service URL from the Azimuth settings.
+*/}}
+{{- define "azimuth.auth.verifyUrl" -}}
+{{- $fullName := "" }}
+{{- if contains "azimuth" .Release.Name }}
+{{- $fullName = .Release.Name | lower | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- $fullName = printf "%s-azimuth" .Release.Name | lower | trunc 63 | trimSuffix "-" }}
+{{- end }}
+{{- $serviceName := printf "%s-%s" $fullName "api" | lower | trunc 63 | trimSuffix "-" }}
+{{- printf "http://%s.%s.svc.cluster.local/api/session/verify/" $serviceName .Release.Namespace -}}
+{{- end -}}
+
+{{/*
+Tries to derive the Zenith signin redirect URL from the Azimuth settings.
+*/}}
+{{- define "azimuth.auth.signinUrl" -}}
+{{- printf "https://%s.%s/auth/login/" .Values.global.ingress.portalSubdomain .Values.global.ingress.baseDomain -}}
+{{- end -}}
