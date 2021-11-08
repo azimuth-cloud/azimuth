@@ -384,6 +384,7 @@ def machines(request, tenant):
                 metadata = dict(
                     web_console_enabled = 1,
                     desktop_enabled = 1 if desktop_enabled else 0,
+                    cloud_name = cloud_settings.CURRENT_CLOUD,
                     apps_sshd_host = cloud_settings.APPS.SSHD_HOST,
                     apps_sshd_port = cloud_settings.APPS.SSHD_PORT,
                     apps_console_subdomain = "".join(subdomain_chars)
