@@ -23,7 +23,7 @@ spec:
       containers:
         - name: {{ $component }}
           securityContext: {{ toYaml .Values.api.securityContext | nindent 12 }}
-          image: {{ printf "%s:%s" .Values.api.image.repository (tpl .Values.api.image.tag .) }}
+          image: {{ printf "%s:%s" .Values.api.image.repository (default .Chart.AppVersion .Values.api.image.tag) }}
           imagePullPolicy: {{ .Values.api.image.pullPolicy }}
           command:
             - django-admin
