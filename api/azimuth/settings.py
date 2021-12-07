@@ -113,6 +113,12 @@ class AppsSettings(SettingsObject):
     SSHD_HOST = Setting(default = lambda settings: settings.BASE_DOMAIN)
     #: The port for the app proxy SSHD service
     SSHD_PORT = Setting(default = 22)
+    #: The external URL of the app proxy registrar, as needed by clients
+    REGISTRAR_EXTERNAL_URL = Setting(
+        default = lambda settings: f"https://registrar.{settings.BASE_DOMAIN}"
+    )
+    #: The admin URL of the app proxy registrar, for reserving subdomains
+    REGISTRAR_ADMIN_URL = Setting()
 
     #: The URL of the script to use to execute post-deploy actions
     POST_DEPLOY_SCRIPT_URL = Setting(

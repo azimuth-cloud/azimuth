@@ -74,76 +74,106 @@ Labels for a component resource.
 {{- end -}}
 
 {{/*
-Tries to derive the Consul server address to use from the internal Consul settings.
-
-This template may be used from dependencies and must still return the correct value.
-In particular, this affects the top-level .Values and limits the checks that can be
-done. It also means the chart name must be hard-coded.
-*/}}
-{{- define "azimuth.consul.address" -}}
-{{- $fullName := "" }}
-{{- if contains "azimuth" .Release.Name }}
-{{- $fullName = .Release.Name | lower | trunc 63 | trimSuffix "-" }}
-{{- else }}
-{{- $fullName = printf "%s-azimuth" .Release.Name | lower | trunc 63 | trimSuffix "-" }}
-{{- end }}
-{{- printf "%s-consul-server" $fullName -}}
-{{- end -}}
-
-{{/*
-Tries to derive the app proxy base domain from the internal Zenith settings.
+Tries to derive the app proxy base domain from the managed Zenith settings.
 */}}
 {{- define "azimuth.apps.baseDomain" -}}
-{{- if .Values.global.ingress.baseDomain }}
-{{- .Values.global.ingress.baseDomain }}
-{{- else if dig "enabled" true .Values.zenith -}}
-{{- .Values.zenith.sync.config.kubernetes.ingress.baseDomain -}}
-{{- else -}}
-{{- fail "apps.baseDomain is required when zenith.enabled is false" -}}
-{{- end -}}
+{{- if (dig "enabled" true .Values.zenith) }}
+{{- $sync := dig "sync" "config" "kubernetes" "ingress" dict .Values.zenith }}
+{{- $common := dig "common" "ingress" dict .Values.zenith }}
+{{- $global := .Values.global.ingress }}
+{{- $ingress := merge $sync $common $global }}
+{{- $ingress.baseDomain }}
+{{- else }}
+{{- fail "apps.baseDomain is required when the managed Zenith is not enabled" }}
+{{- end }}
 {{- end -}}
 
 {{/*
-Tries to derive the SSHD host from the internal Zenith settings.
+Tries to derive the SSHD host from the managed Zenith settings.
 
-If the service is a LoadBalancer service, use the static IP if given or force
-the user to specify the host.
-
-In other cases, i.e. NodePort service or not enabled, fallback to the app proxy base domain.
+If a NodePort service is used for SSHD, assume that the apps base domain will work.
+If a LoadBalancer service with a static IP is used for SSHD, use the static IP.
+In all other cases, require the SSHD host to be specified.
 */}}
 {{- define "azimuth.apps.sshdHost" -}}
-{{- if not (dig "enabled" true .Values.zenith) -}}
-{{- tpl .Values.apps.baseDomain . -}}
-{{- else if (eq .Values.zenith.sshd.service.type "NodePort") -}}
-{{- tpl .Values.apps.baseDomain . -}}
-{{- else if (eq .Values.zenith.sshd.service.type "LoadBalancer") -}}
-{{- .Values.zenith.sshd.service.loadBalancerIP | required "You must specify either zenith.sshd.service.loadBalancerIP or apps.sshdHost" -}}
-{{- else -}}
-{{- fail "zenith.sshd.service.type must be one of NodePort or LoadBalancer" -}}
-{{- end -}}
+{{- if (dig "enabled" true .Values.zenith) }}
+{{- if (eq .Values.zenith.sshd.service.type "NodePort") }}
+{{- include "azimuth.apps.baseDomain" . }}
+{{- else if and (eq .Values.zenith.sshd.service.type "LoadBalancer") .Values.zenith.sshd.service.loadBalancerIP }}
+{{- .Values.zenith.sshd.service.loadBalancerIP }}
+{{- else }}
+{{- fail "Unable to determine apps.sshdHost from Zenith configuration" }}
+{{- end }}
+{{- else }}
+{{- fail "apps.sshdHost is required when the managed Zenith is not enabled" }}
+{{- end }}
 {{- end -}}
 
 {{/*
-Tries to derive the SSHD port from the internal Zenith settings.
+Tries to derive the SSHD port from the managed Zenith settings.
 
-If the internal Zenith is not enabled, use port 22.
-If the service is a NodePort service, use the specified node port.
-If the service is a LoadBalancer service, use the service port.
+If the managed Zenith is not enabled, use port 22.
+If the service is a NodePort service and a nodePort is specified, use that.
+If the service is a LoadBalancer service, use the specified port.
+In all other cases, require the port to be specified.
 */}}
 {{- define "azimuth.apps.sshdPort" -}}
-{{- if not (dig "enabled" true .Values.zenith) -}}
+{{- if (dig "enabled" true .Values.zenith) }}
+{{- if and (eq .Values.zenith.sshd.service.type "NodePort") .Values.zenith.sshd.service.nodePort }}
+{{- .Values.zenith.sshd.service.nodePort }}
+{{- else if (eq .Values.zenith.sshd.service.type "LoadBalancer") }}
+{{- .Values.zenith.sshd.service.port }}
+{{- else }}
+{{- fail "Unable to determine apps.sshdPort from Zenith configuration" }}
+{{- end }}
+{{- else }}
 22
-{{- else if (eq .Values.zenith.sshd.service.type "NodePort") -}}
-{{- .Values.zenith.sshd.service.nodePort -}}
-{{- else if (eq .Values.zenith.sshd.service.type "LoadBalancer") -}}
-{{- .Values.zenith.sshd.service.port -}}
-{{- else -}}
-{{- fail "zenith.sshd.service.type must be one of NodePort or LoadBalancer" -}}
+{{- end }}
 {{- end -}}
+
+{{/*
+Tries to derive the external URL for the registrar from from the managed Zenith settings.
+*/}}
+{{- define "azimuth.apps.registrarExternalUrl" -}}
+{{- if (dig "enabled" true .Values.zenith) }}
+{{- $registrar := dig "registrar" "ingress" dict .Values.zenith }}
+{{- $common := dig "common" "ingress" dict .Values.zenith }}
+{{- $global := .Values.global.ingress }}
+{{- $ingress := merge $registrar $common $global }}
+{{- $proto := $ingress.tls.enabled | ternary "https" "http" }}
+{{- $defaultHost := printf "%s.%s" (tpl $ingress.subdomain .) $ingress.baseDomain }}
+{{- $host := default $defaultHost $ingress.host }}
+{{- printf "%s://%s" $proto $host }}
+{{- else }}
+{{- fail "apps.registrarExternalUrl is required when the managed Zenith is not enabled" }}
+{{- end }}
+{{- end -}}
+
+{{/*
+Tries to derive the admin URL for the registrar from from the managed Zenith settings.
+*/}}
+{{- define "azimuth.apps.registrarAdminUrl" -}}
+{{- if (dig "enabled" true .Values.zenith) }}
+{{- printf "http://%s-zenith-registrar" .Release.Name }}
+{{- else }}
+{{- fail "apps.registrarAdminUrl is required when the managed Zenith is not enabled" }}
+{{- end }}
+{{- end -}}
+
+{{/*
+Tries to derive the external Azimuth URL from the settings.
+*/}}
+{{- define "azimuth.externalUrl" -}}
+{{- $ingress := merge .Values.ingress .Values.global.ingress }}
+{{- $proto := $ingress.tls.enabled | ternary "https" "http" }}
+{{- $host := tpl $ingress.host . }}
+{{- printf "%s://%s" $proto $host }}
 {{- end -}}
 
 {{/*
 Tries to derive the Zenith auth service URL from the Azimuth settings.
+
+This must be usable from the Zenith subchart, so the chart name is hard-coded.
 */}}
 {{- define "azimuth.auth.verifyUrl" -}}
 {{- $fullName := "" }}
@@ -158,7 +188,11 @@ Tries to derive the Zenith auth service URL from the Azimuth settings.
 
 {{/*
 Tries to derive the Zenith signin redirect URL from the Azimuth settings.
+
+This must be usable from the Zenith subchart, so has to use .Values.global.ingress
+as the best-guess at what was actually used for Azimuth.
 */}}
 {{- define "azimuth.auth.signinUrl" -}}
-{{- printf "https://%s.%s/auth/login/" .Values.global.ingress.portalSubdomain .Values.global.ingress.baseDomain -}}
+{{- $proto := .Values.global.ingress.tls.enabled | ternary "https" "http" }}
+{{- printf "%s://%s.%s/auth/login/" $proto .Values.global.ingress.portalSubdomain .Values.global.ingress.baseDomain }}
 {{- end -}}

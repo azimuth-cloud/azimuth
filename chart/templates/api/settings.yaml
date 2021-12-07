@@ -14,14 +14,15 @@ stringData:
   01-django.yaml: |
     SECRET_KEY: {{ $settings.secretKey | default (randAlphaNum 64) }}
     DEBUG: {{ $settings.debug }}
-    CSRF_COOKIE_SECURE: {{ $settings.secureCookies }}
-    SESSION_COOKIE_SECURE: {{ $settings.secureCookies }}
+    {{- $ingress := merge .Values.ingress .Values.global.ingress }}
+    CSRF_COOKIE_SECURE: {{ $ingress.tls.enabled }}
+    SESSION_COOKIE_SECURE: {{ $ingress.tls.enabled }}
   02-cloud-common.yaml: |
     AZIMUTH:
       AVAILABLE_CLOUDS:
         {{ $settings.currentCloud.name }}:
           label: {{ $settings.currentCloud.label }}
-          url: https://{{ tpl .Values.ingress.host . }}/dashboard
+          url: {{ include "azimuth.externalUrl" . | printf "%s/dashboard" }}
         {{- range $settings.availableClouds }}
         {{ .name }}:
           label: {{ .label | quote }}
@@ -73,7 +74,7 @@ stringData:
   05-apps.yaml: |
     # In order for the app authentication to work correctly, the session
     # cookie needs to apply for all apps
-    SESSION_COOKIE_DOMAIN: ".{{ include "azimuth.apps.baseDomain" . }}"
+    SESSION_COOKIE_DOMAIN: ".{{ tpl $apps.baseDomain . }}"
     # We also need to allow redirects to the apps
     AZIMUTH_AUTH:
       NEXT_URL_ALLOWED_DOMAINS:
@@ -84,6 +85,8 @@ stringData:
         BASE_DOMAIN: {{ tpl $apps.baseDomain . | quote }}
         SSHD_HOST: {{ tpl $apps.sshdHost . | quote }}
         SSHD_PORT: {{ tpl (toString $apps.sshdPort) . | quote }}
+        REGISTRAR_EXTERNAL_URL: {{ tpl $apps.registrarExternalUrl . | quote }}
+        REGISTRAR_ADMIN_URL: {{ tpl $apps.registrarAdminUrl . | quote }}
         {{- with $apps.postDeployScriptUrl }}
         POST_DEPLOY_SCRIPT_URL: {{ . | quote }}
         {{- end }}

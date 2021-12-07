@@ -15,8 +15,10 @@ global:
     baseDomain:
     # The subdomain that the portal will use
     portalSubdomain: portal
+    # The subdomain that the Zenith registrar will use
+    registrarSubdomain: registrar
     # The name of the ingress class to use
-    className:
+    className: nginx
     # Custom annotations for ingress resources, e.g. to specify cert-manager config
     annotations: {}
     # TLS configuration
@@ -96,8 +98,6 @@ settings:
   secretKey:
   # Use debug mode (recommended false in production)
   debug: false
-  # Allow cookies to be sent over HTTPS only (MUST be true in production)
-  secureCookies: true
   # The available clouds, in addition to this one
   availableClouds: []
     # - name: example
@@ -154,24 +154,27 @@ provider:
     # Defaults to 192.168.3.0/24 if not given, which should be OK for most circumstances
     internalNetCidr:
 
-# Configuration for the internal Consul instance
+# Configuration for the managed Consul instance
 # See https://www.consul.io/docs/k8s/helm
 consul: {}
-  # Set this to disable the internal Consul instance
-  # enabled: false
+  # Set this to false to disable the managed Consul instance
+  # enabled: true
 
-# Settings for the internal Zenith instance, used to provide user access to apps
+# Settings for the managed Zenith instance
 zenith:
-  # Set this to disable the internal Zenith instance
-  # enabled: false
+  # Set this to false to disable the managed Zenith instance
+  # enabled: true
   # Prevent Zenith from deploying it's own Consul
   # We will deploy our own as we want to use it in other places as well
   consul:
     enabled: false
+  registrar:
+    config:
+      reservedSubdomains: ["{{ .Values.global.ingress.portalSubdomain }}"]
+    ingress:
+      subdomain: "{{ .Values.global.ingress.registrarSubdomain }}"
   sync:
     config:
-      consul:
-        address: "{{ include \"azimuth.consul.address\" . }}"
       kubernetes:
         ingress:
           # Configure Zenith ingress authentication to use Azimuth for authentication
@@ -180,17 +183,21 @@ zenith:
             signinUrl: "{{ include \"azimuth.auth.signinUrl\" . }}"
 
 # Settings for apps
-# By default, this assumes that the internal Zenith is used
+# By default, this assumes that the managed Zenith is used
 apps:
   # The base domain for apps
-  # By default, the domain of the internal Zenith is used
+  # By default, the domain of the managed Zenith is used
   baseDomain: "{{ include \"azimuth.apps.baseDomain\" . }}"
   # The Zenith SSHD host
-  # By default it attempts to infer the SSHD host for the internal Zenith
+  # By default it attempts to infer the SSHD host for the managed Zenith
   sshdHost: "{{ include \"azimuth.apps.sshdHost\" . }}"
   # The Zenith SSHD port
-  # By default it attempts to infer the SSHD port for the internal Zenith
+  # By default it attempts to infer the SSHD port for the managed Zenith
   sshdPort: "{{ include \"azimuth.apps.sshdPort\" . }}"
+  # The external URL for the Zenith registrar
+  registrarExternalUrl: "{{ include \"azimuth.apps.registrarExternalUrl\" . }}"
+  # The admin URL for the Zenith registrar
+  registrarAdminUrl: "{{ include \"azimuth.apps.registrarAdminUrl\" . }}"
   # The URL of the post-deploy script to execute
   postDeployScriptUrl:
 
@@ -199,7 +206,7 @@ clusterEngine:
   # The type of cluster engine to use (currently only AWX is supported)
   type: awx
   # Parameters for the awx cluster engine
-  # By default, we use values that will work with the internal AWX
+  # By default, we use values that will work with the managed AWX
   awx:
     # The AWX or Ansible Tower URL
     # The URL is treated as a template when rendering resources
@@ -211,7 +218,7 @@ clusterEngine:
     username: admin
     # The name of a secret to get the AWX password from
     # This is treated as a template when rendering resources
-    # By default, this will be the admin password secret for the internal instance
+    # By default, this will be the admin password secret for the managed instance
     passwordSecretName: "{{ include \"azimuth.componentname\" (list . \"awx-admin-password\") }}"
     # Indicates whether teams should be created automatically
     createTeams: true
@@ -266,15 +273,15 @@ clusterEngine:
     # Configuration for the consul backend
     consul:
       # The address, including port, of the Consul server to use
-      # By default, use the internal Consul
-      address: "{{ include \"azimuth.consul.address\" . }}:8500"
+      # By default, use the managed Consul
+      address: "{{ .Release.Name }}-consul-server:8500"
 
-# Configuration for the internal AWX instance
+# Configuration for the managed AWX instance
 awx:
-  # Indicates whether the internal AWX instance should be created
+  # Indicates whether the managed AWX instance should be created
   # This only applies if the cluster engine is enabled with type AWX
-  enabled: true
-  # The spec for the internal AWX instance
+  # enabled: true
+  # The spec for the managed AWX instance
   spec:
     create_preload_data: false
     garbage_collect_secrets: true
