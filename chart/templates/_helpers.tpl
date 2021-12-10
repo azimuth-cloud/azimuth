@@ -81,7 +81,7 @@ Tries to derive the app proxy base domain from the managed Zenith settings.
 {{- $sync := dig "sync" "config" "kubernetes" "ingress" dict .Values.zenith }}
 {{- $common := dig "common" "ingress" dict .Values.zenith }}
 {{- $global := .Values.global.ingress }}
-{{- $ingress := merge $sync $common $global }}
+{{- $ingress := mergeOverwrite $global $common $sync }}
 {{- $ingress.baseDomain }}
 {{- else }}
 {{- fail "apps.baseDomain is required when the managed Zenith is not enabled" }}
@@ -139,7 +139,7 @@ Tries to derive the external URL for the registrar from from the managed Zenith 
 {{- $registrar := dig "registrar" "ingress" dict .Values.zenith }}
 {{- $common := dig "common" "ingress" dict .Values.zenith }}
 {{- $global := .Values.global.ingress }}
-{{- $ingress := merge $registrar $common $global }}
+{{- $ingress := mergeOverwrite $global $common $registrar }}
 {{- $proto := $ingress.tls.enabled | ternary "https" "http" }}
 {{- $defaultHost := printf "%s.%s" (tpl $ingress.subdomain .) $ingress.baseDomain }}
 {{- $host := default $defaultHost $ingress.host }}
@@ -164,7 +164,7 @@ Tries to derive the admin URL for the registrar from from the managed Zenith set
 Tries to derive the external Azimuth URL from the settings.
 */}}
 {{- define "azimuth.externalUrl" -}}
-{{- $ingress := merge .Values.ingress .Values.global.ingress }}
+{{- $ingress := mergeOverwrite .Values.global.ingress .Values.ingress }}
 {{- $proto := $ingress.tls.enabled | ternary "https" "http" }}
 {{- $host := tpl $ingress.host . }}
 {{- printf "%s://%s" $proto $host }}
