@@ -78,9 +78,9 @@ Tries to derive the app proxy base domain from the managed Zenith settings.
 */}}
 {{- define "azimuth.apps.baseDomain" -}}
 {{- if (dig "enabled" true .Values.zenith) }}
-{{- $sync := dig "sync" "config" "kubernetes" "ingress" dict .Values.zenith }}
-{{- $common := dig "common" "ingress" dict .Values.zenith }}
-{{- $global := .Values.global.ingress }}
+{{- $global := deepCopy .Values.global.ingress }}
+{{- $common := dig "common" "ingress" dict .Values.zenith | deepCopy }}
+{{- $sync := dig "sync" "config" "kubernetes" "ingress" dict .Values.zenith | deepCopy }}
 {{- $ingress := mergeOverwrite $global $common $sync }}
 {{- $ingress.baseDomain }}
 {{- else }}
@@ -91,14 +91,14 @@ Tries to derive the app proxy base domain from the managed Zenith settings.
 {{/*
 Tries to derive the SSHD host from the managed Zenith settings.
 
-If a NodePort service is used for SSHD, assume that the apps base domain will work.
+If a NodePort service is used for SSHD, assume that a subdomain of the apps base domain will work.
 If a LoadBalancer service with a static IP is used for SSHD, use the static IP.
 In all other cases, require the SSHD host to be specified.
 */}}
 {{- define "azimuth.apps.sshdHost" -}}
 {{- if (dig "enabled" true .Values.zenith) }}
 {{- if (eq .Values.zenith.sshd.service.type "NodePort") }}
-{{- include "azimuth.apps.baseDomain" . }}
+{{- include "azimuth.apps.baseDomain" . | printf "sshd.%s" }}
 {{- else if and (eq .Values.zenith.sshd.service.type "LoadBalancer") .Values.zenith.sshd.service.loadBalancerIP }}
 {{- .Values.zenith.sshd.service.loadBalancerIP }}
 {{- else }}
@@ -136,9 +136,9 @@ Tries to derive the external URL for the registrar from from the managed Zenith 
 */}}
 {{- define "azimuth.apps.registrarExternalUrl" -}}
 {{- if (dig "enabled" true .Values.zenith) }}
-{{- $registrar := dig "registrar" "ingress" dict .Values.zenith }}
-{{- $common := dig "common" "ingress" dict .Values.zenith }}
-{{- $global := .Values.global.ingress }}
+{{- $global := deepCopy .Values.global.ingress }}
+{{- $common := dig "common" "ingress" dict .Values.zenith | deepCopy }}
+{{- $registrar := dig "registrar" "ingress" dict .Values.zenith | deepCopy }}
 {{- $ingress := mergeOverwrite $global $common $registrar }}
 {{- $proto := $ingress.tls.enabled | ternary "https" "http" }}
 {{- $defaultHost := printf "%s.%s" (tpl $ingress.subdomain .) $ingress.baseDomain }}
@@ -164,7 +164,7 @@ Tries to derive the admin URL for the registrar from from the managed Zenith set
 Tries to derive the external Azimuth URL from the settings.
 */}}
 {{- define "azimuth.externalUrl" -}}
-{{- $ingress := mergeOverwrite .Values.global.ingress .Values.ingress }}
+{{- $ingress := mergeOverwrite (deepCopy .Values.global.ingress) .Values.ingress }}
 {{- $proto := $ingress.tls.enabled | ternary "https" "http" }}
 {{- $host := tpl $ingress.host . }}
 {{- printf "%s://%s" $proto $host }}

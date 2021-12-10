@@ -14,7 +14,7 @@ stringData:
   01-django.yaml: |
     SECRET_KEY: {{ $settings.secretKey | default (randAlphaNum 64) }}
     DEBUG: {{ $settings.debug }}
-    {{- $ingress := mergeOverwrite .Values.global.ingress .Values.ingress }}
+    {{- $ingress := mergeOverwrite (deepCopy .Values.global.ingress) .Values.ingress }}
     CSRF_COOKIE_SECURE: {{ $ingress.tls.enabled }}
     SESSION_COOKIE_SECURE: {{ $ingress.tls.enabled }}
   02-cloud-common.yaml: |

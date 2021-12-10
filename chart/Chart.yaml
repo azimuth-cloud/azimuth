@@ -17,14 +17,14 @@ dependencies:
   - name: consul
     version: ~0.35.0
     repository: https://helm.releases.hashicorp.com
-    # Consul is required when either apps or clusters are enabled unless the managed Consul is explicitly disabled
+    # Managed Consul is required when either apps or clusters are enabled unless explicitly disabled
     condition: consul.enabled
     tags: [apps, clusters]
 
   - name: zenith-server
-    version: 0.1.0-dev.0.main.112
+    version: 0.1.0-dev.0.main.113
     repository: https://stackhpc.github.io/zenith
     alias: zenith
-    # Zenith is required when apps are enabled unless the managed Zenith is explicitly disabled
+    # Managed Zenith is required when apps are enabled unless explicitly disabled
     condition: zenith.enabled
     tags: [apps]
