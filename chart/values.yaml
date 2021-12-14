@@ -76,7 +76,7 @@ ui:
 
 ingress:
   # The hostname to use for the portal
-  host: "{{ .Values.global.ingress.portalSubdomain }}.{{ .Values.global.ingress.baseDomain }}"
+  host: "{{ include \"azimuth.ingress.defaultHost\" . }}"
   # The ingress class to use
   # This overrides the class specified in global if given
   # className:

@@ -74,6 +74,20 @@ Labels for a component resource.
 {{- end -}}
 
 {{/*
+Derives the default portal hostname from the available options.
+
+If apps is enabled, we use the portal subdomain combined with the apps base domain.
+If apps are not enabled, required that the hostname is specified.
+*/}}
+{{- define "azimuth.ingress.defaultHost" -}}
+{{- if .Values.tags.apps }}
+{{ .Values.global.ingress.portalSubdomain }}.{{ tpl .Values.apps.baseDomain . }}
+{{- else }}
+{{- fail "ingress.host must be specified explicitly when apps are not enabled" }}
+{{- end }}
+{{- end -}}
+
+{{/*
 Tries to derive the app proxy base domain from the managed Zenith settings.
 */}}
 {{- define "azimuth.apps.baseDomain" -}}
@@ -82,7 +96,7 @@ Tries to derive the app proxy base domain from the managed Zenith settings.
 {{- $common := dig "common" "ingress" dict .Values.zenith | deepCopy }}
 {{- $sync := dig "sync" "config" "kubernetes" "ingress" dict .Values.zenith | deepCopy }}
 {{- $ingress := mergeOverwrite $global $common $sync }}
-{{- $ingress.baseDomain }}
+{{- required "unable to determine base domain" $ingress.baseDomain }}
 {{- else }}
 {{- fail "apps.baseDomain is required when the managed Zenith is not enabled" }}
 {{- end }}
