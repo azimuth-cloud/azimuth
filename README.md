@@ -85,7 +85,7 @@ Azimuth deployment that has an
 [Ingress Controller](https://kubernetes.io/docs/concepts/services-networking/ingress-controllers/)
 installed. If you intend to use the Zenith application proxy, this must be the
 [NGINX Ingress Controller](https://kubernetes.github.io/ingress-nginx/) specifically - see
-the [Zenith Deployment prerequisites](https://github.com/stackhpc/zenith/blob/docs-update/docs/server.md#prerequisites).
+the [Zenith Deployment prerequisites](https://github.com/stackhpc/zenith/blob/main/docs/server.md#prerequisites).
 
 The following is a minimal Helm values file to deploy the core Azimuth portal locally using
 [Minikube](https://minikube.sigs.k8s.io/docs/) (tested on Mac OSX with the Docker driver):

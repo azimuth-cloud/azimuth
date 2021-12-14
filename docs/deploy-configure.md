@@ -126,10 +126,9 @@ provider:
 
 ### Enabling federated authentication
 
-By default, the username/password authenticator is enabled, and this requires no additional
-configuration.
+By default, the password authenticator is enabled, and this requires no additional configuration.
 
-If the target cloud consumes an external identity provider via
+If the target cloud consumes identities from an external provider via
 [Keystone federation](https://docs.openstack.org/keystone/latest/admin/federation/introduction.html),
 then Azimuth can be configured to obtain an OpenStack token from Keystone using the same flow
 that Horizon uses. To enable this, additional configuration is required for both Azimuth and Keystone
@@ -145,8 +144,8 @@ authenticator:
     federationUrl: https://openstack.example-cloud.org:5000/v3/auth/OS-FEDERATION/websso/<provider>
 ```
 
-Azimuth must also be
-[configured as a trusted dashboard in Keystone](https://docs.openstack.org/keystone/latest/admin/federation/configure_federation.html#add-a-trusted-dashboard-websso),
+The Keystone configuration of the target cloud must also be modified to add Azimuth as a
+[trusted dashboard](https://docs.openstack.org/keystone/latest/admin/federation/configure_federation.html#add-a-trusted-dashboard-websso),
 otherwise it will be unable to retrieve a token via the federation flow. When configuring Azimuth as a
 trusted dashboard, you must specify the URL that will receive token data - for an Azimuth deployment,
 this URL is `https://[portal domain]/auth/complete/`, where the portal domain depends on the options
@@ -154,33 +153,19 @@ set in your Helm values file as described elsewhere in this document.
 
 ### Networking configuration
 
-Azimuth does not expose any networking configuration to end users - instead it attempts to discover
-the networks that it should be using, and is capable of creating the required networking components
-if they are not present in an OpenStack project.
-
-Azimuth only has a concept of two networks:
-
-  * An "internal" network, typically a project-specific VXLAN.
-  * An "external" network (external in the Neutron sense), that provides access from outside
-    of the OpenStack project. This is typically a provider network shared between projects
-    that connects to the internet.
-
 Azimuth uses
 [Neutron resource tags](https://docs.openstack.org/neutron/latest/contributor/internals/tag.html)
 to discover the networks it should use, and the tags it looks for are `portal-internal` and
-`portal-external` for the internal and external networks respectively.
+`portal-external` for the internal and external networks respectively. These tags must be applied
+by the cloud operator.
 
-If there is no network with the `portal-external` tag available in a project, then Azimuth looks
-for networks with the `router:external` property. If there is **exactly one** such network it
-will use that, otherwise it will raise a configuration error. If there are multiple external
-networks, one must be tagged for use by the portal.
+If it cannot find a tagged internal network, the default behaviour is for Azimuth to create an
+internal network to use (and the corresponding router to attach it to the external network).
 
-If there is no network with the `portal-internal` tag available in a project, then Azimuth will
-create one and tag it. If it can detect an external network, it will also create a router
-connecting the newly-created internal network and the external network.
+The discovery and auto-creation process is described in detail in
+[Network discovery and auto-creation](./architecture.md#network-discovery-and-auto-creation).
 
-This "auto-create" behaviour for the internal network can be disabled, in which case not finding
-a tagged internal network will raise a configuration error:
+To disable the auto-creation of internal networks, use the following:
 
 ```yaml
 provider:
@@ -318,8 +303,17 @@ The portal will be available at `portal.apps.example-cloud.org`, the Zenith regi
 `registrar.apps.example-cloud.org` and the Zenith services at `subdomain1.apps.example-cloud.org`,
 `subdomain2.apps.example-cloud.org`, ...
 
-TLS configuration is very similar to the [non-Zenith case](#transport-layer-security-tls), except
-that:
+Similar to the [non-Zenith case](#specifying-the-ingress-class), Azimuth and Zenith must be told
+what ingress class to use using `global.ingress`:
+
+```yaml
+global:
+  ingress:
+    className: public  # Defaults to nginx
+```
+
+TLS configuration also is very similar to the [non-Zenith case](#transport-layer-security-tls),
+except that:
 
   * If using a pre-existing certificate, it must be a **wildcard** certificate for the Azimuth/Zenith
     base domain rather than for the Azimuth portal domain only.
@@ -514,6 +508,9 @@ awx:
     # cert-manager creates it
     ingress_tls_secret: azimuth-awx-tls
 ```
+
+For a full list of available options, see the
+[AWX operator documentation](https://github.com/ansible/awx-operator).
 
 ## Using non-standard images
 
