@@ -504,8 +504,7 @@ awx:
     hostname: awx.example-cloud.org
     ingress_annotations: |
       cert-manager.io/cluster-issuer: name-of-issuer
-    # Note that we specify the secret name, even though it doesn't exist until
-    # cert-manager creates it
+    # We specify the secret name even though it doesn't exist until cert-manager creates it
     ingress_tls_secret: azimuth-awx-tls
 ```
 

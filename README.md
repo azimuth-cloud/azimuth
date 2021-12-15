@@ -67,7 +67,7 @@ username/password or federation) to obtain a token which is stored in a cookie i
 browser. Azimuth then uses this token to talk to the OpenStack API on behalf of the user when
 the user submits requests to the Azimuth API via the Azimuth UI.
 
-![Zenith Core Architecture Diagram](./docs/architecture-core.png?raw=true)
+![Azimuth Core Architecture Diagram](./docs/architecture-core.png?raw=true)
 
 When the Zenith application proxy and Cluster-as-a-Service (CaaS) subsystems are enabled, this
 picture becomes more complicated - see [Azimuth Architecture](./docs/architecture.md) for more
