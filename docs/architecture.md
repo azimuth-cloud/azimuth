@@ -16,7 +16,7 @@ provision complex, multi-machine appliances.
 > **NOTE**
 >
 > Before reading this document, please make sure you are familiar with the
-> [Zenith Architecture](https://github.com/stackhpc/zenith/blob/master/docs/architecture.md).
+> [Zenith Architecture](https://github.com/stackhpc/zenith/blob/main/docs/architecture.md).
 >
 > This document treats Zenith as a black box, focusing on Azimuth's integration points.
 
