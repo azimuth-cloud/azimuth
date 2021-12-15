@@ -82,7 +82,7 @@ Currently, Zenith is used to provide access to authenticated web consoles for pr
 without the need to consume a floating IP, but many more integrations are planned in the near
 future.
 
-Azimuth integrates with Zenith in two ways, which are shown as "External components" in the
+Azimuth integrates with Zenith in two places, which are shown as "External components" in the
 [Zenith architecture diagram](https://github.com/stackhpc/zenith/blob/main/docs/architecture.md#architecture-diagram):
 
   * **External auth service**: Azimuth provides authentication and authorization for proxied
@@ -103,9 +103,10 @@ the Azimuth portal at `portal.apps.example-cloud.org` with the Zenith services b
 the cookie would be set with the domain `.apps.example-cloud.org`.
 
 Zenith allows external auth services to respect additional headers that can be specified by
-Zenith clients using the `auth_params` option (see the Zenith client docs). Zenith imposes no
-contraints on these headers - they are just forwarded as specified by the client with the
-prefix `X-Auth-`.
+Zenith clients using the `auth_params` option (see the
+[Zenith client docs](https://github.com/stackhpc/zenith/blob/main/docs/client.md) for more
+information). Zenith imposes no contraints on these headers - they are just forwarded to the
+external auth service as specified by the client as headers with the prefix `X-Auth-`.
 
 If no `auth_params` are specified for a service, Azimuth will ensure that the user can
 authenticate with the target OpenStack cloud but will not impose any project-level authorization
