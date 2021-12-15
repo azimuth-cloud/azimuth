@@ -78,8 +78,9 @@ a tagged internal network will raise a configuration error.
 ## Zenith integration
 
 Azimuth optionally integrates with the [Zenith proxy](https://github.com/stackhpc/zenith).
-Currently, Zenith is used to provide access to authenticated web consoles for provisioned servers,
-but many more integrations are planned in the near future.
+Currently, Zenith is used to provide access to authenticated web consoles for provisioned servers
+without the need to consume a floating IP, but many more integrations are planned in the near
+future.
 
 Azimuth integrates with Zenith in two ways, which are shown as "External components" in the
 [Zenith architecture diagram](https://github.com/stackhpc/zenith/blob/main/docs/architecture.md#architecture-diagram):
@@ -115,6 +116,22 @@ To enforce project-level authorization for a service, clients can specify
 verify an incoming request for the service, Azimuth will receive the project ID as the
 `X-Auth-Tenancy-Id` header and will verify that the authenticated user belongs to the specified
 project before allowing the request to proceed.
+
+The flow when an unauthenticated user tries to access an authenticated Zenith service is:
+
+  1. Unauthenticated user attempts to access a Zenith service (no cookie set).
+  1. The Zenith proxy calls out to Azimuth to verify the request.
+  1. Azimuth responds that the user is unauthenticated.
+  1. The Zenith proxy redirects the user to the Azimuth sign-in page.
+  1. Azimuth negotiates with Keystone to obtain an OpenStack token for the user.
+  1. Azimuth places the token into a cookie for the base/parent domain.
+  1. Azimuth redirects the user back to the Zenith service (this time with a cookie set).
+  1. The Zenith proxy calls out to Azimuth to verify the request.
+  1. Azimuth reads the token from the cookie and checks that it is still valid.
+  1. If the service specified `auth_params.tenancy-id`, Azimuth checks that the user
+     belongs to the specified project.
+  1. Azimuth responds to the Zenith proxy that the request can proceed.
+  1. The request is forwarded to the proxied service down the Zenith tunnel.
 
 ### Web console support
 
