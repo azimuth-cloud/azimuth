@@ -77,7 +77,7 @@ export function createActionCreators(resourceName, actions) {
                 body: data || {}
             }
         }),
-        update: (tenancyId, resourceId, data) => ({
+        update: (tenancyId, resourceId, data, partial = false) => ({
             type: actions.UPDATE,
             tenancyId,
             resourceId,
@@ -86,7 +86,7 @@ export function createActionCreators(resourceName, actions) {
             failureAction: actions.UPDATE_FAILED,
             options: {
                 url: `/api/tenancies/${tenancyId}/${resource}s/${resourceId}/`,
-                method: 'PUT',
+                method: partial ? 'PATCH' : 'PUT',
                 body: data
             }
         }),

@@ -37,6 +37,24 @@ export const bindArgsToActions = (actions, ...args) => Object.assign(
 );
 
 
+const compare = (x, y) => (x > y ? 1 : (x < y ? -1 : 0));
+
+
+/**
+ * Compare two arrays elementwise.
+ */
+export const compareElementwise = (x, y) => {
+    // Compare the arrays element by element until the comparison function is
+    // non-zero or one of the arrays is exhausted
+    const result = [...Array(Math.min(x.length, y.length)).keys()]
+        .map(i => compare(x[i], y[i]))
+        .find(i => i !== 0);
+    // If the result is undefined after comparing the elements, i.e. the arrays
+    // share the first N elements, then the longer array is greater
+    return result == undefined ? compare(x.length, y.length) : result;
+}
+
+
 /**
  * This function sorts an array using the given key function.
  * 
@@ -49,22 +67,7 @@ export const bindArgsToActions = (actions, ...args) => Object.assign(
 export const sortBy = (data, keyFn, reverse = false) => [...data].sort(
     (e1, e2) => {
         const [k1, k2] = [keyFn(e1), keyFn(e2)];
-        const compare = (i1, i2) => (i1 > i2 ? 1 : (i1 < i2 ? -1 : 0));
-        let result;
-        if( Array.isArray(k1) ) {
-            // If the keys are arrays, compare them element by element until the
-            // comparison function is non-zero or one of the arrays is exhausted
-            result = [...Array(Math.min(k1.length, k2.length)).keys()]
-                .map(i => compare(k1[i], k2[i]))
-                .find(i => i !== 0);
-            // If the result is undefined after comparing the elements, then the
-            // longer array is greater
-            if( result === undefined ) result = compare(k1.length, k2.length);
-        }
-        else {
-            // If the keys are not arrays, just compare them
-            result = compare(k1, k2);
-        }
+        const result = Array.isArray(k1) ? compareElementwise(k1, k2) : compare(k1, k2);
         return reverse ? -result : result;
     }
 );
@@ -113,6 +116,16 @@ export const usePageTitle = title => {
     // Get the current cloud name from the redux store
     // When the title changes, set the title of the page
     useEffect(() => { document.title = pageTitle }, [pageTitle]);
+};
+
+
+/**
+ * Hook to use the value of a variable from the previous rendering cycle.
+ */
+export const usePrevious = value => {
+    const ref = useRef();
+    useEffect(() => { ref.current = value; }, [value]);
+    return ref.current;
 };
 
 
@@ -263,7 +276,11 @@ export const Form = ({ children, disabled = false, onSubmit, ...props }) => {
 /**
  * Component that renders a Bootstrap form control with the HTML5 validation state
  */
-export const ControlWithValidationMessage = ({ children, ...props }) => {
+export const ControlWithValidationMessage = ({
+    children,
+    validationMessage: customValidationMessage,
+    ...props
+}) => {
     // Maintain the validation message from the last invalid event as internal state
     const [validationMessage, setValidationMessage] = useState('');
     // The control is invalid if the message is non-empty
@@ -271,7 +288,7 @@ export const ControlWithValidationMessage = ({ children, ...props }) => {
     // When the invalid event is raised, set the validation message
     const onInvalid = evt => setValidationMessage(
         evt.target.value ?
-            evt.target.title || evt.target.validationMessage :
+            customValidationMessage || evt.target.validationMessage :
             evt.target.validationMessage
     );
     // When the value is changed, clear the validation message until the next

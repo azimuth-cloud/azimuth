@@ -11,10 +11,10 @@ import Modal from 'react-bootstrap/Modal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDesktop, faPlus, faSyncAlt } from '@fortawesome/free-solid-svg-icons';
 
-import { Form, Field } from '../../utils';
-import { ConnectedSSHKeyRequiredModal } from '../../ssh-key-update-modal';
+import { Form, Field } from '../../../utils';
+import { ConnectedSSHKeyRequiredModal } from '../../../ssh-key-update-modal';
 
-import { ImageSelectControl, SizeSelectControl } from './resource-utils';
+import { ImageSelectControl, SizeSelectControl } from '../resource-utils';
 
 
 const CreateMachineModal = ({
@@ -91,7 +91,6 @@ const CreateMachineModal = ({
                             placeholder="Machine name"
                             required
                             pattern="[A-Za-z0-9\.\-]+"
-                            title="Must contain alphanumeric characters, dot (.) and dash (-) only."
                             autoComplete="off"
                             value={name}
                             onChange={setNameFromEvent}

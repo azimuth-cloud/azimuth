@@ -11,7 +11,13 @@ const {
     reducer: resourceReducer,
     epic
 } = createTenancyResource('kubernetes_cluster', {
-    isActive: cluster => cluster.status.endsWith("_IN_PROGRESS"),
+    // Mark clusters with an in-progress operation as active
+    // Also mark unhealthy clusters as active if autohealing is enabled as there is a
+    // high likelihood that a remediation will start soon
+    isActive: cluster => (
+        ["Reconciling", "Upgrading", "Deleting"].includes(cluster.status) ||
+        (cluster.status === "Unhealthy" && cluster.autohealing_enabled)
+    ),
     // Just convert the string dates to Date objects
     transform: cluster => ({
         ...cluster,

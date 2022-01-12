@@ -13,9 +13,9 @@ import isEmpty from 'lodash/isEmpty';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSignInAlt } from '@fortawesome/free-solid-svg-icons';
 
-import { Form, Field } from '../../utils';
+import { Form, Field } from '../../../utils';
 
-import { MachineSelectControl } from './resource-utils';
+import { MachineSelectControl } from '../resource-utils';
 
 
 export const AttachVolumeMenuItem = ({ volume, machines, machineActions, attach }) => {

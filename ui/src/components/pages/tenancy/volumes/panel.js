@@ -4,11 +4,11 @@
 
 import React from 'react';
 
-import { usePageTitle } from '../../utils';
+import { usePageTitle } from '../../../utils';
 
-import { useResourceInitialised, ResourcePanel } from './resource-utils';
-import { CreateVolumeButton } from './create-volume-modal';
-import { VolumesTable } from './volumes-table';
+import { useResourceInitialised, ResourcePanel } from '../resource-utils';
+import { CreateVolumeButton } from './create-modal';
+import { VolumesTable } from './table';
 
 
 const Volumes = ({ resourceData, resourceActions, machines, machineActions }) => (

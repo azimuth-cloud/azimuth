@@ -25,7 +25,7 @@ import {
     Form,
     Loading,
     Select
-} from '../../utils';
+} from '../../../utils';
 
 
 const knownProtocols = ["ANY", "ICMP", "UDP", "TCP"];
@@ -187,13 +187,12 @@ const firewallRuleForm = (machine, machineActions) => {
                     </ControlWithValidationMessage>
                 </td>
                 <td>
-                    <ControlWithValidationMessage>
+                    <ControlWithValidationMessage validationMessage="Please enter a valid IPv4 CIDR.">
                         <FormControl
                             form="add-firewall-rule"
                             id="remote_cidr"
                             type="text"
                             pattern="^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])/(3[0-2]|[1-2]?[0-9])$"
-                            title="Please enter a valid IPv4 CIDR."
                             placeholder="0.0.0.0/0"
                             autoComplete="off"
                             value={remoteCidr}

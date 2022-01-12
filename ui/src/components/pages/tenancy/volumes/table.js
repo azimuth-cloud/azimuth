@@ -12,9 +12,9 @@ import DropdownItem from 'react-bootstrap/DropdownItem';
 
 import get from 'lodash/get';
 
-import { bindArgsToActions, formatSize, sortBy, Loading } from '../../utils';
+import { bindArgsToActions, formatSize, sortBy, Loading } from '../../../utils';
 
-import { AttachVolumeMenuItem } from './attach-volume-modal';
+import { AttachVolumeMenuItem } from './attach-modal';
 
 
 const ConfirmDeleteMenuItem = ({ name, disabled, onConfirm }) => {

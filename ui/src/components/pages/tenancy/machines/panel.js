@@ -4,11 +4,11 @@
 
 import React from 'react';
 
-import { usePageTitle } from '../../utils';
+import { usePageTitle } from '../../../utils';
 
-import { useResourceInitialised, ResourcePanel } from './resource-utils';
-import { CreateMachineButton } from './create-machine-modal';
-import { MachinesTable } from './machines-table';
+import { useResourceInitialised, ResourcePanel } from '../resource-utils';
+import { CreateMachineButton } from './create-modal';
+import { MachinesTable } from './table';
 
 
 const Machines = ({ resourceData, resourceActions, ...props }) => (

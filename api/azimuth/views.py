@@ -5,13 +5,11 @@ Django views for interacting with the configured cloud provider.
 import dataclasses
 import functools
 import logging
-import random
-import string
 
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils.safestring import mark_safe
-from django.utils.encoding import smart_text
+from django.utils.encoding import smart_str
 
 from docutils import core
 
@@ -21,6 +19,7 @@ from rest_framework.utils import formatting
 import requests
 
 from . import serializers
+from .cluster_api import errors as cluster_api_errors
 from .keystore import errors as keystore_errors
 from .provider import errors as provider_errors
 from .settings import cloud_settings
@@ -38,7 +37,7 @@ def get_view_description(view_cls, html = False):
     Sphinx-generated API views.
     """
     description = view_cls.__doc__ or ""
-    description = formatting.dedent(smart_text(description))
+    description = formatting.dedent(smart_str(description))
     if html:
         # Get just the HTML parts corresponding to the docstring
         parts = core.publish_parts(source = description, writer_name = "html")
@@ -128,6 +127,58 @@ def convert_key_store_exceptions(view):
     return wrapper
 
 
+def convert_cluster_api_exceptions(view):
+    """
+    Decorator that converts errors from :py:mod:`.cluster_api.errors` into appropriate
+    HTTP responses or Django REST framework errors.
+    """
+    @functools.wraps(view)
+    def wrapper(*args, **kwargs):
+        try:
+            return view(*args, **kwargs)
+        # For provider errors that don't map to authentication/not found errors,
+        # return suitable responses
+        except cluster_api_errors.UnsupportedOperationError as exc:
+            return response.Response(
+                { "detail": str(exc), "code": "unsupported_operation"},
+                status = status.HTTP_404_NOT_FOUND
+            )
+        # except cluster_api_errors.QuotaExceededError as exc:
+        #     return response.Response(
+        #         { "detail": str(exc), "code": "quota_exceeded"},
+        #         status = status.HTTP_409_CONFLICT
+        #     )
+        except cluster_api_errors.InvalidOperationError as exc:
+            return response.Response(
+                { "detail": str(exc), "code": "invalid_operation"},
+                status = status.HTTP_409_CONFLICT
+            )
+        except cluster_api_errors.BadInputError as exc:
+            return response.Response(
+                { "detail": str(exc), "code": "bad_input"},
+                status = status.HTTP_400_BAD_REQUEST
+            )
+        # except cluster_api_errors.OperationTimedOutError as exc:
+        #     return response.Response(
+        #         { "detail": str(exc), "code": "operation_timed_out"},
+        #         status = status.HTTP_504_GATEWAY_TIMEOUT
+        #     )
+        # # For authentication/not found errors, raise the DRF equivalent
+        # except cluster_api_errors.AuthenticationError as exc:
+        #     raise drf_exceptions.AuthenticationFailed(str(exc))
+        # except cluster_api_errors.PermissionDeniedError as exc:
+        #     raise drf_exceptions.PermissionDenied(str(exc))
+        except cluster_api_errors.ObjectNotFoundError as exc:
+            raise drf_exceptions.NotFound(str(exc))
+        except cluster_api_errors.Error as exc:
+            log.exception("Unexpected Cluster API provider error occurred")
+            return response.Response(
+                { "detail": str(exc) },
+                status = status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    return wrapper
+
+
 def provider_api_view(methods):
     """
     Returns a decorator for a provider API view that combines several decorators into one.
@@ -135,6 +186,7 @@ def provider_api_view(methods):
     def decorator(view):
         view = convert_provider_exceptions(view)
         view = convert_key_store_exceptions(view)
+        view = convert_cluster_api_exceptions(view)
         view = decorators.permission_classes([permissions.IsAuthenticated])(view)
         view = decorators.api_view(methods)(view)
         return view
@@ -166,6 +218,8 @@ def session(request):
         # app proxy for the portal, not the cloud itself
         "capabilities": dict(
             dataclasses.asdict(request.auth.capabilities()),
+            # Kubernetes is supported if a Cluster API provider is configured
+            supports_kubernetes = bool(cloud_settings.CLUSTER_API_PROVIDER),
             supports_apps = bool(cloud_settings.APPS.ENABLED),
         ),
         "links": {
@@ -734,110 +788,6 @@ def volume_details(request, tenant, volume):
 
 
 @provider_api_view(["GET"])
-def kubernetes_cluster_templates(request, tenant):
-    """
-    Return a list of the available Kubernetes cluster templates for the tenancy.
-    """
-    with request.auth.scoped_session(tenant) as session:
-        serializer = serializers.KubernetesClusterTemplateSerializer(
-            session.kubernetes_cluster_templates(),
-            many = True,
-            context = { "request": request, "tenant": tenant }
-        )
-    return response.Response(serializer.data)
-
-
-@provider_api_view(["GET"])
-def kubernetes_cluster_template_details(request, tenant, template):
-    """
-    Return the details for the specified Kubernetes cluster template.
-    """
-    with request.auth.scoped_session(tenant) as session:
-        serializer = serializers.KubernetesClusterTemplateSerializer(
-            session.find_kubernetes_cluster_template(template),
-            context = { "request": request, "tenant": tenant }
-        )
-    return response.Response(serializer.data)
-
-
-@provider_api_view(["GET", "POST"])
-def kubernetes_clusters(request, tenant):
-    """
-    On ``GET`` requests, return a list of the deployed Kubernetes clusters for the tenancy.
-
-    On ``POST`` requests, create a new Kubernetes cluster.
-    """
-    if request.method == "POST":
-        with request.auth.scoped_session(tenant) as session:
-            input_serializer = serializers.CreateKubernetesClusterSerializer(
-                data = request.data,
-                context = { "session": session }
-            )
-            input_serializer.is_valid(raise_exception = True)
-            cluster = session.create_kubernetes_cluster(
-                **input_serializer.validated_data,
-                ssh_key = cloud_settings.SSH_KEY_STORE.get_key(
-                    request.user.username,
-                    # Pass the request and the sessions as keyword options
-                    # so that the key store can use them if it needs to
-                    request = request,
-                    unscoped_session = request.auth,
-                    scoped_session = session
-                )
-            )
-        output_serializer = serializers.KubernetesClusterSerializer(
-            cluster,
-            context = { "request": request, "tenant": tenant }
-        )
-        return response.Response(output_serializer.data)
-    else:
-        with request.auth.scoped_session(tenant) as session:
-            serializer = serializers.KubernetesClusterSerializer(
-                session.kubernetes_clusters(),
-                many = True,
-                context = { "request": request, "tenant": tenant }
-            )
-        return response.Response(serializer.data)
-
-
-@provider_api_view(["GET", "DELETE"])
-def kubernetes_cluster_details(request, tenant, cluster):
-    """
-    On ``GET`` requests, return the specified Kubernetes cluster.
-
-    On ``DELETE`` requests, delete the specified Kubernetes cluster.
-    """
-    if request.method == "DELETE":
-        with request.auth.scoped_session(tenant) as session:
-            deleted = session.delete_kubernetes_cluster(cluster)
-        if deleted:
-            serializer = serializers.KubernetesClusterSerializer(
-                deleted,
-                context = { "request": request, "tenant": tenant }
-            )
-            return response.Response(serializer.data)
-        else:
-            return response.Response()
-    else:
-        with request.auth.scoped_session(tenant) as session:
-            serializer = serializers.KubernetesClusterSerializer(
-                session.find_kubernetes_cluster(cluster),
-                context = { "request": request, "tenant": tenant }
-            )
-        return response.Response(serializer.data)
-
-
-@provider_api_view(["POST"])
-def kubernetes_cluster_generate_kubeconfig(request, tenant, cluster):
-    """
-    Generate a kubeconfig file for the specified cluster.
-    """
-    with request.auth.scoped_session(tenant) as session:
-        kubeconfig = session.generate_kubeconfig_for_kubernetes_cluster(cluster)
-    return response.Response({ "kubeconfig": kubeconfig })
-
-
-@provider_api_view(["GET"])
 def cluster_types(request, tenant):
     """
     Returns the cluster types available to the tenancy.
@@ -963,3 +913,128 @@ def cluster_patch(request, tenant, cluster):
             context = { "request": request, "tenant": tenant }
         )
     return response.Response(serializer.data)
+
+
+@provider_api_view(["GET"])
+def kubernetes_cluster_templates(request, tenant):
+    """
+    Return a list of the available Kubernetes cluster templates for the tenancy.
+    """
+    with request.auth.scoped_session(tenant) as session:
+        with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
+            serializer = serializers.KubernetesClusterTemplateSerializer(
+                capi_session.cluster_templates(),
+                many = True,
+                context = { "request": request, "tenant": tenant }
+            )
+    return response.Response(serializer.data)
+
+
+@provider_api_view(["GET"])
+def kubernetes_cluster_template_details(request, tenant, template):
+    """
+    Return the details for the specified Kubernetes cluster template.
+    """
+    with request.auth.scoped_session(tenant) as session:
+        with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
+            serializer = serializers.KubernetesClusterTemplateSerializer(
+                capi_session.find_cluster_template(template),
+                context = { "request": request, "tenant": tenant }
+            )
+    return response.Response(serializer.data)
+
+
+@provider_api_view(["GET", "POST"])
+def kubernetes_clusters(request, tenant):
+    """
+    On ``GET`` requests, return a list of the deployed Kubernetes clusters for the tenancy.
+
+    On ``POST`` requests, create a new Kubernetes cluster.
+    """
+    with request.auth.scoped_session(tenant) as session:
+        with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
+            if request.method == "POST":
+                input_serializer = serializers.CreateKubernetesClusterSerializer(
+                    data = request.data,
+                    context = { "session": session, "capi_session": capi_session }
+                )
+                input_serializer.is_valid(raise_exception = True)
+                cluster = capi_session.create_cluster(**input_serializer.validated_data)
+                output_serializer = serializers.KubernetesClusterSerializer(
+                    cluster,
+                    context = { "request": request, "tenant": tenant }
+                )
+                return response.Response(output_serializer.data)
+            else:
+                serializer = serializers.KubernetesClusterSerializer(
+                    capi_session.clusters(),
+                    many = True,
+                    context = { "request": request, "tenant": tenant }
+                )
+                return response.Response(serializer.data)
+
+
+@provider_api_view(["GET", "PATCH", "DELETE"])
+def kubernetes_cluster_details(request, tenant, cluster):
+    """
+    On ``GET`` requests, return the specified Kubernetes cluster.
+
+    On ``PATCH`` requests, update the specified Kubernetes cluster with the given
+    data and return it. There are two distinct forms of update available - an
+    "upgrade" operation that accepts only a template id and an "update" operation
+    that accepts all other options.
+
+    On ``DELETE`` requests, delete the specified Kubernetes cluster.
+    """
+    with request.auth.scoped_session(tenant) as session:
+        with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
+            if request.method == "PATCH":
+                input_serializer = serializers.UpdateKubernetesClusterSerializer(
+                    data = request.data,
+                    context = { "session": session, "capi_session": capi_session }
+                )
+                input_serializer.is_valid(raise_exception = True)
+                template = input_serializer.validated_data.get("template")
+                if template:
+                    cluster = capi_session.upgrade_cluster(cluster, template)
+                else:
+                    cluster = capi_session.update_cluster(
+                        cluster,
+                        **{
+                            k: v
+                            for k, v in input_serializer.validated_data.items()
+                            if k != "template"
+                        }
+                    )
+                output_serializer = serializers.KubernetesClusterSerializer(
+                    cluster,
+                    context = { "request": request, "tenant": tenant }
+                )
+                return response.Response(output_serializer.data)
+            elif request.method == "DELETE":
+                deleted = capi_session.delete_cluster(cluster)
+                if deleted:
+                    serializer = serializers.KubernetesClusterSerializer(
+                        deleted,
+                        context = { "request": request, "tenant": tenant }
+                    )
+                    return response.Response(serializer.data)
+                else:
+                    return response.Response()
+            else:
+                serializer = serializers.KubernetesClusterSerializer(
+                    capi_session.find_cluster(cluster),
+                    context = { "request": request, "tenant": tenant }
+                )
+                return response.Response(serializer.data)
+
+
+@provider_api_view(["POST"])
+def kubernetes_cluster_generate_kubeconfig(request, tenant, cluster):
+    """
+    Generate a kubeconfig file for the specified Kubernetes cluster.
+    """
+    with request.auth.scoped_session(tenant) as session:
+        with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
+            kubeconfig = capi_session.generate_kubeconfig(cluster)
+    return response.Response({ "kubeconfig": kubeconfig })

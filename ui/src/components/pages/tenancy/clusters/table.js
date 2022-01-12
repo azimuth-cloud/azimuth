@@ -30,9 +30,9 @@ import {
     faSave
 } from '@fortawesome/free-solid-svg-icons';
 
-import { bindArgsToActions, sortBy, Loading } from '../../utils';
+import { bindArgsToActions, sortBy, Loading } from '../../../utils';
 
-import { ClusterParameterField } from './cluster-parameter-field';
+import { ClusterParameterField } from './parameter-field';
 
 
 const UpdateClusterParametersMenuItem = ({

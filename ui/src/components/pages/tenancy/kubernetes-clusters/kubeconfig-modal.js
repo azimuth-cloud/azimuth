@@ -1,7 +1,3 @@
-/**
- * This module contains the React component for the external IP modal.
- */
-
 import React, { useEffect, useState } from 'react';
 
 import Alert from 'react-bootstrap/Alert';
@@ -14,11 +10,12 @@ import Row from 'react-bootstrap/Row';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCloudDownloadAlt, faPaste, faSyncAlt } from '@fortawesome/free-solid-svg-icons';
  
-import { Error, Loading } from '../../utils';
- 
- 
+import { Error, Loading, usePrevious } from '../../../utils';
+
+
 export const KubeconfigMenuItem = ({ kubernetesCluster, kubernetesClusterActions }) => {
     const [visible, setVisible] = useState(false);
+    const previousVisible = usePrevious(visible);
     const open = () => setVisible(true);
     const close = () => setVisible(false);
 
@@ -26,18 +23,18 @@ export const KubeconfigMenuItem = ({ kubernetesCluster, kubernetesClusterActions
     useEffect(
         () => {
             if(
-                !visible ||
-                kubernetesCluster.kubeconfig ||
-                kubernetesCluster.generatingKubeconfig ||
-                kubernetesCluster.kubeconfigError
-            ) return;
-            kubernetesClusterActions.generateKubeconfig();
+                visible &&
+                !previousVisible &&
+                !kubernetesCluster.generateKubeconfig &&
+                !kubernetesCluster.kubeconfig
+            )
+                kubernetesClusterActions.generateKubeconfig();
         },
         [
             visible,
-            kubernetesCluster.kubeconfig,
+            previousVisible,
             kubernetesCluster.generatingKubeconfig,
-            kubernetesCluster.kubeconfigError
+            kubernetesCluster.kubeconfig
         ]
     );
 
@@ -77,7 +74,7 @@ export const KubeconfigMenuItem = ({ kubernetesCluster, kubernetesClusterActions
  
     return (
         <>
-            <DropdownItem onSelect={open} disabled={!kubernetesCluster.api_address}>
+            <DropdownItem onSelect={open}>
                 Generate kubeconfig
             </DropdownItem>
             <Modal size="lg" backdrop="static" onHide={close} show={visible}>
