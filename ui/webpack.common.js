@@ -38,7 +38,8 @@ module.exports = {
         new HtmlWebpackPlugin({
             title: 'Cloud Portal',
             template: 'assets/index.template.html',
-            hash: true
+            hash: true,
+            favicon: "./src/favicon.png"
         }),
         // Add CSS links with hashes for cache busting
         new AddAssetHtmlPlugin([
