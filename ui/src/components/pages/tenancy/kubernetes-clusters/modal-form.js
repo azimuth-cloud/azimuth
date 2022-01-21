@@ -14,9 +14,7 @@ import {
     faBan,
     faEdit,
     faPlus,
-    faSave,
-    faSitemap,
-    faSyncAlt
+    faSave
 } from '@fortawesome/free-solid-svg-icons';
 
 import { Error, Form, Field, withCustomValidity } from '../../../utils';
@@ -167,9 +165,21 @@ export const KubernetesClusterModalForm = ({
     kubernetesClusterTemplateActions,
     sizes,
     sizeActions,
+    show,
     ...props
 }) => {
     const [state, setState] = useState(initialState(kubernetesCluster));
+    // When the modal opens, make sure the state matches the cluster
+    useEffect(
+        () => {
+            if( show ) {
+                setState(initialState(kubernetesCluster));
+                setShowWorkerCountMessage(false);
+            }
+        },
+        [show]
+    );
+
     const getStateKey = key => state[key] || '';
     const setStateKey = key => value => setState(state => ({ ...state, [key]: value }));
     const setStateKeyFromInputEvent = key => evt => setStateKey(key)(evt.target.value);
@@ -203,25 +213,14 @@ export const KubernetesClusterModalForm = ({
     const [showWorkerCountMessage, setShowWorkerCountMessage] = useState(false);
     const workerCountOnInvalid = () => setShowWorkerCountMessage(true);
 
-    const reset = () => {
-        setState(initialState(kubernetesCluster));
-        setShowWorkerCountMessage(false);
-    };
-
-    const handleClose = () => {
-        reset();
-        onCancel();
-    };
-
     const handleSubmit = (evt) => {
         evt.preventDefault();
-        reset();
         onSuccess(state);
     };
 
     return (
         <>
-            <Modal backdrop="static" onHide={handleClose} size="lg" {...props}>
+            <Modal backdrop="static" onHide={onCancel} size="lg" show={show} {...props}>
                 <Modal.Header closeButton>
                     <Modal.Title>
                         {kubernetesCluster ?

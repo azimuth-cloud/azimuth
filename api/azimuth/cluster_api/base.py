@@ -159,7 +159,7 @@ class Session:
             ct.metadata.name,
             ct.spec.label,
             ct.spec.get("description"),
-            ct.spec["values"]["kubernetesVersion"],
+            ct.spec["values"]["global"]["kubernetesVersion"],
             ct.spec.deprecated,
             dateutil.parser.parse(ct.metadata["creationTimestamp"]),
         )
@@ -245,7 +245,6 @@ class Session:
             cluster.get("status", {}).get("kubernetesVersion"),
             cluster_state,
             cluster.get("status", {}).get("controlPlanePhase", "Unknown"),
-            cluster.get("status", {}).get("addonsPhase", "Unknown"),
             [
                 dto.Node(
                     name,
@@ -256,6 +255,10 @@ class Session:
                     node.get("nodeGroup")
                 )
                 for name, node in cluster.get("status", {}).get("nodes", {}).items()
+            ],
+            [
+                dto.Addon(name, addon.get("phase", "Unknown"))
+                for name, addon in cluster.get("status", {}).get("addons", {}).items()
             ],
             dateutil.parser.parse(cluster.metadata["creationTimestamp"]),
         )
@@ -333,7 +336,7 @@ class Session:
         self._ensure_namespace()
         # Create the cloud credential secret
         secret_data = self._create_credential(name)
-        secret_name = f"{name}-cloud-config"
+        secret_name = f"{name}-cloud-credentials"
         secret_data.setdefault("metadata", {})["name"] = secret_name
         secret = Secret(self._client).create_or_replace(secret_name, secret_data)
         # Build the cluster spec

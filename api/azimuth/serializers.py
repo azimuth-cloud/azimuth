@@ -553,6 +553,10 @@ class KubernetesClusterNodeSerializer(make_dto_serializer(capi_dto.Node)):
     pass
 
 
+class KubernetesClusterAddonSerializer(make_dto_serializer(capi_dto.Addon)):
+    pass
+
+
 class KubernetesClusterSerializer(
     make_dto_serializer(
         capi_dto.Cluster,
@@ -561,6 +565,7 @@ class KubernetesClusterSerializer(
             "control_plane_size_id",
             "node_groups",
             "nodes",
+            "addons",
         ]
     )
 ):
@@ -568,21 +573,7 @@ class KubernetesClusterSerializer(
     control_plane_size = SizeRefSerializer(source = "control_plane_size_id", read_only = True)
     node_groups = KubernetesClusterNodeGroupSerializer(many = True, read_only = True)
     nodes = KubernetesClusterNodeSerializer(many = True, read_only = True)
-    # master_size = SizeRefSerializer(source = "master_size_id", read_only = True)
-    # worker_size = SizeRefSerializer(source = "worker_size_id", read_only = True)
-    # template = KubernetesClusterTemplateRefSerializer(
-    #     source = "template_id",
-    #     read_only = True
-    # )
-    # status = serializers.ReadOnlyField(
-    #     source = "status.name",
-    #     read_only = True
-    # )
-    # health_status = serializers.ReadOnlyField(
-    #     source = "health_status.name",
-    #     allow_null = True,
-    #     read_only = True
-    # )
+    addons = KubernetesClusterAddonSerializer(many = True, read_only = True)
 
     def to_representation(self, obj):
         result = super().to_representation(obj)

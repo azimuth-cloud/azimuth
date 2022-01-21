@@ -13,7 +13,7 @@ import { faCloudDownloadAlt, faPaste, faSyncAlt } from '@fortawesome/free-solid-
 import { Error, Loading, usePrevious } from '../../../utils';
 
 
-export const KubeconfigMenuItem = ({ kubernetesCluster, kubernetesClusterActions }) => {
+export const KubeconfigMenuItem = ({ kubernetesCluster, kubernetesClusterActions, disabled }) => {
     const [visible, setVisible] = useState(false);
     const previousVisible = usePrevious(visible);
     const open = () => setVisible(true);
@@ -74,7 +74,7 @@ export const KubeconfigMenuItem = ({ kubernetesCluster, kubernetesClusterActions
  
     return (
         <>
-            <DropdownItem onSelect={open}>
+            <DropdownItem onSelect={open} disabled={disabled}>
                 Generate kubeconfig
             </DropdownItem>
             <Modal size="lg" backdrop="static" onHide={close} show={visible}>

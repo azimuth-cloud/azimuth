@@ -4,19 +4,17 @@
 
 import React, { useState } from 'react';
 
-import Alert from 'react-bootstrap/Alert';
 import Badge from 'react-bootstrap/Badge';
 import Button from 'react-bootstrap/Button';
+import Card from 'react-bootstrap/Card';
 import Col from 'react-bootstrap/Col';
 import DropdownButton from 'react-bootstrap/DropdownButton';
 import DropdownItem from 'react-bootstrap/DropdownItem';
 import Modal from 'react-bootstrap/Modal';
-import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
-import Popover from 'react-bootstrap/Popover';
+import Nav from 'react-bootstrap/Nav';
 import Row from 'react-bootstrap/Row';
 import Table from 'react-bootstrap/Table';
 import Tab from 'react-bootstrap/Tab';
-import Tabs from 'react-bootstrap/Tabs';
 
 import get from 'lodash/get';
 
@@ -33,7 +31,7 @@ import {
     faTimesCircle
 } from '@fortawesome/free-solid-svg-icons';
 
-import { bindArgsToActions, formatSize, sortBy, Loading, useSortable } from '../../../utils';
+import { bindArgsToActions, sortBy, Loading, useSortable } from '../../../utils';
 
 import { MachineSizeLink } from '../resource-utils';
 import { UpgradeKubernetesClusterMenuItem } from './upgrade-modal';
@@ -122,29 +120,6 @@ const statusStyles = {
             className: 'text-muted'
         }
     },
-    addons: {
-        "Pending": {
-            icon: faClock,
-            className: 'text-muted'
-        },
-        "Deploying": {
-            icon: faSyncAlt,
-            className: 'text-muted',
-            spin: true
-        },
-        "Deployed": {
-            icon: faCheck,
-            className: 'text-muted'
-        },
-        "Failed": {
-            icon: faTimesCircle,
-            className: 'text-danger'
-        },
-        "Unknown": {
-            icon: faQuestionCircle,
-            className: 'text-muted'
-        }
-    },
     node: {
         "Pending": {
             icon: faClock,
@@ -154,10 +129,6 @@ const statusStyles = {
             icon: faSyncAlt,
             className: 'text-muted',
             spin: true
-        },
-        "Provisioned": {
-            icon: faCheck,
-            className: 'text-muted'
         },
         "Ready": {
             icon: faCheck,
@@ -184,6 +155,34 @@ const statusStyles = {
             icon: faQuestionCircle,
             className: 'text-muted'
         }
+    },
+    addon: {
+        "Pending": {
+            icon: faClock,
+            className: 'text-muted'
+        },
+        "Installing": {
+            icon: faSyncAlt,
+            className: 'text-muted',
+            spin: true
+        },
+        "Ready": {
+            icon: faCheck,
+            className: 'text-success'
+        },
+        "Uninstalling": {
+            icon: faSyncAlt,
+            className: 'text-muted',
+            spin: true
+        },
+        "Failed": {
+            icon: faTimesCircle,
+            className: 'text-danger'
+        },
+        "Unknown": {
+            icon: faQuestionCircle,
+            className: 'text-muted'
+        }
     }
 };
 
@@ -201,65 +200,254 @@ const NodeSizeLink = ({ kubernetesCluster, node, sizes }) => {
 };
 
 
-const NodeDetailsMenuItem = ({ kubernetesCluster, sizes }) => {
+const ClusterOverviewCard = ({ kubernetesCluster, kubernetesClusterTemplates }) => (
+    <Card className="mb-3">
+        <Card.Header className="text-center">Cluster details</Card.Header>
+        <Table borderless className="details-table">
+            <tbody>
+                <tr>
+                    <th>Name</th>
+                    <td>{kubernetesCluster.name}</td>
+                </tr>
+                <tr>
+                    <th>Template</th>
+                    <td>
+                        <ClusterTemplate
+                            kubernetesClusterTemplates={kubernetesClusterTemplates}
+                            kubernetesCluster={kubernetesCluster}
+                        />
+                    </td>
+                </tr>
+                <tr>
+                    <th>Kubernetes version</th>
+                    <td>{kubernetesCluster.kubernetes_version || '-'}</td>
+                </tr>
+                <tr>
+                    <th>Status</th>
+                    <td>
+                        <ComponentStatus
+                            styles={statusStyles.cluster}
+                            status={kubernetesCluster.status}
+                        />
+                    </td>
+                </tr>
+                <tr>
+                    <th>Autohealing?</th>
+                    <td>
+                        {kubernetesCluster.autohealing_enabled ? (
+                            <span className="text-success">
+                                <FontAwesomeIcon icon={faCheck} className="me-2" />
+                                Enabled
+                            </span>
+                        ) : (
+                            <span className="text-danger">
+                                <FontAwesomeIcon icon={faTimes} className="me-2" />
+                                Disabled
+                            </span>
+                        )}
+                    </td>
+                </tr>
+                <tr>
+                    <th>Node groups</th>
+                    <td>{kubernetesCluster.node_groups.length}</td>
+                </tr>
+                <tr>
+                    <th>Created</th>
+                    <td>{moment(kubernetesCluster.created_at).fromNow()}</td>
+                </tr>
+            </tbody>
+        </Table>
+    </Card>
+);
+
+
+const ControlPlaneCard = ({ kubernetesCluster, sizes }) => (
+    <Card className="mb-3">
+        <Card.Header className="text-center">Control plane</Card.Header>
+        <Table borderless className="details-table">
+            <tbody>
+                <tr>
+                    <th>Status</th>
+                    <td>
+                        <ComponentStatus
+                            styles={statusStyles.controlPlane}
+                            status={kubernetesCluster.control_plane_status}
+                        />
+                    </td>
+                </tr>
+                <tr>
+                    <th>Size</th>
+                    <td>
+                        <MachineSizeLink
+                            sizes={sizes}
+                            sizeId={kubernetesCluster.control_plane_size.id}
+                        />
+                    </td>
+                </tr>
+                <tr>
+                    <th>Node Count</th>
+                    <td>{kubernetesCluster.nodes.filter(n => n.role === "control-plane").length}</td>
+                </tr>
+            </tbody>
+        </Table>
+    </Card>
+);
+
+
+const AddonsCard = ({ kubernetesCluster }) => {
+    const sortedAddons = sortBy(kubernetesCluster.addons, addon => addon.name);
+    return (
+        <Card className="mb-3">
+            <Card.Header className="text-center">Cluster addons</Card.Header>
+            {sortedAddons.length > 0 ? (
+                <Table borderless className="details-table">
+                    <tbody>
+                        {sortedAddons.map(addon => (
+                            <tr>
+                                <th><code>{addon.name}</code></th>
+                                <td>
+                                    <ComponentStatus
+                                        styles={statusStyles.addon}
+                                        status={addon.status}
+                                    />
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </Table>
+            ) : (
+                <Card.Body>
+                    <Row>
+                        <Col className="text-muted text-center">
+                            No addons installed.
+                        </Col>
+                    </Row>
+                </Card.Body>
+            )}
+        </Card>
+    );
+};
+
+
+const ClusterOverviewPanel = ({ kubernetesCluster, kubernetesClusterTemplates, sizes }) => (
+    <Row xs="1" xl="2">
+        <Col xs={{ order: 1 }}>
+            <ClusterOverviewCard
+                kubernetesCluster={kubernetesCluster}
+                kubernetesClusterTemplates={kubernetesClusterTemplates}
+            />
+        </Col>
+        <Col xs={{ order: 2 }} xl={{ order: 3 }}>
+            <ControlPlaneCard kubernetesCluster={kubernetesCluster} sizes={sizes} />
+        </Col>
+        <Col xs={{ order: 3 }} xl={{ order: 2 }}>
+            <AddonsCard kubernetesCluster={kubernetesCluster} />
+        </Col>
+    </Row>
+);
+
+
+const NodesTable = ({ kubernetesCluster, sizes }) => {
+    const sortedNodes = sortBy(kubernetesCluster.nodes, node => [node.role, node.name]);
+    return (
+        <Table striped hover responsive className="resource-table mb-0">
+            <caption className="px-2">
+                {sortedNodes.length} node{sortedNodes.length !== 1 && 's'}
+            </caption>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th>Size</th>
+                    <th>Kubelet Version</th>
+                    <th>IP address</th>
+                </tr>
+            </thead>
+            <tbody>
+                {sortedNodes.map(node => (
+                    <tr key={node.name}>
+                        <td>
+                            <div><code>{node.name}</code></div>
+                            <div>
+                                <Badge className="me-2" bg="primary">{node.role}</Badge>
+                                <Badge bg="info">{node.node_group}</Badge>
+                            </div>
+                        </td>
+                        <td>
+                            <ComponentStatus
+                                styles={statusStyles.node}
+                                status={node.status}
+                            />
+                        </td>
+                        <td>
+                            <NodeSizeLink
+                                kubernetesCluster={kubernetesCluster}
+                                node={node}
+                                sizes={sizes}
+                            />
+                        </td>
+                        <td>{node.kubelet_version || '-'}</td>
+                        <td>{node.ip || '-'}</td>
+                    </tr>
+                ))}
+            </tbody>
+        </Table>
+    );
+};
+
+
+const KubernetesClusterDetailsMenuItem = ({
+    kubernetesCluster,
+    kubernetesClusterTemplates,
+    sizes
+}) => {
     const [visible, setVisible] = useState(false);
     const open = () => setVisible(true);
     const close = () => setVisible(false);
 
-    const sortedNodes = sortBy(kubernetesCluster.nodes, node => [node.role, node.name]);
-
     return (
         <>
             <DropdownItem onSelect={open}>
-                Cluster node details
+                Cluster details
             </DropdownItem>
             <Modal size="xl" backdrop="static" onHide={close} show={visible}>
                 <Modal.Header closeButton>
-                    <Modal.Title>Cluster nodes for {kubernetesCluster.name}</Modal.Title>
+                    <Modal.Title>Cluster details for {kubernetesCluster.name}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
-                    <Table striped hover responsive className="resource-table mb-0">
-                        <caption className="px-2">
-                            {sortedNodes.length} node{sortedNodes.length !== 1 && 's'}
-                        </caption>
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Status</th>
-                                <th>Size</th>
-                                <th>Kubelet Version</th>
-                                <th>IP address</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {sortedNodes.map(node => (
-                                <tr key={node.name}>
-                                    <td>
-                                        <div><code>{node.name}</code></div>
-                                        <div>
-                                            <Badge className="me-2" bg="primary">{node.role}</Badge>
-                                            <Badge bg="info">{node.node_group}</Badge>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <ComponentStatus
-                                            styles={statusStyles.node}
-                                            status={node.status}
-                                        />
-                                    </td>
-                                    <td>
-                                        <NodeSizeLink
-                                            kubernetesCluster={kubernetesCluster}
-                                            node={node}
-                                            sizes={sizes}
-                                        />
-                                    </td>
-                                    <td>{node.kubelet_version || '-'}</td>
-                                    <td>{node.ip || '-'}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </Table>
+                    <Tab.Container id="left-tabs-example" defaultActiveKey="overview">
+                        <Row className="mb-4">
+                            <Col>
+                                <Nav variant="pills" justify>
+                                    <Nav.Item>
+                                        <Nav.Link eventKey="overview" className="p-3">
+                                            Overview
+                                        </Nav.Link>
+                                    </Nav.Item>
+                                    <Nav.Item>
+                                        <Nav.Link eventKey="nodes" className="p-3">
+                                            Nodes
+                                        </Nav.Link>
+                                    </Nav.Item>
+                                </Nav>
+                            </Col>
+                        </Row>
+                        <Tab.Content>
+                            <Tab.Pane eventKey="overview">
+                                <ClusterOverviewPanel
+                                    kubernetesCluster={kubernetesCluster}
+                                    kubernetesClusterTemplates={kubernetesClusterTemplates}
+                                    sizes={sizes}
+                                />
+                            </Tab.Pane>
+                            <Tab.Pane eventKey="nodes">
+                                <NodesTable
+                                    kubernetesCluster={kubernetesCluster}
+                                    sizes={sizes}
+                                />
+                            </Tab.Pane>
+                        </Tab.Content>
+                    </Tab.Container>
                 </Modal.Body>
                 <Modal.Footer>
                     <Button
@@ -302,7 +490,7 @@ const UpdateKubernetesClusterMenuItem = ({
                 onSelect={open}
                 disabled={kubernetesCluster.status.endsWith("ing")}
             >
-                Update cluster
+                Modify cluster
             </DropdownItem>
             <KubernetesClusterModalForm
                 show={visible}
@@ -327,7 +515,7 @@ const ConfirmDeleteMenuItem = ({ name, disabled, onConfirm }) => {
     return (
         <>
             <DropdownItem
-                className="text-danger"
+                className={disabled ? undefined : "text-danger"}
                 disabled={disabled}
                 onSelect={open}
             >
@@ -398,6 +586,41 @@ const WorkersStatus = ({ kubernetesCluster }) => {
 };
 
 
+const AddonsStatus = ({ kubernetesCluster }) => {
+    const addons = kubernetesCluster.addons;
+    const count = addons.length;
+    const readyCount = addons.filter(a => a.status.toLowerCase() === "ready").length;
+    const failedCount = addons.filter(a => a.status.toLowerCase() === "failed").length;
+    const inProgressCount = addons
+        .filter(a => ["pending", "installing", "uninstalling"].includes(a.status.toLowerCase()))
+        .length;
+    let className, icon, spin = false;
+    if( readyCount === count ) {
+        className = "text-success";
+        icon = faCheck;
+    }
+    else if( inProgressCount > 0 ) {
+        className = "text-muted";
+        icon = faSyncAlt;
+        spin = true;
+    }
+    else if( failedCount > 0 ) {
+        className = "text-warning";
+        icon = faExclamationTriangle;
+    }
+    else {
+        className = "text-muted";
+        icon = faQuestionCircle;
+    }
+    return (
+        <span className={className}>
+            {icon && <FontAwesomeIcon icon={icon} spin={spin} className="me-2" />}
+            {count} ({readyCount} ready)
+        </span>
+    );
+};
+
+
 const ClusterActionsDropdown = ({
     disabled,
     kubernetesCluster,
@@ -427,8 +650,13 @@ const ClusterActionsDropdown = ({
         <KubeconfigMenuItem
             kubernetesCluster={kubernetesCluster}
             kubernetesClusterActions={kubernetesClusterActions}
+            disabled={kubernetesCluster.status === "Deleting"}
         />
-        <NodeDetailsMenuItem kubernetesCluster={kubernetesCluster} sizes={sizes} />
+        <KubernetesClusterDetailsMenuItem
+            kubernetesCluster={kubernetesCluster}
+            kubernetesClusterTemplates={kubernetesClusterTemplates}
+            sizes={sizes}
+        />
         <UpdateKubernetesClusterMenuItem
             kubernetesCluster={kubernetesCluster}
             kubernetesClusterActions={kubernetesClusterActions}
@@ -446,6 +674,7 @@ const ClusterActionsDropdown = ({
         <ConfirmDeleteMenuItem
             name={kubernetesCluster.name}
             onConfirm={kubernetesClusterActions.delete}
+            disabled={kubernetesCluster.status === "Deleting"}
         />
     </DropdownButton>
 );
@@ -481,7 +710,6 @@ const ClusterRow = ({
                     kubernetesCluster={kubernetesCluster}
                 />
             </td>
-            <td>{kubernetesCluster.kubernetes_version}</td>
             <td>
                 <ComponentStatus
                     styles={statusStyles.controlPlane}
@@ -489,16 +717,11 @@ const ClusterRow = ({
                 />
             </td>
             <td><WorkersStatus kubernetesCluster={kubernetesCluster} /></td>
-            <td>
-                <ComponentStatus
-                    styles={statusStyles.addons}
-                    status={kubernetesCluster.addons_status}
-                />
-            </td>
+            <td><AddonsStatus kubernetesCluster={kubernetesCluster} /></td>
             <td>{moment(kubernetesCluster.created_at).fromNow()}</td>
             <td className="resource-actions">
                 <ClusterActionsDropdown
-                    disabled={!!highlightClasses || kubernetesCluster.status === "Deleting"}
+                    disabled={!!highlightClasses}
                     kubernetesCluster={kubernetesCluster}
                     kubernetesClusterActions={kubernetesClusterActions}
                     kubernetesClusterTemplates={kubernetesClusterTemplates}
@@ -534,7 +757,6 @@ export const KubernetesClustersTable = ({
                     <SortableColumnHeading field="name">Name</SortableColumnHeading>
                     <th>Status</th>
                     <th>Template</th>
-                    <th>Kubernetes Version</th>
                     <th>Control Plane</th>
                     <th>Workers</th>
                     <th>Addons</th>

@@ -55,6 +55,17 @@ class Node:
 
 
 @dataclasses.dataclass(frozen = True)
+class Addon:
+    """
+    Represents an addon in the cluster.
+    """
+    #: The name of the addon
+    name: str
+    #: The status of the addon
+    status: str
+
+
+@dataclasses.dataclass(frozen = True)
 class Cluster:
     """
     Represents a Kubernetes cluster.
@@ -83,9 +94,9 @@ class Cluster:
     status: t.Optional[str]
     #: The status of the control plane
     control_plane_status: t.Optional[str]
-    #: The status of the cluster addons
-    addons_status: t.Optional[str]
     #: The nodes in the cluster
     nodes: t.List[Node]
+    #: The addons for the cluster
+    addons: t.List[Addon]
     #: The time at which the cluster was created
     created_at: datetime.datetime
