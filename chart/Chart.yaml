@@ -8,7 +8,7 @@ appVersion: master
 
 dependencies:
   - name: awx-operator
-    version: 0.1.0-dev.0.main.6
+    version: 0.1.0-dev.0.main.7
     repository: https://stackhpc.github.io/awx-operator-helm
     # The AWX operator is required when clusters are enabled unless managed AWX is explicitly disabled
     condition: awx.enabled
@@ -22,7 +22,7 @@ dependencies:
     tags: [apps, clusters]
 
   - name: zenith-server
-    version: 0.1.0-dev.0.main.113
+    version: 0.1.0-dev.0.main.115
     repository: https://stackhpc.github.io/zenith
     alias: zenith
     # Managed Zenith is required when apps are enabled unless explicitly disabled
