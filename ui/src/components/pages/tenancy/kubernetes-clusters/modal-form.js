@@ -147,6 +147,9 @@ const initialState = kubernetesCluster => {
     else {
         // There is no existing cluster, so set some defaults
         return {
+            name: '',
+            template: '',
+            control_plane_size: '',
             node_groups: [],
             autohealing_enabled: true,
             cert_manager_enabled: false,
@@ -169,16 +172,7 @@ export const KubernetesClusterModalForm = ({
     ...props
 }) => {
     const [state, setState] = useState(initialState(kubernetesCluster));
-    // When the modal opens, make sure the state matches the cluster
-    useEffect(
-        () => {
-            if( show ) {
-                setState(initialState(kubernetesCluster));
-                setShowWorkerCountMessage(false);
-            }
-        },
-        [show]
-    );
+    useEffect(() => { setState(initialState(kubernetesCluster)); }, [kubernetesCluster]);
 
     const getStateKey = key => state[key] || '';
     const setStateKey = key => value => setState(state => ({ ...state, [key]: value }));
@@ -213,14 +207,22 @@ export const KubernetesClusterModalForm = ({
     const [showWorkerCountMessage, setShowWorkerCountMessage] = useState(false);
     const workerCountOnInvalid = () => setShowWorkerCountMessage(true);
 
+    const handleCancel = () => {
+        setState(initialState(kubernetesCluster));
+        setShowWorkerCountMessage(false);
+        onCancel();
+    };
+
     const handleSubmit = (evt) => {
         evt.preventDefault();
+        setState(initialState(kubernetesCluster));
+        setShowWorkerCountMessage(false);
         onSuccess(state);
     };
 
     return (
         <>
-            <Modal backdrop="static" onHide={onCancel} size="lg" show={show} {...props}>
+            <Modal backdrop="static" onHide={handleCancel} size="lg" show={show} {...props}>
                 <Modal.Header closeButton>
                     <Modal.Title>
                         {kubernetesCluster ?

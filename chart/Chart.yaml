@@ -14,6 +14,14 @@ dependencies:
     condition: awx.enabled
     tags: [clusters]
 
+  - name: azimuth-capi-operator
+    version: 0.1.0-dev.0.main.7
+    repository: https://stackhpc.github.io/azimuth-capi-operator
+    alias: capi-operator
+    # The Azimuth CAPI operator is required when Kubernetes clusters are enabled unless explicitly disabled
+    condition: capi-operator.enabled
+    tags: [kubernetes]
+
   - name: consul
     version: ~0.35.0
     repository: https://helm.releases.hashicorp.com

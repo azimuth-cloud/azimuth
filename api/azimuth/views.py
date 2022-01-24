@@ -920,6 +920,14 @@ def kubernetes_cluster_templates(request, tenant):
     """
     Return a list of the available Kubernetes cluster templates for the tenancy.
     """
+    if not cloud_settings.CLUSTER_API_PROVIDER:
+        return response.Response(
+            {
+                "detail": "Kubernetes clusters are not supported.",
+                "code": "unsupported_operation"
+            },
+            status = status.HTTP_404_NOT_FOUND
+        )
     with request.auth.scoped_session(tenant) as session:
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             serializer = serializers.KubernetesClusterTemplateSerializer(
@@ -935,6 +943,14 @@ def kubernetes_cluster_template_details(request, tenant, template):
     """
     Return the details for the specified Kubernetes cluster template.
     """
+    if not cloud_settings.CLUSTER_API_PROVIDER:
+        return response.Response(
+            {
+                "detail": "Kubernetes clusters are not supported.",
+                "code": "unsupported_operation"
+            },
+            status = status.HTTP_404_NOT_FOUND
+        )
     with request.auth.scoped_session(tenant) as session:
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             serializer = serializers.KubernetesClusterTemplateSerializer(
@@ -951,6 +967,14 @@ def kubernetes_clusters(request, tenant):
 
     On ``POST`` requests, create a new Kubernetes cluster.
     """
+    if not cloud_settings.CLUSTER_API_PROVIDER:
+        return response.Response(
+            {
+                "detail": "Kubernetes clusters are not supported.",
+                "code": "unsupported_operation"
+            },
+            status = status.HTTP_404_NOT_FOUND
+        )
     with request.auth.scoped_session(tenant) as session:
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             if request.method == "POST":
@@ -986,6 +1010,14 @@ def kubernetes_cluster_details(request, tenant, cluster):
 
     On ``DELETE`` requests, delete the specified Kubernetes cluster.
     """
+    if not cloud_settings.CLUSTER_API_PROVIDER:
+        return response.Response(
+            {
+                "detail": "Kubernetes clusters are not supported.",
+                "code": "unsupported_operation"
+            },
+            status = status.HTTP_404_NOT_FOUND
+        )
     with request.auth.scoped_session(tenant) as session:
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             if request.method == "PATCH":
@@ -1034,6 +1066,14 @@ def kubernetes_cluster_generate_kubeconfig(request, tenant, cluster):
     """
     Generate a kubeconfig file for the specified Kubernetes cluster.
     """
+    if not cloud_settings.CLUSTER_API_PROVIDER:
+        return response.Response(
+            {
+                "detail": "Kubernetes clusters are not supported.",
+                "code": "unsupported_operation"
+            },
+            status = status.HTTP_404_NOT_FOUND
+        )
     with request.auth.scoped_session(tenant) as session:
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             kubeconfig = capi_session.generate_kubeconfig(cluster)

@@ -14,14 +14,14 @@ spec:
     metadata:
       labels: {{ include "azimuth.componentSelectorLabels" (list . $component) | nindent 8 }}
       annotations:
-        # Force deployment to roll if the config changes
-        # https://helm.sh/docs/howto/charts_tips_and_tricks/#automatically-roll-deployments
-        checksum/settings: {{ include (print $.Template.BasePath "/api/settings.yaml") . | sha256sum }}
-        checksum/theme: {{ include (print $.Template.BasePath "/configmap-theme.yaml") . | sha256sum }}
+        kubectl.kubernetes.io/default-container: {{ $component }}
+        azimuth.stackhpc.com/settings-hash: {{ include (print $.Template.BasePath "/api/settings.yaml") . | sha256sum }}
+        azimuth.stackhpc.com/theme-hash: {{ include (print $.Template.BasePath "/configmap-theme.yaml") . | sha256sum }}
         {{- with $values.podAnnotations }}
         {{ toYaml . | indent 8 | trim }}
         {{- end }}
     spec:
+      serviceAccountName: {{ include "azimuth.componentname" (list . $component) }}
       {{- with $values.imagePullSecrets }}
       imagePullSecrets: {{ toYaml . | nindent 8 }}
       {{- end }}
@@ -68,6 +68,15 @@ spec:
               subPath: bootstrap.css
             - name: tmp
               mountPath: /tmp
+        # Azimuth delegates Kubernetes authentication to "kubectl proxy"
+        - name: kubectl-proxy
+          securityContext: {{ toYaml $values.securityContext | nindent 12 }}
+          {{- $vn := semver .Capabilities.KubeVersion.Version }}
+          {{- $defaultTag := printf "%d.%d.%d" $vn.Major $vn.Minor $vn.Patch }}
+          image: {{ printf "%s:%s" $values.kubectlProxy.image.repository (default $defaultTag $values.kubectlProxy.image.tag) }}
+          imagePullPolicy: {{ $values.kubectlProxy.image.pullPolicy }}
+          args: [proxy]
+          resources: {{ toYaml $values.kubectlProxy.resources | nindent 12 }}
       {{- with $values.nodeSelector }}
       nodeSelector: {{ toYaml . | nindent 8 }}
       {{- end }}
