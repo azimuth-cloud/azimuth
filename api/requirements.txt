@@ -8,7 +8,7 @@ Django==4.0.1
 django-settings-object @ git+https://github.com/cedadev/django-settings-object.git@2b66c0fc5eae92972df5210b4bc43f7d95ad9ceb
 djangorestframework==3.13.1
 docutils==0.18.1
-easykube @ git+https://github.com/stackhpc/easykube.git@15234e36dc7dfb409db440aff5db80253eb8f4cd
+easykube @ git+https://github.com/stackhpc/easykube.git@e3c0f7aba1d720b070d8621e1c574894538e2225
 h11==0.12.0
 httpcore==0.14.5
 httpx==0.21.3
