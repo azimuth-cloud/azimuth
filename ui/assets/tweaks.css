@@ -2,6 +2,7 @@
  * This file contains CSS tweaks required for the cloud portal.
  */
 
+/* Default to IRIS background image in nav bar */
 .navbar-brand {
 background-image: url('https://www.iris.ac.uk/wp-content/uploads/2019/09/cropped-On-Dark.png');
     background-size: auto 100%;
@@ -11,7 +12,6 @@ background-image: url('https://www.iris.ac.uk/wp-content/uploads/2019/09/cropped
     text-overflow: hidden;
     color: rgb(0, 0, 0, 0) !important;
 }
-
 
 /* These rules make stacked modals sit nicely */
 .modal-backdrop.show ~ .modal-backdrop.show { z-index: 1080; }
