@@ -31,7 +31,7 @@ export const SplashPage = ({ cloudsFetching, clouds, currentCloud }) => {
             <Col>   
                 <div className="p-5 mb-4 bg-light">
                     <Container fluid className="py-3">
-                        <h1 className="display-5 fw-bold mb-4">
+                        <h1 className="display-5 fw-bold mb-4 cloud-title">
                             {cloudLabel ?
                                 cloudLabel :
                                 (cloudsFetching ? 
