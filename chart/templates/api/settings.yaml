@@ -109,9 +109,14 @@ stringData:
         {{- else }}
         {{- fail (printf "Unrecognised key store '%s'" $keyStore.type) }}
         {{- end }}
+{{- if not .Values.tags.kubernetes }}
+  07-disable-kubernetes.yaml: |
+    AZIMUTH:
+      CLUSTER_API_PROVIDER: null
+{{- end }}
 {{- if .Values.tags.clusters }}
 {{- if (eq $clusterEngine.type "awx") }}
-  07-awx.yaml: |
+  08-awx.yaml: |
     AZIMUTH:
       AWX:
         ENABLED: true
@@ -159,7 +164,7 @@ stringData:
             {{- end }}
           {{- end }}
         {{- end }}
-  08-awx-passwords.py: |
+  09-awx-passwords.py: |
     import os
     # Read the AWX password from an environment variable that is populated from the specified secret
     AZIMUTH['AWX']['PASSWORD'] = os.environ['AWX_PASSWORD']

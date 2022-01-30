@@ -4,6 +4,8 @@ tags:
   apps: false
   # Setting this tag to true enables the Cluster-as-a-Service
   clusters: false
+  # Setting this tag to false disables the Kubernetes support
+  kubernetes: true
 
 # Global variables used for defining things that need to span charts
 global:
@@ -31,47 +33,72 @@ global:
       secretName:
 
 api:
+  # The image to use for the api component
   image:
     repository: ghcr.io/stackhpc/azimuth-api
     pullPolicy: IfNotPresent
     tag: # Defaults to the chart appVersion
   imagePullSecrets: []
+  # The number of replicas for the api deployment
   replicaCount: 1
-  podAnnotations: {}
-  podSecurityContext: {}
+  # Pod-level security context for the api component
+  podSecurityContext:
+    runAsNonRoot: true
+  # Container-level security context
   securityContext:
+    allowPrivilegeEscalation: false
     capabilities:
       drop: [ALL]
     readOnlyRootFilesystem: true
-    runAsNonRoot: true
+  # Service details for the api component
   service:
     type: ClusterIP
     port: 80
+  # Resource requests and limits for the api containers
   resources: {}
+  # Node selector for api pods
   nodeSelector: {}
+  # Tolerations for api pods
   tolerations: []
+  # Affinity rules for api pods
   affinity: {}
+  # Configuration for the kubectl proxy container
+  kubectlProxy:
+    image:
+      repository: bitnami/kubectl
+      pullPolicy: IfNotPresent
+      tag: ""  # Defaults to the Kubernetes version if not given
+    resources: {}
 
 ui:
+  # The image to use for the ui component
   image:
     repository: ghcr.io/stackhpc/azimuth-ui
     pullPolicy: IfNotPresent
     tag: # Defaults to the chart appVersion
   imagePullSecrets: []
+  # The number of replicas for the ui deployment
   replicaCount: 1
-  podAnnotations: {}
-  podSecurityContext: {}
+  # Pod-level security context for the api component
+  podSecurityContext:
+    runAsNonRoot: true
+  # Container-level security context
   securityContext:
+    allowPrivilegeEscalation: false
     capabilities:
       drop: [ALL]
     readOnlyRootFilesystem: true
-    runAsNonRoot: true
+  # Service details for the ui component
   service:
     type: ClusterIP
     port: 80
+  # Resource requests and limits for ui containers
   resources: {}
+  # Node selector for ui pods
   nodeSelector: {}
+  # Tolerations for ui pods
   tolerations: []
+  # Affinity rules for ui pods
   affinity: {}
 
 ingress:

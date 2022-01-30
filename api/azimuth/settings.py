@@ -126,6 +126,20 @@ class AppsSettings(SettingsObject):
     )
 
 
+def default_cluster_api_provider(settings):
+    """
+    Returns the default Cluster API provider.
+
+    By default, the provider that matches the specified cloud provider is used.
+    """
+    if settings.PROVIDER.provider_name == "openstack":
+        return {
+            "FACTORY": "azimuth.cluster_api.openstack.Provider",
+        }
+    else:
+        return None
+
+
 class AzimuthSettings(SettingsObject):
     """
     Settings object for the ``AZIMUTH`` setting.
@@ -138,6 +152,9 @@ class AzimuthSettings(SettingsObject):
 
     #: Cloud provider configuration
     PROVIDER = ProviderSetting()
+
+    #: Cluster API configuration
+    CLUSTER_API_PROVIDER = ObjectFactorySetting(default = default_cluster_api_provider)
 
     #: SSH key store configuration
     SSH_KEY_STORE = ObjectFactorySetting(

@@ -35,80 +35,6 @@
 
 
 /**
- * Styles for status pills.
- */
-.status-pill {
-    position: relative;
-    border: 1px solid var(--bs-gray);
-    padding: .5rem 1rem;
-    text-align: center;
-    border-radius: 50rem;
-}
-.status-pill:before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 100%;
-    opacity: 0.065;
-    border-radius: 50rem;
-}
-.status-pill-title {
-    color: var(--bs-gray);
-}
-.status-pill-primary {
-    border-color: var(--bs-primary);
-    color: var(--bs-primary);
-}
-.status-pill-primary:before {
-    background-color: var(--bs-primary);
-}
-.status-pill-secondary {
-    border-color: var(--bs-secondary);
-    color: var(--bs-secondary);
-}
-.status-pill-secondary:before {
-    background-color: var(--bs-secondary);
-}
-.status-pill-success {
-    border-color: var(--bs-success);
-    color: var(--bs-success);
-}
-.status-pill-success:before {
-    background-color: var(--bs-success);
-}
-.status-pill-danger {
-    border-color: var(--bs-danger);
-    color: var(--bs-danger);
-}
-.status-pill-danger:before {
-    background-color: var(--bs-danger);
-}
-.status-pill-warning {
-    border-color: var(--bs-warning);
-    color: var(--bs-warning);
-}
-.status-pill-warning:before {
-    background-color: var(--bs-warning);
-}
-.status-pill-info {
-    border-color: var(--bs-info);
-    color: var(--bs-info);
-}
-.status-pill-info:before {
-    background-color: var(--bs-info);
-}
-.status-pill-muted {
-    border-color: var(--bs-gray);
-    color: var(--bs-gray);
-}
-.status-pill-muted:before {
-    background-color: var(--bs-light);
-}
-
-
-/**
  * Styles for rendering pre elements in a modal.
  */
 .modal pre {
@@ -168,6 +94,24 @@
    which should shrink to fit the content */
 .resource-table tr > td:last-child {
     width: 1%;
+}
+
+
+/**
+ * Adjustments for tables that show details as [name, value] pairs.
+ */
+.details-table {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+.details-table > :not(caption) > * > * {
+    padding: 0.5rem 1rem;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+.details-table > * > * > *:first-child {
+    width: 40%;
+    text-align: right;
 }
 
 

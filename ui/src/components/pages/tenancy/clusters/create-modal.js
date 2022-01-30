@@ -25,10 +25,10 @@ import {
     faSyncAlt
 } from '@fortawesome/free-solid-svg-icons';
 
-import { sortBy, Loading, Error, Form, Field } from '../../utils';
-import { ConnectedSSHKeyRequiredModal } from '../../ssh-key-update-modal';
+import { sortBy, Loading, Error, Form, Field } from '../../../utils';
+import { ConnectedSSHKeyRequiredModal } from '../../../ssh-key-update-modal';
 
-import { ClusterParameterField } from './cluster-parameter-field';
+import { ClusterParameterField } from './parameter-field';
 
 
 const ClusterTypePanel = ({ clusterType, selected, onSelect }) => (
@@ -156,7 +156,6 @@ const ClusterParametersForm = ({
                         placeholder="Cluster name"
                         required
                         pattern="[a-z0-9\-]+"
-                        title="Must contain lower-case alphanumeric characters and dash (-) only."
                         autoComplete="off"
                         value={name}
                         onChange={handleNameChange}

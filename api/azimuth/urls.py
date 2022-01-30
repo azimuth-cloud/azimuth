@@ -71,7 +71,7 @@ urlpatterns = [
                     "kubeconfig/",
                     views.kubernetes_cluster_generate_kubeconfig,
                     name = "kubernetes_cluster_generate_kubeconfig"
-                )
+                ),
             ])),
         ])),
         path("cluster_types/", include([

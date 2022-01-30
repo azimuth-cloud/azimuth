@@ -12,7 +12,7 @@ import FormControl from 'react-bootstrap/FormControl';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDatabase, faPlus, faSyncAlt } from '@fortawesome/free-solid-svg-icons';
 
-import { Form, Field } from '../../utils';
+import { Form, Field } from '../../../utils';
 
 
 export const CreateVolumeButton = ({ disabled, creating, create }) => {
@@ -69,7 +69,6 @@ export const CreateVolumeButton = ({ disabled, creating, create }) => {
                                 type="text"
                                 required
                                 pattern="[A-Za-z0-9\.\-_]+"
-                                title="Must contain alphanumeric characters, dot (.), dash (-) and underscore (_) only."
                                 value={name}
                                 onChange={handleChange(setName)}
                             />

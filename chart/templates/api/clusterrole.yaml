@@ -1,0 +1,39 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "azimuth.componentname" (list . "api") }}
+  labels: {{ include "azimuth.componentLabels" (list . "api") | nindent 4 }}
+rules:
+  - apiGroups:
+      - azimuth.stackhpc.com
+    resources:
+      - clustertemplates
+    verbs:
+      - list
+      - get
+  - apiGroups:
+      - azimuth.stackhpc.com
+    resources:
+      - clusters
+    verbs:
+      - list
+      - get
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    verbs:
+      - create
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - get
+      - create
+      - update
+      - delete

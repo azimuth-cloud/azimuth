@@ -265,9 +265,12 @@ class Connection(rackit.Connection):
         self.token = response.headers['X-Subject-Token']
         # Extract information from the response
         json = response.json()
-        self.user_id = json['token']['user']['id']
-        self.username = json['token']['user']['name']
-        self.project_id = json['token'].get('project', {}).get('id')
+        user = json['token']['user']
+        self.user_id = user['id']
+        self.username = user['name']
+        project = json['token'].get('project', {})
+        self.project_id = project.get('id')
+        self.project_name = project.get('name')
         # Extract the endpoints from the catalog on the correct interface
         self.endpoints = {}
         for entry in json['token'].get('catalog', []):

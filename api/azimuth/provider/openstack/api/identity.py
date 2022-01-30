@@ -45,11 +45,15 @@ class User(IdentityResource):
     application_credentials = NestedResource(ApplicationCredential)
 
 
-class ComputeService(Service):
+class IdentityService(Service):
     """
-    OpenStack service class for the compute service.
+    OpenStack service class for the identity service.
     """
     catalog_type = 'identity'
     path_prefix = '/v3'
 
     users = RootResource(User)
+
+    @property
+    def current_user(self):
+        return self.users.get(self.session.auth.user_id)

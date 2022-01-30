@@ -12,8 +12,8 @@ import Modal from 'react-bootstrap/Modal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheck } from '@fortawesome/free-solid-svg-icons';
 
-import { Form, Field } from '../../utils';
-import { ExternalIpSelectControl } from './resource-utils';
+import { Form, Field } from '../../../utils';
+import { ExternalIpSelectControl } from '../resource-utils';
 
 
 export const AttachExternalIpMenuItem = ({

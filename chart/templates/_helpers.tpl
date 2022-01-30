@@ -81,7 +81,7 @@ If apps are not enabled, required that the hostname is specified.
 */}}
 {{- define "azimuth.ingress.defaultHost" -}}
 {{- if .Values.tags.apps }}
-{{ .Values.global.ingress.portalSubdomain }}.{{ tpl .Values.apps.baseDomain . }}
+{{- .Values.global.ingress.portalSubdomain }}.{{ tpl .Values.apps.baseDomain . }}
 {{- else }}
 {{- fail "ingress.host must be specified explicitly when apps are not enabled" }}
 {{- end }}

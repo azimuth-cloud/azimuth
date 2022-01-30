@@ -17,9 +17,9 @@ Then create and activate a new virtual environment and install the API project:
 ```sh
 python -m venv ./venv
 source ./venv/bin/activate
-pip install git+https://github.com/cedadev/django-settings-object.git#egg=settings_object
-pip install git+https://github.com/cedadev/jasmin-ldap.git#egg=jasmin_ldap
-pip install git+https://github.com/cedadev/rackit.git#egg=rackit
+pip install git+https://github.com/cedadev/django-settings-object.git
+pip install git+https://github.com/cedadev/jasmin-ldap.git
+pip install git+https://github.com/cedadev/rackit.git
 pip install -e ./api
 ```
 

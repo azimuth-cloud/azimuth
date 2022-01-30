@@ -2,14 +2,17 @@
  * Module containing a generic resource panel.
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import Button from 'react-bootstrap/Button';
 import ButtonGroup from 'react-bootstrap/ButtonGroup';
 import Col from 'react-bootstrap/Col';
 import FormControl from 'react-bootstrap/FormControl';
 import InputGroup from 'react-bootstrap/InputGroup';
+import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
+import Popover from 'react-bootstrap/Popover';
 import Row from 'react-bootstrap/Row';
+import Table from 'react-bootstrap/Table';
 
 import get from 'lodash/get';
 import startsWith from 'lodash/startsWith';
@@ -19,7 +22,7 @@ import { faExclamationCircle, faPlus, faSyncAlt } from '@fortawesome/free-solid-
 
 import { StatusCodes } from 'http-status-codes';
 
-import { formatSize, sortBy, Loading, Error, Select } from '../../utils';
+import { compareElementwise, formatSize, sortBy, Loading, Error, Select } from '../../utils';
 
 
 // This hook ensures that the given resource is initialised
@@ -104,6 +107,58 @@ export const ResourcePanel = ({
             )}
         </>
     );
+};
+
+
+const MachineSizePopover = ({ children, size, ...props }) => (
+    <OverlayTrigger
+        {...props}
+        overlay={(
+            <Popover>
+                <Popover.Header><code>{size.name}</code></Popover.Header>
+                <Popover.Body className="px-3 py-1">
+                    <Table borderless className="mb-0">
+                        <tbody>
+                            <tr>
+                                <th className="text-end">CPUs</th>
+                                <td>{size.cpus}</td>
+                            </tr>
+                            <tr>
+                                <th className="text-end">RAM</th>
+                                <td>{formatSize(size.ram, "MB")}</td>
+                            </tr>
+                            <tr>
+                                <th className="text-end">Disk size</th>
+                                <td>{formatSize(size.disk, "GB")}</td>
+                            </tr>
+                        </tbody>
+                    </Table>
+                </Popover.Body>
+            </Popover>
+        )}
+        trigger="click"
+        rootClose
+    >
+        {children}
+    </OverlayTrigger>
+);
+
+
+export const MachineSizeLink = ({ sizes, sizeId }) => {
+    const size = get(sizes.data, sizeId);
+    if( size ) {
+        return (
+            <MachineSizePopover size={size} placement="top">
+                <Button variant="link">{size.name}</Button>
+            </MachineSizePopover>
+        );
+    }
+    else if( sizes.fetching ) {
+        return <Loading message="Loading sizes..." />;
+    }
+    else {
+        return sizeId || '-';
+    }
 };
 
 
@@ -233,27 +288,51 @@ export const MachineSelectControl = (props) => (
 );
 
 
-export const KubernetesClusterTemplateSelectControl = (props) => (
-    <ResourceSelectControl
-        resourceName="Kubernetes cluster template"
-        // Sort the templates by Kubernetes version with the highest at the top
-        sortOptions={(templates) => sortBy(
-            templates,
-            t => [t.kubernetes_version, !t.ha_enabled],
-            true
-        )}
-        formatOptionLabel={(opt) => (
-            <>
-                {opt.name}
-                <small className="ms-2 text-muted">
-                    Kubernetes version: {opt.kubernetes_version} 
-                </small>
-            </>
-        )}
-        {...props}
-        {...props} 
-    />
-);
+const splitSemVerVersion = (version) => version.split(".").map(p => parseInt(p));
+
+
+export const KubernetesClusterTemplateSelectControl = ({ resource, value, ...props }) => {
+    // Get the Kubernetes version of the initial value
+    const [initialValue, _] = useState(value);
+    const initialTemplate = (resource.data || {})[initialValue];
+    const initialKubernetesVersion = (initialTemplate || {}).kubernetes_version;
+    return (
+        <ResourceSelectControl
+            resourceName="Kubernetes cluster template"
+            resource={resource}
+            // Only allow the selection of a deprecated template if it is the initial value
+            resourceFilter={ct => ct.id === initialValue || !ct.deprecated}
+            // Sort the templates by Kubernetes version with the highest at the top
+            sortOptions={(templates) => sortBy(
+                templates,
+                t => [t.kubernetes_version],
+                true
+            )}
+            // Disable templates whose Kubernetes version is less than the initial value
+            isOptionDisabled={(opt) => {
+                if( initialKubernetesVersion ) {
+                    const initialParts = splitSemVerVersion(initialKubernetesVersion);
+                    const optionParts = splitSemVerVersion(opt.kubernetes_version);
+                    return compareElementwise(optionParts, initialParts) < 0;
+                }
+                else {
+                    // If there is no initial version, all options are available
+                    return false;
+                }
+            }}
+            formatOptionLabel={(opt) => (
+                <>
+                    {opt.name}
+                    <small className="ms-2 text-muted">
+                        Kubernetes version: {opt.kubernetes_version}
+                    </small>
+                </>
+            )}
+            value={value}
+            {...props} 
+        />
+    );
+};
 
 
 export const ClusterSelectControl = (props) => (

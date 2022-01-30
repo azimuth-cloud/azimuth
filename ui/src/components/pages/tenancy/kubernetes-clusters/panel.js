@@ -4,11 +4,11 @@
 
 import React from 'react';
 
-import { usePageTitle } from '../../utils';
+import { usePageTitle } from '../../../utils';
 
-import { useResourceInitialised, ResourcePanel } from './resource-utils';
-import { KubernetesClustersTable } from './kubernetes-clusters-table';
-import { CreateKubernetesClusterButton } from './create-kubernetes-cluster-modal';
+import { useResourceInitialised, ResourcePanel } from '../resource-utils';
+import { KubernetesClustersTable } from './table';
+import { CreateKubernetesClusterButton } from './create-button';
 
 
 const KubernetesClusters = ({ resourceData, resourceActions, ...props }) => (
@@ -21,14 +21,16 @@ const KubernetesClusters = ({ resourceData, resourceActions, ...props }) => (
 
 
 export const TenancyKubernetesClustersPanel = ({
-    sshKey,
     tenancy,
     tenancyActions,
     notificationActions
 }) => {
     usePageTitle('Kubernetes');
-    // We need to make sure the sizes are initialised
     useResourceInitialised(tenancy.sizes, tenancyActions.size.fetchList);
+    useResourceInitialised(
+        tenancy.kubernetesClusterTemplates,
+        tenancyActions.kubernetesClusterTemplate.fetchList
+    );
     return (
         <ResourcePanel
             resource={tenancy.kubernetesClusters}
@@ -36,16 +38,18 @@ export const TenancyKubernetesClustersPanel = ({
             resourceName="Kubernetes clusters"
             createButtonComponent={CreateKubernetesClusterButton}
             createButtonExtraProps={({
-                sshKey,
                 kubernetesClusterTemplates: tenancy.kubernetesClusterTemplates,
                 kubernetesClusterTemplateActions: tenancyActions.kubernetesClusterTemplate,
                 sizes: tenancy.sizes,
-                sizeActions: tenancyActions.size
+                sizeActions: tenancyActions.size,
+                notificationActions
             })}
         >
             <KubernetesClusters
+                kubernetesClusterTemplates={tenancy.kubernetesClusterTemplates}
+                kubernetesClusterTemplateActions={tenancyActions.kubernetesClusterTemplate}
                 sizes={tenancy.sizes}
-                notificationActions={notificationActions}
+                sizeActions={tenancyActions.size}
             />
         </ResourcePanel>
     );

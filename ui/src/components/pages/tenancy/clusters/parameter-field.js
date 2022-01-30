@@ -16,7 +16,7 @@ import get from 'lodash/get';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faTimes } from '@fortawesome/free-solid-svg-icons';
 
-import { Field, Select, withCustomValidity } from '../../utils';
+import { Field, Select, withCustomValidity } from '../../../utils';
 
 import {
     SizeSelectControl,
@@ -24,7 +24,7 @@ import {
     VolumeSelectControl,
     MachineSelectControl,
     ClusterSelectControl
-} from './resource-utils';
+} from '../resource-utils';
 
 
 const InputWithCustomValidity = withCustomValidity("input");

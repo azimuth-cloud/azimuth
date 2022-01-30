@@ -14,7 +14,7 @@ import Row from 'react-bootstrap/Row';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowDown, faCircleNotch, faSyncAlt } from '@fortawesome/free-solid-svg-icons';
  
-import { Error, Loading } from '../../utils';
+import { Error, Loading } from '../../../utils';
 
 
 export const MachineLogsMenuItem = ({ machine, machineActions, ...props }) => {

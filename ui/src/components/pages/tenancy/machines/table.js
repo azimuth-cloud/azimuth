@@ -20,11 +20,12 @@ import get from 'lodash/get';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faQuestionCircle } from '@fortawesome/free-solid-svg-icons';
 
-import { bindArgsToActions, formatSize, Loading, useSortable } from '../../utils';
+import { bindArgsToActions, Loading, useSortable } from '../../../utils';
 
+import { MachineSizeLink } from '../resource-utils';
 import { AttachExternalIpMenuItem } from './external-ip-modal';
-import { MachineLogsMenuItem } from './machine-logs-modal';
-import { MachineFirewallMenuItem } from './machine-firewall-modal';
+import { MachineLogsMenuItem } from './logs-modal';
+import { MachineFirewallMenuItem } from './firewall-modal';
 
 
 const ConfirmDeleteMenuItem = ({ name, onConfirm }) => {
@@ -52,40 +53,6 @@ const ConfirmDeleteMenuItem = ({ name, onConfirm }) => {
         </>
     );
 };
-
-
-const MachineSize = ({ size }) => (
-    <OverlayTrigger
-        placement="right"
-        overlay={(
-            <Popover>
-                <Popover.Header><code>{size.name}</code></Popover.Header>
-                <Popover.Body className="px-3 py-1">
-                    <Table borderless className="mb-0">
-                        <tbody>
-                            <tr>
-                                <th className="text-end">CPUs</th>
-                                <td>{size.cpus}</td>
-                            </tr>
-                            <tr>
-                                <th className="text-end">RAM</th>
-                                <td>{formatSize(size.ram, "MB")}</td>
-                            </tr>
-                            <tr>
-                                <th className="text-end">Disk size</th>
-                                <td>{formatSize(size.disk, "GB")}</td>
-                            </tr>
-                        </tbody>
-                    </Table>
-                </Popover.Body>
-            </Popover>
-        )}
-        trigger="click"
-        rootClose
-    >
-        <a className="overlay-trigger">{size.name}</a>
-    </OverlayTrigger>
-);
 
 
 const statusClasses = {
@@ -208,7 +175,13 @@ const MachineActionsDropdown = ({
 );
 
 
-const MachineRow = ({ machine, externalIps, machineActions, externalIpActions }) => {
+const MachineRow = ({
+    machine,
+    sizes,
+    externalIps,
+    machineActions,
+    externalIpActions
+}) => {
     // Find the external IP for the machine by searching the external IPs
     const externalIp = Object.values(externalIps.data || {})
         .find(ip => get(ip, ['machine', 'id']) === machine.id);
@@ -229,7 +202,7 @@ const MachineRow = ({ machine, externalIps, machineActions, externalIpActions })
             <td>{machine.name}</td>
             {/* Allow long image names to wrap */}
             <td className="text-wrap">{get(machine.image, 'name', '-')}</td>
-            <td>{get(machine.size, 'name') ? <MachineSize size={machine.size} /> : '-'}</td>
+            <td><MachineSizeLink sizes={sizes} sizeId={machine.size.id} /></td>
             <td><MachineStatus machine={machine} /></td>
             <td>{machine.power_state}</td>
             <td>
@@ -315,6 +288,7 @@ export const MachinesTable = ({
                     <MachineRow
                         key={machine.id}
                         machine={machine}
+                        sizes={sizes}
                         externalIps={externalIps}
                         machineActions={bindArgsToActions(machineActions, machine.id)}
                         externalIpActions={externalIpActions}

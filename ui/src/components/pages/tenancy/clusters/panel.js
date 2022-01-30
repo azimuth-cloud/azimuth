@@ -4,11 +4,11 @@
 
 import React from 'react';
 
-import { usePageTitle } from '../../utils';
+import { usePageTitle } from '../../../utils';
 
-import { useResourceInitialised, ResourcePanel } from './resource-utils';
-import { ClustersTable } from './clusters-table';
-import { CreateClusterButton } from './create-cluster-modal';
+import { useResourceInitialised, ResourcePanel } from '../resource-utils';
+import { ClustersTable } from './table';
+import { CreateClusterButton } from './create-modal';
 
 
 const Clusters = ({ resourceData, resourceActions, ...props }) => (

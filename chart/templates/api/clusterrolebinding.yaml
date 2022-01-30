@@ -1,0 +1,14 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "azimuth.componentname" (list . "api") }}
+  labels: {{ include "azimuth.componentLabels" (list . "api") | nindent 4 }}
+subjects:
+  # Target the service account in the release namespace
+  - kind: ServiceAccount
+    namespace: {{ .Release.Namespace }}
+    name: {{ include "azimuth.componentname" (list . "api") }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "azimuth.componentname" (list . "api") }}
