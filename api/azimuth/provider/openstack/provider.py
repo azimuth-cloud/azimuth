@@ -10,12 +10,8 @@ import itertools
 import logging
 import random
 import re
-import textwrap
 
 import dateutil.parser
-
-import yaml
-
 
 import rackit
 
@@ -121,25 +117,6 @@ def convert_exceptions(f):
             logger.exception("Could not connect to OpenStack API.")
             raise errors.CommunicationError("Could not connect to OpenStack API.")
     return wrapper
-
-
-class base64_encoded_block(str):
-    """
-    Class representing a base64-encoded block that can be rendered in YAML.
-    """
-    @staticmethod
-    def pyyaml_presenter(dumper, data):
-        """
-        PYYaml presenter for a base64-encoded block.
-        """
-        return dumper.represent_scalar(
-            "tag:yaml.org,2002:str",
-            # base64-encode the input data and wrap the text at 64 characters
-            textwrap.fill(base64.b64encode(data.encode()).decode(), 64),
-            style = "|"
-        )
-
-yaml.add_representer(base64_encoded_block, base64_encoded_block.pyyaml_presenter)
 
 
 class Provider(base.Provider):
