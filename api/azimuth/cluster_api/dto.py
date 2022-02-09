@@ -66,6 +66,21 @@ class Addon:
 
 
 @dataclasses.dataclass(frozen = True)
+class Service:
+    """
+    Represents a service available on the cluster.
+    """
+    #: The name of the service
+    name: str
+    #: The human-readable label for the service
+    label: str
+    #: The FQDN for the service
+    fqdn: str
+    #: The URL of an icon for the service
+    icon_url: t.Optional[str]
+
+
+@dataclasses.dataclass(frozen = True)
 class Cluster:
     """
     Represents a Kubernetes cluster.
@@ -84,6 +99,8 @@ class Cluster:
     autohealing_enabled: bool
     #: Indicates if cert-manager is enabled
     cert_manager_enabled: bool
+    #: Indicates if the Kubernetes dashboard is enabled
+    dashboard_enabled: bool
     #: Indicates if ingress is enabled
     ingress_enabled: bool
     #: Indicates if monitoring is enabled
@@ -98,5 +115,7 @@ class Cluster:
     nodes: t.List[Node]
     #: The addons for the cluster
     addons: t.List[Addon]
+    #: The services for the cluster
+    services: t.List[Service]
     #: The time at which the cluster was created
     created_at: datetime.datetime

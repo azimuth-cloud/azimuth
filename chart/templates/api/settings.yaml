@@ -4,6 +4,7 @@
 {{- $apps := .Values.apps -}}
 {{- $clusterEngine := .Values.clusterEngine -}}
 {{- $keyStore := .Values.sshKeyStore -}}
+{{- $ingress := mergeOverwrite (deepCopy .Values.global.ingress) .Values.ingress }}
 apiVersion: v1
 kind: Secret
 metadata:
@@ -14,7 +15,6 @@ stringData:
   01-django.yaml: |
     SECRET_KEY: {{ $settings.secretKey | default (randAlphaNum 64) }}
     DEBUG: {{ $settings.debug }}
-    {{- $ingress := mergeOverwrite (deepCopy .Values.global.ingress) .Values.ingress }}
     CSRF_COOKIE_SECURE: {{ $ingress.tls.enabled }}
     SESSION_COOKIE_SECURE: {{ $ingress.tls.enabled }}
   02-cloud-common.yaml: |
@@ -72,17 +72,22 @@ stringData:
         {{- end }}
 {{- if .Values.tags.apps }}
   05-apps.yaml: |
-    # In order for the app authentication to work correctly, the session
-    # cookie needs to apply for all apps
-    SESSION_COOKIE_DOMAIN: ".{{ tpl $apps.baseDomain . }}"
+    # In order for the app authentication to work, the session cookie needs to apply to that domain
+    # However we only do this if the portal host is within the apps domain
+    # If not, we assume the Zenith installation is completely standalone with no auth
+    {{- $host := tpl $ingress.host . }}
+    {{- $baseDomain := tpl $apps.baseDomain . }}
+    {{- if hasSuffix $baseDomain $host }}
+    SESSION_COOKIE_DOMAIN: ".{{ $baseDomain }}"
+    {{- end }}
     # We also need to allow redirects to the apps
     AZIMUTH_AUTH:
       NEXT_URL_ALLOWED_DOMAINS:
-        - {{ tpl $apps.baseDomain . | quote }}
+        - {{ quote $baseDomain }}
     AZIMUTH:
       APPS:
         ENABLED: true
-        BASE_DOMAIN: {{ tpl $apps.baseDomain . | quote }}
+        BASE_DOMAIN: {{ quote $baseDomain }}
         SSHD_HOST: {{ tpl $apps.sshdHost . | quote }}
         SSHD_PORT: {{ tpl (toString $apps.sshdPort) . | quote }}
         REGISTRAR_EXTERNAL_URL: {{ tpl $apps.registrarExternalUrl . | quote }}

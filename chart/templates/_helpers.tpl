@@ -9,12 +9,14 @@ Expand the name of the chart.
 Create a default fully qualified name for a chart-level resource.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 If release name contains chart name it will be used as a full name.
+
+This template must be usable from subcharts, so the chart name is hard-coded.
 */}}
 {{- define "azimuth.fullname" -}}
-{{- if contains .Chart.Name .Release.Name }}
+{{- if contains "azimuth" .Release.Name }}
 {{- .Release.Name | lower | trunc 63 | trimSuffix "-" }}
 {{- else }}
-{{- printf "%s-%s" .Release.Name .Chart.Name | lower | trunc 63 | trimSuffix "-" }}
+{{- printf "%s-azimuth" .Release.Name | lower | trunc 63 | trimSuffix "-" }}
 {{- end }}
 {{- end }}
 
@@ -112,7 +114,7 @@ In all other cases, require the SSHD host to be specified.
 {{- define "azimuth.apps.sshdHost" -}}
 {{- if (dig "enabled" true .Values.zenith) }}
 {{- if (eq .Values.zenith.sshd.service.type "NodePort") }}
-{{- include "azimuth.apps.baseDomain" . | printf "sshd.%s" }}
+{{- tpl .Values.apps.baseDomain . | printf "sshd.%s" }}
 {{- else if and (eq .Values.zenith.sshd.service.type "LoadBalancer") .Values.zenith.sshd.service.loadBalancerIP }}
 {{- .Values.zenith.sshd.service.loadBalancerIP }}
 {{- else }}
@@ -190,13 +192,7 @@ Tries to derive the Zenith auth service URL from the Azimuth settings.
 This must be usable from the Zenith subchart, so the chart name is hard-coded.
 */}}
 {{- define "azimuth.auth.verifyUrl" -}}
-{{- $fullName := "" }}
-{{- if contains "azimuth" .Release.Name }}
-{{- $fullName = .Release.Name | lower | trunc 63 | trimSuffix "-" }}
-{{- else }}
-{{- $fullName = printf "%s-azimuth" .Release.Name | lower | trunc 63 | trimSuffix "-" }}
-{{- end }}
-{{- $serviceName := printf "%s-%s" $fullName "api" | lower | trunc 63 | trimSuffix "-" }}
+{{- $serviceName := include "azimuth.componentname" (list . "api") }}
 {{- printf "http://%s.%s.svc.cluster.local/api/session/verify/" $serviceName .Release.Namespace -}}
 {{- end -}}
 
@@ -208,5 +204,10 @@ as the best-guess at what was actually used for Azimuth.
 */}}
 {{- define "azimuth.auth.signinUrl" -}}
 {{- $proto := .Values.global.ingress.tls.enabled | ternary "https" "http" }}
-{{- printf "%s://%s.%s/auth/login/" $proto .Values.global.ingress.portalSubdomain .Values.global.ingress.baseDomain }}
+{{-
+  printf "%s://%s.%s/auth/login/"
+    $proto
+    .Values.global.ingress.portalSubdomain
+    .Values.global.ingress.baseDomain
+}}
 {{- end -}}

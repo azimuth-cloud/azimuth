@@ -228,6 +228,30 @@ apps:
   # The URL of the post-deploy script to execute
   postDeployScriptUrl:
 
+# Settings for the Azimuth CAPI operator, implementing Kubernetes support
+capi-operator:
+  # Set this to false to disable the managed CAPI operator
+  # enabled: false
+  extraEnv:
+    - name: AZIMUTH_CAPI__ZENITH__REGISTRAR_ADMIN_URL
+      valueFrom:
+        configMapKeyRef:
+          name: "{{ include \"azimuth.componentname\" (list . \"apps-conf\") }}"
+          # Specify the key associated with the value
+          key: registrarAdminUrl
+    - name: AZIMUTH_CAPI__ZENITH__SSHD_HOST
+      valueFrom:
+        configMapKeyRef:
+          name: "{{ include \"azimuth.componentname\" (list . \"apps-conf\") }}"
+          # Specify the key associated with the value
+          key: sshdHost
+    - name: AZIMUTH_CAPI__ZENITH__SSHD_PORT
+      valueFrom:
+        configMapKeyRef:
+          name: "{{ include \"azimuth.componentname\" (list . \"apps-conf\") }}"
+          # Specify the key associated with the value
+          key: sshdPort
+
 # The cluster engine to use for Cluster-as-a-Service support
 clusterEngine:
   # The type of cluster engine to use (currently only AWX is supported)
@@ -334,9 +358,10 @@ sshKeyStore:
 # Properties for applying themes
 theme:
   # The URL of the Bootstrap CSS to use (must be Bootstrap 5)
-  bootstrapCssUrl: https://cdn.jsdelivr.net/npm/bootswatch@5.0.1/dist/pulse/bootstrap.min.css
+  bootstrapCssUrl: https://cdnjs.cloudflare.com/ajax/libs/bootswatch/5.1.3/pulse/bootstrap.min.css
   # Any custom CSS that should be included
-  customCss:
+  customCss: |
+    @import url(/pulse-overrides.css);
   # For example, the following installs a custom logo in the top navbar in place of the cloud name
   # customCss: |
   #   .navbar-brand {

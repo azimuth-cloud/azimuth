@@ -566,6 +566,7 @@ class KubernetesClusterSerializer(
             "node_groups",
             "nodes",
             "addons",
+            "services",
         ]
     )
 ):
@@ -574,6 +575,24 @@ class KubernetesClusterSerializer(
     node_groups = KubernetesClusterNodeGroupSerializer(many = True, read_only = True)
     nodes = KubernetesClusterNodeSerializer(many = True, read_only = True)
     addons = KubernetesClusterAddonSerializer(many = True, read_only = True)
+    services = serializers.SerializerMethodField()
+
+    def get_services(self, obj):
+        request = self.context.get("request")
+        tenant = self.context.get("tenant")
+        services = []
+        for service_dto in obj.services:
+            service_obj = dataclasses.asdict(service_dto)
+            service_obj.pop("fqdn", None)
+            service_obj["url"] = request.build_absolute_uri(
+                reverse("azimuth:kubernetes_cluster_service", kwargs = {
+                    "tenant": tenant,
+                    "cluster": obj.id,
+                    "service": service_dto.name,
+                })
+            )
+            services.append(service_obj)
+        return services
 
     def to_representation(self, obj):
         result = super().to_representation(obj)
@@ -621,6 +640,7 @@ class CreateKubernetesClusterSerializer(serializers.Serializer):
     node_groups = NodeGroupSpecSerializer(many = True)
     autohealing_enabled = serializers.BooleanField(default = True)
     cert_manager_enabled = serializers.BooleanField(default = False)
+    dashboard_enabled = serializers.BooleanField(default = False)
     ingress_enabled = serializers.BooleanField(default = False)
     monitoring_enabled = serializers.BooleanField(default = False)
 
@@ -651,6 +671,7 @@ class UpdateKubernetesClusterSerializer(serializers.Serializer):
     node_groups = NodeGroupSpecSerializer(many = True, required = False)
     autohealing_enabled = serializers.BooleanField(required = False)
     cert_manager_enabled = serializers.BooleanField(required = False)
+    dashboard_enabled = serializers.BooleanField(required = False)
     ingress_enabled = serializers.BooleanField(required = False)
     monitoring_enabled = serializers.BooleanField(required = False)
 

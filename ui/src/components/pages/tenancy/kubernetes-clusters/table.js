@@ -10,6 +10,7 @@ import Card from 'react-bootstrap/Card';
 import Col from 'react-bootstrap/Col';
 import DropdownButton from 'react-bootstrap/DropdownButton';
 import DropdownItem from 'react-bootstrap/DropdownItem';
+import ListGroup from 'react-bootstrap/ListGroup';
 import Modal from 'react-bootstrap/Modal';
 import Nav from 'react-bootstrap/Nav';
 import Row from 'react-bootstrap/Row';
@@ -22,9 +23,11 @@ import moment from 'moment';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
+    faBookmark,
     faCheck,
     faClock,
     faExclamationTriangle,
+    faExternalLinkAlt,
     faQuestionCircle,
     faSyncAlt,
     faTimes,
@@ -294,6 +297,46 @@ const ControlPlaneCard = ({ kubernetesCluster, sizes }) => (
 );
 
 
+const ServiceCard = ({ kubernetesCluster }) => {
+    const sortedServices = sortBy(kubernetesCluster.services, service => service.name);
+    return (
+        <Card className="mb-3">
+            <Card.Header className="text-center">Services</Card.Header>
+            {sortedServices.length > 0 ? (
+                <ListGroup variant="flush" activeKey={null}>
+                    {sortedServices.map(service => (
+                        <ListGroup.Item
+                            action
+                            href={service.url}
+                            target="_blank"
+                            className="service-list-group-item"
+                        >
+                            <span>
+                                {service.icon_url ? (
+                                    <img src={service.icon_url} alt={`${service.label} icon`} />
+                                ) : (
+                                    <FontAwesomeIcon icon={faBookmark} />
+                                )}
+                            </span>
+                            <span>{service.label}</span>
+                            <span><FontAwesomeIcon icon={faExternalLinkAlt} /></span>
+                        </ListGroup.Item>
+                    ))}
+                </ListGroup>
+            ) : (
+                <Card.Body>
+                    <Row>
+                        <Col className="text-muted text-center">
+                            No services enabled.
+                        </Col>
+                    </Row>
+                </Card.Body>
+            )}
+        </Card>
+    );
+};
+
+
 const AddonsCard = ({ kubernetesCluster }) => {
     const sortedAddons = sortBy(kubernetesCluster.addons, addon => addon.name);
     return (
@@ -331,16 +374,15 @@ const AddonsCard = ({ kubernetesCluster }) => {
 
 const ClusterOverviewPanel = ({ kubernetesCluster, kubernetesClusterTemplates, sizes }) => (
     <Row xs="1" xl="2">
-        <Col xs={{ order: 1 }}>
+        <Col>
             <ClusterOverviewCard
                 kubernetesCluster={kubernetesCluster}
                 kubernetesClusterTemplates={kubernetesClusterTemplates}
             />
-        </Col>
-        <Col xs={{ order: 2 }} xl={{ order: 3 }}>
             <ControlPlaneCard kubernetesCluster={kubernetesCluster} sizes={sizes} />
         </Col>
-        <Col xs={{ order: 3 }} xl={{ order: 2 }}>
+        <Col>
+            <ServiceCard kubernetesCluster={kubernetesCluster} />
             <AddonsCard kubernetesCluster={kubernetesCluster} />
         </Col>
     </Row>

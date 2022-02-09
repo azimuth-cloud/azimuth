@@ -240,6 +240,7 @@ class Session:
             ],
             cluster.spec["autohealing"],
             cluster.spec.get("addons", {}).get("certManager", False),
+            cluster.spec.get("addons", {}).get("dashboard", False),
             cluster.spec.get("addons", {}).get("ingress", False),
             cluster.spec.get("addons", {}).get("monitoring", False),
             cluster.get("status", {}).get("kubernetesVersion"),
@@ -259,6 +260,10 @@ class Session:
             [
                 dto.Addon(name, addon.get("phase", "Unknown"))
                 for name, addon in cluster.get("status", {}).get("addons", {}).items()
+            ],
+            [
+                dto.Service(name, service["label"], service["fqdn"], service.get("iconUrl"))
+                for name, service in cluster.get("status", {}).get("services", {}).items()
             ],
             dateutil.parser.parse(cluster.metadata["creationTimestamp"]),
         )
@@ -288,7 +293,7 @@ class Session:
 
     def _create_credential(self):
         """
-        Creates a new credential and returns the Kubernetes secret data.;l
+        Creates a new credential and returns the Kubernetes secret data.
 
         The return value should be a dict with the "data" and/or "stringData" keys.
         """
@@ -311,6 +316,8 @@ class Session:
             spec["autohealing"] = options["autohealing_enabled"]
         if "cert_manager_enabled" in options:
             spec.setdefault("addons", {})["certManager"] = options["cert_manager_enabled"]
+        if "dashboard_enabled" in options:
+            spec.setdefault("addons", {})["dashboard"] = options["dashboard_enabled"]
         if "ingress_enabled" in options:
             spec.setdefault("addons", {})["ingress"] = options["ingress_enabled"]
         if "monitoring_enabled" in options:
@@ -326,6 +333,7 @@ class Session:
         node_groups: t.List[NodeGroupSpec],
         autohealing_enabled: bool = True,
         cert_manager_enabled: bool = False,
+        dashboard_enabled: bool = False,
         ingress_enabled: bool = False,
         monitoring_enabled: bool = False
     ) -> dto.Cluster:
@@ -345,6 +353,7 @@ class Session:
             node_groups = node_groups,
             autohealing_enabled = autohealing_enabled,
             cert_manager_enabled = cert_manager_enabled,
+            dashboard_enabled = dashboard_enabled,
             ingress_enabled = ingress_enabled,
             monitoring_enabled = monitoring_enabled
         )

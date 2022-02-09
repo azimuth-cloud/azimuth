@@ -140,6 +140,7 @@ const initialState = kubernetesCluster => {
             })),
             autohealing_enabled: kubernetesCluster.autohealing_enabled,
             cert_manager_enabled: kubernetesCluster.cert_manager_enabled,
+            dashboard_enabled: kubernetesCluster.dashboard_enabled,
             ingress_enabled: kubernetesCluster.ingress_enabled,
             monitoring_enabled: kubernetesCluster.monitoring_enabled
         };
@@ -153,8 +154,9 @@ const initialState = kubernetesCluster => {
             node_groups: [],
             autohealing_enabled: true,
             cert_manager_enabled: false,
+            dashboard_enabled: true,
             ingress_enabled: false,
-            monitoring_enabled: false
+            monitoring_enabled: true
         };
     }
 };
@@ -379,6 +381,15 @@ export const KubernetesClusterModalForm = ({
                                         label="Enable cert-manager?"
                                         checked={getStateKey('cert_manager_enabled')}
                                         onChange={setStateFromCheckboxEvent('cert_manager_enabled')}
+                                    />
+                                </Field>
+                                <Field
+                                    name="dashboard_enabled"
+                                >
+                                    <BSForm.Check
+                                        label="Enable Kubernetes Dashboard?"
+                                        checked={getStateKey('dashboard_enabled')}
+                                        onChange={setStateFromCheckboxEvent('dashboard_enabled')}
                                     />
                                 </Field>
                                 <Field

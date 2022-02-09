@@ -143,11 +143,6 @@ def convert_cluster_api_exceptions(view):
                 { "detail": str(exc), "code": "unsupported_operation"},
                 status = status.HTTP_404_NOT_FOUND
             )
-        # except cluster_api_errors.QuotaExceededError as exc:
-        #     return response.Response(
-        #         { "detail": str(exc), "code": "quota_exceeded"},
-        #         status = status.HTTP_409_CONFLICT
-        #     )
         except cluster_api_errors.InvalidOperationError as exc:
             return response.Response(
                 { "detail": str(exc), "code": "invalid_operation"},
@@ -158,16 +153,6 @@ def convert_cluster_api_exceptions(view):
                 { "detail": str(exc), "code": "bad_input"},
                 status = status.HTTP_400_BAD_REQUEST
             )
-        # except cluster_api_errors.OperationTimedOutError as exc:
-        #     return response.Response(
-        #         { "detail": str(exc), "code": "operation_timed_out"},
-        #         status = status.HTTP_504_GATEWAY_TIMEOUT
-        #     )
-        # # For authentication/not found errors, raise the DRF equivalent
-        # except cluster_api_errors.AuthenticationError as exc:
-        #     raise drf_exceptions.AuthenticationFailed(str(exc))
-        # except cluster_api_errors.PermissionDeniedError as exc:
-        #     raise drf_exceptions.PermissionDenied(str(exc))
         except cluster_api_errors.ObjectNotFoundError as exc:
             raise drf_exceptions.NotFound(str(exc))
         except cluster_api_errors.Error as exc:
@@ -191,6 +176,51 @@ def provider_api_view(methods):
         view = decorators.api_view(methods)(view)
         return view
     return decorator
+
+
+def redirect_to_service_url(
+    request,
+    service_type,
+    service_name,
+    service_url,
+    service_label = None,
+    readiness_url = None
+):
+    """
+    Redirects to a service URL if it is ready.
+
+    If it is not ready, a holding page is rendered.
+    """
+    if not service_label:
+        service_label = " ".join(w.capitalize() for w in service_name.split("-"))
+    if not service_url:
+        return render(
+            request,
+            "azimuth/service_not_available.html",
+            { "service_name": service_label }
+        )
+    # Try to fetch the readiness URL
+    # While it returns a 404, 503 or a certificate error (probably because cert-manager is
+    # still negotiating the certificate), the service is not ready
+    try:
+        resp = requests.get(readiness_url or service_url)
+    except requests.exceptions.SSLError:
+        return render(
+            request,
+            "azimuth/service_not_ready.html",
+            { "service_name": service_label, "service_type": service_type }
+        )
+    if resp.status_code in {
+        status.HTTP_404_NOT_FOUND,
+        status.HTTP_503_SERVICE_UNAVAILABLE
+    }:
+        return render(
+            request,
+            "azimuth/service_not_ready.html",
+            { "service_name": service_label, "service_type": service_type }
+        )
+    else:
+        return redirect(service_url)
 
 
 @decorators.api_view(["GET"])
@@ -607,27 +637,26 @@ def machine_console(request, tenant, machine):
     """
     Redirects the user to the web console for the specified machine.
     """
-    # Make sure that the user has permission to access the machine
-    with request.auth.scoped_session(tenant) as session:
-        machine = session.find_machine(machine)
-    # Check if the machine has the web console enabled
-    # If not, render an error page
-    if machine.metadata.get("web_console_enabled", "0") != "1":
-        return render(request, "portal/console_not_available.html")
-    # The subdomain is in the metadata of the machine
-    subdomain = machine.metadata["apps_console_subdomain"]
-    console_url = "http://{}.{}".format(subdomain, cloud_settings.APPS.BASE_DOMAIN)
-    # Try to fetch the console readiness URL
-    # While it returns a 404 or a certificate error (because cert-manager is still
-    # negotiating the certificate), the console is not ready
+    console_url = None
     try:
-        resp = requests.get(f"{console_url}/_ready")
-    except requests.exceptions.SSLError:
-        return render(request, "portal/console_not_ready.html")
-    if resp.status_code == status.HTTP_404_NOT_FOUND:
-        return render(request, "portal/console_not_ready.html")
-    else:
-        return redirect(console_url)
+        # Make sure that the user has permission to access the machine
+        with request.auth.scoped_session(tenant) as session:
+            machine = session.find_machine(machine)
+        # Check if the machine has the web console enabled
+        # If not, render an error page
+        if machine.metadata.get("web_console_enabled", "0") == "1":
+            # The subdomain is in the metadata of the machine
+            subdomain = machine.metadata["apps_console_subdomain"]
+            console_url = "http://{}.{}".format(subdomain, cloud_settings.APPS.BASE_DOMAIN)
+    except provider_errors.ObjectNotFoundError:
+        pass
+    return redirect_to_service_url(
+        request,
+        "web-console",
+        "web-console",
+        console_url,
+        readiness_url = f"{console_url}/_ready"
+    )
 
 
 @provider_api_view(["GET", "POST"])
@@ -1078,3 +1107,29 @@ def kubernetes_cluster_generate_kubeconfig(request, tenant, cluster):
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             kubeconfig = capi_session.generate_kubeconfig(cluster)
     return response.Response({ "kubeconfig": kubeconfig })
+
+
+@provider_api_view(["GET"])
+def kubernetes_cluster_service(request, tenant, cluster, service):
+    """
+    Redirects the user to the specified service on the specified Kubernetes cluster.
+    """
+    service_url = None
+    service_label = None
+    try:
+        if cloud_settings.CLUSTER_API_PROVIDER:
+            with request.auth.scoped_session(tenant) as session:
+                with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
+                    cluster = capi_session.find_cluster(cluster)
+        service = next(s for s in cluster.services if s.name == service)
+        service_url = f"http://{service.fqdn}"
+        service_label = service.label
+    except (cluster_api_errors.ObjectNotFoundError, StopIteration):
+        pass
+    return redirect_to_service_url(
+        request,
+        "kubernetes",
+        service,
+        service_url,
+        service_label = service_label
+    )
