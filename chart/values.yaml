@@ -21,7 +21,7 @@ global:
     registrarSubdomain: registrar
     # The name of the ingress class to use
     className: nginx
-    # Custom annotations for ingress resources, e.g. to specify cert-manager config
+    # Custom annotations for ingress resources
     annotations: {}
     # TLS configuration
     tls:
@@ -31,6 +31,8 @@ global:
       # If the secret already exists, it should contain a wildcard certificate for
       # the given base domain
       secretName:
+      # TLS-specific ingress annotations, e.g. for cert-manager configuration
+      annotations: {}
 
 api:
   # The image to use for the api component
@@ -117,6 +119,8 @@ ingress:
     # enabled: true
     # The name of a secret containing the portal TLS certificate and key
     # secretName:
+    # TLS-specific annotations for the portal ingress
+    # annotations:
 
 settings:
   # The Django secret key

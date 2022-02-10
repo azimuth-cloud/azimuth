@@ -1,10 +1,14 @@
-{{- $ingress := mergeOverwrite (deepCopy .Values.global.ingress) .Values.ingress }}
+{{- $global := deepCopy .Values.global.ingress }}
+{{- $portal := deepCopy .Values.ingress }}
+{{- $ingress := mergeOverwrite $global $portal }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ include "azimuth.fullname" . }}
   labels: {{ include "azimuth.labels" . | nindent 4 }}
-  {{- with $ingress.annotations }}
+  {{- $tlsAnnotations := $ingress.tls.enabled | ternary $ingress.tls.annotations dict }}
+  {{- $annotations := mergeOverwrite $ingress.annotations $tlsAnnotations }}
+  {{- with $annotations }}
   annotations: {{ toYaml . | nindent 4 }}
   {{- end }}
 spec:
