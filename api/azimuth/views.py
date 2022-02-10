@@ -5,6 +5,7 @@ Django views for interacting with the configured cloud provider.
 import dataclasses
 import functools
 import logging
+from urllib.parse import urlencode
 
 from django.shortcuts import redirect, render
 from django.urls import reverse
@@ -17,6 +18,8 @@ from rest_framework import decorators, permissions, response, status, exceptions
 from rest_framework.utils import formatting
 
 import requests
+
+from azimuth_auth.settings import auth_settings
 
 from . import serializers
 from .cluster_api import errors as cluster_api_errors
@@ -176,6 +179,30 @@ def provider_api_view(methods):
         view = decorators.api_view(methods)(view)
         return view
     return decorator
+
+
+def redirect_to_signin(view):
+    """
+    Decorator that redirects unauthorized requests to the sign in page instead
+    of returning a 401 to the client.
+
+    Primarily for use with views that use redirect_to_service_url to redirect users to
+    external services.
+    """
+    @functools.wraps(view)
+    def wrapper(request, *args, **kwargs):
+        response = view(request, *args, **kwargs)
+        if response.status_code == status.HTTP_401_UNAUTHORIZED:
+            return redirect(
+                "{}?{}={}".format(
+                    reverse("azimuth_auth:login"),
+                    auth_settings.NEXT_URL_PARAM,
+                    request.get_full_path()
+                )
+            )
+        else:
+            return response
+    return wrapper
 
 
 def redirect_to_service_url(
@@ -632,6 +659,7 @@ def machine_restart(request, tenant, machine):
     return response.Response(serializer.data)
 
 
+@redirect_to_signin
 @provider_api_view(["GET"])
 def machine_console(request, tenant, machine):
     """
@@ -1109,6 +1137,7 @@ def kubernetes_cluster_generate_kubeconfig(request, tenant, cluster):
     return response.Response({ "kubeconfig": kubeconfig })
 
 
+@redirect_to_signin
 @provider_api_view(["GET"])
 def kubernetes_cluster_service(request, tenant, cluster, service):
     """
