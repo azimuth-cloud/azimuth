@@ -643,6 +643,7 @@ class CreateKubernetesClusterSerializer(serializers.Serializer):
     dashboard_enabled = serializers.BooleanField(default = False)
     ingress_enabled = serializers.BooleanField(default = False)
     monitoring_enabled = serializers.BooleanField(default = False)
+    apps_enabled = serializers.BooleanField(default = False)
 
     def validate_template(self, value):
         capi_session = self.context["capi_session"]
@@ -674,6 +675,7 @@ class UpdateKubernetesClusterSerializer(serializers.Serializer):
     dashboard_enabled = serializers.BooleanField(required = False)
     ingress_enabled = serializers.BooleanField(required = False)
     monitoring_enabled = serializers.BooleanField(required = False)
+    apps_enabled = serializers.BooleanField(required = False)
 
     def validate(self, data):
         if "template" in data and len(data) > 1:

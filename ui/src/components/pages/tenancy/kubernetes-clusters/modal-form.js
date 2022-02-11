@@ -142,7 +142,8 @@ const initialState = kubernetesCluster => {
             cert_manager_enabled: kubernetesCluster.cert_manager_enabled,
             dashboard_enabled: kubernetesCluster.dashboard_enabled,
             ingress_enabled: kubernetesCluster.ingress_enabled,
-            monitoring_enabled: kubernetesCluster.monitoring_enabled
+            monitoring_enabled: kubernetesCluster.monitoring_enabled,
+            apps_enabled: kubernetesCluster.apps_enabled
         };
     }
     else {
@@ -156,7 +157,8 @@ const initialState = kubernetesCluster => {
             cert_manager_enabled: false,
             dashboard_enabled: true,
             ingress_enabled: false,
-            monitoring_enabled: true
+            monitoring_enabled: true,
+            apps_enabled: true
         };
     }
 };
@@ -408,6 +410,15 @@ export const KubernetesClusterModalForm = ({
                                         label="Enable cluster monitoring?"
                                         checked={getStateKey('monitoring_enabled')}
                                         onChange={setStateFromCheckboxEvent('monitoring_enabled')}
+                                    />
+                                </Field>
+                                <Field
+                                    name="apps_enabled"
+                                >
+                                    <BSForm.Check
+                                        label="Enable applications dashboard?"
+                                        checked={getStateKey('apps_enabled')}
+                                        onChange={setStateFromCheckboxEvent('apps_enabled')}
                                     />
                                 </Field>
                             </Card.Body>

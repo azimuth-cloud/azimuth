@@ -105,6 +105,8 @@ class Cluster:
     ingress_enabled: bool
     #: Indicates if monitoring is enabled
     monitoring_enabled: bool
+    #: Indicates if the applications dashboard is enabled
+    apps_enabled: bool
     #: The Kubernetes version of the cluster
     kubernetes_version: t.Optional[str]
     #: The overall status of the cluster
