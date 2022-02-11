@@ -237,23 +237,25 @@ capi-operator:
   # Set this to false to disable the managed CAPI operator
   # enabled: false
   extraEnv:
+    - name: AZIMUTH_CAPI__ZENITH__CHART_VERSION
+      valueFrom:
+        configMapKeyRef:
+          name: "{{ include \"azimuth.componentname\" (list . \"apps-conf\") }}"
+          key: zenithVersion
     - name: AZIMUTH_CAPI__ZENITH__REGISTRAR_ADMIN_URL
       valueFrom:
         configMapKeyRef:
           name: "{{ include \"azimuth.componentname\" (list . \"apps-conf\") }}"
-          # Specify the key associated with the value
           key: registrarAdminUrl
     - name: AZIMUTH_CAPI__ZENITH__SSHD_HOST
       valueFrom:
         configMapKeyRef:
           name: "{{ include \"azimuth.componentname\" (list . \"apps-conf\") }}"
-          # Specify the key associated with the value
           key: sshdHost
     - name: AZIMUTH_CAPI__ZENITH__SSHD_PORT
       valueFrom:
         configMapKeyRef:
           name: "{{ include \"azimuth.componentname\" (list . \"apps-conf\") }}"
-          # Specify the key associated with the value
           key: sshdPort
 
 # The cluster engine to use for Cluster-as-a-Service support
