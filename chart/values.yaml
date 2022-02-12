@@ -212,6 +212,9 @@ zenith:
           auth:
             url: "{{ include \"azimuth.auth.verifyUrl\" . }}"
             signinUrl: "{{ include \"azimuth.auth.signinUrl\" . }}"
+            # Forward the X-Remote-User header to upstream services
+            upstreamHeaders:
+              - X-Remote-User
 
 # Settings for apps
 # By default, this assumes that the managed Zenith is used

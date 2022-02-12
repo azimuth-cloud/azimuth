@@ -291,7 +291,7 @@ def session_verify(request):
     """
     Verify the current session.
 
-    This endpoint can be used to check for the presence of an authenticated session
+    This endpoint can be used to check for the presence of an authenticated session
     and optionally for tenancy-level authorization by specifying the configured header
     (defaults to ``X-Auth-Tenancy-Id``).
 
@@ -308,7 +308,13 @@ def session_verify(request):
             content["authorized"] = True
         else:
             raise drf_exceptions.PermissionDenied()
-    return response.Response(content)
+    return response.Response(
+        content,
+        # Return the authenticated username in the X-Remote-User header
+        # The Zenith proxy is configured to forward this header to upstream services, which
+        # they can consume in order to provide a bespoke service per authenticated user
+        headers = { "X-Remote-User": request.user.username }
+    )
 
 
 @provider_api_view(["GET", "PUT"])
