@@ -12,14 +12,6 @@ metadata:
   name: {{ include "azimuth.componentname" (list . "apps-conf") }}
   labels: {{ include "azimuth.componentLabels" (list . "apps-conf") | nindent 4 }}
 data:
-  # If a specific Zenith version is in use due to the dependency being enabled, specify it here
-  {{- $zenithVersion := "" }}
-  {{- range .Chart.Dependencies }}
-  {{- if eq .Name "zenith" }}
-  {{- $zenithVersion = .Version }}
-  {{- end }}
-  {{- end }}
-  zenithVersion: {{ $zenithVersion | quote }}
   {{- if .Values.tags.apps }}
   baseDomain: {{ tpl .Values.apps.baseDomain . | quote }}
   sshdHost: {{ tpl .Values.apps.sshdHost . | quote }}
