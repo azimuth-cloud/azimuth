@@ -64,13 +64,6 @@ api:
   tolerations: []
   # Affinity rules for api pods
   affinity: {}
-  # Configuration for the kubectl proxy container
-  kubectlProxy:
-    image:
-      repository: bitnami/kubectl
-      pullPolicy: IfNotPresent
-      tag: ""  # Defaults to the Kubernetes version if not given
-    resources: {}
 
 ui:
   # The image to use for the ui component

@@ -21,6 +21,10 @@ from . import dto, errors
 logger = logging.getLogger(__name__)
 
 
+# Get the easykube configuration from the environment
+ekconfig = easykube.Configuration.from_environment()
+
+
 ClusterTemplate = easykube.ResourceSpec(
     "azimuth.stackhpc.com/v1alpha1",
     "clustertemplates",
@@ -96,7 +100,7 @@ class Provider:
         tenancy_name = re.sub("[^a-z0-9]+", "-", cloud_session._tenancy.name.lower()).strip("-")
         namespace = self._namespace_template.format(tenancy_name = tenancy_name)
         # Create an easykube client targetting our namespace
-        client = easykube.SyncClient.from_environment(default_namespace = namespace)
+        client = ekconfig.sync_client(default_namespace = namespace)
         return session_class(client, cloud_session, self._last_handled_configuration_annotation)
 
 

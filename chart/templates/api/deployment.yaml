@@ -68,15 +68,6 @@ spec:
               subPath: bootstrap.css
             - name: tmp
               mountPath: /tmp
-        # Azimuth delegates Kubernetes authentication to "kubectl proxy"
-        - name: kubectl-proxy
-          securityContext: {{ toYaml $values.securityContext | nindent 12 }}
-          {{- $vn := semver .Capabilities.KubeVersion.Version }}
-          {{- $defaultTag := printf "%d.%d.%d" $vn.Major $vn.Minor $vn.Patch }}
-          image: {{ printf "%s:%s" $values.kubectlProxy.image.repository (default $defaultTag $values.kubectlProxy.image.tag) }}
-          imagePullPolicy: {{ $values.kubectlProxy.image.pullPolicy }}
-          args: [proxy]
-          resources: {{ toYaml $values.kubectlProxy.resources | nindent 12 }}
       {{- with $values.nodeSelector }}
       nodeSelector: {{ toYaml . | nindent 8 }}
       {{- end }}
