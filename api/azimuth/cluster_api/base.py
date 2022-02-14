@@ -10,8 +10,13 @@ import dateutil.parser
 
 import httpx
 
-import easykube
-from easykube.resources import Namespace, Secret
+from easykube import (
+    Configuration,
+    ResourceSpec,
+    ApiError,
+    SyncClient,
+    resources as k8s
+)
 
 from ..provider import base as cloud_base, dto as cloud_dto
 
@@ -22,16 +27,16 @@ logger = logging.getLogger(__name__)
 
 
 # Get the easykube configuration from the environment
-ekconfig = easykube.Configuration.from_environment()
+ekconfig = Configuration.from_environment()
 
 
-ClusterTemplate = easykube.ResourceSpec(
+ClusterTemplate = ResourceSpec(
     "azimuth.stackhpc.com/v1alpha1",
     "clustertemplates",
     "ClusterTemplate",
     False
 )
-Cluster = easykube.ResourceSpec(
+Cluster = ResourceSpec(
     "azimuth.stackhpc.com/v1alpha1",
     "clusters",
     "Cluster",
@@ -47,7 +52,7 @@ def convert_exceptions(f):
     def wrapper(*args, **kwargs):
         try:
             return f(*args, **kwargs)
-        except easykube.ApiError as exc:
+        except ApiError as exc:
             # Extract the status code and message
             status_code = exc.response.status_code
             message = (
@@ -122,7 +127,7 @@ class Session:
     """
     def __init__(
         self,
-        client: easykube.SyncClient,
+        client: SyncClient,
         cloud_session: cloud_base.ScopedSession,
         last_handled_configuration_annotation: str
     ):
@@ -145,12 +150,12 @@ class Session:
         Ensures that the target namespace exists.
         """
         try:
-            Namespace(self._client).create({
+            k8s.Namespace(self._client).create({
                 "metadata": {
                     "name": self._client.default_namespace,
                 },
             })
-        except easykube.ApiError as exc:
+        except ApiError as exc:
             # Swallow the conflict that occurs when the namespace already exists
             if exc.status_code != 409 or exc.reason.lower() != "alreadyexists":
                 raise
@@ -356,7 +361,7 @@ class Session:
         secret_data = self._create_credential(name)
         secret_name = f"{name}-cloud-credentials"
         secret_data.setdefault("metadata", {})["name"] = secret_name
-        secret = Secret(self._client).create_or_replace(secret_name, secret_data)
+        secret = k8s.Secret(self._client).create_or_replace(secret_name, secret_data)
         # Build the cluster spec
         cluster_spec = self._build_cluster_spec(
             control_plane_size = control_plane_size,
@@ -449,8 +454,8 @@ class Session:
         kubeconfig_secret_name = cluster.get("status", {}).get("kubeconfigSecretName")
         if kubeconfig_secret_name:
             try:
-                secret = Secret(self._client).fetch(kubeconfig_secret_name)
-            except easykube.ApiError as exc:
+                secret = k8s.Secret(self._client).fetch(kubeconfig_secret_name)
+            except ApiError as exc:
                 if exc.status_code != 404:
                     raise
             else:
