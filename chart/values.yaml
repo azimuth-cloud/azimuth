@@ -205,8 +205,11 @@ zenith:
           auth:
             url: "{{ include \"azimuth.auth.verifyUrl\" . }}"
             signinUrl: "{{ include \"azimuth.auth.signinUrl\" . }}"
-            # Forward the X-Remote-User header to upstream services
-            upstreamHeaders:
+            # Override the accepts header as the responses are always JSON
+            requestHeaders:
+              accept: application/json
+            # Forward the X-Remote-User header from auth responses to upstream services
+            responseHeaders:
               - X-Remote-User
 
 # Settings for apps
