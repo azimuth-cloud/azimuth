@@ -3,7 +3,7 @@ entries:
   azimuth:
   - apiVersion: v2
     appVersion: 2b7f92b
-    created: "2022-02-15T10:00:14.60501063Z"
+    created: "2022-02-15T11:43:28.856282824Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -34,7 +34,7 @@ entries:
     version: 0.1.0-dev.0.zenith-registrar-support.514
   - apiVersion: v2
     appVersion: f408a51
-    created: "2022-02-15T10:00:14.58996511Z"
+    created: "2022-02-15T11:43:28.843300439Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -65,7 +65,7 @@ entries:
     version: 0.1.0-dev.0.zenith-registrar-support.513
   - apiVersion: v2
     appVersion: e98a6ce
-    created: "2022-02-15T10:00:14.574685987Z"
+    created: "2022-02-15T11:43:28.830521054Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -96,7 +96,7 @@ entries:
     version: 0.1.0-dev.0.zenith-registrar-support.512
   - apiVersion: v2
     appVersion: 9b3beea
-    created: "2022-02-15T10:00:14.559682867Z"
+    created: "2022-02-15T11:43:28.817511168Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -127,7 +127,7 @@ entries:
     version: 0.1.0-dev.0.zenith-registrar-support.511
   - apiVersion: v2
     appVersion: 90b4781
-    created: "2022-02-15T10:00:14.544822048Z"
+    created: "2022-02-15T11:43:28.804804684Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -158,7 +158,7 @@ entries:
     version: 0.1.0-dev.0.zenith-registrar-support.510
   - apiVersion: v2
     appVersion: b8576f5
-    created: "2022-02-15T10:00:14.529885428Z"
+    created: "2022-02-15T11:43:28.792540403Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -189,7 +189,7 @@ entries:
     version: 0.1.0-dev.0.zenith-registrar-support.509
   - apiVersion: v2
     appVersion: 68a492e
-    created: "2022-02-15T10:00:14.514720507Z"
+    created: "2022-02-15T11:43:28.779401518Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -220,7 +220,7 @@ entries:
     version: 0.1.0-dev.0.zenith-registrar-support.508
   - apiVersion: v2
     appVersion: fab0058
-    created: "2022-02-15T10:00:14.499830588Z"
+    created: "2022-02-15T11:43:28.766403034Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -251,7 +251,7 @@ entries:
     version: 0.1.0-dev.0.zenith-registrar-support.507
   - apiVersion: v2
     appVersion: f82ad60
-    created: "2022-02-15T10:00:14.484933068Z"
+    created: "2022-02-15T11:43:28.753704552Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -289,7 +289,7 @@ entries:
     version: 0.1.0-dev.0.master.536
   - apiVersion: v2
     appVersion: b0b0c55
-    created: "2022-02-15T10:00:14.469780947Z"
+    created: "2022-02-15T11:43:28.740546667Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -327,7 +327,7 @@ entries:
     version: 0.1.0-dev.0.master.535
   - apiVersion: v2
     appVersion: 94f76ed
-    created: "2022-02-15T10:00:14.454618925Z"
+    created: "2022-02-15T11:43:28.727806085Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -358,7 +358,7 @@ entries:
     version: 0.1.0-dev.0.master.524
   - apiVersion: v2
     appVersion: 2aefaa7
-    created: "2022-02-15T10:00:14.439663105Z"
+    created: "2022-02-15T11:43:28.715388505Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -389,7 +389,7 @@ entries:
     version: 0.1.0-dev.0.master.521
   - apiVersion: v2
     appVersion: dc53a0c
-    created: "2022-02-15T10:00:14.423455076Z"
+    created: "2022-02-15T11:43:28.702563422Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -420,7 +420,7 @@ entries:
     version: 0.1.0-dev.0.master.520
   - apiVersion: v2
     appVersion: 55f3b31
-    created: "2022-02-15T10:00:14.408374155Z"
+    created: "2022-02-15T11:43:28.689735939Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -451,7 +451,7 @@ entries:
     version: 0.1.0-dev.0.master.519
   - apiVersion: v2
     appVersion: ef8dc2b
-    created: "2022-02-15T10:00:14.392001524Z"
+    created: "2022-02-15T11:43:28.676691755Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -482,7 +482,7 @@ entries:
     version: 0.1.0-dev.0.master.518
   - apiVersion: v2
     appVersion: ab48acb
-    created: "2022-02-15T10:00:14.377249605Z"
+    created: "2022-02-15T11:43:28.663863472Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -513,7 +513,7 @@ entries:
     version: 0.1.0-dev.0.master.517
   - apiVersion: v2
     appVersion: 34bcc7d
-    created: "2022-02-15T10:00:14.362167585Z"
+    created: "2022-02-15T11:43:28.65113909Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -544,7 +544,7 @@ entries:
     version: 0.1.0-dev.0.master.516
   - apiVersion: v2
     appVersion: b7beb0c
-    created: "2022-02-15T10:00:14.347192965Z"
+    created: "2022-02-15T11:43:28.638083306Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -575,7 +575,7 @@ entries:
     version: 0.1.0-dev.0.master.515
   - apiVersion: v2
     appVersion: 10ab8da
-    created: "2022-02-15T10:00:14.331068135Z"
+    created: "2022-02-15T11:43:28.62480432Z"
     dependencies:
     - condition: consul.enabled
       name: consul
@@ -600,7 +600,7 @@ entries:
     version: 0.1.0-dev.0.master.506
   - apiVersion: v2
     appVersion: a5e89b7
-    created: "2022-02-15T10:00:14.31666602Z"
+    created: "2022-02-15T11:43:28.612570841Z"
     dependencies:
     - condition: consul.enabled
       name: consul
@@ -625,7 +625,7 @@ entries:
     version: 0.1.0-dev.0.master.505
   - apiVersion: v2
     appVersion: 9abf11e
-    created: "2022-02-15T10:00:14.302318505Z"
+    created: "2022-02-15T11:43:28.599661258Z"
     dependencies:
     - condition: consul.enabled
       name: consul
@@ -650,7 +650,7 @@ entries:
     version: 0.1.0-dev.0.master.504
   - apiVersion: v2
     appVersion: 807ea86
-    created: "2022-02-15T10:00:14.287820389Z"
+    created: "2022-02-15T11:43:28.586874375Z"
     dependencies:
     - condition: consul.enabled
       name: consul
@@ -675,7 +675,7 @@ entries:
     version: 0.1.0-dev.0.master.503
   - apiVersion: v2
     appVersion: e786263
-    created: "2022-02-15T10:00:14.273376073Z"
+    created: "2022-02-15T11:43:28.574407395Z"
     dependencies:
     - condition: consul.enabled
       name: consul
@@ -700,7 +700,7 @@ entries:
     version: 0.1.0-dev.0.master.502
   - apiVersion: v2
     appVersion: 00ca5ce
-    created: "2022-02-15T10:00:14.258585855Z"
+    created: "2022-02-15T11:43:28.561701812Z"
     dependencies:
     - condition: consul.enabled
       name: consul
@@ -725,7 +725,7 @@ entries:
     version: 0.1.0-dev.0.master.501
   - apiVersion: v2
     appVersion: f87a1ad
-    created: "2022-02-15T10:00:14.243873437Z"
+    created: "2022-02-15T11:43:28.549033731Z"
     dependencies:
     - condition: consul.enabled
       name: consul
@@ -750,7 +750,7 @@ entries:
     version: 0.1.0-dev.0.master.500
   - apiVersion: v2
     appVersion: d666b6d
-    created: "2022-02-15T10:00:14.229038418Z"
+    created: "2022-02-15T11:43:28.536451449Z"
     dependencies:
     - condition: consul.enabled
       name: consul
@@ -775,7 +775,7 @@ entries:
     version: 0.1.0-dev.0.master.499
   - apiVersion: v2
     appVersion: c6ad4b3
-    created: "2022-02-15T10:00:14.2143376Z"
+    created: "2022-02-15T11:43:28.523921368Z"
     dependencies:
     - condition: consul.enabled
       name: consul
@@ -800,7 +800,7 @@ entries:
     version: 0.1.0-dev.0.master.498
   - apiVersion: v2
     appVersion: 86e5a94
-    created: "2022-02-15T10:00:14.199603382Z"
+    created: "2022-02-15T11:43:28.511179886Z"
     dependencies:
     - condition: consul.enabled
       name: consul
@@ -825,7 +825,7 @@ entries:
     version: 0.1.0-dev.0.master.497
   - apiVersion: v2
     appVersion: ad8cbea
-    created: "2022-02-15T10:00:14.184813563Z"
+    created: "2022-02-15T11:43:28.498265003Z"
     dependencies:
     - condition: consul.enabled
       name: consul
@@ -850,7 +850,7 @@ entries:
     version: 0.1.0-dev.0.master.496
   - apiVersion: v2
     appVersion: e84d968
-    created: "2022-02-15T10:00:14.170033445Z"
+    created: "2022-02-15T11:43:28.484902917Z"
     dependencies:
     - condition: consul.enabled
       name: consul
@@ -874,7 +874,7 @@ entries:
     version: 0.1.0-dev.0.master.495
   - apiVersion: v2
     appVersion: 9f6645c
-    created: "2022-02-15T10:00:14.155379328Z"
+    created: "2022-02-15T11:43:28.471595531Z"
     dependencies:
     - condition: consul.enabled
       name: consul
@@ -898,7 +898,7 @@ entries:
     version: 0.1.0-dev.0.master.494
   - apiVersion: v2
     appVersion: 17ca3e2
-    created: "2022-02-15T10:00:14.14069961Z"
+    created: "2022-02-15T11:43:28.459827255Z"
     dependencies:
     - condition: consul.enabled
       name: consul
@@ -922,7 +922,7 @@ entries:
     version: 0.1.0-dev.0.master.493
   - apiVersion: v2
     appVersion: f86546d
-    created: "2022-02-15T10:00:14.126220783Z"
+    created: "2022-02-15T11:43:28.447418274Z"
     dependencies:
     - condition: consul.enabled
       name: consul
@@ -946,7 +946,7 @@ entries:
     version: 0.1.0-dev.0.master.492
   - apiVersion: v2
     appVersion: d549ee7
-    created: "2022-02-15T10:00:14.111432554Z"
+    created: "2022-02-15T11:43:28.435138495Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -976,8 +976,46 @@ entries:
     - azimuth-0.1.0-dev.0.logo-hack-splash.527.tgz
     version: 0.1.0-dev.0.logo-hack-splash.527
   - apiVersion: v2
+    appVersion: f00a8dc
+    created: "2022-02-15T11:43:28.422244212Z"
+    dependencies:
+    - condition: awx.enabled
+      name: awx-operator
+      repository: https://stackhpc.github.io/awx-operator-helm
+      tags:
+      - clusters
+      version: 0.1.0-dev.0.main.7
+    - alias: capi-operator
+      condition: capi-operator.enabled
+      name: azimuth-capi-operator
+      repository: https://stackhpc.github.io/azimuth-capi-operator
+      tags:
+      - kubernetes
+      version: 0.1.0-dev.0.main.29
+    - condition: consul.enabled
+      name: consul
+      repository: https://helm.releases.hashicorp.com
+      tags:
+      - apps
+      - clusters
+      version: ~0.35.0
+    - alias: zenith
+      condition: zenith.enabled
+      name: zenith-server
+      repository: https://stackhpc.github.io/zenith
+      tags:
+      - apps
+      version: 0.1.0-dev.0.main.148
+    description: Helm chart for deploying the Azimuth Portal.
+    digest: 80891ca4d8d3446054ab35925a7e5f9672125fa67ece9971f8c2432518794a65
+    name: azimuth
+    type: application
+    urls:
+    - azimuth-0.1.0-dev.0.k8s-zenith.552.tgz
+    version: 0.1.0-dev.0.k8s-zenith.552
+  - apiVersion: v2
     appVersion: 6dcdb37
-    created: "2022-02-15T10:00:14.096289921Z"
+    created: "2022-02-15T11:43:28.40950133Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1015,7 +1053,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.551
   - apiVersion: v2
     appVersion: 17ae2e2
-    created: "2022-02-15T10:00:14.080784785Z"
+    created: "2022-02-15T11:43:28.396496346Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1053,7 +1091,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.550
   - apiVersion: v2
     appVersion: acb1f93
-    created: "2022-02-15T10:00:14.065036748Z"
+    created: "2022-02-15T11:43:28.383575562Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1091,7 +1129,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.549
   - apiVersion: v2
     appVersion: e95bc5e
-    created: "2022-02-15T10:00:14.049616313Z"
+    created: "2022-02-15T11:43:28.370065975Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1129,7 +1167,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.548
   - apiVersion: v2
     appVersion: b0c7492
-    created: "2022-02-15T10:00:14.033995776Z"
+    created: "2022-02-15T11:43:28.356791989Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1167,7 +1205,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.547
   - apiVersion: v2
     appVersion: aaa6681
-    created: "2022-02-15T10:00:14.017949536Z"
+    created: "2022-02-15T11:43:28.343757205Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1205,7 +1243,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.546
   - apiVersion: v2
     appVersion: 17be79d
-    created: "2022-02-15T10:00:14.000475183Z"
+    created: "2022-02-15T11:43:28.330499719Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1243,7 +1281,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.545
   - apiVersion: v2
     appVersion: edaedd7
-    created: "2022-02-15T10:00:13.984831546Z"
+    created: "2022-02-15T11:43:28.316837831Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1281,7 +1319,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.544
   - apiVersion: v2
     appVersion: +Inf
-    created: "2022-02-15T10:00:13.968749005Z"
+    created: "2022-02-15T11:43:28.302809141Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1319,7 +1357,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.543
   - apiVersion: v2
     appVersion: 509b573
-    created: "2022-02-15T10:00:13.953182569Z"
+    created: "2022-02-15T11:43:28.287049639Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1357,7 +1395,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.542
   - apiVersion: v2
     appVersion: 083fbf8
-    created: "2022-02-15T10:00:13.937665333Z"
+    created: "2022-02-15T11:43:28.272634246Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1395,7 +1433,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.541
   - apiVersion: v2
     appVersion: 742faef
-    created: "2022-02-15T10:00:13.922269998Z"
+    created: "2022-02-15T11:43:28.256781443Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1433,7 +1471,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.540
   - apiVersion: v2
     appVersion: c79f635
-    created: "2022-02-15T10:00:13.906655262Z"
+    created: "2022-02-15T11:43:28.241708946Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1471,7 +1509,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.539
   - apiVersion: v2
     appVersion: 872ee16
-    created: "2022-02-15T10:00:13.891094426Z"
+    created: "2022-02-15T11:43:28.226479548Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1509,7 +1547,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.538
   - apiVersion: v2
     appVersion: fe9438e
-    created: "2022-02-15T10:00:13.875472589Z"
+    created: "2022-02-15T11:43:28.211499851Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1547,7 +1585,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.537
   - apiVersion: v2
     appVersion: e7ab90e
-    created: "2022-02-15T10:00:13.859449449Z"
+    created: "2022-02-15T11:43:28.196254553Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1585,7 +1623,7 @@ entries:
     version: 0.1.0-dev.0.cluster-api.533
   - apiVersion: v2
     appVersion: d9bf743
-    created: "2022-02-15T10:00:13.843532509Z"
+    created: "2022-02-15T11:43:28.181107555Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1623,7 +1661,7 @@ entries:
     version: 0.1.0-dev.0.cluster-api.532
   - apiVersion: v2
     appVersion: e2b597e
-    created: "2022-02-15T10:00:13.827881272Z"
+    created: "2022-02-15T11:43:28.165858656Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1654,7 +1692,7 @@ entries:
     version: 0.1.0-dev.0.cluster-api.531
   - apiVersion: v2
     appVersion: 48d65f2
-    created: "2022-02-15T10:00:13.81273034Z"
+    created: "2022-02-15T11:43:28.150442157Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1685,7 +1723,7 @@ entries:
     version: 0.1.0-dev.0.cluster-api.530
   - apiVersion: v2
     appVersion: "2289502"
-    created: "2022-02-15T10:00:13.797619708Z"
+    created: "2022-02-15T11:43:28.136678968Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1716,7 +1754,7 @@ entries:
     version: 0.1.0-dev.0.cluster-api.529
   - apiVersion: v2
     appVersion: a52392f
-    created: "2022-02-15T10:00:13.782201573Z"
+    created: "2022-02-15T11:43:28.12312348Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1747,7 +1785,7 @@ entries:
     version: 0.1.0-dev.0.cluster-api.528
   - apiVersion: v2
     appVersion: 5d646da
-    created: "2022-02-15T10:00:13.765566927Z"
+    created: "2022-02-15T11:43:28.110097096Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1778,7 +1816,7 @@ entries:
     version: 0.1.0-dev.0.cluster-api.527
   - apiVersion: v2
     appVersion: e154811
-    created: "2022-02-15T10:00:13.750024291Z"
+    created: "2022-02-15T11:43:28.094334894Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1809,7 +1847,7 @@ entries:
     version: 0.1.0-dev.0.cluster-api.526
   - apiVersion: v2
     appVersion: 72fcccc
-    created: "2022-02-15T10:00:13.733983051Z"
+    created: "2022-02-15T11:43:28.0797019Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1840,7 +1878,7 @@ entries:
     version: 0.1.0-dev.0.cluster-api.525
   - apiVersion: v2
     appVersion: 50a51bc
-    created: "2022-02-15T10:00:13.717692708Z"
+    created: "2022-02-15T11:43:28.064347701Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1871,7 +1909,7 @@ entries:
     version: 0.1.0-dev.0.cluster-api.524
   - apiVersion: v2
     appVersion: 0746c42
-    created: "2022-02-15T10:00:13.701264364Z"
+    created: "2022-02-15T11:43:28.050067109Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1902,7 +1940,7 @@ entries:
     version: 0.1.0-dev.0.add-logo.528
   - apiVersion: v2
     appVersion: 51a2e6a
-    created: "2022-02-15T10:00:13.685119323Z"
+    created: "2022-02-15T11:43:28.034923611Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1933,7 +1971,7 @@ entries:
     version: 0.1.0-dev.0.add-logo.526
   - apiVersion: v2
     appVersion: 06c4cab
-    created: "2022-02-15T10:00:13.667940573Z"
+    created: "2022-02-15T11:43:28.020351217Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1962,4 +2000,4 @@ entries:
     urls:
     - azimuth-0.1.0-dev.0.add-logo.525.tgz
     version: 0.1.0-dev.0.add-logo.525
-generated: "2022-02-15T10:00:13.651497229Z"
+generated: "2022-02-15T11:43:28.006676728Z"
