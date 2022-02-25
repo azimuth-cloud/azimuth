@@ -42,7 +42,7 @@ spec:
             - name: AWX_ADMIN_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ tpl $clusterEngine.awx.adminPasswordSecretName . | quote }}
+                  name: {{ tpl . $ | quote }}
                   key: password
             {{- end }}
           {{- end }}
