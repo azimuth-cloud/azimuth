@@ -16,7 +16,17 @@ stringData:
     SECRET_KEY: {{ $settings.secretKey | default (randAlphaNum 64) }}
     DEBUG: {{ $settings.debug }}
     CSRF_COOKIE_SECURE: {{ $ingress.tls.enabled }}
+    {{- with $settings.csrfCookieName }}
+    CSRF_COOKIE_NAME: {{ . }}
+    {{- end }}
     SESSION_COOKIE_SECURE: {{ $ingress.tls.enabled }}
+    {{- with $settings.sessionCookieName }}
+    SESSION_COOKIE_NAME: {{ . }}
+    {{- end }}
+    {{- with $settings.nextUrlCookieName }}
+    AZIMUTH_AUTH:
+      NEXT_URL_COOKIE_NAME: {{ . }}
+    {{- end }}
   02-cloud-common.yaml: |
     AZIMUTH:
       AVAILABLE_CLOUDS:

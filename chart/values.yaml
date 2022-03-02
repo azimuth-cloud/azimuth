@@ -131,6 +131,12 @@ settings:
   currentCloud:
     name: example
     label: Example
+  # The name of the CSRF cookie
+  csrfCookieName:
+  # The name of the session cookie
+  sessionCookieName:
+  # The name of the next URL cookie
+  nextUrlCookieName:
 
 # The authenticator to use
 # The parameters for the provider will be re-used where appropriate

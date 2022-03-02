@@ -30,7 +30,7 @@ class AzimuthAuthSettings(SettingsObject):
     #: The HTTP parameter to get the next URL from
     NEXT_URL_PARAM = Setting(default = "next")
     #: The session key to store the next URL
-    NEXT_URL_COOKIE_NAME = Setting(default = "next-url")
+    NEXT_URL_COOKIE_NAME = Setting(default = "azimuth-next-url")
     #: The allowed domains for the next URL
     NEXT_URL_ALLOWED_DOMAINS = Setting(default = set)
     #: The default next URL if the user-supplied URL is not given or not permitted
