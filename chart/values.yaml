@@ -224,6 +224,10 @@ apps:
   # The base domain for apps
   # By default, the domain of the managed Zenith is used
   baseDomain: "{{ include \"azimuth.apps.baseDomain\" . }}"
+  # Indicates whether SSL certificates should be verified for apps
+  # This applies both to clients when associating keys with the registrar using the external
+  # endpoint and when determining whether a service is ready
+  verifySsl: true
   # The Zenith SSHD host
   # By default it attempts to infer the SSHD host for the managed Zenith
   sshdHost: "{{ include \"azimuth.apps.sshdHost\" . }}"

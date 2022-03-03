@@ -108,6 +108,10 @@ class AppsSettings(SettingsObject):
 
     #: The base domain for the app proxy
     BASE_DOMAIN = Setting()
+    #: Indicates whether SSL should be verified for apps
+    #: This applies both to clients when associating keys with the registrar using the external
+    #: endpoint and when determining whether a service is ready
+    VERIFY_SSL = Setting(default = True)
     #: The address of the app proxy SSHD service
     #: Defaults to the base domain
     SSHD_HOST = Setting(default = lambda settings: settings.BASE_DOMAIN)

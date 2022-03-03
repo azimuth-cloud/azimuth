@@ -230,7 +230,10 @@ def redirect_to_service_url(
     # While it returns a 404, 503 or a certificate error (probably because cert-manager is
     # still negotiating the certificate), the service is not ready
     try:
-        resp = requests.get(readiness_url or service_url)
+        resp = requests.get(
+            readiness_url or service_url,
+            verify = cloud_settings.APPS.VERIFY_SSL
+        )
     except requests.exceptions.SSLError:
         return render(
             request,
@@ -505,6 +508,8 @@ def machines(request, tenant):
                     apps_registrar_url = cloud_settings.APPS.REGISTRAR_EXTERNAL_URL,
                     # Pass the token from the registrar reservation
                     apps_registrar_token = res.json()["token"],
+                    # Also indicate whether SSL should be verified for the registrar
+                    apps_registrar_verify_ssl = cloud_settings.APPS.VERIFY_SSL,
                     apps_sshd_host = cloud_settings.APPS.SSHD_HOST,
                     apps_sshd_port = cloud_settings.APPS.SSHD_PORT,
                     # Store the subdomain in the metadata so that we can retrieve it later, even
