@@ -13,7 +13,7 @@ from django.urls import reverse
 
 from rest_framework import serializers
 
-from .cluster_api import dto as capi_dto, errors as capi_errors
+from .cluster_api import dto as capi_dto
 from .provider import dto, errors
 from .settings import cloud_settings
 
@@ -45,6 +45,10 @@ def make_dto_serializer(dto_class, exclude = []):
             if name not in exclude
         }
     )
+
+
+# Regex for matching valid IDs
+ID_REGEX = "^[-a-zA-Z0-9_.]+$"
 
 
 Ref = collections.namedtuple("Ref", ["id"])
@@ -245,12 +249,12 @@ class VolumeSerializer(
 
 
 class CreateVolumeSerializer(serializers.Serializer):
-    name = serializers.CharField(write_only = True)
+    name = serializers.RegexField("^[A-Za-z0-9._-]+$", write_only = True)
     size = serializers.IntegerField(write_only = True, min_value = 1)
 
 
 class UpdateVolumeSerializer(serializers.Serializer):
-    machine_id = serializers.UUIDField(write_only = True, allow_null = True)
+    machine_id = serializers.RegexField(ID_REGEX, write_only = True, allow_null = True)
 
 
 class MachineStatusSerializer(make_dto_serializer(dto.MachineStatus)):
@@ -337,9 +341,9 @@ class MachineSerializer(
 
 
 class CreateMachineSerializer(serializers.Serializer):
-    name = serializers.CharField(write_only = True)
-    image_id = serializers.UUIDField(write_only = True)
-    size_id = serializers.RegexField("^[a-z0-9-]+$", write_only = True)
+    name = serializers.RegexField("^[A-Za-z0-9.-]+$", write_only = True)
+    image_id = serializers.RegexField(ID_REGEX, write_only = True)
+    size_id = serializers.RegexField(ID_REGEX, write_only = True)
     web_console_enabled = serializers.BooleanField(default = False, write_only = True)
     desktop_enabled = serializers.BooleanField(default = False, write_only = True)
 
@@ -411,7 +415,7 @@ class ExternalIPSerializer(make_dto_serializer(dto.ExternalIp)):
         read_only = True,
         allow_null = True
     )
-    machine_id = serializers.UUIDField(write_only = True, allow_null = True)
+    machine_id = serializers.RegexField(ID_REGEX, write_only = True, allow_null = True)
 
     def to_representation(self, obj):
         result = super().to_representation(obj)
@@ -476,8 +480,8 @@ class ClusterSerializer(make_dto_serializer(dto.Cluster)):
 
 
 class CreateClusterSerializer(serializers.Serializer):
-    name = serializers.CharField(write_only = True)
-    cluster_type = serializers.CharField(write_only = True)
+    name = serializers.RegexField("^[a-z0-9-]+$", write_only = True)
+    cluster_type = serializers.RegexField(ID_REGEX, write_only = True)
     parameter_values = serializers.JSONField(write_only = True)
 
     def validate_cluster_type(self, value):
@@ -622,7 +626,7 @@ class KubernetesClusterSerializer(
 
 class NodeGroupSpecSerializer(serializers.Serializer):
     name = serializers.RegexField("^[a-z][a-z0-9-]+[a-z0-9]$")
-    machine_size = serializers.RegexField("^[a-z0-9-]+$")
+    machine_size = serializers.RegexField(ID_REGEX)
     count = serializers.IntegerField(min_value = 0)
 
     def validate_machine_size(self, value):
@@ -636,7 +640,7 @@ class NodeGroupSpecSerializer(serializers.Serializer):
 class CreateKubernetesClusterSerializer(serializers.Serializer):
     name = serializers.RegexField("^[a-z][a-z0-9-]+[a-z0-9]$")
     template = serializers.RegexField("^[a-z0-9-]+$")
-    control_plane_size = serializers.RegexField("^[a-z0-9-]+$")
+    control_plane_size = serializers.RegexField(ID_REGEX)
     node_groups = NodeGroupSpecSerializer(many = True)
     autohealing_enabled = serializers.BooleanField(default = True)
     cert_manager_enabled = serializers.BooleanField(default = False)
@@ -668,7 +672,7 @@ class CreateKubernetesClusterSerializer(serializers.Serializer):
 
 class UpdateKubernetesClusterSerializer(serializers.Serializer):
     template = serializers.RegexField("^[a-z0-9-]+$", required = False)
-    control_plane_size = serializers.RegexField("^[a-z0-9-]+$", required = False)
+    control_plane_size = serializers.RegexField(ID_REGEX, required = False)
     node_groups = NodeGroupSpecSerializer(many = True, required = False)
     autohealing_enabled = serializers.BooleanField(required = False)
     cert_manager_enabled = serializers.BooleanField(required = False)
