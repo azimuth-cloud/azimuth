@@ -98,7 +98,7 @@ stringData:
       APPS:
         ENABLED: true
         BASE_DOMAIN: {{ quote $baseDomain }}
-        VERIFY_SSL: {{ ternary 'yes' 'no' $apps.verifySsl }}
+        VERIFY_SSL: {{ ternary "yes" "no" $apps.verifySsl }}
         SSHD_HOST: {{ tpl $apps.sshdHost . | quote }}
         SSHD_PORT: {{ tpl (toString $apps.sshdPort) . | quote }}
         REGISTRAR_EXTERNAL_URL: {{ tpl $apps.registrarExternalUrl . | quote }}
