@@ -1373,7 +1373,8 @@ class ScopedSession(base.ScopedSession):
             data = dict(
                 auth_url = self._connection.auth_url,
                 project_id = self._connection.project_id,
-                token = self._connection.token
+                token = self._connection.token,
+                verify_ssl = self._connection.verify
             )
         )
 
