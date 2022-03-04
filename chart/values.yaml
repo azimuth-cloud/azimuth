@@ -7,33 +7,6 @@ tags:
   # Setting this tag to false disables the Kubernetes support
   kubernetes: true
 
-# Global variables used for defining things that need to span charts
-global:
-  # The ingress configuration
-  ingress:
-    # The base domain under which the portal and all exposed apps will live
-    # There must be a common shared domain in order for the cookie authentication
-    # to work between the Azimuth portal and applications exposed using Zenith
-    baseDomain:
-    # The subdomain that the portal will use
-    portalSubdomain: portal
-    # The subdomain that the Zenith registrar will use
-    registrarSubdomain: registrar
-    # The name of the ingress class to use
-    className: nginx
-    # Custom annotations for ingress resources
-    annotations: {}
-    # TLS configuration
-    tls:
-      # Indicates if TLS should be enabled
-      enabled: true
-      # The secret to use for the TLS certificate and key
-      # If the secret already exists, it should contain a wildcard certificate for
-      # the given base domain
-      secretName:
-      # TLS-specific ingress annotations, e.g. for cert-manager configuration
-      annotations: {}
-
 api:
   # The image to use for the api component
   image:
@@ -98,22 +71,19 @@ ui:
 
 ingress:
   # The hostname to use for the portal
-  host: "{{ include \"azimuth.ingress.defaultHost\" . }}"
+  host:
   # The ingress class to use
-  # This overrides the class specified in global if given
-  # className:
+  className: nginx
   # Annotations for the portal ingress
-  # These are combined with any annotations specified in global
   annotations: {}
   # TLS configuration for the portal ingress
-  # This is merged with the global configuration
-  tls: {}
+  tls:
     # Indicates if TLS should be enabled
-    # enabled: true
-    # The name of a secret containing the portal TLS certificate and key
-    # secretName:
-    # TLS-specific annotations for the portal ingress
-    # annotations:
+    enabled: true
+    # The secret to use for the TLS certificate and key
+    secretName:
+    # TLS-specific ingress annotations, e.g. for cert-manager configuration
+    annotations: {}
 
 settings:
   # The Django secret key
@@ -158,7 +128,7 @@ provider:
   # Parameters for the openstack provider
   openstack:
     # The Keystone authentication URL
-    authUrl: https://keystone.cloud.example.local/v3
+    authUrl:
     # The domain to use
     domain: default
     # The OpenStack interface to use
@@ -184,83 +154,24 @@ provider:
     # Defaults to 192.168.3.0/24 if not given, which should be OK for most circumstances
     internalNetCidr:
 
-# Configuration for the managed Consul instance
-# See https://www.consul.io/docs/k8s/helm
-consul: {}
-  # Set this to false to disable the managed Consul instance
-  # enabled: true
-
-# Settings for the managed Zenith instance
-zenith:
-  # Set this to false to disable the managed Zenith instance
-  # enabled: true
-  # Prevent Zenith from deploying it's own Consul
-  # We will deploy our own as we want to use it in other places as well
-  consul:
-    enabled: false
-  registrar:
-    config:
-      reservedSubdomains: ["{{ .Values.global.ingress.portalSubdomain }}"]
-    ingress:
-      subdomain: "{{ .Values.global.ingress.registrarSubdomain }}"
-  sync:
-    config:
-      kubernetes:
-        ingress:
-          # Configure Zenith ingress authentication to use Azimuth for authentication
-          auth:
-            url: "{{ include \"azimuth.auth.verifyUrl\" . }}"
-            signinUrl: "{{ include \"azimuth.auth.signinUrl\" . }}"
-            # Override the accepts header as the responses are always JSON
-            requestHeaders:
-              accept: application/json
-            # Forward the X-Remote-User header from auth responses to upstream services
-            responseHeaders:
-              - X-Remote-User
-
 # Settings for apps
-# By default, this assumes that the managed Zenith is used
 apps:
   # The base domain for apps
-  # By default, the domain of the managed Zenith is used
-  baseDomain: "{{ include \"azimuth.apps.baseDomain\" . }}"
+  baseDomain:
   # Indicates whether SSL certificates should be verified for apps
   # This applies both to clients when associating keys with the registrar using the external
   # endpoint and when determining whether a service is ready
   verifySsl: true
   # The Zenith SSHD host
-  # By default it attempts to infer the SSHD host for the managed Zenith
-  sshdHost: "{{ include \"azimuth.apps.sshdHost\" . }}"
+  sshdHost:
   # The Zenith SSHD port
-  # By default it attempts to infer the SSHD port for the managed Zenith
-  sshdPort: "{{ include \"azimuth.apps.sshdPort\" . }}"
+  sshdPort: 22
   # The external URL for the Zenith registrar
-  registrarExternalUrl: "{{ include \"azimuth.apps.registrarExternalUrl\" . }}"
+  registrarExternalUrl:
   # The admin URL for the Zenith registrar
-  registrarAdminUrl: "{{ include \"azimuth.apps.registrarAdminUrl\" . }}"
-  # The URL of the post-deploy script to execute
+  registrarAdminUrl:
+  # The URL of the post-deploy script to execute for web consoles
   postDeployScriptUrl:
-
-# Settings for the Azimuth CAPI operator, implementing Kubernetes support
-capi-operator:
-  # Set this to false to disable the managed CAPI operator
-  # enabled: false
-  extraEnv:
-    - name: AZIMUTH_CAPI__ZENITH__REGISTRAR_ADMIN_URL
-      valueFrom:
-        configMapKeyRef:
-          name: "{{ include \"azimuth.componentname\" (list . \"apps-conf\") }}"
-          key: registrarAdminUrl
-    - name: AZIMUTH_CAPI__ZENITH__SSHD_HOST
-      valueFrom:
-        configMapKeyRef:
-          name: "{{ include \"azimuth.componentname\" (list . \"apps-conf\") }}"
-          key: sshdHost
-    - name: AZIMUTH_CAPI__ZENITH__SSHD_PORT
-      valueFrom:
-        configMapKeyRef:
-          name: "{{ include \"azimuth.componentname\" (list . \"apps-conf\") }}"
-          key: sshdPort
 
 # The cluster engine to use for Cluster-as-a-Service support
 clusterEngine:
@@ -270,17 +181,14 @@ clusterEngine:
   # By default, we use values that will work with the managed AWX
   awx:
     # The AWX or Ansible Tower URL
-    # The URL is treated as a template when rendering resources
-    url: http://{{ include "azimuth.componentname" (list . "awx-service") }}
+    url:
     # Whether to verify SSL with the AWX/Tower API
     verifySsl: true
     # The username to use for the AWX/Tower API
     # This user must be at least an org admin for the CaaS organisation
     username: admin
     # The name of a secret to get the AWX password from
-    # This is treated as a template when rendering resources
-    # By default, this will be the admin password secret for the managed instance
-    passwordSecretName: "{{ include \"azimuth.componentname\" (list . \"awx-admin-password\") }}"
+    passwordSecretName:
     # Indicates whether teams should be created automatically
     createTeams: true
     # Indicates whether automatically-created teams should be granted access
@@ -334,18 +242,7 @@ clusterEngine:
     # Configuration for the consul backend
     consul:
       # The address, including port, of the Consul server to use
-      # By default, use the managed Consul
-      address: "{{ .Release.Name }}-consul-server:8500"
-
-# Configuration for the managed AWX instance
-awx:
-  # Indicates whether the managed AWX instance should be created
-  # This only applies if the cluster engine is enabled with type AWX
-  # enabled: true
-  # The spec for the managed AWX instance
-  spec:
-    create_preload_data: false
-    garbage_collect_secrets: true
+      address:
 
 # The SSH key store to use
 # The portal asks this store for the SSH key for a user

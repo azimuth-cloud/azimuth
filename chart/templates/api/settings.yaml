@@ -4,7 +4,7 @@
 {{- $apps := .Values.apps -}}
 {{- $clusterEngine := .Values.clusterEngine -}}
 {{- $keyStore := .Values.sshKeyStore -}}
-{{- $ingress := mergeOverwrite (deepCopy .Values.global.ingress) .Values.ingress }}
+{{- $ingress := .Values.ingress }}
 apiVersion: v1
 kind: Secret
 metadata:
@@ -32,7 +32,8 @@ stringData:
       AVAILABLE_CLOUDS:
         {{ $settings.currentCloud.name }}:
           label: {{ $settings.currentCloud.label }}
-          url: {{ include "azimuth.externalUrl" . | printf "%s/dashboard" }}
+          {{- $proto := $ingress.tls.enabled | ternary "https" "http" }}
+          url: {{ printf "%s://%s/dashboard" $proto $ingress.host }}
         {{- range $settings.availableClouds }}
         {{ .name }}:
           label: {{ .label | quote }}
@@ -61,7 +62,7 @@ stringData:
         {{- if (eq $provider.type "openstack") }}
         FACTORY: azimuth.provider.openstack.Provider
         PARAMS:
-          AUTH_URL: {{ $provider.openstack.authUrl }}
+          AUTH_URL: {{ required "provider.openstack.authUrl is required" $provider.openstack.authUrl }}
           DOMAIN: {{ $provider.openstack.domain }}
           VERIFY_SSL: {{ $provider.openstack.verifySsl }}
           {{- with $provider.openstack.interface }}
@@ -85,24 +86,22 @@ stringData:
     # In order for the app authentication to work, the session cookie needs to apply to that domain
     # However we only do this if the portal host is within the apps domain
     # If not, we assume the Zenith installation is completely standalone with no auth
-    {{- $host := tpl $ingress.host . }}
-    {{- $baseDomain := tpl $apps.baseDomain . }}
-    {{- if hasSuffix $baseDomain $host }}
-    SESSION_COOKIE_DOMAIN: ".{{ $baseDomain }}"
+    {{- if hasSuffix $apps.baseDomain $ingress.host }}
+    SESSION_COOKIE_DOMAIN: ".{{ $apps.baseDomain }}"
     {{- end }}
     # We also need to allow redirects to the apps
     AZIMUTH_AUTH:
       NEXT_URL_ALLOWED_DOMAINS:
-        - {{ quote $baseDomain }}
+        - {{ quote $apps.baseDomain }}
     AZIMUTH:
       APPS:
         ENABLED: true
-        BASE_DOMAIN: {{ quote $baseDomain }}
-        VERIFY_SSL: {{ ternary "yes" "no" $apps.verifySsl }}
-        SSHD_HOST: {{ tpl $apps.sshdHost . | quote }}
-        SSHD_PORT: {{ tpl (toString $apps.sshdPort) . | quote }}
-        REGISTRAR_EXTERNAL_URL: {{ tpl $apps.registrarExternalUrl . | quote }}
-        REGISTRAR_ADMIN_URL: {{ tpl $apps.registrarAdminUrl . | quote }}
+        BASE_DOMAIN: {{ required "apps.baseDomain is required" $apps.baseDomain | quote }}
+        VERIFY_SSL: {{ $apps.verifySsl }}
+        SSHD_HOST: {{ required "apps.sshdHost is required" $apps.sshdHost | quote }}
+        SSHD_PORT: {{ $apps.sshdPort }}
+        REGISTRAR_EXTERNAL_URL: {{ required "apps.registrarExternalUrl is required" $apps.registrarExternalUrl | quote }}
+        REGISTRAR_ADMIN_URL: {{ required "apps.registrarAdminUrl is required" $apps.registrarAdminUrl | quote }}
         {{- with $apps.postDeployScriptUrl }}
         POST_DEPLOY_SCRIPT_URL: {{ . | quote }}
         {{- end }}
@@ -136,7 +135,7 @@ stringData:
     AZIMUTH:
       AWX:
         ENABLED: true
-        URL: {{ tpl $clusterEngine.awx.url . | quote }}
+        URL: {{ required "clusterEngine.awx.url is required" $clusterEngine.awx.url | quote }}
         VERIFY_SSL: {{ $clusterEngine.awx.verifySsl }}
         USERNAME: {{ $clusterEngine.awx.username }}
         CREATE_TEAMS: {{ $clusterEngine.awx.createTeams }}
@@ -150,7 +149,7 @@ stringData:
           - NAME: CaaS Consul
             TYPE: Hashicorp Consul
             INPUTS:
-              address: {{ tpl $clusterEngine.terraformBackend.consul.address . | quote }}
+              address: {{ required "clusterEngine.terraformBackend.consul.address" $clusterEngine.terraformBackend.consul.address | quote }}
         {{- else }}
         {{- fail (printf "Unsupported terraform backend '%s'" $clusterEngine.terraformBackend.type) }}
         {{- end }}
@@ -163,13 +162,13 @@ stringData:
             GIT_VERSION: {{ .gitVersion }}
             METADATA_ROOT: {{ .metadataRoot }}
             {{- with .alwaysUpdate }}
-            ALWAYS_UPDATE: {{ . | ternary "true" "false" }}
+            ALWAYS_UPDATE: {{ . }}
             {{- end }}
             {{- with .executionEnvironment }}
             EXECUTION_ENVIRONMENT:
               IMAGE: {{ .image | quote }}
               {{- with .alwaysPull }}
-              ALWAYS_PULL: {{ .alwaysPull | ternary "true" "false" }}
+              ALWAYS_PULL: {{ . }}
               {{- end }}
             {{- end }}
             {{- with .playbooks }}

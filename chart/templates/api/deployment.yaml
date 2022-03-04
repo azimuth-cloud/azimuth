@@ -36,13 +36,13 @@ spec:
             - name: AWX_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ tpl $clusterEngine.awx.passwordSecretName . | quote }}
+                  name: {{ required "clusterEngine.awx.passwordSecretName is required" $clusterEngine.awx.passwordSecretName | quote }}
                   key: password
             {{- with $clusterEngine.awx.adminPasswordSecretName }}
             - name: AWX_ADMIN_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ tpl . $ | quote }}
+                  name: {{ quote . }}
                   key: password
             {{- end }}
           {{- end }}
