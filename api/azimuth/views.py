@@ -509,7 +509,7 @@ def machines(request, tenant):
                     # Pass the token from the registrar reservation
                     apps_registrar_token = res.json()["token"],
                     # Also indicate whether SSL should be verified for the registrar
-                    apps_registrar_verify_ssl = cloud_settings.APPS.VERIFY_SSL,
+                    apps_registrar_verify_ssl = cloud_settings.APPS.VERIFY_SSL_CLIENTS,
                     apps_sshd_host = cloud_settings.APPS.SSHD_HOST,
                     apps_sshd_port = cloud_settings.APPS.SSHD_PORT,
                     # Store the subdomain in the metadata so that we can retrieve it later, even

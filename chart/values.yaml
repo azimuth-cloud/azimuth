@@ -162,10 +162,11 @@ provider:
 apps:
   # The base domain for apps
   baseDomain:
-  # Indicates whether SSL certificates should be verified for apps
-  # This applies both to clients when associating keys with the registrar using the external
-  # endpoint and when determining whether a service is ready
+  # Indicates whether SSL should be verified when determining whether a service is ready
   verifySsl: true
+  # Indicates whether SSL should be verified by clients when associating keys with the
+  # registrar using the external endpoint
+  verifySslClients: true
   # The Zenith SSHD host
   sshdHost:
   # The Zenith SSHD port

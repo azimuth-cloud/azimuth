@@ -98,6 +98,7 @@ stringData:
         ENABLED: true
         BASE_DOMAIN: {{ required "apps.baseDomain is required" $apps.baseDomain | quote }}
         VERIFY_SSL: {{ $apps.verifySsl }}
+        VERIFY_SSL_CLIENTS: {{ $apps.verifySslClients }}
         SSHD_HOST: {{ required "apps.sshdHost is required" $apps.sshdHost | quote }}
         SSHD_PORT: {{ $apps.sshdPort }}
         REGISTRAR_EXTERNAL_URL: {{ required "apps.registrarExternalUrl is required" $apps.registrarExternalUrl | quote }}
