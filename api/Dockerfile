@@ -42,15 +42,18 @@ RUN pip install --no-deps -e /application
 
 # Install application configuration using flexi-settings
 ENV DJANGO_SETTINGS_MODULE flexi_settings.settings
-ENV DJANGO_FLEXI_SETTINGS_ROOT /etc/django/settings.py
-COPY ./etc/django /etc/django
-RUN mkdir -p /etc/django/settings.d
+ENV DJANGO_FLEXI_SETTINGS_ROOT /etc/azimuth/settings.py
+COPY ./etc/azimuth /etc/azimuth
+RUN mkdir -p /etc/azimuth/settings.d
 
 # Collect the static files
 RUN django-admin collectstatic
 
+# Install the scripts
+COPY ./bin /usr/local/bin
+
 # By default, serve the app on port 8080 using the app user
 EXPOSE 8080
 USER $APP_UID
-ENTRYPOINT ["tini", "-g", "--"]
+ENTRYPOINT ["tini", "-g", "--", "azimuth-entrypoint"]
 CMD ["gunicorn", "--config", "/etc/gunicorn/conf.py", "azimuth_site.wsgi:application"]

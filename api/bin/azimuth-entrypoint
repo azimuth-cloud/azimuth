@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+set -e
+
+# Set environment variables so that requests and httpx respect the bundle
+export SSL_CERT_FILE="$(mktemp)"
+export REQUESTS_CA_BUNDLE="$SSL_CERT_FILE"
+
+# Build the trust bundle
+# Start with the certificates from certifi
+CERTIFI_BUNDLE="$(python -c "import certifi; print(certifi.where())")"
+cat "$CERTIFI_BUNDLE" >> "$SSL_CERT_FILE"
+# Add any certificates in .crt or .pem files in /etc/azimuth/trust
+for file in $(find /etc/azimuth/trust -maxdepth 1 -name '*.crt' -o -name '*.pem'); do
+    cat "$file" >> "$SSL_CERT_FILE"
+done
+
+# Launch the specified command
+exec "$@"

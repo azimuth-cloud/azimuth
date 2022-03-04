@@ -43,8 +43,13 @@ spec:
             {{- end }}
           volumeMounts:
             - name: runtime-settings
-              mountPath: /etc/django/settings.d
+              mountPath: /etc/azimuth/settings.d
               readOnly: true
+            {{- if .Values.trustBundleConfigMapName }}
+            - name: trust-bundle
+              mountPath: /etc/azimuth/trust
+              readOnly: true
+            {{- end }}
             - name: tmp
               mountPath: /tmp
       {{- with .Values.api.nodeSelector }}
@@ -60,6 +65,11 @@ spec:
         - name: runtime-settings
           secret:
             secretName: {{ include "azimuth.componentname" (list . "api") }}
+        {{- if .Values.trustBundleConfigMapName }}
+        - name: trust-bundle
+          configMap:
+            name: {{ .Values.trustBundleConfigMapName }}
+        {{- end }}
         - name: tmp
           emptyDir: {}
 {{- end }}

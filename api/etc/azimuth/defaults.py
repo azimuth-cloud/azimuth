@@ -122,4 +122,4 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # Make sure to include the WSGI script name in the static URL
 STATIC_URL = '{}/static/'.format(os.environ.get('SCRIPT_NAME', ''))
-STATIC_ROOT = '/var/django/staticfiles'
+STATIC_ROOT = '/var/azimuth/staticfiles'

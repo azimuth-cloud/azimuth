@@ -61,11 +61,17 @@ spec:
           resources: {{ toYaml $values.resources | nindent 12 }}
           volumeMounts:
             - name: runtime-settings
-              mountPath: /etc/django/settings.d
+              mountPath: /etc/azimuth/settings.d
               readOnly: true
             - name: theme-css
-              mountPath: /var/django/staticfiles/bootstrap.css
+              mountPath: /var/azimuth/staticfiles/bootstrap.css
               subPath: bootstrap.css
+              readOnly: true
+            {{- if .Values.trustBundleConfigMapName }}
+            - name: trust-bundle
+              mountPath: /etc/azimuth/trust
+              readOnly: true
+            {{- end }}
             - name: tmp
               mountPath: /tmp
       {{- with $values.nodeSelector }}
@@ -84,5 +90,10 @@ spec:
         - name: theme-css
           configMap:
             name: {{ include "azimuth.componentname" (list . "theme") }}
+        {{- if .Values.trustBundleConfigMapName }}
+        - name: trust-bundle
+          configMap:
+            name: {{ .Values.trustBundleConfigMapName }}
+        {{- end }}
         - name: tmp
           emptyDir: {}
