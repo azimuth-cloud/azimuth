@@ -3,18 +3,20 @@ This module contains the cluster engine implementation for AWX.
 """
 
 import dataclasses
+import functools
 import logging
 import json
 import re
+import typing as t
 import uuid
 
 import dateutil.parser
 
 import rackit
 
+from ...provider import base as cloud_base
 from . import api
-from .. import base
-from ... import dto, errors
+from .. import base, dto, errors
 
 
 logger = logging.getLogger(__name__)
@@ -23,6 +25,37 @@ logger = logging.getLogger(__name__)
 #: Maps credential types to AWX credential type names
 #: Currently, only OpenStack tokens are supported
 CREDENTIAL_TYPE_NAMES = dict(openstack_token = 'OpenStack Token')
+
+
+def convert_exceptions(f):
+    """
+    Decorator that converts AWX API exceptions into errors from :py:mod:`..errors`.
+    """
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except rackit.ApiError as exc:
+            # Extract the status code and message
+            status_code = exc.status_code
+            message = str(exc)
+            if status_code == 400:
+                raise errors.BadInputError(message)
+            elif status_code == 401:
+                raise errors.AuthenticationError(message)
+            elif status_code == 403:
+                raise errors.PermissionDeniedError(message)
+            elif status_code == 404:
+                raise errors.ObjectNotFoundError(message)
+            elif status_code == 409:
+                raise errors.InvalidOperationError(message)
+            else:
+                logger.exception("Unknown error with AWX API.")
+                raise errors.CommunicationError("Unknown error with AWX API.")
+        except rackit.RackitError as exc:
+            logger.exception("Could not connect to AWX API.")
+            raise errors.CommunicationError("Could not connect to AWX API.")
+    return wrapper
 
 
 @dataclasses.dataclass
@@ -66,10 +99,13 @@ class Engine(base.Engine):
         self._create_teams = create_teams
         self._create_team_allow_all_permission = create_team_allow_all_permission
 
-    def create_manager(self, username, tenancy):
+    @convert_exceptions
+    def create_manager(self, cloud_session: cloud_base.ScopedSession) -> 'ClusterManager':
         """
         See :py:meth:`.base.Engine.create_manager`.
         """
+        username = cloud_session.username()
+        tenancy = cloud_session.tenancy()
         logger.info("[%s] Starting AWX connection", username)
         connection = api.Connection(
             self._url,
@@ -91,7 +127,7 @@ class Engine(base.Engine):
             team = FakeTeam(tenancy.name, self._create_team_allow_all_permission)
         if team:
             return ClusterManager(
-                username,
+                cloud_session,
                 connection,
                 organisation,
                 self._template_inventory,
@@ -111,12 +147,13 @@ class ClusterManager(base.ClusterManager):
     to inventories. A cluster is configured by launching a job using the job
     template for the cluster type and the cluster inventory.
     """
-    def __init__(self, username,
+    def __init__(self, cloud_session,
                        connection,
                        organisation,
                        template_inventory,
                        team):
-        self._username = username
+        super().__init__(cloud_session)
+        self._username = cloud_session.username()
         self._connection = connection
         self._organisation = organisation
         self._template_inventory = template_inventory
@@ -223,7 +260,8 @@ class ClusterManager(base.ClusterManager):
         self._log("Loading metadata from {}".format(job_template.description))
         return dto.ClusterType.from_yaml(job_template.name, job_template.description)
 
-    def cluster_types(self):
+    @convert_exceptions
+    def _cluster_types(self) -> t.Iterator[dto.ClusterType]:
         """
         See :py:meth:`.base.ClusterManager.cluster_types`.
         """
@@ -240,7 +278,8 @@ class ClusterManager(base.ClusterManager):
         else:
             return ()
 
-    def find_cluster_type(self, name):
+    @convert_exceptions
+    def _find_cluster_type(self, name: str) -> dto.ClusterType:
         """
         See :py:meth:`.base.ClusterManager.find_cluster_type`.
         """
@@ -343,7 +382,8 @@ class ClusterManager(base.ClusterManager):
             dateutil.parser.parse(patched) if patched else None
         )
 
-    def clusters(self):
+    @convert_exceptions
+    def _clusters(self) -> t.Iterable[dto.Cluster]:
         """
         See :py:meth:`.base.ClusterManager.clusters`.
         """
@@ -361,7 +401,8 @@ class ClusterManager(base.ClusterManager):
                     pass
         return tuple(active_inventories(inventories))
 
-    def find_cluster(self, id):
+    @convert_exceptions
+    def _find_cluster(self, id: str) -> dto.Cluster:
         """
         See :py:meth:`.base.ClusterManager.find_cluster`.
         """
@@ -438,12 +479,18 @@ class ClusterManager(base.ClusterManager):
         # Evict the inventory from the cache as it has changed
         self._connection.inventories.cache.evict(inventory)
 
-    def create_cluster(self, name, cluster_type, params, ssh_key, credential):
+    @convert_exceptions
+    def _create_cluster(
+        self,
+        name: str,
+        cluster_type: dto.ClusterType,
+        params: t.Mapping[str, t.Any],
+        ssh_key: str,
+        credential: dto.Credential
+    ):
         """
         See :py:meth:`.base.ClusterManager.create_cluster`.
         """
-        if isinstance(cluster_type, dto.ClusterType):
-            cluster_type = cluster_type.name
         # Ensure that the team exists
         self._ensure_team()
         # Try to find the template inventory
@@ -451,9 +498,8 @@ class ClusterManager(base.ClusterManager):
         template_inventory = self._connection.inventories.find_by_name(self._template_inventory)
         if not template_inventory:
             raise errors.ImproperlyConfiguredError('Could not find template inventory.')
-        # Get the AWX credential to use from the given data
-        # Do this before anything else as there is no point proceeding if the credential
-        # is not recognised
+        # Get the AWX credential to use
+        # Do this before anything else as we can't proceed without a valid credential
         awx_credential = self._create_credential(credential)
         # The inventory name is prefixed with the tenancy name
         inventory_name = "{}-{}".format(self._team.name, name)
@@ -494,13 +540,13 @@ class ClusterManager(base.ClusterManager):
                 params,
                 cluster_id = inventory.id,
                 cluster_name = name,
-                cluster_type = cluster_type,
+                cluster_type = cluster_type.name,
                 cluster_user_ssh_public_key = ssh_key
             )
         )
         # Execute the creation job
         self._run_inventory(
-            cluster_type,
+            cluster_type.name,
             inventory,
             awx_credential,
             # Cluster creation should include a patch
@@ -509,25 +555,19 @@ class ClusterManager(base.ClusterManager):
         )
         return self.find_cluster(inventory.id)
 
-    def update_cluster(self, cluster, params, credential):
+    @convert_exceptions
+    def _update_cluster(
+        self,
+        cluster: dto.Cluster,
+        params: t.Mapping[str, t.Any],
+        credential: dto.Credential
+    ) -> dto.Cluster:
         """
         See :py:meth:`.base.ClusterManager.update_cluster`.
         """
-        # Start by re-fetching the cluster - it might already have been deleted or have a
-        # currently running job
-        if isinstance(cluster, dto.Cluster):
-            cluster = cluster.id
-        # Ensure that the team exists
-        self._ensure_team()
-        # Get the AWX credential to use from the given data
-        # Do this before anything else as there is no point proceeding if the credential
-        # is not recognised
+        # Get the AWX credential to use
+        # Do this before anything else as we can't proceed without a valid credential
         awx_credential = self._create_credential(credential)
-        cluster = self.find_cluster(cluster)
-        if cluster.status in {dto.ClusterStatus.CONFIGURING, dto.ClusterStatus.DELETING}:
-            raise errors.InvalidOperationError(
-                'Cannot update cluster with status {}'.format(cluster.status.name)
-            )
         self._log("Updating cluster '%s'", cluster.id)
         # Update the inventory variables with the given parameters
         inventory = self._connection.inventories.get(cluster.id)
@@ -539,25 +579,18 @@ class ClusterManager(base.ClusterManager):
         # Refetch the cluster to get the new status
         return self.find_cluster(cluster.id)
 
-    def patch_cluster(self, cluster, credential):
+    @convert_exceptions
+    def _patch_cluster(
+        self,
+        cluster: dto.Cluster,
+        credential: dto.Credential
+    ) -> dto.Cluster:
         """
         See :py:meth:`.base.ClusterManager.patch_cluster`.
         """
-        # Start by re-fetching the cluster - it might already have been deleted or have a
-        # currently running job
-        if isinstance(cluster, dto.Cluster):
-            cluster = cluster.id
-        # Ensure that the team exists
-        self._ensure_team()
-        # Get the AWX credential to use from the given data
-        # Do this before anything else as there is no point proceeding if the credential
-        # is not recognised
+        # Get the AWX credential to use
+        # Do this before anything else as we can't proceed without a valid credential
         awx_credential = self._create_credential(credential)
-        cluster = self.find_cluster(cluster)
-        if cluster.status in {dto.ClusterStatus.CONFIGURING, dto.ClusterStatus.DELETING}:
-            raise errors.InvalidOperationError(
-                'Cannot patch cluster with status {}'.format(cluster.status.name)
-            )
         self._log("Patching cluster '%s'", cluster.id)
         # Run a job against the inventory with the patch variable set
         self._run_inventory(
@@ -569,24 +602,18 @@ class ClusterManager(base.ClusterManager):
         # Refetch the cluster to get the new status
         return self.find_cluster(cluster.id)
 
-    def delete_cluster(self, cluster, credential):
+    @convert_exceptions
+    def _delete_cluster(
+        self,
+        cluster: dto.Cluster,
+        credential: dto.Credential
+    ) -> t.Optional[dto.Cluster]:
         """
         See :py:meth:`.base.ClusterManager.delete_cluster`.
         """
-        # Start by re-fetching the cluster - it might already have been deleted
-        if isinstance(cluster, dto.Cluster):
-            cluster = cluster.id
-        # Ensure that the team exists
-        self._ensure_team()
-        # Get the AWX credential to use from the given data
-        # Do this before anything else as there is no point proceeding if the credential
-        # is not recognised
+        # Get the AWX credential to use
+        # Do this before anything else as we can't proceed without a valid credential
         awx_credential = self._create_credential(credential)
-        cluster = self.find_cluster(cluster)
-        if cluster.status in {dto.ClusterStatus.CONFIGURING, dto.ClusterStatus.DELETING}:
-            raise errors.InvalidOperationError(
-                'Cannot delete cluster with status {}'.format(cluster.status.name)
-            )
         self._log("Deleting cluster '%s'", cluster.id)
         # The job that is executed has cluster_state = absent in the extra vars
         inventory = self._connection.inventories.get(cluster.id)
@@ -598,5 +625,6 @@ class ClusterManager(base.ClusterManager):
         )
         return self.find_cluster(inventory.id)
 
+    @convert_exceptions
     def close(self):
         self._connection.close()

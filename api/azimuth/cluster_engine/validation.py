@@ -3,34 +3,38 @@ Module providing validation utilities for cloud providers.
 """
 
 import functools
+import typing as t
 
 import voluptuous as v
 
-from . import errors, dto
+from ..provider import base as cloud_base, errors as cloud_errors
+
+from . import base, dto, errors
 
 
 #: Sentinel object for no previous value
 NO_PREVIOUS = object()
 
 
-def build_validator(session, parameter_spec, prev_params = {}):
+class ValidatedParams(dict):
     """
-    Builds and returns a validator function for the given parameter spec
-    and pre-existing parameters.
+    Wrapper that marks a set of parameters as having been validated.
+    """
+    __validated__ = True
 
-    A validator function takes the parameters to validate as it's only
-    argument and returns the validated parameters on success, or
-    raises a :py:class:`~.errors.ValidationError` on failure.
 
-    Args:
-        session: The current :py:class:`~.base.ScopedSession`.
-                 Used to validate cloud resources.
-        parameter_spec: A list of :py:class:`~.dto.ClusterParameter`s.
-        prev_params: The previous parameters if applicable.
-                     Used to validate immutability constraints.
+def build_validator(
+    cloud_session: cloud_base.ScopedSession,
+    cluster_manager: base.ClusterManager,
+    parameter_spec: t.Iterable[dto.ClusterParameter],
+    prev_params: t.Mapping[str, t.Any] = {}
+) -> t.Callable[[t.Mapping[str, t.Any]], t.Mapping[str, t.Any]]:
+    """
+    Builds and returns a validator function for the given parameter spec and previous
+    parameter values.
 
-    Returns:
-        A validation function.
+    A validator function takes the parameters to validate as it's only argument and returns
+    the validated parameters on success. On failure, a `ValidationError` is raised.
     """
     spec = {}
     for param in parameter_spec:
@@ -43,7 +47,13 @@ def build_validator(session, parameter_spec, prev_params = {}):
         # Combine kind-specific and immutability constraints
         prev_value = prev_params.get(param.name, NO_PREVIOUS)
         spec[key] = v.All(
-            kind_constraint(session, param.kind, param.options, prev_value),
+            kind_constraint(
+                cloud_session,
+                cluster_manager,
+                param.kind,
+                param.options,
+                prev_value
+            ),
             immutability_constraint(param, prev_value)
         )
     return use_schema(v.Schema(spec))
@@ -58,7 +68,7 @@ def use_schema(schema):
     """
     def validate(params):
         try:
-            return schema(params)
+            return ValidatedParams(schema(params))
         except v.MultipleInvalid as exc:
             raise errors.ValidationError(
                 'At least one field is invalid',
@@ -84,16 +94,17 @@ def immutability_constraint(param, prev_value):
     return immutable
 
 
-def kind_constraint(session, kind, options, prev_value):
+def kind_constraint(cloud_session, cluster_manager, kind, options, prev_value):
     """
     Returns a schema constraint for the given kind and options.
     """
     constraint = getattr(kind_constraint, kind)
-    # Try to call with 3 args - if it fails with a TypeError, try with 2
-    try:
-        return constraint(session, options, prev_value)
-    except TypeError:
-        return constraint(session, options)
+    return constraint(
+        cloud_session = cloud_session,
+        cluster_manager = cluster_manager,
+        options = options,
+        prev_value = prev_value
+    )
 
 
 def register_constraint(kind):
@@ -108,7 +119,7 @@ def register_constraint(kind):
 
 
 @register_constraint('list')
-def list_constraint(session, options, prev_value):
+def list_constraint(cloud_session, cluster_manager, options, prev_value):
     constraints = []
     if 'min_length' in options:
         constraints.append(v.Length(min = options['min_length']))
@@ -126,7 +137,8 @@ def list_constraint(session, options, prev_value):
                 v.Schema,
                 (
                     kind_constraint(
-                        session,
+                        cloud_session,
+                        cluster_manager,
                         item_kind,
                         item_options,
                         prev_value[idx] if prev_len > idx else NO_PREVIOUS
@@ -143,7 +155,7 @@ def list_constraint(session, options, prev_value):
 
 
 @register_constraint("string")
-def string_constraint(session, options):
+def string_constraint(options, **kwargs):
     constraints = []
     if 'min_length' in options:
         constraints.append(v.Length(min = options['min_length']))
@@ -167,19 +179,19 @@ def number_constraints(options):
 
 
 @register_constraint("integer")
-def integer_constraint(session, options):
+def integer_constraint(options, **kwargs):
     # We only want to coerce strings - not floats as that could
     # be an unexpected behaviour
     return v.All(v.Any(int, str), v.Coerce(int), *number_constraints(options))
 
 
 @register_constraint("number")
-def float_constraint(session, options):
+def float_constraint(options, **kwargs):
     return v.All(v.Coerce(float), *number_constraints(options))
 
 
 @register_constraint("boolean")
-def boolean_constraint(session, options):
+def boolean_constraint(**kwargs):
     # The built-in Boolean validator ends up casting any value to a bool
     # We want to be stricter and actively reject anything except:
     #   - bool
@@ -197,26 +209,25 @@ def boolean_constraint(session, options):
 
 
 @register_constraint("choice")
-def choice_constraint(session, options):
+def choice_constraint(options, **kwargs):
     return v.In(options['choices'])
 
 
 def convert_not_found(func, msg):
     """
-    Decorator that converts :py:class:`~.errors.ObjectNotFoundError`
-    into a ``voluptuous.Invalid``.
+    Decorator that converts a not found error into `voluptuous.Invalid`.
     """
     @functools.wraps(func)
     def decorator(*args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except errors.ObjectNotFoundError:
+        except (errors.ObjectNotFoundError, cloud_errors.ObjectNotFoundError):
             raise v.Invalid(msg)
     return decorator
 
 
 @register_constraint("cloud.size")
-def cloud_size_constraint(session, options):
+def cloud_size_constraint(cloud_session, options, **kwargs):
     def min_cpus(size):
         if 'min_cpus' in options and size.cpus < options['min_cpus']:
             raise v.Invalid('Size does not have enough CPUs.')
@@ -232,7 +243,7 @@ def cloud_size_constraint(session, options):
     return v.All(
         v.Coerce(str),
         convert_not_found(
-            lambda v: session.find_size(v),
+            lambda v: cloud_session.find_size(v),
             "Not a valid size."
         ),
         min_cpus,
@@ -243,11 +254,11 @@ def cloud_size_constraint(session, options):
 
 
 @register_constraint("cloud.machine")
-def cloud_machine_constraint(session, options):
+def cloud_machine_constraint(cloud_session, **kwargs):
     return v.All(
         v.Coerce(str),
         convert_not_found(
-            lambda v: session.find_machine(v),
+            lambda v: cloud_session.find_machine(v),
             "Not a valid machine."
         ),
         lambda m: m.id
@@ -255,7 +266,7 @@ def cloud_machine_constraint(session, options):
 
 
 @register_constraint("cloud.ip")
-def cloud_ip_constraint(session, options, prev_value):
+def cloud_ip_constraint(cloud_session, prev_value, **kwargs):
     # If the given IP matches the previous value, that is OK
     # Otherwise, require that the IP be available for attaching
     def ip_available(ip):
@@ -266,7 +277,7 @@ def cloud_ip_constraint(session, options, prev_value):
     return v.All(
         v.Coerce(str),
         convert_not_found(
-            lambda v: session.find_external_ip(v),
+            lambda v: cloud_session.find_external_ip(v),
             "Not a valid external ip."
         ),
         ip_available,
@@ -275,7 +286,7 @@ def cloud_ip_constraint(session, options, prev_value):
 
 
 @register_constraint("cloud.volume")
-def cloud_volume_constraint(session, options):
+def cloud_volume_constraint(cloud_session, options, **kwargs):
     def min_size(vol):
         if 'min_size' in options and v.size < options['min_size']:
             raise v.Invalid('Volume is too small.')
@@ -283,7 +294,7 @@ def cloud_volume_constraint(session, options):
     return v.All(
         v.Coerce(str),
         convert_not_found(
-            lambda v: session.find_volume(v),
+            lambda v: cloud_session.find_volume(v),
             "Not a valid volume."
         ),
         min_size,
@@ -292,11 +303,11 @@ def cloud_volume_constraint(session, options):
 
 
 @register_constraint("cloud.cluster")
-def cloud_cluster_constraint(session, options, prev_value):
+def cloud_cluster_constraint(cluster_manager, options, prev_value, **kwargs):
     # Cluster values come in by name
     def find_by_name(name):
         try:
-            return next(c for c in session.clusters() if c.name == name)
+            return next(c for c in cluster_manager.clusters() if c.name == name)
         except StopIteration:
             raise v.Invalid("Not a valid cluster.")
     def has_tag(cluster):

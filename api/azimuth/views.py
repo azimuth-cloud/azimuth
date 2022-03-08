@@ -5,7 +5,6 @@ Django views for interacting with the configured cloud provider.
 import dataclasses
 import functools
 import logging
-from urllib.parse import urlencode
 
 from django.shortcuts import redirect, render
 from django.urls import reverse
@@ -23,6 +22,7 @@ from azimuth_auth.settings import auth_settings
 
 from . import serializers
 from .cluster_api import errors as cluster_api_errors
+from .cluster_engine import errors as cluster_engine_errors
 from .keystore import errors as keystore_errors
 from .provider import errors as provider_errors
 from .settings import cloud_settings
@@ -130,6 +130,48 @@ def convert_key_store_exceptions(view):
     return wrapper
 
 
+def convert_cluster_engine_exceptions(view):
+    """
+    Decorator that converts errors from :py:mod:`.cluster_engine.errors` into appropriate
+    HTTP responses or Django REST framework errors.
+    """
+    @functools.wraps(view)
+    def wrapper(*args, **kwargs):
+        try:
+            return view(*args, **kwargs)
+        # For provider errors that don't map to authentication/not found errors,
+        # return suitable responses
+        except cluster_engine_errors.UnsupportedOperationError as exc:
+            return response.Response(
+                { "detail": str(exc), "code": "unsupported_operation"},
+                status = status.HTTP_404_NOT_FOUND
+            )
+        except cluster_engine_errors.QuotaExceededError as exc:
+            return response.Response(
+                { "detail": str(exc), "code": "quota_exceeded"},
+                status = status.HTTP_409_CONFLICT
+            )
+        except cluster_engine_errors.InvalidOperationError as exc:
+            return response.Response(
+                { "detail": str(exc), "code": "invalid_operation"},
+                status = status.HTTP_409_CONFLICT
+            )
+        except cluster_engine_errors.BadInputError as exc:
+            return response.Response(
+                { "detail": str(exc), "code": "bad_input"},
+                status = status.HTTP_400_BAD_REQUEST
+            )
+        except cluster_engine_errors.ObjectNotFoundError as exc:
+            raise drf_exceptions.NotFound(str(exc))
+        except cluster_engine_errors.Error as exc:
+            log.exception("Unexpected cluster engine error occurred")
+            return response.Response(
+                { "detail": str(exc) },
+                status = status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    return wrapper
+
+
 def convert_cluster_api_exceptions(view):
     """
     Decorator that converts errors from :py:mod:`.cluster_api.errors` into appropriate
@@ -175,6 +217,7 @@ def provider_api_view(methods):
         view = convert_provider_exceptions(view)
         view = convert_key_store_exceptions(view)
         view = convert_cluster_api_exceptions(view)
+        view = convert_cluster_engine_exceptions(view)
         view = decorators.permission_classes([permissions.IsAuthenticated])(view)
         view = decorators.api_view(methods)(view)
         return view
@@ -278,6 +321,8 @@ def session(request):
         # app proxy for the portal, not the cloud itself
         "capabilities": dict(
             dataclasses.asdict(request.auth.capabilities()),
+            # Clusters are supported if a cluster engine is configured
+            supports_clusters = bool(cloud_settings.CLUSTER_ENGINE),
             # Kubernetes is supported if a Cluster API provider is configured
             supports_kubernetes = bool(cloud_settings.CLUSTER_API_PROVIDER),
             supports_apps = bool(cloud_settings.APPS.ENABLED),
@@ -861,11 +906,12 @@ def cluster_types(request, tenant):
     Returns the cluster types available to the tenancy.
     """
     with request.auth.scoped_session(tenant) as session:
-        serializer = serializers.ClusterTypeSerializer(
-            session.cluster_types(),
-            many = True,
-            context = { "request": request, "tenant": tenant }
-        )
+        with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
+            serializer = serializers.ClusterTypeSerializer(
+                cluster_manager.cluster_types(),
+                many = True,
+                context = { "request": request, "tenant": tenant }
+            )
     return response.Response(serializer.data)
 
 
@@ -875,10 +921,11 @@ def cluster_type_details(request, tenant, cluster_type):
     Returns the requested cluster type.
     """
     with request.auth.scoped_session(tenant) as session:
-        serializer = serializers.ClusterTypeSerializer(
-            session.find_cluster_type(cluster_type),
-            context = { "request": request, "tenant": tenant }
-        )
+        with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
+            serializer = serializers.ClusterTypeSerializer(
+                cluster_manager.find_cluster_type(cluster_type),
+                context = { "request": request, "tenant": tenant }
+            )
     return response.Response(serializer.data)
 
 
@@ -889,39 +936,39 @@ def clusters(request, tenant):
 
     On ``POST`` requests, create a new cluster.
     """
-    if request.method == "POST":
-        with request.auth.scoped_session(tenant) as session:
-            input_serializer = serializers.CreateClusterSerializer(
-                data = request.data,
-                context = { "session": session }
-            )
-            input_serializer.is_valid(raise_exception = True)
-            cluster = session.create_cluster(
-                input_serializer.validated_data["name"],
-                input_serializer.validated_data["cluster_type"],
-                input_serializer.validated_data["parameter_values"],
-                cloud_settings.SSH_KEY_STORE.get_key(
-                    request.user.username,
-                    # Pass the request and the sessions as keyword options
-                    # so that the key store can use them if it needs to
-                    request = request,
-                    unscoped_session = request.auth,
-                    scoped_session = session
+    with request.auth.scoped_session(tenant) as session:
+        with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
+            if request.method == "POST":
+                input_serializer = serializers.CreateClusterSerializer(
+                    data = request.data,
+                    context = { "session": session, "cluster_manager": cluster_manager }
                 )
-            )
-        output_serializer = serializers.ClusterSerializer(
-            cluster,
-            context = { "request": request, "tenant": tenant }
-        )
-        return response.Response(output_serializer.data)
-    else:
-        with request.auth.scoped_session(tenant) as session:
-            serializer = serializers.ClusterSerializer(
-                session.clusters(),
-                many = True,
-                context = { "request": request, "tenant": tenant }
-            )
-        return response.Response(serializer.data)
+                input_serializer.is_valid(raise_exception = True)
+                cluster = cluster_manager.create_cluster(
+                    input_serializer.validated_data["name"],
+                    input_serializer.validated_data["cluster_type"],
+                    input_serializer.validated_data["parameter_values"],
+                    cloud_settings.SSH_KEY_STORE.get_key(
+                        request.user.username,
+                        # Pass the request and the sessions as keyword options
+                        # so that the key store can use them if it needs to
+                        request = request,
+                        unscoped_session = request.auth,
+                        scoped_session = session
+                    )
+                )
+                output_serializer = serializers.ClusterSerializer(
+                    cluster,
+                    context = { "request": request, "tenant": tenant }
+                )
+                return response.Response(output_serializer.data)
+            else:
+                serializer = serializers.ClusterSerializer(
+                    cluster_manager.clusters(),
+                    many = True,
+                    context = { "request": request, "tenant": tenant }
+                )
+                return response.Response(serializer.data)
 
 
 @provider_api_view(["GET", "PUT", "DELETE"])
@@ -933,41 +980,44 @@ def cluster_details(request, tenant, cluster):
 
     On ``DELETE`` requests, delete the named cluster.
     """
-    if request.method == "PUT":
-        with request.auth.scoped_session(tenant) as session:
-            cluster = session.find_cluster(cluster)
-            input_serializer = serializers.UpdateClusterSerializer(
-                data = request.data,
-                context = dict(session = session, cluster = cluster)
-            )
-            input_serializer.is_valid(raise_exception = True)
-            updated = session.update_cluster(
-                cluster,
-                input_serializer.validated_data["parameter_values"]
-            )
-        output_serializer = serializers.ClusterSerializer(
-            updated,
-            context = { "request": request, "tenant": tenant }
-        )
-        return response.Response(output_serializer.data)
-    elif request.method == "DELETE":
-        with request.auth.scoped_session(tenant) as session:
-            deleted = session.delete_cluster(cluster)
-        if deleted:
-            serializer = serializers.ClusterSerializer(
-                deleted,
-                context = { "request": request, "tenant": tenant }
-            )
-            return response.Response(serializer.data)
-        else:
-            return response.Response()
-    else:
-        with request.auth.scoped_session(tenant) as session:
-            serializer = serializers.ClusterSerializer(
-                session.find_cluster(cluster),
-                context = { "request": request, "tenant": tenant }
-            )
-        return response.Response(serializer.data)
+    with request.auth.scoped_session(tenant) as session:
+        with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
+            if request.method == "PUT":
+                cluster = cluster_manager.find_cluster(cluster)
+                input_serializer = serializers.UpdateClusterSerializer(
+                    data = request.data,
+                    context = dict(
+                        session = session,
+                        cluster_manager = cluster_manager,
+                        cluster = cluster
+                    )
+                )
+                input_serializer.is_valid(raise_exception = True)
+                updated = cluster_manager.update_cluster(
+                    cluster,
+                    input_serializer.validated_data["parameter_values"]
+                )
+                output_serializer = serializers.ClusterSerializer(
+                    updated,
+                    context = { "request": request, "tenant": tenant }
+                )
+                return response.Response(output_serializer.data)
+            elif request.method == "DELETE":
+                deleted = cluster_manager.delete_cluster(cluster)
+                if deleted:
+                    serializer = serializers.ClusterSerializer(
+                        deleted,
+                        context = { "request": request, "tenant": tenant }
+                    )
+                    return response.Response(serializer.data)
+                else:
+                    return response.Response()
+            else:
+                serializer = serializers.ClusterSerializer(
+                    cluster_manager.find_cluster(cluster),
+                    context = { "request": request, "tenant": tenant }
+                )
+                return response.Response(serializer.data)
 
 
 @provider_api_view(["POST"])
@@ -976,10 +1026,11 @@ def cluster_patch(request, tenant, cluster):
     Patch the given cluster.
     """
     with request.auth.scoped_session(tenant) as session:
-        serializer = serializers.ClusterSerializer(
-            session.patch_cluster(cluster),
-            context = { "request": request, "tenant": tenant }
-        )
+        with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
+            serializer = serializers.ClusterSerializer(
+                cluster_manager.patch_cluster(cluster),
+                context = { "request": request, "tenant": tenant }
+            )
     return response.Response(serializer.data)
 
 
