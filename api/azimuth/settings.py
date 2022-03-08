@@ -63,28 +63,15 @@ class AwxSettings(SettingsObject):
     ])
 
 
-class ProviderSetting(ObjectFactorySetting):
+class ClusterEngineSetting(ObjectFactorySetting):
     """
-    Custom setting for the provider that will inject a cluster engine if AWX
-    is enabled.
+    Custom setting for the cluster engine that will provide Cluster-as-a-Service functionality.
     """
-    def __get__(self, instance, owner):
-        if not instance:
-            raise TypeError("Settings cannot be accessed as class attributes")
-        try:
-            provider = instance.user_settings[self.name]
-        except KeyError:
-            provider = self._get_default(instance)
-        # If AWX is enabled and no cluster engine is specified in the params
-        # then inject one here
-        if (
-            isinstance(provider, dict) and
-            "FACTORY" in provider and
-            "CLUSTER_ENGINE" not in provider["PARAMS"] and
-            instance.AWX.ENABLED
-        ):
-            provider["PARAMS"]["CLUSTER_ENGINE"] = dict(
-                FACTORY = "azimuth.provider.cluster_engine.awx.Engine",
+    def _get_default(self, instance):
+        # The default cluster engine is assembled from the AWX setting
+        if instance.AWX.ENABLED:
+            return dict(
+                FACTORY = "azimuth.cluster_engine.awx.Engine",
                 PARAMS = dict(
                     URL = instance.AWX.URL,
                     USERNAME = instance.AWX.USERNAME,
@@ -95,8 +82,22 @@ class ProviderSetting(ObjectFactorySetting):
                     TEMPLATE_INVENTORY = instance.AWX.TEMPLATE_INVENTORY
                 )
             )
-        # Process the given specification
-        return self._process_item(provider, "{}.{}".format(instance.name, self.name))
+        else:
+            return None
+
+
+class ClusterApiProviderSetting(ObjectFactorySetting):
+    """
+    Custom setting for the Cluster API provider that will provide Kubernetes functionality.
+    """
+    def _get_default(self, instance):
+        # The default Cluster API provider matches the specified cloud provider
+        if instance.PROVIDER.provider_name == "openstack":
+            return {
+                "FACTORY": "azimuth.cluster_api.openstack.Provider",
+            }
+        else:
+            return None
 
 
 class AppsSettings(SettingsObject):
@@ -131,20 +132,6 @@ class AppsSettings(SettingsObject):
     )
 
 
-def default_cluster_api_provider(settings):
-    """
-    Returns the default Cluster API provider.
-
-    By default, the provider that matches the specified cloud provider is used.
-    """
-    if settings.PROVIDER.provider_name == "openstack":
-        return {
-            "FACTORY": "azimuth.cluster_api.openstack.Provider",
-        }
-    else:
-        return None
-
-
 class AzimuthSettings(SettingsObject):
     """
     Settings object for the ``AZIMUTH`` setting.
@@ -156,10 +143,13 @@ class AzimuthSettings(SettingsObject):
     VERIFY_TENANCY_ID_HEADER = Setting(default = "HTTP_X_AUTH_TENANCY_ID")
 
     #: Cloud provider configuration
-    PROVIDER = ProviderSetting()
+    PROVIDER = ObjectFactorySetting()
+
+    #: Cluster engine configuration
+    CLUSTER_ENGINE = ClusterEngineSetting()
 
     #: Cluster API configuration
-    CLUSTER_API_PROVIDER = ObjectFactorySetting(default = default_cluster_api_provider)
+    CLUSTER_API_PROVIDER = ClusterApiProviderSetting()
 
     #: SSH key store configuration
     SSH_KEY_STORE = ObjectFactorySetting(

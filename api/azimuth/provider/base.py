@@ -2,9 +2,11 @@
 This module defines the interface for a cloud provider.
 """
 
-from typing import Any, Iterable, Mapping, Optional, Tuple, Union
+from typing import Any, Iterable, Mapping, Optional, Union
 
-from . import dto, errors, validation
+from ..cluster_engine import dto as clusters_dto
+
+from . import dto, errors
 
 
 class Provider:
@@ -114,6 +116,18 @@ class ScopedSession:
     """
     Class for a tenancy-scoped session.
     """
+    def username(self) -> str:
+        """
+        Returns the username for this session.
+        """
+        raise NotImplementedError
+
+    def tenancy(self) -> dto.Tenancy:
+        """
+        Returns the tenancy for this session.
+        """
+        raise NotImplementedError
+
     def quotas(self) -> Iterable[dto.Quota]:
         """
         Returns quota information for the tenancy.
@@ -391,99 +405,26 @@ class ScopedSession:
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def cluster_types(self) -> Iterable[dto.ClusterType]:
+    def cluster_credential(self) -> clusters_dto.Credential:
         """
-        Lists the available cluster types.
-        """
-        raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
-        )
-
-    def find_cluster_type(self, name: str) -> dto.ClusterType:
-        """
-        Find a cluster type by name.
+        Returns a credential for use with a cluster engine.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def clusters(self) -> Iterable[dto.Cluster]:
+    def cluster_parameters(self) -> Mapping[str, Any]:
         """
-        List the clusters that are deployed.
+        Returns any additional parameters required for cloud infrastructure.
         """
-        raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
-        )
+        return {}
 
-    def find_cluster(self, id: str) -> dto.Cluster:
+    def cluster_modify(self, cluster: clusters_dto.Cluster) -> clusters_dto.Cluster:
         """
-        Find a cluster by id.
+        Modifies the cluster with cloud-specific information, e.g. removing injected
+        parameters, converting error messages.
         """
-        raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
-        )
-
-    def validate_cluster_params(
-        self,
-        cluster_type: Union[dto.ClusterType, str],
-        params: Mapping[str, Any],
-        prev_params: Mapping[str, Any] = {}
-    ) -> Mapping[str, Any]:
-        """
-        Validates the given parameter values against the given cluster type.
-
-        If validation fails, :py:class:`~.errors.ValidationError` should be raised.
-        """
-        if not isinstance(cluster_type, dto.ClusterType):
-            cluster_type = self.find_cluster_type(cluster_type)
-        validator = validation.build_validator(
-            self,
-            cluster_type.parameters,
-            prev_params
-        )
-        return validator(params)
-
-    def create_cluster(
-        self,
-        name: str,
-        cluster_type: Union[dto.ClusterType, str],
-        params: Mapping[str, Any],
-        ssh_key: str
-    ) -> dto.Cluster:
-        """
-        Creates a new cluster with the given name, type and parameters.
-        """
-        raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
-        )
-
-    def update_cluster(
-        self,
-        cluster: Union[dto.Cluster, str],
-        params: Mapping[str, Any]
-    ) -> dto.Cluster:
-        """
-        Updates an existing cluster with the given parameters.
-        """
-        raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
-        )
-
-    def patch_cluster(self, cluster: Union[dto.Cluster, str]) -> dto.Cluster:
-        """
-        Patches an existing cluster.
-        """
-        raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
-        )
-
-    def delete_cluster(self, cluster: Union[dto.Cluster, str]) -> Optional[dto.Cluster]:
-        """
-        Deletes an existing cluster.
-        """
-        raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
-        )
+        return cluster
 
     def close(self):
         """

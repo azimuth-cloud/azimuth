@@ -6,6 +6,10 @@ SECRET_KEY = 'notsecret'
 DEBUG = True
 ALLOWED_HOSTS = []
 
+# Use cookie names that don't conflict by default
+CSRF_COOKIE_NAME = 'azimuth-csrftoken'
+SESSION_COOKIE_NAME = 'azimuth-sessionid'
+
 
 # Enable debug logging for rackit
 LOGGING = {

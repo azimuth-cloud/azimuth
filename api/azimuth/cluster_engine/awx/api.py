@@ -2,6 +2,8 @@
 Module containing helpers for interacting with the AWX API.
 """
 
+import json
+
 import requests
 
 import rackit
@@ -176,3 +178,10 @@ class Connection(rackit.Connection):
         if response.url.endswith("/migrations_notran/"):
             raise rackit.ServiceUnavailable('Migrations in progress')
         return response
+
+    def extract_error_message(self, response):
+        # Try to extract a JSON error message, falling back to text
+        try:
+            return response.json()["detail"]
+        except (json.JSONDecodeError, KeyError):
+            return response.text
