@@ -83,7 +83,8 @@ class ClusterEngineSetting(Setting):
                 instance.AWX.TEMPLATE_INVENTORY
             )
             from .cluster_engine import Engine
-            return Engine(driver)
+            # Inject the Zenith instance into the engine if it is available
+            return Engine(driver, instance.APPS)
         else:
             return None
 

@@ -2,7 +2,7 @@
 This module defines data-transfer objects used by cluster engines.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 import enum
 import io
@@ -66,7 +66,7 @@ class ClusterParameter:
 
 
 @dataclass(frozen = True)
-class ClusterService:
+class ClusterServiceSpec:
     """
     Represents a Zenith service exposed by a cluster type (when apps are enabled).
     """
@@ -77,7 +77,7 @@ class ClusterService:
     #: The URL of an icon for the service
     icon_url: Optional[str]
     #: An expression indicating when the service is available
-    when: str
+    when: Optional[str]
 
 
 @dataclass(frozen = True)
@@ -96,7 +96,7 @@ class ClusterType:
     #: The parameters for the cluster type
     parameters: Sequence[ClusterParameter]
     #: The services for the cluster type
-    services: Sequence[ClusterService]
+    services: Sequence[ClusterServiceSpec]
 
     @classmethod
     def from_dict(cls, name, spec):
@@ -128,7 +128,7 @@ class ClusterType:
                 for param in spec.get('parameters', [])
             ),
             tuple(
-                ClusterService(
+                ClusterServiceSpec(
                     service['name'],
                     service.get('label', service['name']),
                     service.get('icon_url'),
@@ -190,6 +190,23 @@ class ClusterStatus(enum.Enum):
 
 
 @dataclass(frozen = True)
+class ClusterService:
+    """
+    Represents a Zenith service for a cluster.
+    """
+    #: The name of the service
+    name: str
+    #: A human-readable label for the service
+    label: str
+    #: The URL of an icon for the service
+    icon_url: Optional[str]
+    #: The FQDN for the service
+    fqdn: str
+    #: The subdomain for the service
+    subdomain: str
+
+
+@dataclass(frozen = True)
 class Cluster:
     """
     Represents a cluster.
@@ -208,7 +225,7 @@ class Cluster:
     error_message: Optional[str]
     #: Dictionary containing the current parameter values
     parameter_values: Mapping[str, Any]
-    #: A tuple of tags describing the cluster
+    #: A list of tags describing the cluster
     tags: Sequence[str]
     #: The datetime at which the cluster was created
     created: datetime
@@ -216,3 +233,5 @@ class Cluster:
     updated: datetime
     #: The datetime at which the cluster was last patched
     patched: datetime
+    #: A list of Zenith services enabled for the cluster
+    services: Sequence[ClusterService] = field(default_factory = list)
