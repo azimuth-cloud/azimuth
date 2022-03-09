@@ -138,7 +138,7 @@ class Driver(base.Driver):
         else:
             self._log("Using AWX organisation '%s'", organisation.name)
         return organisation
-        
+
     def _get_team(self, ctx: dto.Context):
         """
         Returns the AWX team associated with the given context, or None if the team
@@ -617,8 +617,15 @@ class Driver(base.Driver):
         self._log("Updating cluster '%s'", cluster.id, ctx = ctx)
         inventory = self._connection.inventories.get(cluster.id)
         inventory_variables = inventory.variable_data._as_dict()
-        inventory_variables.update(params)
-        inventory.variable_data._update(inventory_variables)
+        # The new inventory variables are the new params + the injected variables
+        next_inventory_variables = dict(
+            params,
+            cluster_id = inventory.id,
+            cluster_name = cluster.name,
+            cluster_type = cluster.cluster_type,
+            cluster_user_ssh_public_key = inventory_variables["cluster_user_ssh_public_key"]
+        )
+        inventory.variable_data._update(next_inventory_variables)
         self._run_inventory(cluster.cluster_type, inventory, awx_credential, {}, ctx)
         return self.find_cluster(cluster.id, ctx)
 

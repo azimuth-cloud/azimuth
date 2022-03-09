@@ -1051,6 +1051,33 @@ def cluster_patch(request, tenant, cluster):
     return response.Response(serializer.data)
 
 
+@redirect_to_signin
+@provider_api_view(["GET"])
+def cluster_service(request, tenant, cluster, service):
+    """
+    Redirects the user to the specified service on the specified cluster.
+    """
+    service_fqdn = None
+    service_label = None
+    try:
+        if cloud_settings.CLUSTER_ENGINE:
+            with request.auth.scoped_session(tenant) as session:
+                with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
+                    cluster = cluster_manager.find_cluster(cluster)
+        service_obj = next(s for s in cluster.services if s.name == service)
+        service_fqdn = service_obj.fqdn
+        service_label = service_obj.label
+    except (cluster_engine_errors.ObjectNotFoundError, StopIteration):
+        pass
+    return redirect_to_zenith_service(
+        request,
+        "cluster",
+        service,
+        service_fqdn,
+        service_label = service_label
+    )
+
+
 @provider_api_view(["GET"])
 def kubernetes_cluster_templates(request, tenant):
     """
@@ -1229,9 +1256,9 @@ def kubernetes_cluster_service(request, tenant, cluster, service):
             with request.auth.scoped_session(tenant) as session:
                 with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
                     cluster = capi_session.find_cluster(cluster)
-        service = next(s for s in cluster.services if s.name == service)
-        service_fqdn = service.fqdn
-        service_label = service.label
+        service_obj = next(s for s in cluster.services if s.name == service)
+        service_fqdn = service_obj.fqdn
+        service_label = service_obj.label
     except (cluster_api_errors.ObjectNotFoundError, StopIteration):
         pass
     return redirect_to_zenith_service(

@@ -456,8 +456,26 @@ class ClusterTypeSerializer(
         return result
 
 
-class ClusterSerializer(make_dto_serializer(clusters_dto.Cluster)):
+class ClusterSerializer(make_dto_serializer(clusters_dto.Cluster, exclude = ["services"])):
     status = serializers.ReadOnlyField(source = "status.name")
+    services = serializers.SerializerMethodField()
+
+    def get_services(self, obj):
+        request = self.context.get("request")
+        tenant = self.context.get("tenant")
+        services = []
+        for service_dto in obj.services:
+            service_obj = dataclasses.asdict(service_dto)
+            service_obj.pop("fqdn", None)
+            service_obj["url"] = request.build_absolute_uri(
+                reverse("azimuth:cluster_service", kwargs = {
+                    "tenant": tenant,
+                    "cluster": obj.id,
+                    "service": service_dto.name,
+                })
+            )
+            services.append(service_obj)
+        return services
 
     def to_representation(self, obj):
         result = super().to_representation(obj)

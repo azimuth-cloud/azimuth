@@ -103,6 +103,11 @@ urlpatterns = [
             path("<id:cluster>/", include([
                 path("", views.cluster_details, name = "cluster_details"),
                 path("patch/", views.cluster_patch, name = "cluster_patch"),
+                path(
+                    "services/<id:service>/",
+                    views.cluster_service,
+                    name = "cluster_service"
+                ),
             ])),
         ]))
     ])),
