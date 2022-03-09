@@ -9,7 +9,7 @@ import voluptuous as v
 
 from ..provider import base as cloud_base, errors as cloud_errors
 
-from . import base, dto, errors
+from . import dto, engine, errors
 
 
 #: Sentinel object for no previous value
@@ -25,7 +25,7 @@ class ValidatedParams(dict):
 
 def build_validator(
     cloud_session: cloud_base.ScopedSession,
-    cluster_manager: base.ClusterManager,
+    cluster_manager: engine.ClusterManager,
     parameter_spec: t.Iterable[dto.ClusterParameter],
     prev_params: t.Mapping[str, t.Any] = {}
 ) -> t.Callable[[t.Mapping[str, t.Any]], t.Mapping[str, t.Any]]:

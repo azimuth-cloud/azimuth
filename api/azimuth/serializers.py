@@ -436,7 +436,9 @@ class ExternalIPSerializer(make_dto_serializer(dto.ExternalIp)):
 ClusterParameterSerializer = make_dto_serializer(clusters_dto.ClusterParameter)
 
 
-class ClusterTypeSerializer(make_dto_serializer(clusters_dto.ClusterType)):
+class ClusterTypeSerializer(
+    make_dto_serializer(clusters_dto.ClusterType, exclude = ["services"])
+):
     parameters = ClusterParameterSerializer(many = True, read_only = True)
 
     def to_representation(self, obj):

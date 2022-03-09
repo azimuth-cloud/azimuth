@@ -9,6 +9,8 @@ from settings_object import (
     ObjectFactorySetting
 )
 
+from .zenith import Zenith
+
 
 class AwxSettings(SettingsObject):
     """
@@ -63,25 +65,25 @@ class AwxSettings(SettingsObject):
     ])
 
 
-class ClusterEngineSetting(ObjectFactorySetting):
+class ClusterEngineSetting(Setting):
     """
     Custom setting for the cluster engine that will provide Cluster-as-a-Service functionality.
     """
     def _get_default(self, instance):
-        # The default cluster engine is assembled from the AWX setting
+        # The driver for the default cluster engine comes from the AWX setting
         if instance.AWX.ENABLED:
-            return dict(
-                FACTORY = "azimuth.cluster_engine.awx.Engine",
-                PARAMS = dict(
-                    URL = instance.AWX.URL,
-                    USERNAME = instance.AWX.USERNAME,
-                    PASSWORD = instance.AWX.PASSWORD,
-                    CREATE_TEAMS = instance.AWX.CREATE_TEAMS,
-                    CREATE_TEAM_ALLOW_ALL_PERMISSION = instance.AWX.CREATE_TEAM_ALLOW_ALL_PERMISSION,
-                    VERIFY_SSL = instance.AWX.VERIFY_SSL,
-                    TEMPLATE_INVENTORY = instance.AWX.TEMPLATE_INVENTORY
-                )
+            from .cluster_engine.drivers import awx
+            driver = awx.Driver(
+                instance.AWX.URL,
+                instance.AWX.USERNAME,
+                instance.AWX.PASSWORD,
+                instance.AWX.CREATE_TEAMS,
+                instance.AWX.CREATE_TEAM_ALLOW_ALL_PERMISSION,
+                instance.AWX.VERIFY_SSL,
+                instance.AWX.TEMPLATE_INVENTORY
             )
+            from .cluster_engine import Engine
+            return Engine(driver)
         else:
             return None
 
@@ -102,34 +104,59 @@ class ClusterApiProviderSetting(ObjectFactorySetting):
 
 class AppsSettings(SettingsObject):
     """
-    Settings for apps.
+    Settings for the target Zenith app proxy.
     """
     #: Indicates if apps are enabled
     ENABLED = Setting(default = False)
 
     #: The base domain for the app proxy
     BASE_DOMAIN = Setting()
-    #: Indicates whether SSL should be verified when determining whether a service is ready
-    VERIFY_SSL = Setting(default = True)
-    #: Indicates whether SSL should be verified by clients when associating keys with the
-    #: registrar using the external endpoint
-    VERIFY_SSL_CLIENTS = Setting(default = True)
-    #: The address of the app proxy SSHD service
-    #: Defaults to the base domain
-    SSHD_HOST = Setting(default = lambda settings: settings.BASE_DOMAIN)
-    #: The port for the app proxy SSHD service
-    SSHD_PORT = Setting(default = 22)
     #: The external URL of the app proxy registrar, as needed by clients
     REGISTRAR_EXTERNAL_URL = Setting(
         default = lambda settings: f"https://registrar.{settings.BASE_DOMAIN}"
     )
     #: The admin URL of the app proxy registrar, for reserving subdomains
     REGISTRAR_ADMIN_URL = Setting()
+    #: The address of the app proxy SSHD service
+    #: Defaults to the base domain
+    SSHD_HOST = Setting(default = lambda settings: settings.BASE_DOMAIN)
+    #: The port for the app proxy SSHD service
+    SSHD_PORT = Setting(default = 22)
+    #: Indicates whether SSL should be verified when determining whether a service is ready
+    VERIFY_SSL = Setting(default = True)
+    #: Indicates whether SSL should be verified by clients when associating keys with the
+    #: registrar using the external endpoint
+    VERIFY_SSL_CLIENTS = Setting(default = True)
 
-    #: The URL of the script to use to execute post-deploy actions
-    POST_DEPLOY_SCRIPT_URL = Setting(
+    #: The URL of the script to use to install the web console on machines
+    CONSOLE_SCRIPT_URL = Setting(
         default = "https://raw.githubusercontent.com/stackhpc/ansible-collection-azimuth-tools/main/bin/run-playbook"
     )
+
+
+class ZenithSetting(Setting):
+    """
+    Setting that produces a Zenith object based on the given values.
+    """
+    def __init__(self):
+        super().__init__(dict)
+
+    def __get__(self, instance, owner):
+        user_settings = super().__get__(instance, owner)
+        apps_settings = AppsSettings(self.name, user_settings)
+        if apps_settings.ENABLED:
+            return Zenith(
+                apps_settings.BASE_DOMAIN,
+                apps_settings.REGISTRAR_EXTERNAL_URL,
+                apps_settings.REGISTRAR_ADMIN_URL,
+                apps_settings.SSHD_HOST,
+                apps_settings.SSHD_PORT,
+                apps_settings.VERIFY_SSL,
+                apps_settings.VERIFY_SSL_CLIENTS,
+                apps_settings.CONSOLE_SCRIPT_URL
+            )
+        else:
+            return None
 
 
 class AzimuthSettings(SettingsObject):
@@ -177,8 +204,8 @@ class AzimuthSettings(SettingsObject):
     #: AWX configuration
     AWX = NestedSetting(AwxSettings)
 
-    #: Configuration for apps
-    APPS = NestedSetting(AppsSettings)
+    #: Configuration for the Zenith instance for apps
+    APPS = ZenithSetting()
 
     #: The clouds that are available
     #: Should be a mapping of name => (label, url) dictionaries
