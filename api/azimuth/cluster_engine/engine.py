@@ -2,88 +2,66 @@
 This module defines the base class for cluster managers.
 """
 
-from dataclasses import dataclass
 import typing as t
 
 from ..provider import base as cloud_base
 
 from . import dto, errors
+from .drivers import base as drivers_base
 
 
 class Engine:
     """
-    Base class for a cluster engine.
+    Class for the cluster engine.
     """
+    def __init__(self, driver: drivers_base.Driver):
+        self._driver = driver
+
     def create_manager(self, cloud_session: cloud_base.ScopedSession) -> 'ClusterManager':
         """
         Creates a cluster manager for the given tenancy-scoped cloud session.
         """
-        raise NotImplementedError
+        return ClusterManager(self._driver, cloud_session)
 
 
 class ClusterManager:
     """
-    Base class for a tenancy-scoped cluster manager.
+    Class for a tenancy-scoped cluster manager.
     """
-    def __init__(self, cloud_session: cloud_base.ScopedSession):
+    def __init__(self, driver: drivers_base.Driver, cloud_session: cloud_base.ScopedSession):
+        self._driver = driver
         self._cloud_session = cloud_session
-
-    def _cluster_types(self) -> t.Iterator[dto.ClusterType]:
-        """
-        Private method that lists the available cluster types.
-        
-        Any pre- or post-processing is handled by the public method.
-        """
-        raise NotImplementedError
+        self._ctx = dto.Context(
+            cloud_session.username(),
+            cloud_session.tenancy(),
+            cloud_session.cluster_credential()
+        )
 
     def cluster_types(self) -> t.Iterable[dto.ClusterType]:
         """
         Lists the available cluster types.
         """
-        return self._cluster_types()
-
-    def _find_cluster_type(self, name: str) -> dto.ClusterType:
-        """
-        Find a cluster type by name.
-        
-        Any pre- or post-processing is handled by the public method.
-        """
-        raise NotImplementedError
+        return self._driver.cluster_types(self._ctx)
 
     def find_cluster_type(self, name: str) -> dto.ClusterType:
         """
         Find a cluster type by name.
         """
-        return self._find_cluster_type(name)
-
-    def _clusters(self) -> t.Iterable[dto.Cluster]:
-        """
-        List the clusters that are deployed.
-        
-        Any pre- or post-processing is handled by the public method.
-        """
-        raise NotImplementedError
+        return self._driver.find_cluster_type(name, self._ctx)
 
     def clusters(self) -> t.Iterable[dto.Cluster]:
         """
         List the clusters that are deployed.
         """
-        for cluster in self._clusters():
+        for cluster in self._driver.clusters(self._ctx):
             yield self._cloud_session.cluster_modify(cluster)
-
-    def _find_cluster(self, id: str) -> dto.Cluster:
-        """
-        Find a cluster by id.
-        
-        Any pre- or post-processing is handled by the public method.
-        """
-        raise NotImplementedError
 
     def find_cluster(self, id: str) -> dto.Cluster:
         """
         Find a cluster by id.
         """
-        return self._cloud_session.cluster_modify(self._find_cluster(id))
+        cluster = self._driver.find_cluster(id, self._ctx)
+        return self._cloud_session.cluster_modify(cluster)
 
     def validate_cluster_params(
         self,
@@ -92,7 +70,7 @@ class ClusterManager:
         prev_params: t.Mapping[str, t.Any] = {}
     ) -> t.Mapping[str, t.Any]:
         """
-        Validates the given parameter values against the given cluster type.
+        Validates the given user parameter values against the given cluster type.
 
         If validation fails, a `ValidationError` is raised.
         """
@@ -107,22 +85,6 @@ class ClusterManager:
         )
         return validator(params)
 
-    def _create_cluster(
-        self,
-        name: str,
-        cluster_type: dto.ClusterType,
-        params: t.Mapping[str, t.Any],
-        ssh_key: str,
-        credential: dto.Credential
-    ):
-        """
-        Create a new cluster with the given name, type and parameters.
-        
-        Any pre- or post-processing is handled by the public method, such as ensuring the
-        parameters are validated and a cloud credential is available.
-        """
-        raise NotImplementedError
-
     def create_cluster(
         self,
         name: str,
@@ -135,28 +97,16 @@ class ClusterManager:
         """
         # If the parameters have not already been validated, validated them
         if not getattr(params, "__validated__", False):
-            print("VALIDATING PARAMETERS HERE")
             params = self.validate_cluster_params(cluster_type, params)
-        # Inject any cloud-specific parameters
         params.update(self._cloud_session.cluster_parameters())
-        credential = self._cloud_session.cluster_credential()
-        cluster = self._create_cluster(name, cluster_type, params, ssh_key, credential)
+        cluster = self._driver.create_cluster(
+            name,
+            cluster_type,
+            params,
+            ssh_key,
+            self._ctx
+        )
         return self._cloud_session.cluster_modify(cluster)
-
-    def _update_cluster(
-        self,
-        cluster: dto.Cluster,
-        params: t.Mapping[str, t.Any],
-        credential: dto.Credential
-    ) -> dto.Cluster:
-        """
-        Updates an existing cluster with the given parameters.
-        
-        Any pre- or post-processing is handled by the public method, such as ensuring the
-        parameters are validated, the cluster is in a valid state for the operator and a
-        cloud credential is available.
-        """
-        raise NotImplementedError
 
     def update_cluster(
         self,
@@ -179,23 +129,8 @@ class ClusterManager:
                 params,
                 cluster.parameter_values
             )
-        credential = self._cloud_session.cluster_credential()
-        cluster = self._update_cluster(cluster, params, credential)
+        cluster = self._driver.update_cluster(cluster, params, self._ctx)
         return self._cloud_session.cluster_modify(cluster)
-
-    def _patch_cluster(
-        self,
-        cluster: dto.Cluster,
-        credential: dto.Credential
-    ) -> dto.Cluster:
-        """
-        Patches the given existing cluster.
-        
-        Any pre- or post-processing is handled by the public method, such as ensuring the
-        parameters are validated, the cluster is in a valid state for the operator and a
-        cloud credential is available.
-        """
-        raise NotImplementedError
 
     def patch_cluster(
         self,
@@ -210,23 +145,8 @@ class ClusterManager:
             raise errors.InvalidOperationError(
                 'Cannot patch cluster with status {}'.format(cluster.status.name)
             )
-        credential = self._cloud_session.cluster_credential()
-        cluster = self._patch_cluster(cluster, credential)
+        cluster = self._driver.patch_cluster(cluster, self._ctx)
         return self._cloud_session.cluster_modify(cluster)
-
-    def _delete_cluster(
-        self,
-        cluster: dto.Cluster,
-        credential: dto.Credential
-    ) -> t.Optional[dto.Cluster]:
-        """
-        Deletes an existing cluster.
-        
-        Any pre- or post-processing is handled by the public method, such as ensuring the
-        parameters are validated, the cluster is in a valid state for the operator and a
-        cloud credential is available.
-        """
-        raise NotImplementedError
 
     def delete_cluster(
         self,
@@ -241,8 +161,7 @@ class ClusterManager:
             raise errors.InvalidOperationError(
                 'Cannot delete cluster with status {}'.format(cluster.status.name)
             )
-        credential = self._cloud_session.cluster_credential()
-        cluster = self._delete_cluster(cluster, credential)
+        cluster = self._driver.delete_cluster(cluster, self._ctx)
         if cluster:
             return self._cloud_session.cluster_modify(cluster)
         else:

@@ -8,16 +8,18 @@ import enum
 import io
 import json
 import re
-from typing import Any, Mapping, Optional, Sequence, Tuple
+from typing import Any, Mapping, Optional, Sequence
 
 import yaml
 import requests
 
+from ..provider import dto as cloud_dto
 
-@dataclass
+
+@dataclass(frozen = True)
 class Credential:
     """
-    DTO for a credential that is passed from the provider to interact with a cloud.
+    Represents a credential that is passed from the provider to interact with a cloud.
 
     Credentials should be ephemeral and have an expiry, e.g. a token.
     """
@@ -25,6 +27,19 @@ class Credential:
     type: str
     #: The credential data
     data: dict
+
+
+@dataclass(frozen = True)
+class Context:
+    """
+    Represents a context for an operation.
+    """
+    #: The username of the user carrying out the operation
+    username: str
+    #: The tenancy that the operation is being carried out in
+    tenancy: cloud_dto.Tenancy
+    #: The credential to use for the operation
+    credential: Credential
 
 
 @dataclass(frozen = True)
@@ -51,6 +66,21 @@ class ClusterParameter:
 
 
 @dataclass(frozen = True)
+class ClusterService:
+    """
+    Represents a Zenith service exposed by a cluster type (when apps are enabled).
+    """
+    #: The name of the service
+    name: str
+    #: A human-readable label for the service
+    label: str
+    #: The URL of an icon for the service
+    icon_url: Optional[str]
+    #: An expression indicating when the service is available
+    when: str
+
+
+@dataclass(frozen = True)
 class ClusterType:
     """
     Represents a cluster type.
@@ -63,8 +93,10 @@ class ClusterType:
     description: str
     #: The URL or data URI of the logo for the cluster type
     logo: str
-    #: A tuple of parameters for the cluster type
+    #: The parameters for the cluster type
     parameters: Sequence[ClusterParameter]
+    #: The services for the cluster type
+    services: Sequence[ClusterService]
 
     @classmethod
     def from_dict(cls, name, spec):
@@ -94,6 +126,15 @@ class ClusterType:
                     param.get('default', None)
                 )
                 for param in spec.get('parameters', [])
+            ),
+            tuple(
+                ClusterService(
+                    service['name'],
+                    service.get('label', service['name']),
+                    service.get('icon_url'),
+                    service.get('when')
+                )
+                for service in spec.get('services', [])
             )
         )
 

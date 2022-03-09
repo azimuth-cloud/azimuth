@@ -57,6 +57,12 @@ class Team(Resource):
 
     roles = rackit.NestedResource(Role)
 
+    def associate_role(self, role):
+        connection = self._manager.connection
+        path = "{}roles/".format(self._path)
+        role_id = role.id if isinstance(role, Role) else role
+        connection.api_post(path, json = dict(id = role_id))
+
 
 class Playbooks(rackit.UnmanagedResource):
     class Meta:
