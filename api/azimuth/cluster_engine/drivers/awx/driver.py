@@ -58,20 +58,6 @@ def convert_exceptions(f):
     return wrapper
 
 
-@dataclasses.dataclass
-class FakeTeam:
-    """
-    Returned in place of a real team in the case where teams should be auto-created.
-    This is used to defer the creation of a team until a write is required.
-    """
-    #: The name of the team
-    name: str
-    #: Indicates whether the team should be granted access to all job templates
-    #: This is used when listing cluster types using a fake team and when reifying the team
-    #: Corresponds to create_team_allow_all_permission = True
-    allow_all: bool
-
-
 class cached_property:
     """
     Similar to the `@property` decorator except that the result of invoking the wrapped
@@ -297,13 +283,10 @@ class Driver(base.Driver):
         # Get the jobs for the inventory
         self._log("Fetching jobs for inventory '%s'", inventory.name, ctx = ctx)
         jobs = self._connection.jobs.all(inventory = inventory.id, order_by = "-started")
-        # The status of the cluster is the status of the latest job
+        # The status of the cluster is based on the status of the latest job
+        latest = None
         task = None
         error_message = None
-        # The updated and patched times are based on successful jobs
-        # The patched time is from a job with cluster_upgrade_system_packages = True
-        updated = None
-        patched = None
         try:
             latest = next(jobs)
         except StopIteration:
@@ -316,9 +299,6 @@ class Driver(base.Driver):
             if latest.status == "successful":
                 if cluster_state == "present":
                     status = dto.ClusterStatus.READY
-                    updated = latest.finished
-                    if latest_extra_vars.get("cluster_upgrade_system_packages", False):
-                        patched = latest.finished
                 else:
                     self._log(
                         "Inventory '%s' represents deleted cluster - ignoring",
@@ -361,17 +341,33 @@ class Driver(base.Driver):
                     # If there is no task, indicate that we are waiting to be scheduled
                     "Waiting to be scheduled"
                 )
+        # The outputs and updated time come from the last successful job
+        # The patched time comes from the last successful job with cluster_upgrade_system_packages = True
+        job = latest
+        outputs = {}
+        updated = None
+        patched = None
         # If we haven't found the update or patch time, traverse the rest of the jobs until we find them
-        while not updated or not patched:
-            try:
-                job = next(jobs)
-            except StopIteration:
+        while job:
+            if job.status == "successful":
+                # Outputs and updated are set together, based on the same job
+                if not updated:
+                    updated = updated or job.finished
+                    # If the last task is a debug action for the "outputs" variable, then that
+                    # value is used as the outputs
+                    event = next(
+                        job.job_events.all(event = "runner_on_ok", order_by = "-created"),
+                        None
+                    )
+                    event_data = getattr(event, "event_data", {})
+                    if event_data.get("task_action") == "debug":
+                        outputs = event_data.get("res", {}).get("outputs", {})
+                if json.loads(job.extra_vars).get("cluster_upgrade_system_packages", False):
+                    patched = patched or job.finished
+            if updated and patched:
                 break
-            if job.status != "successful":
-                continue
-            updated = updated or job.finished
-            if json.loads(job.extra_vars).get("cluster_upgrade_system_packages", False):
-                patched = patched or job.finished
+            else:
+                job = next(jobs, None)
         # Get the inventory variables
         params = inventory.variable_data._as_dict()
         # Extract the parameters that aren't really parameters
@@ -387,6 +383,7 @@ class Driver(base.Driver):
             error_message,
             params,
             (),
+            outputs,
             dateutil.parser.parse(inventory.created),
             dateutil.parser.parse(updated) if updated else None,
             dateutil.parser.parse(patched) if patched else None

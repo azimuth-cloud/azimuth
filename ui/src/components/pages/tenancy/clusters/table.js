@@ -5,11 +5,13 @@
 import React, { useState } from 'react';
 
 import Button from 'react-bootstrap/Button';
+import Card from 'react-bootstrap/Card';
 import Col from 'react-bootstrap/Col';
 import DropdownButton from 'react-bootstrap/DropdownButton';
 import DropdownItem from 'react-bootstrap/DropdownItem';
 import Form from 'react-bootstrap/Form';
 import Image from 'react-bootstrap/Image';
+import ListGroup from 'react-bootstrap/ListGroup';
 import Modal from 'react-bootstrap/Modal';
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Popover from 'react-bootstrap/Popover';
@@ -18,14 +20,20 @@ import Row from 'react-bootstrap/Row';
 import Table from 'react-bootstrap/Table';
 import Tooltip from 'react-bootstrap/Tooltip';
 
+import ReactMarkdown from 'react-markdown';
+
 import get from 'lodash/get';
 import truncate from 'lodash/truncate';
 
 import moment from 'moment';
 
+import nunjucks from 'nunjucks';
+
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
+    faBookmark,
     faExclamationCircle,
+    faExternalLinkAlt,
     faQuestionCircle,
     faSave
 } from '@fortawesome/free-solid-svg-icons';
@@ -33,6 +41,143 @@ import {
 import { bindArgsToActions, sortBy, Loading } from '../../../utils';
 
 import { ClusterParameterField } from './parameter-field';
+
+
+const ClusterOverview = ({ cluster, clusterTypes }) => {
+    const {
+        fetching,
+        fetchError,
+        data: { [cluster.cluster_type]: clusterType }
+    } = clusterTypes;
+
+    if( clusterType ) {
+        const usage = nunjucks.renderString(clusterType.usage_template, { cluster });
+        return (
+            <>
+                <Card className="mb-3">
+                    <Card.Body>
+                        <Row>
+                            <Col xs="auto" className="h-100 border-end">
+                                <Image src={clusterType.logo} fluid style={{ maxHeight: '80px' }} />
+                            </Col>
+                            <Col>
+                                <Card.Title className="border-bottom">{clusterType.label}</Card.Title>
+                                <ReactMarkdown source={clusterType.description} />
+                            </Col>
+                        </Row>
+                    </Card.Body>
+                </Card>
+                <ReactMarkdown source={usage} />
+            </>
+        );
+    }
+    else if( fetching ) {
+        return (
+            <Row className="justify-content-center">
+                <Col xs="auto" className="py-4">
+                    <Loading size="lg" message="Loading cluster types..."/>
+                </Col>
+            </Row>
+        );
+    }
+    else if( fetchError ) {
+        return (
+            <Row className="justify-content-center">
+                <Col xs="auto" className="py-4">
+                    <Error message={fetchError.message} />
+                </Col>
+            </Row>
+        );
+    }
+    else {
+        return (
+            <Row className="justify-content-center">
+                <Col xs="auto" className="py-4">
+                    <Error message={`Unable to find cluster type '${cluster.cluster_type}'`} />
+                </Col>
+            </Row>
+        );
+    }
+};
+
+
+const ClusterServicesCard = ({ cluster }) => {
+    const sortedServices = sortBy(cluster.services, service => service.name);
+    return (
+        <Card className="mb-3">
+            <Card.Header className="text-center">Cluster services</Card.Header>
+            {sortedServices.length > 0 ? (
+                <ListGroup variant="flush" activeKey={null}>
+                    {sortedServices.map(service => (
+                        <ListGroup.Item
+                            key={service.name}
+                            action
+                            href={service.url}
+                            target="_blank"
+                            className="service-list-group-item"
+                        >
+                            <span>
+                                {service.icon_url ? (
+                                    <img src={service.icon_url} alt={`${service.label} icon`} />
+                                ) : (
+                                    <FontAwesomeIcon icon={faBookmark} />
+                                )}
+                            </span>
+                            <span>{service.label}</span>
+                            <span><FontAwesomeIcon icon={faExternalLinkAlt} /></span>
+                        </ListGroup.Item>
+                    ))}
+                </ListGroup>
+            ) : (
+                <Card.Body>
+                    <Row>
+                        <Col className="text-muted text-center">
+                            No services enabled.
+                        </Col>
+                    </Row>
+                </Card.Body>
+            )}
+        </Card>
+    );
+};
+
+
+const ClusterDetailsMenuItem = ({ cluster, tenancy: { clusterTypes } }) => {
+    const [visible, setVisible] = useState(false);
+    const open = () => setVisible(true);
+    const close = () => setVisible(false);
+
+    return (
+        <>
+            <DropdownItem onSelect={open}>
+                Cluster details
+            </DropdownItem>
+            <Modal size="xl" backdrop="static" onHide={close} show={visible}>
+                <Modal.Header closeButton>
+                    <Modal.Title>Cluster details for {cluster.name}</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <Row>
+                        <Col xl={8}>
+                            <ClusterOverview
+                                cluster={cluster}
+                                clusterTypes={clusterTypes}
+                            />
+                        </Col>
+                        <Col xl={4}>
+                            <ClusterServicesCard cluster={cluster} />
+                        </Col>
+                    </Row>
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={close}>
+                        Close
+                    </Button>
+                </Modal.Footer>
+            </Modal>
+        </>
+    );
+};
 
 
 const UpdateClusterParametersMenuItem = ({
@@ -285,6 +430,10 @@ const ClusterActionsDropdown = ({
         disabled={disabled}
         className="float-end"
     >
+        <ClusterDetailsMenuItem
+            cluster={cluster}
+            tenancy={tenancy}
+        />
         <ConfirmPatchMenuItem
             name={cluster.name}
             onConfirm={clusterActions.patch}

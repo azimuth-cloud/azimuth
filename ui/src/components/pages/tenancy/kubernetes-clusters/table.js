@@ -306,6 +306,7 @@ const ServiceCard = ({ kubernetesCluster }) => {
                 <ListGroup variant="flush" activeKey={null}>
                     {sortedServices.map(service => (
                         <ListGroup.Item
+                            key={service.name}
                             action
                             href={service.url}
                             target="_blank"

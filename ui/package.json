@@ -40,6 +40,7 @@
     "js-cookie": "2.x",
     "lodash": "4.x",
     "moment": "2.x",
+    "nunjucks": "^3.2.3",
     "react": "16.x",
     "react-bootstrap": "^2.0.0-beta.0",
     "react-circle-progress-bar": "^0.1.4",
