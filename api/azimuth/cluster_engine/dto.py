@@ -52,7 +52,7 @@ class ClusterParameter:
     #: A human-readable label for the parameter
     label: str
     #: A description of the parameter
-    description: str
+    description: Optional[str]
     #: The kind of the parameter
     kind: str
     #: A dictionary of kind-specific options for the parameter
@@ -90,13 +90,17 @@ class ClusterType:
     #: A human-readable label for the cluster type
     label: str
     #: A description of the cluster type
-    description: str
+    description: Optional[str]
     #: The URL or data URI of the logo for the cluster type
-    logo: str
+    logo: Optional[str]
     #: The parameters for the cluster type
     parameters: Sequence[ClusterParameter]
     #: The services for the cluster type
     services: Sequence[ClusterServiceSpec]
+    #: Template for the usage of the clusters deployed using this type
+    #: Can use Jinja2 syntax and should produce valid Markdown
+    #: Receives the cluster parameters, as defined in `parameters`, as template args
+    usage_template: Optional[str]
 
     @classmethod
     def from_dict(cls, name, spec):
@@ -135,7 +139,8 @@ class ClusterType:
                     service.get('when')
                 )
                 for service in spec.get('services', [])
-            )
+            ),
+            spec.get('usage_template', None)
         )
 
     @classmethod
@@ -227,6 +232,8 @@ class Cluster:
     parameter_values: Mapping[str, Any]
     #: A list of tags describing the cluster
     tags: Sequence[str]
+    #: Dictionary of output variables
+    outputs: Mapping[str, Any]
     #: The datetime at which the cluster was created
     created: datetime
     #: The datetime at which the cluster was updated
