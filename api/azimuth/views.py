@@ -521,6 +521,33 @@ def machines(request, tenant):
             # An SSH key is required unless the web console is enabled
             if not web_console_enabled:
                 raise
+<<<<<<< HEAD
+=======
+        # If the web console is enabled, use the machine metadata and userdata to configure it
+        if web_console_enabled:
+            # Reserve a subdomain with Zenith
+            reservation = cloud_settings.APPS.reserve_subdomain()
+            desktop_enabled = input_serializer.validated_data["desktop_enabled"]
+            params.update(
+                metadata = dict(
+                    web_console_enabled = 1,
+                    desktop_enabled = 1 if desktop_enabled else 0,
+                    cloud_name = cloud_settings.CURRENT_CLOUD,
+                    apps_registrar_url = cloud_settings.APPS.registrar_external_url,
+                    # Pass the token from the registrar reservation
+                    apps_registrar_token = reservation.token,
+                    # Also indicate whether SSL should be verified for the registrar
+                    apps_registrar_verify_ssl = cloud_settings.APPS.verify_ssl_clients,
+                    apps_sshd_host = cloud_settings.APPS.sshd_host,
+                    apps_sshd_port = cloud_settings.APPS.sshd_port,
+                    # Store the subdomain and FQDN in the metadata so that we can retrieve
+                    # it later, even though the client does not need it
+                    apps_console_subdomain = reservation.subdomain,
+                    apps_console_fqdn = reservation.fqdn
+                ),
+                userdata = cloud_settings.APPS.web_console_userdata()
+            )
+>>>>>>> 999fae41be1f1d7a0fa34fc95b157c0e02661cd9
         with request.auth.scoped_session(tenant) as session:
             # If the web console is enabled, use the machine metadata and userdata to configure it
             if web_console_enabled:
