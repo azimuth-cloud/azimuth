@@ -49,3 +49,7 @@ REST_FRAMEWORK = {
 
 # Javascript must be able to access the CSRF cookie
 CSRF_COOKIE_HTTPONLY = False
+
+# Use cookie names that don't conflict by default
+CSRF_COOKIE_NAME = 'azimuth-csrftoken'
+SESSION_COOKIE_NAME = 'azimuth-sessionid'

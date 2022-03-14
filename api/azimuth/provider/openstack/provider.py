@@ -127,7 +127,7 @@ class Provider(base.Provider):
         auth_url: The Keystone v3 authentication URL.
         domain: The domain to authenticate with (default ``Default``).
         interface: The OpenStack interface to connect using (default ``public``).
-        metadata_prefix: The prefix to use for all portal-related metadata (default ``portal_``).
+        metadata_prefix: The prefix to use for all Azimuth-related metadata (default ``azimuth_``).
         internal_net_template: Template for the name of the internal network to use
                                (default ``None``).
                                The current tenancy name can be templated in using the
@@ -157,7 +157,7 @@ class Provider(base.Provider):
     def __init__(self, auth_url,
                        domain = "Default",
                        interface = "public",
-                       metadata_prefix = "portal_",
+                       metadata_prefix = "azimuth_",
                        internal_net_template = None,
                        external_net_template = None,
                        create_internal_net = True,
@@ -243,7 +243,7 @@ class UnscopedSession(base.UnscopedSession):
     provider_name = "openstack"
 
     def __init__(self, connection,
-                       metadata_prefix = "portal_",
+                       metadata_prefix = "azimuth_",
                        internal_net_template = None,
                        external_net_template = None,
                        create_internal_net = True,
@@ -411,7 +411,7 @@ class ScopedSession(base.ScopedSession):
     def __init__(self, username,
                        tenancy,
                        connection,
-                       metadata_prefix = "portal_",
+                       metadata_prefix = "azimuth_",
                        internal_net_template = None,
                        external_net_template = None,
                        create_internal_net = True,
@@ -504,18 +504,26 @@ class ScopedSession(base.ScopedSession):
         """
         Converts an OpenStack API image object into a :py:class:`.dto.Image`.
         """
+        # Gather the metadata items with the specified prefix
+        # As well as the image metadata, we also treat tags with the specified prefix
+        # as metadata items with a value of "1"
+        metadata = {
+            key.removeprefix(self._metadata_prefix): value
+            for key, value in api_image._data.items()
+            if key.startswith(self._metadata_prefix)
+        }
+        metadata.update({
+            tag.removeprefix(self._metadata_prefix): "1"
+            for tag in getattr(api_image, "tags") or []
+            if tag.startswith(self._metadata_prefix)
+        })
         return dto.Image(
             api_image.id,
             api_image.name,
             api_image.visibility == "public",
             # The image size is specified in bytes. Convert to MB.
             float(api_image.size) / 1024.0 / 1024.0,
-            # Gather the metadata items with the specified prefix
-            metadata = {
-                key.removeprefix(self._metadata_prefix): value
-                for key, value in api_image._data.items()
-                if key.startswith(self._metadata_prefix)
-            }
+            metadata = metadata
         )
 
     @convert_exceptions
@@ -526,11 +534,12 @@ class ScopedSession(base.ScopedSession):
         self._log("Fetching available images")
         # Fetch from the SDK using our custom image resource
         # Exclude cluster images from the returned list
-        images = list(
-            image
-            for image in self._connection.image.images.all(status = "active")
-            if not int(getattr(image, "azimuth_cluster_image", "0"))
-        )
+        images = list(self._connection.image.images.all(
+            status = "active",
+            # Include community images in the returned list
+            visibility = "all",
+            member_status = "accepted"
+        ))
         self._log("Found %s images", len(images))
         return tuple(self._from_api_image(i) for i in images)
 
@@ -1373,7 +1382,8 @@ class ScopedSession(base.ScopedSession):
             data = dict(
                 auth_url = self._connection.auth_url,
                 project_id = self._connection.project_id,
-                token = self._connection.token
+                token = self._connection.token,
+                verify_ssl = self._connection.verify
             )
         )
 

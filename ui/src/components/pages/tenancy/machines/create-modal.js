@@ -2,7 +2,7 @@
  * This module contains the modal dialog for machine creation.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 
 import Button from 'react-bootstrap/Button';
 import BSForm from 'react-bootstrap/Form';
@@ -10,6 +10,8 @@ import Modal from 'react-bootstrap/Modal';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDesktop, faPlus, faSyncAlt } from '@fortawesome/free-solid-svg-icons';
+
+import get from 'lodash/get';
 
 import { Form, Field } from '../../../utils';
 import { ConnectedSSHKeyRequiredModal } from '../../../ssh-key-update-modal';
@@ -30,24 +32,33 @@ const CreateMachineModal = ({
     capabilities,
     ...props
 }) => {
+    // Use state to store the values as set by the user
     const [name, setName] = useState('');
-    const [image, setImage] = useState('');
+    const [image, setImage_] = useState('');
     const [size, setSize] = useState('');
-    // This is just the user-selected value of webConsoleEnabled
-    const [webConsoleEnabled_, setWebConsoleEnabled_] = useState(false);
-    // The actual value depends on the user-selected value + SSH key state
-    const webConsoleEnabled = webConsoleEnabled_ || !sshKey.ssh_public_key;
+    const [webConsoleSupported, setWebConsoleSupported_] = useState(false);
+    const [webConsoleEnabled, setWebConsoleEnabled_] = useState(false);
     const [desktopEnabled, setDesktopEnabled] = useState(false);
-    // When the web console is disabled, also disable the desktop
-    const setWebConsoleEnabled = enabled => {
+    const setImage = imageId => {
+        setImage_(imageId);
+        setWebConsoleSupported(get(images.data, [imageId, "web_console_supported"], false));
+    };
+    const setWebConsoleSupported = supported_ => {
+        const supported = capabilities.supports_apps && supported_;
+        setWebConsoleSupported_(supported);
+        setWebConsoleEnabled(supported && webConsoleEnabled);
+    };
+    const setWebConsoleEnabled = enabled_ => {
+        const enabled = enabled_ || !sshKey.ssh_public_key
         setWebConsoleEnabled_(enabled);
-        if( !enabled ) setDesktopEnabled(false);
+        setDesktopEnabled(enabled && desktopEnabled);
     };
     const reset = () => {
         setName('');
-        setImage('');
+        setImage_('');
         setSize('');
-        setWebConsoleEnabled(false);
+        setWebConsoleSupported_(false);
+        setWebConsoleEnabled_(false);
         setDesktopEnabled(false);
     };
 
@@ -64,8 +75,8 @@ const CreateMachineModal = ({
             name,
             image_id: image,
             size_id: size,
-            web_console_enabled: capabilities.supports_apps && webConsoleEnabled,
-            desktop_enabled: capabilities.supports_apps && webConsoleEnabled && desktopEnabled
+            web_console_enabled: webConsoleEnabled,
+            desktop_enabled: desktopEnabled
         });
         reset();
         onSuccess();
@@ -103,6 +114,10 @@ const CreateMachineModal = ({
                             required
                             value={image}
                             onChange={setImage}
+                            showWebConsoleLabel={capabilities.supports_apps}
+                            // When the user doesn't have an SSH key, they can only select images
+                            // that support the web console
+                            disableWebConsoleNotSupported={!sshKey.ssh_public_key}
                         />
                     </Field>
                     <Field name="size" label="Size">
@@ -119,7 +134,14 @@ const CreateMachineModal = ({
                             name="web_console_enabled"
                             helpText={
                                 <>
-                                    {!sshKey.ssh_public_key && (
+                                    {image && !webConsoleSupported && (
+                                        <p className="mb-1 text-warning">
+                                            <strong>
+                                                The selected image does not support the web console.
+                                            </strong>
+                                        </p>
+                                    )}
+                                    {webConsoleEnabled && !sshKey.ssh_public_key && (
                                         <p className="mb-1 text-warning">
                                             <strong>
                                                 This option has been automatically selected because
@@ -138,8 +160,7 @@ const CreateMachineModal = ({
                             }
                         >
                             <BSForm.Check
-                                // If the user has no SSH key, force this to stay true
-                                disabled={!sshKey.ssh_public_key}
+                                disabled={!webConsoleSupported || !sshKey.ssh_public_key}
                                 label="Enable web console?"
                                 checked={webConsoleEnabled}
                                 onChange={setWebConsoleEnabledFromEvent}

@@ -5,6 +5,7 @@ Django views for interacting with the configured cloud provider.
 import dataclasses
 import functools
 import logging
+from urllib.parse import urlencode
 
 from django.shortcuts import redirect, render
 from django.urls import reverse
@@ -17,6 +18,8 @@ from rest_framework import decorators, permissions, response, status, exceptions
 from rest_framework.utils import formatting
 
 import requests
+
+from azimuth_auth.settings import auth_settings
 
 from . import serializers
 from .cluster_api import errors as cluster_api_errors
@@ -143,11 +146,6 @@ def convert_cluster_api_exceptions(view):
                 { "detail": str(exc), "code": "unsupported_operation"},
                 status = status.HTTP_404_NOT_FOUND
             )
-        # except cluster_api_errors.QuotaExceededError as exc:
-        #     return response.Response(
-        #         { "detail": str(exc), "code": "quota_exceeded"},
-        #         status = status.HTTP_409_CONFLICT
-        #     )
         except cluster_api_errors.InvalidOperationError as exc:
             return response.Response(
                 { "detail": str(exc), "code": "invalid_operation"},
@@ -158,16 +156,6 @@ def convert_cluster_api_exceptions(view):
                 { "detail": str(exc), "code": "bad_input"},
                 status = status.HTTP_400_BAD_REQUEST
             )
-        # except cluster_api_errors.OperationTimedOutError as exc:
-        #     return response.Response(
-        #         { "detail": str(exc), "code": "operation_timed_out"},
-        #         status = status.HTTP_504_GATEWAY_TIMEOUT
-        #     )
-        # # For authentication/not found errors, raise the DRF equivalent
-        # except cluster_api_errors.AuthenticationError as exc:
-        #     raise drf_exceptions.AuthenticationFailed(str(exc))
-        # except cluster_api_errors.PermissionDeniedError as exc:
-        #     raise drf_exceptions.PermissionDenied(str(exc))
         except cluster_api_errors.ObjectNotFoundError as exc:
             raise drf_exceptions.NotFound(str(exc))
         except cluster_api_errors.Error as exc:
@@ -191,6 +179,78 @@ def provider_api_view(methods):
         view = decorators.api_view(methods)(view)
         return view
     return decorator
+
+
+def redirect_to_signin(view):
+    """
+    Decorator that redirects unauthorized requests to the sign in page instead
+    of returning a 401 to the client.
+
+    Primarily for use with views that use redirect_to_service_url to redirect users to
+    external services.
+    """
+    @functools.wraps(view)
+    def wrapper(request, *args, **kwargs):
+        response = view(request, *args, **kwargs)
+        if response.status_code == status.HTTP_401_UNAUTHORIZED:
+            return redirect(
+                "{}?{}={}".format(
+                    reverse("azimuth_auth:login"),
+                    auth_settings.NEXT_URL_PARAM,
+                    request.get_full_path()
+                )
+            )
+        else:
+            return response
+    return wrapper
+
+
+def redirect_to_service_url(
+    request,
+    service_type,
+    service_name,
+    service_url,
+    service_label = None,
+    readiness_url = None
+):
+    """
+    Redirects to a service URL if it is ready.
+
+    If it is not ready, a holding page is rendered.
+    """
+    if not service_label:
+        service_label = " ".join(w.capitalize() for w in service_name.split("-"))
+    if not service_url:
+        return render(
+            request,
+            "azimuth/service_not_available.html",
+            { "service_name": service_label }
+        )
+    # Try to fetch the readiness URL
+    # While it returns a 404, 503 or a certificate error (probably because cert-manager is
+    # still negotiating the certificate), the service is not ready
+    try:
+        resp = requests.get(
+            readiness_url or service_url,
+            verify = cloud_settings.APPS.VERIFY_SSL
+        )
+    except requests.exceptions.SSLError:
+        return render(
+            request,
+            "azimuth/service_not_ready.html",
+            { "service_name": service_label, "service_type": service_type }
+        )
+    if resp.status_code in {
+        status.HTTP_404_NOT_FOUND,
+        status.HTTP_503_SERVICE_UNAVAILABLE
+    }:
+        return render(
+            request,
+            "azimuth/service_not_ready.html",
+            { "service_name": service_label, "service_type": service_type }
+        )
+    else:
+        return redirect(service_url)
 
 
 @decorators.api_view(["GET"])
@@ -234,7 +294,7 @@ def session_verify(request):
     """
     Verify the current session.
 
-    This endpoint can be used to check for the presence of an authenticated session
+    This endpoint can be used to check for the presence of an authenticated session
     and optionally for tenancy-level authorization by specifying the configured header
     (defaults to ``X-Auth-Tenancy-Id``).
 
@@ -251,7 +311,13 @@ def session_verify(request):
             content["authorized"] = True
         else:
             raise drf_exceptions.PermissionDenied()
-    return response.Response(content)
+    return response.Response(
+        content,
+        # Return the authenticated username in the X-Remote-User header
+        # The Zenith proxy is configured to forward this header to upstream services, which
+        # they can consume in order to provide a bespoke service per authenticated user
+        headers = { "X-Remote-User": request.user.username }
+    )
 
 
 @provider_api_view(["GET", "PUT"])
@@ -428,33 +494,47 @@ def machines(request, tenant):
             # An SSH key is required unless the web console is enabled
             if not web_console_enabled:
                 raise
-        # If the web console is enabled, use the machine metadata and userdata to configure it
-        if web_console_enabled:
-            # Reserve a subdomain with the Zenith registrar
-            res = requests.post(f"{cloud_settings.APPS.REGISTRAR_ADMIN_URL}/admin/reserve")
-            res.raise_for_status()
-            desktop_enabled = input_serializer.validated_data["desktop_enabled"]
-            params.update(
-                metadata = dict(
-                    web_console_enabled = 1,
-                    desktop_enabled = 1 if desktop_enabled else 0,
-                    cloud_name = cloud_settings.CURRENT_CLOUD,
-                    apps_registrar_url = cloud_settings.APPS.REGISTRAR_EXTERNAL_URL,
-                    # Pass the token from the registrar reservation
-                    apps_registrar_token = res.json()["token"],
-                    apps_sshd_host = cloud_settings.APPS.SSHD_HOST,
-                    apps_sshd_port = cloud_settings.APPS.SSHD_PORT,
-                    # Store the subdomain in the metadata so that we can retrieve it later, even
-                    # though the client does not need it
-                    apps_console_subdomain = res.json()["subdomain"]
-                ),
-                userdata = "\n".join([
-                    "#!/usr/bin/env bash",
-                    "set -eo pipefail",
-                    "curl -fsSL {} | bash -s console".format(cloud_settings.APPS.POST_DEPLOY_SCRIPT_URL)
-                ])
-            )
         with request.auth.scoped_session(tenant) as session:
+            # If the web console is enabled, use the machine metadata and userdata to configure it
+            if web_console_enabled:
+                # Check if the selected image supports the web console
+                image = session.find_image(params["image"])
+                if image.metadata.get("web_console_supported", "0") != "1":
+                    return response.Response(
+                        {
+                            "detail": "Web console is not supported for selected image.",
+                            "code": "invalid_operation"
+                        },
+                        status = status.HTTP_409_CONFLICT
+                    )
+                # Reserve a subdomain with the Zenith registrar
+                res = requests.post(f"{cloud_settings.APPS.REGISTRAR_ADMIN_URL}/admin/reserve")
+                res.raise_for_status()
+                desktop_enabled = input_serializer.validated_data["desktop_enabled"]
+                params.update(
+                    metadata = dict(
+                        web_console_enabled = 1,
+                        desktop_enabled = 1 if desktop_enabled else 0,
+                        cloud_name = cloud_settings.CURRENT_CLOUD,
+                        apps_registrar_url = cloud_settings.APPS.REGISTRAR_EXTERNAL_URL,
+                        # Pass the token from the registrar reservation
+                        apps_registrar_token = res.json()["token"],
+                        # Also indicate whether SSL should be verified for the registrar
+                        apps_registrar_verify_ssl = cloud_settings.APPS.VERIFY_SSL_CLIENTS,
+                        apps_sshd_host = cloud_settings.APPS.SSHD_HOST,
+                        apps_sshd_port = cloud_settings.APPS.SSHD_PORT,
+                        # Store the subdomain in the metadata so that we can retrieve it later,
+                        # even though the client does not need it
+                        apps_console_subdomain = res.json()["subdomain"]
+                    ),
+                    userdata = "\n".join([
+                        "#!/usr/bin/env bash",
+                        "set -eo pipefail",
+                        "curl -fsSL {} | bash -s console".format(
+                            cloud_settings.APPS.POST_DEPLOY_SCRIPT_URL
+                        )
+                    ])
+                )
             machine = session.create_machine(**params)
         output_serializer = serializers.MachineSerializer(
             machine,
@@ -602,32 +682,32 @@ def machine_restart(request, tenant, machine):
     return response.Response(serializer.data)
 
 
+@redirect_to_signin
 @provider_api_view(["GET"])
 def machine_console(request, tenant, machine):
     """
     Redirects the user to the web console for the specified machine.
     """
-    # Make sure that the user has permission to access the machine
-    with request.auth.scoped_session(tenant) as session:
-        machine = session.find_machine(machine)
-    # Check if the machine has the web console enabled
-    # If not, render an error page
-    if machine.metadata.get("web_console_enabled", "0") != "1":
-        return render(request, "portal/console_not_available.html")
-    # The subdomain is in the metadata of the machine
-    subdomain = machine.metadata["apps_console_subdomain"]
-    console_url = "http://{}.{}".format(subdomain, cloud_settings.APPS.BASE_DOMAIN)
-    # Try to fetch the console readiness URL
-    # While it returns a 404 or a certificate error (because cert-manager is still
-    # negotiating the certificate), the console is not ready
+    console_url = None
     try:
-        resp = requests.get(f"{console_url}/_ready")
-    except requests.exceptions.SSLError:
-        return render(request, "portal/console_not_ready.html")
-    if resp.status_code == status.HTTP_404_NOT_FOUND:
-        return render(request, "portal/console_not_ready.html")
-    else:
-        return redirect(console_url)
+        # Make sure that the user has permission to access the machine
+        with request.auth.scoped_session(tenant) as session:
+            machine = session.find_machine(machine)
+        # Check if the machine has the web console enabled
+        # If not, render an error page
+        if machine.metadata.get("web_console_enabled", "0") == "1":
+            # The subdomain is in the metadata of the machine
+            subdomain = machine.metadata["apps_console_subdomain"]
+            console_url = "http://{}.{}".format(subdomain, cloud_settings.APPS.BASE_DOMAIN)
+    except provider_errors.ObjectNotFoundError:
+        pass
+    return redirect_to_service_url(
+        request,
+        "web-console",
+        "web-console",
+        console_url,
+        readiness_url = f"{console_url}/_ready"
+    )
 
 
 @provider_api_view(["GET", "POST"])
@@ -1078,3 +1158,30 @@ def kubernetes_cluster_generate_kubeconfig(request, tenant, cluster):
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             kubeconfig = capi_session.generate_kubeconfig(cluster)
     return response.Response({ "kubeconfig": kubeconfig })
+
+
+@redirect_to_signin
+@provider_api_view(["GET"])
+def kubernetes_cluster_service(request, tenant, cluster, service):
+    """
+    Redirects the user to the specified service on the specified Kubernetes cluster.
+    """
+    service_url = None
+    service_label = None
+    try:
+        if cloud_settings.CLUSTER_API_PROVIDER:
+            with request.auth.scoped_session(tenant) as session:
+                with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
+                    cluster = capi_session.find_cluster(cluster)
+        service = next(s for s in cluster.services if s.name == service)
+        service_url = f"http://{service.fqdn}"
+        service_label = service.label
+    except (cluster_api_errors.ObjectNotFoundError, StopIteration):
+        pass
+    return redirect_to_service_url(
+        request,
+        "kubernetes",
+        service,
+        service_url,
+        service_label = service_label
+    )

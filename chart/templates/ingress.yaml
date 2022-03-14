@@ -1,10 +1,12 @@
-{{- $ingress := mergeOverwrite (deepCopy .Values.global.ingress) .Values.ingress }}
+{{- $ingress := .Values.ingress }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ include "azimuth.fullname" . }}
   labels: {{ include "azimuth.labels" . | nindent 4 }}
-  {{- with $ingress.annotations }}
+  {{- $tlsAnnotations := $ingress.tls.enabled | ternary $ingress.tls.annotations dict }}
+  {{- $annotations := mergeOverwrite $ingress.annotations $tlsAnnotations }}
+  {{- with $annotations }}
   annotations: {{ toYaml . | nindent 4 }}
   {{- end }}
 spec:
@@ -14,11 +16,11 @@ spec:
   {{- if $ingress.tls.enabled }}
   tls:
     - hosts:
-        - {{ tpl $ingress.host . | quote }}
+        - {{ required "ingress.host is required" $ingress.host | quote }}
       secretName: {{ $ingress.tls.secretName | default (printf "%s-tls" (include "azimuth.fullname" .)) }}
   {{- end }}
   rules:
-    - host: {{ tpl $ingress.host . | quote }}
+    - host: {{ $ingress.host | quote }}
       http:
         paths:
           # Send the /api, /auth and /static paths to the api

@@ -18,6 +18,7 @@ Then create and activate a new virtual environment and install the API project:
 python -m venv ./venv
 source ./venv/bin/activate
 pip install git+https://github.com/cedadev/django-settings-object.git
+pip install git+https://github.com/stackhpc/easykube.git
 pip install git+https://github.com/cedadev/jasmin-ldap.git
 pip install git+https://github.com/cedadev/rackit.git
 pip install -e ./api

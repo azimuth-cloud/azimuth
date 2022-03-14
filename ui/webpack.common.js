@@ -49,6 +49,12 @@ module.exports = {
                 includeSourcemap: false
             },
             {
+                filepath: './assets/pulse-overrides.css',
+                typeOfAsset: 'css',
+                hash: true,
+                includeSourcemap: false
+            },
+            {
                 filepath: './assets/tweaks.css',
                 typeOfAsset: 'css',
                 hash: true,

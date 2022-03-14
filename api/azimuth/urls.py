@@ -83,6 +83,11 @@ urlpatterns = [
                     views.kubernetes_cluster_generate_kubeconfig,
                     name = "kubernetes_cluster_generate_kubeconfig"
                 ),
+                path(
+                    "services/<id:service>/",
+                    views.kubernetes_cluster_service,
+                    name = "kubernetes_cluster_service"
+                ),
             ])),
         ])),
         path("cluster_types/", include([

@@ -28,6 +28,17 @@ CAAS_ORGANISATION_NAME = "CaaS"
 CAAS_DEPLOY_KEYPAIR_CREDENTIAL_NAME = 'CaaS Deploy Keypair'
 CAAS_CONSUL_CREDENTIAL_NAME = 'Hashicorp Consul'
 
+OPENSTACK_TOKEN_CLOUDS_TEMPLATE = """
+clouds:
+  openstack:
+    auth:
+      auth_url: "{{ auth_url }}"
+      project_id: "{{ project_id }}"
+      token: "{{ token }}"
+    auth_type: token
+    verify: {{ 'true' if verify_ssl else 'false' }}
+"""
+
 CAAS_CREDENTIAL_TYPES = [
     {
         'name': CREDENTIAL_TYPE_NAMES['openstack_token'],
@@ -51,15 +62,23 @@ CAAS_CREDENTIAL_TYPES = [
                     'label': 'Token',
                     'secret': True,
                 },
+                {
+                    'type': 'boolean',
+                    'id': 'verify_ssl',
+                    'label': 'Verify SSL?',
+                },
             ],
             'required': ['auth_url', 'project_id', 'token'],
         },
         'injectors': {
+            # Make a clouds.yaml file for the token
+            'file': {
+                'template': OPENSTACK_TOKEN_CLOUDS_TEMPLATE,
+            },
+            # Point the OpenStack SDK at it using environment variables
             'env': {
-                'OS_AUTH_TYPE': 'token',
-                'OS_AUTH_URL': '{{ auth_url }}',
-                'OS_PROJECT_ID': '{{ project_id }}',
-                'OS_TOKEN': '{{ token }}',
+                'OS_CLIENT_CONFIG_FILE': '{{ tower.filename }}',
+                'OS_CLOUD': 'openstack',
             },
         },
     },

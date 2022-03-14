@@ -128,3 +128,28 @@
 .cluster-parameters-type .img-fluid {
     max-height: 80px;
 }
+
+
+/**
+ * Custom styles for service list group items.
+ */
+.service-list-group-item span {
+    display: inline-block;
+    height: 1.75rem;
+    line-height: 1.75rem;
+    vertical-align: middle;
+}
+.service-list-group-item span:first-child {
+    width: 1.75rem;
+    text-align: center;
+    margin-right: 0.75rem;
+}
+.service-list-group-item span:first-child > img {
+    height: 1.75rem;
+    width: auto;
+    vertical-align: top;
+}
+.service-list-group-item span:last-child {
+    color: var(--bs-primary);
+    float: right;
+}

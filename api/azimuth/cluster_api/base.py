@@ -10,8 +10,13 @@ import dateutil.parser
 
 import httpx
 
-import easykube
-from easykube.resources import Namespace, Secret
+from easykube import (
+    Configuration,
+    ResourceSpec,
+    ApiError,
+    SyncClient,
+    resources as k8s
+)
 
 from ..provider import base as cloud_base, dto as cloud_dto
 
@@ -21,13 +26,17 @@ from . import dto, errors
 logger = logging.getLogger(__name__)
 
 
-ClusterTemplate = easykube.ResourceSpec(
+# Get the easykube configuration from the environment
+ekconfig = Configuration.from_environment()
+
+
+ClusterTemplate = ResourceSpec(
     "azimuth.stackhpc.com/v1alpha1",
     "clustertemplates",
     "ClusterTemplate",
     False
 )
-Cluster = easykube.ResourceSpec(
+Cluster = ResourceSpec(
     "azimuth.stackhpc.com/v1alpha1",
     "clusters",
     "Cluster",
@@ -43,7 +52,7 @@ def convert_exceptions(f):
     def wrapper(*args, **kwargs):
         try:
             return f(*args, **kwargs)
-        except easykube.ApiError as exc:
+        except ApiError as exc:
             # Extract the status code and message
             status_code = exc.response.status_code
             message = (
@@ -96,7 +105,7 @@ class Provider:
         tenancy_name = re.sub("[^a-z0-9]+", "-", cloud_session._tenancy.name.lower()).strip("-")
         namespace = self._namespace_template.format(tenancy_name = tenancy_name)
         # Create an easykube client targetting our namespace
-        client = easykube.SyncClient.from_environment(default_namespace = namespace)
+        client = ekconfig.sync_client(default_namespace = namespace)
         return session_class(client, cloud_session, self._last_handled_configuration_annotation)
 
 
@@ -118,7 +127,7 @@ class Session:
     """
     def __init__(
         self,
-        client: easykube.SyncClient,
+        client: SyncClient,
         cloud_session: cloud_base.ScopedSession,
         last_handled_configuration_annotation: str
     ):
@@ -141,12 +150,12 @@ class Session:
         Ensures that the target namespace exists.
         """
         try:
-            Namespace(self._client).create({
+            k8s.Namespace(self._client).create({
                 "metadata": {
                     "name": self._client.default_namespace,
                 },
             })
-        except easykube.ApiError as exc:
+        except ApiError as exc:
             # Swallow the conflict that occurs when the namespace already exists
             if exc.status_code != 409 or exc.reason.lower() != "alreadyexists":
                 raise
@@ -207,7 +216,9 @@ class Session:
                     .get(self._last_handled_configuration_annotation, "{}")
             )
             last_handled_spec = last_handled_configuration.get("spec", {})
-            if cluster.spec["templateName"] != last_handled_spec["templateName"]:
+            if "templateName" not in last_handled_spec:
+                cluster_state = "Reconciling"
+            elif cluster.spec["templateName"] != last_handled_spec["templateName"]:
                 cluster_state = "Upgrading"
             elif cluster.spec != last_handled_spec:
                 cluster_state = "Reconciling"
@@ -240,8 +251,10 @@ class Session:
             ],
             cluster.spec["autohealing"],
             cluster.spec.get("addons", {}).get("certManager", False),
+            cluster.spec.get("addons", {}).get("dashboard", False),
             cluster.spec.get("addons", {}).get("ingress", False),
             cluster.spec.get("addons", {}).get("monitoring", False),
+            cluster.spec.get("addons", {}).get("apps", False),
             cluster.get("status", {}).get("kubernetesVersion"),
             cluster_state,
             cluster.get("status", {}).get("controlPlanePhase", "Unknown"),
@@ -259,6 +272,10 @@ class Session:
             [
                 dto.Addon(name, addon.get("phase", "Unknown"))
                 for name, addon in cluster.get("status", {}).get("addons", {}).items()
+            ],
+            [
+                dto.Service(name, service["label"], service["fqdn"], service.get("iconUrl"))
+                for name, service in cluster.get("status", {}).get("services", {}).items()
             ],
             dateutil.parser.parse(cluster.metadata["creationTimestamp"]),
         )
@@ -288,7 +305,7 @@ class Session:
 
     def _create_credential(self):
         """
-        Creates a new credential and returns the Kubernetes secret data.;l
+        Creates a new credential and returns the Kubernetes secret data.
 
         The return value should be a dict with the "data" and/or "stringData" keys.
         """
@@ -311,10 +328,14 @@ class Session:
             spec["autohealing"] = options["autohealing_enabled"]
         if "cert_manager_enabled" in options:
             spec.setdefault("addons", {})["certManager"] = options["cert_manager_enabled"]
+        if "dashboard_enabled" in options:
+            spec.setdefault("addons", {})["dashboard"] = options["dashboard_enabled"]
         if "ingress_enabled" in options:
             spec.setdefault("addons", {})["ingress"] = options["ingress_enabled"]
         if "monitoring_enabled" in options:
             spec.setdefault("addons", {})["monitoring"] = options["monitoring_enabled"]
+        if "apps_enabled" in options:
+            spec.setdefault("addons", {})["apps"] = options["apps_enabled"]
         return spec
 
     @convert_exceptions
@@ -326,8 +347,10 @@ class Session:
         node_groups: t.List[NodeGroupSpec],
         autohealing_enabled: bool = True,
         cert_manager_enabled: bool = False,
+        dashboard_enabled: bool = False,
         ingress_enabled: bool = False,
-        monitoring_enabled: bool = False
+        monitoring_enabled: bool = False,
+        apps_enabled: bool = False
     ) -> dto.Cluster:
         """
         Create a new cluster in the tenancy.
@@ -338,15 +361,17 @@ class Session:
         secret_data = self._create_credential(name)
         secret_name = f"{name}-cloud-credentials"
         secret_data.setdefault("metadata", {})["name"] = secret_name
-        secret = Secret(self._client).create_or_replace(secret_name, secret_data)
+        secret = k8s.Secret(self._client).create_or_replace(secret_name, secret_data)
         # Build the cluster spec
         cluster_spec = self._build_cluster_spec(
             control_plane_size = control_plane_size,
             node_groups = node_groups,
             autohealing_enabled = autohealing_enabled,
             cert_manager_enabled = cert_manager_enabled,
+            dashboard_enabled = dashboard_enabled,
             ingress_enabled = ingress_enabled,
-            monitoring_enabled = monitoring_enabled
+            monitoring_enabled = monitoring_enabled,
+            apps_enabled = apps_enabled
         )
         # Add the create-only pieces
         cluster_spec.update({
@@ -429,8 +454,8 @@ class Session:
         kubeconfig_secret_name = cluster.get("status", {}).get("kubeconfigSecretName")
         if kubeconfig_secret_name:
             try:
-                secret = Secret(self._client).fetch(kubeconfig_secret_name)
-            except easykube.ApiError as exc:
+                secret = k8s.Secret(self._client).fetch(kubeconfig_secret_name)
+            except ApiError as exc:
                 if exc.status_code != 404:
                     raise
             else:

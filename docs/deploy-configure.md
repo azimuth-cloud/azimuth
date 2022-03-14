@@ -233,12 +233,13 @@ When cert-manager is installed and an issuer is configured, it is possible to sp
 for the portal `Ingress` resource. These annotations instruct cert-manager to dynamically request
 a TLS certificate for the portal domain and to renew it when it gets close to expiring.
 
-To configure annotations for the portal `Ingress` resource, use the following:
+To configure cert-manager annotations for the portal `Ingress` resource, use the following:
 
 ```yaml
 ingress:
-  annotations:
-    cert-manager.io/cluster-issuer: name-of-issuer
+  tls:
+    annotations:
+      cert-manager.io/cluster-issuer: name-of-issuer
 ```
 
 In particular, this mechanism can be used to consume certificates issued by Let's Encrypt using
@@ -327,7 +328,7 @@ global:
     tls:
       # Specify the name of a secret containing a wildcard certificate
       secretName: azimuth-wildcard-tls
-      # Or specify annotations to be added to all ingress resources, including those created
+      # Or specify TLS annotations to be added to all ingress resources, including those created
       # by Zenith for proxied services
       annotations:
         cert-manager.io/cluster-issuer: name-of-issuer
