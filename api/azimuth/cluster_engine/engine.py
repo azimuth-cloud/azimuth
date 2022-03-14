@@ -14,6 +14,19 @@ from . import dto, errors
 from .drivers import base as drivers_base
 
 
+ZENITH_REGISTRAR_URL_VAR = "zenith_registrar_url"
+ZENITH_REGISTRAR_VERIFY_SSL_VAR = "zenith_registrar_verify_ssl"
+ZENITH_SSHD_HOST_VAR = "zenith_sshd_host"
+ZENITH_SSHD_PORT_VAR = "zenith_sshd_port"
+
+ZENITH_SUBDOMAIN_VAR_PREFIX = "zenith_subdomain_"
+ZENITH_LABEL_VAR_TPL = "zenith_label_{}"
+ZENITH_ICON_URL_VAR_TPL = "zenith_icon_url_{}"
+ZENITH_SUBDOMAIN_VAR_TPL = ZENITH_SUBDOMAIN_VAR_PREFIX + "{}"
+ZENITH_FQDN_VAR_TPL = "zenith_fqdn_{}"
+ZENITH_TOKEN_VAR_TPL = "zenith_token_{}"
+
+
 class Engine:
     """
     Class for the cluster engine.
@@ -70,17 +83,22 @@ class ClusterManager:
         # Process the parameters to remove Zenith variables and convert them to services
         params = dict(cluster.parameter_values)
         services = []
+        # Throw away the Zenith connection information
+        params.pop(ZENITH_REGISTRAR_URL_VAR, None)
+        params.pop(ZENITH_REGISTRAR_VERIFY_SSL_VAR, None)
+        params.pop(ZENITH_SSHD_HOST_VAR, None)
+        params.pop(ZENITH_SSHD_PORT_VAR, None)
         zenith_service_names = [
-            k.removeprefix("zenith_subdomain_")
+            k.removeprefix(ZENITH_SUBDOMAIN_VAR_PREFIX)
             for k in params.keys()
-            if k.startswith("zenith_subdomain_")
+            if k.startswith(ZENITH_SUBDOMAIN_VAR_PREFIX)
         ]
         for service_name in zenith_service_names:
-            label_variable = f"zenith_label_{service_name}"
-            icon_url_variable = f"zenith_icon_url_{service_name}"
-            subdomain_variable = f"zenith_subdomain_{service_name}"
-            fqdn_variable = f"zenith_fqdn_{service_name}"
-            token_variable = f"zenith_token_{service_name}"
+            label_variable = ZENITH_LABEL_VAR_TPL.format(service_name)
+            icon_url_variable = ZENITH_ICON_URL_VAR_TPL.format(service_name)
+            subdomain_variable = ZENITH_SUBDOMAIN_VAR_TPL.format(service_name)
+            fqdn_variable = ZENITH_FQDN_VAR_TPL.format(service_name)
+            token_variable = ZENITH_TOKEN_VAR_TPL.format(service_name)
             # Throw away the token
             params.pop(token_variable, None)
             # Extract the other variables and use them to build a service
@@ -151,17 +169,24 @@ class ClusterManager:
         # modifications for Zenith services that need to be enabled or disabled
         next_params = prev_params.copy()
         next_params.update(params)
+        # Add the connection information for Zenith services
+        zenith_params.update({
+            ZENITH_REGISTRAR_URL_VAR: self._zenith.registrar_external_url,
+            ZENITH_REGISTRAR_VERIFY_SSL_VAR: self._zenith.verify_ssl_clients,
+            ZENITH_SSHD_HOST_VAR: self._zenith.sshd_host,
+            ZENITH_SSHD_PORT_VAR: self._zenith.sshd_port,
+        })
         for service in cluster_type.services:
             if service.when:
                 expr = self._jinja_env.compile_expression(service.when)
                 service_enabled = expr(**next_params)
             else:
                 service_enabled = True
-            label_variable = f"zenith_label_{service.name}"
-            icon_url_variable = f"zenith_icon_url_{service.name}"
-            subdomain_variable = f"zenith_subdomain_{service.name}"
-            fqdn_variable = f"zenith_fqdn_{service.name}"
-            token_variable = f"zenith_token_{service.name}"
+            label_variable = ZENITH_LABEL_VAR_TPL.format(service.name)
+            icon_url_variable = ZENITH_ICON_URL_VAR_TPL.format(service.name)
+            subdomain_variable = ZENITH_SUBDOMAIN_VAR_TPL.format(service.name)
+            fqdn_variable = ZENITH_FQDN_VAR_TPL.format(service.name)
+            token_variable = ZENITH_TOKEN_VAR_TPL.format(service.name)
             if service_enabled:
                 # Reserve a subdomain for the service if required
                 if subdomain_variable not in next_params:
