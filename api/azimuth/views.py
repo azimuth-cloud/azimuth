@@ -494,35 +494,47 @@ def machines(request, tenant):
             # An SSH key is required unless the web console is enabled
             if not web_console_enabled:
                 raise
-        # If the web console is enabled, use the machine metadata and userdata to configure it
-        if web_console_enabled:
-            # Reserve a subdomain with the Zenith registrar
-            res = requests.post(f"{cloud_settings.APPS.REGISTRAR_ADMIN_URL}/admin/reserve")
-            res.raise_for_status()
-            desktop_enabled = input_serializer.validated_data["desktop_enabled"]
-            params.update(
-                metadata = dict(
-                    web_console_enabled = 1,
-                    desktop_enabled = 1 if desktop_enabled else 0,
-                    cloud_name = cloud_settings.CURRENT_CLOUD,
-                    apps_registrar_url = cloud_settings.APPS.REGISTRAR_EXTERNAL_URL,
-                    # Pass the token from the registrar reservation
-                    apps_registrar_token = res.json()["token"],
-                    # Also indicate whether SSL should be verified for the registrar
-                    apps_registrar_verify_ssl = cloud_settings.APPS.VERIFY_SSL_CLIENTS,
-                    apps_sshd_host = cloud_settings.APPS.SSHD_HOST,
-                    apps_sshd_port = cloud_settings.APPS.SSHD_PORT,
-                    # Store the subdomain in the metadata so that we can retrieve it later, even
-                    # though the client does not need it
-                    apps_console_subdomain = res.json()["subdomain"]
-                ),
-                userdata = "\n".join([
-                    "#!/usr/bin/env bash",
-                    "set -eo pipefail",
-                    "curl -fsSL {} | bash -s console".format(cloud_settings.APPS.POST_DEPLOY_SCRIPT_URL)
-                ])
-            )
         with request.auth.scoped_session(tenant) as session:
+            # If the web console is enabled, use the machine metadata and userdata to configure it
+            if web_console_enabled:
+                # Check if the selected image supports the web console
+                image = session.find_image(params["image"])
+                if image.metadata.get("web_console_supported", "0") != "1":
+                    return response.Response(
+                        {
+                            "detail": "Web console is not supported for selected image.",
+                            "code": "invalid_operation"
+                        },
+                        status = status.HTTP_409_CONFLICT
+                    )
+                # Reserve a subdomain with the Zenith registrar
+                res = requests.post(f"{cloud_settings.APPS.REGISTRAR_ADMIN_URL}/admin/reserve")
+                res.raise_for_status()
+                desktop_enabled = input_serializer.validated_data["desktop_enabled"]
+                params.update(
+                    metadata = dict(
+                        web_console_enabled = 1,
+                        desktop_enabled = 1 if desktop_enabled else 0,
+                        cloud_name = cloud_settings.CURRENT_CLOUD,
+                        apps_registrar_url = cloud_settings.APPS.REGISTRAR_EXTERNAL_URL,
+                        # Pass the token from the registrar reservation
+                        apps_registrar_token = res.json()["token"],
+                        # Also indicate whether SSL should be verified for the registrar
+                        apps_registrar_verify_ssl = cloud_settings.APPS.VERIFY_SSL_CLIENTS,
+                        apps_sshd_host = cloud_settings.APPS.SSHD_HOST,
+                        apps_sshd_port = cloud_settings.APPS.SSHD_PORT,
+                        # Store the subdomain in the metadata so that we can retrieve it later,
+                        # even though the client does not need it
+                        apps_console_subdomain = res.json()["subdomain"]
+                    ),
+                    userdata = "\n".join([
+                        "#!/usr/bin/env bash",
+                        "set -eo pipefail",
+                        "curl -fsSL {} | bash -s console".format(
+                            cloud_settings.APPS.POST_DEPLOY_SCRIPT_URL
+                        )
+                    ])
+                )
             machine = session.create_machine(**params)
         output_serializer = serializers.MachineSerializer(
             machine,

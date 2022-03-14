@@ -192,11 +192,17 @@ class ImageSerializer(
     make_dto_serializer(dto.Image, exclude = ["metadata"])
 ):
     nat_allowed = serializers.SerializerMethodField()
+    web_console_supported = serializers.SerializerMethodField()
 
     def get_nat_allowed(self, obj):
         # The value in the metadata will be a string 1 or 0
         # If the metadata is not present, NAT is allowed
         return obj.metadata.get("nat_allowed", "1") == "1"
+
+    def get_web_console_supported(self, obj):
+        # The value in the metadata will be a string 1 or 0
+        # If the metadata is not present, the web console is not allowed
+        return obj.metadata.get("web_console_supported", "0") == "1"
 
 
 class SizeRefSerializer(RefSerializer):

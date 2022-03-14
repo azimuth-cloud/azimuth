@@ -4,6 +4,7 @@
 
 import React, { useEffect, useState } from 'react';
 
+import Badge from 'react-bootstrap/Badge';
 import Button from 'react-bootstrap/Button';
 import ButtonGroup from 'react-bootstrap/ButtonGroup';
 import Col from 'react-bootstrap/Col';
@@ -220,8 +221,28 @@ const ResourceSelectControl = ({
 };
 
 
-export const ImageSelectControl = (props) => (
-    <ResourceSelectControl resourceName="image" {...props} />
+export const ImageSelectControl = ({
+    // Indicates whether the web console label should be shown for images
+    showWebConsoleLabel = true,
+    // Indicates whether images that don't support the web console should be disabled
+    disableWebConsoleNotSupported = false,
+    ...props
+}) => (
+    <ResourceSelectControl
+        resourceName="image"
+        // Show the web console badge if requested
+        formatOptionLabel={(opt) => (
+            <>
+                {opt.name}
+                {showWebConsoleLabel && opt.web_console_supported && (
+                    <Badge className="ms-3" bg="primary">web console</Badge>
+                )}
+            </>
+        )}
+        // Disable images where the web console is not supported, if requested
+        isOptionDisabled={(opt) => disableWebConsoleNotSupported && !opt.web_console_supported}
+        {...props}
+    />
 );
 
 

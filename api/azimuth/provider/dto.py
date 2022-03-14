@@ -67,7 +67,7 @@ class Image:
     #: The size of the image in MB
     size: float
     #: The metadata associated with the image
-    metadata: Mapping[str, Any]
+    metadata: Mapping[str, str]
 
 
 @dataclass(frozen = True)
@@ -143,7 +143,7 @@ class Machine:
     #: Tuple of ids of attached volumes for the machine
     attached_volume_ids: Sequence[str]
     #: The metadata associated with the machine
-    metadata: Mapping[str, Any]
+    metadata: Mapping[str, str]
     #: The id or username of the user who deployed the machine
     owner: str
     #: The datetime at which the machine was deployed
