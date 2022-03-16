@@ -191,7 +191,13 @@ def float_constraint(options, **kwargs):
 
 
 @register_constraint("boolean")
-def boolean_constraint(**kwargs):
+def boolean_constraint(options, prev_value, **kwargs):
+    # Booleans support a "permanent" option indicating that once a parameter
+    # has become true, it cannot become false again
+    def permanent(value):
+        if options.get("permanent") and prev_value and not value:
+            raise v.Invalid("This value cannot be unset.")
+        return value
     # The built-in Boolean validator ends up casting any value to a bool
     # We want to be stricter and actively reject anything except:
     #   - bool
@@ -199,12 +205,15 @@ def boolean_constraint(**kwargs):
     #   - "1" / "0"
     #   - "true" / "false"
     #   - "yes" / "no"
-    return v.Any(
-        # Don't use "bool" because that would result in a coercion which we don't want
-        v.In([True, False]),
-        # This covers 0/1 and "0"/"1"
-        v.All(int, v.In([0, 1]), bool),
-        v.All(str, v.In(["true", "false", "yes", "no"]), v.Boolean())
+    return v.All(
+        v.Any(
+            # Don't use "bool" because that would result in a coercion which we don't want
+            v.In([True, False]),
+            # This covers 0/1 and "0"/"1"
+            v.All(int, v.In([0, 1]), bool),
+            v.All(str, v.In(["true", "false", "yes", "no"]), v.Boolean())
+        ),
+        permanent
     )
 
 
