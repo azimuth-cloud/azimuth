@@ -54,6 +54,7 @@
     "redux-observable": "1.x",
     "reselect": "^4.0.0",
     "rxjs": "6.x",
+    "sprintf-js": "^1.1.2",
     "sshpk": "^1.16.1"
   },
   "main": "./src/main.js"

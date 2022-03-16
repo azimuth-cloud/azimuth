@@ -3,6 +3,7 @@ This module defines the base class for cluster managers.
 """
 
 import dataclasses
+from re import S
 import typing as t
 
 import jinja2
@@ -158,7 +159,7 @@ class ClusterManager:
         self,
         params: t.Mapping[str, t.Any],
         cluster_type: dto.ClusterType,
-        prev_params: t.Mapping[str, t.Any]
+        cluster: t.Optional[dto.Cluster] = None
     ):
         """
         Returns a new set of parameters that have the required Zenith parameters
@@ -167,7 +168,7 @@ class ClusterManager:
         zenith_params = params.copy()
         # next_params represents the next state of the cluster before any
         # modifications for Zenith services that need to be enabled or disabled
-        next_params = prev_params.copy()
+        next_params = getattr(cluster, "parameter_values", {}).copy()
         next_params.update(params)
         # Add the connection information for Zenith services
         zenith_params.update({
@@ -176,7 +177,11 @@ class ClusterManager:
             ZENITH_SSHD_HOST_VAR: self._zenith.sshd_host,
             ZENITH_SSHD_PORT_VAR: self._zenith.sshd_port,
         })
+        # Determine the existing services
+        existing_services = { s.name for s in getattr(cluster, "services", []) }
+        # Update the parameters based on the services for the cluster type
         for service in cluster_type.services:
+            # Check if the service is enabled
             if service.when:
                 expr = self._jinja_env.compile_expression(service.when)
                 service_enabled = expr(**next_params)
@@ -187,9 +192,12 @@ class ClusterManager:
             subdomain_variable = ZENITH_SUBDOMAIN_VAR_TPL.format(service.name)
             fqdn_variable = ZENITH_FQDN_VAR_TPL.format(service.name)
             token_variable = ZENITH_TOKEN_VAR_TPL.format(service.name)
+            # If the service is enabled but already exists, there is nothing to do
+            # If the service is enabled but doesn't exist, we need to reserve a subdomain
+            # and inject the parameters for it
+            # If the service is not enabled, make sure the variables are removed
             if service_enabled:
-                # Reserve a subdomain for the service if required
-                if subdomain_variable not in next_params:
+                if service.name not in existing_services:
                     reservation = self._zenith.reserve_subdomain()
                     zenith_params.update({
                         subdomain_variable: reservation.subdomain,
@@ -197,19 +205,20 @@ class ClusterManager:
                         token_variable: reservation.token,
                     })
                 # Always make sure the label and icon URL are up to date
-                zenith_params[label_variable] = service.label
-                if service.icon_url:
-                    zenith_params[icon_url_variable] = service.icon_url
-                else:
-                    zenith_params.pop(icon_url_variable, None)
+                zenith_params.update({
+                    label_variable: service.label,
+                    icon_url_variable: service.icon_url,
+                })
             else:
-                # When the service is disabled, remove all the Zenith variables
-                # for the service
-                zenith_params.pop(label_variable, None)
-                zenith_params.pop(icon_url_variable, None)
-                zenith_params.pop(subdomain_variable, None)
-                zenith_params.pop(fqdn_variable, None)
-                zenith_params.pop(token_variable, None)
+                # When the service is disabled, remove all the Zenith variables for the service
+                # To do this, they should be set to None
+                zenith_params.update({
+                    label_variable: None,
+                    icon_url_variable: None,
+                    subdomain_variable: None,
+                    fqdn_variable: None,
+                    token_variable: None,
+                })
         return zenith_params
 
     def create_cluster(
@@ -228,7 +237,7 @@ class ClusterManager:
             params = self.validate_cluster_params(cluster_type, params)
         params = dict(params, **self._cloud_session.cluster_parameters())
         if self._zenith:
-            params = self._with_zenith_params(params, cluster_type, {})
+            params = self._with_zenith_params(params, cluster_type)
         cluster = self._driver.create_cluster(
             name,
             cluster_type,
@@ -257,7 +266,7 @@ class ClusterManager:
         if not validated or self._zenith:
             cluster_type = self.find_cluster_type(cluster.cluster_type)
         else:
-            cluster_type = cluster.cluster_type
+            cluster_type = None
         # If the parameters have not already been validated, validated them
         if not validated:
             params = self.validate_cluster_params(
@@ -267,7 +276,7 @@ class ClusterManager:
             )
         params = dict(params, **self._cloud_session.cluster_parameters())
         if self._zenith:
-            params = self._with_zenith_params(params, cluster_type, cluster.parameter_values)
+            params = self._with_zenith_params(params, cluster_type, cluster)
         cluster = self._driver.update_cluster(cluster, params, self._ctx)
         return self._cluster_modify(cluster)
 

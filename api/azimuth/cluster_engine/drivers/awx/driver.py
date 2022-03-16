@@ -318,8 +318,17 @@ class Driver(base.Driver):
                     latest.job_events.all(event = "runner_on_failed", order_by = "-created"),
                     None
                 )
-                msg = getattr(event, "event_data", {}).get("res", {}).get("msg")
-                error_message = msg or "Error during cluster configuration. Please contact support."
+                host = event.event_data.get("host")
+                result = event.event_data.get("res")
+                no_log = result.pop("_ansible_no_log", False)
+                if no_log or not result:
+                    msg = "Error during cluster configuration. Please contact support."
+                else:
+                    msg = json.dumps(result, indent = 4)
+                if host:
+                    error_message = "[{}] => {}".format(host, msg)
+                else:
+                    error_message = msg
             else:
                 if cluster_state == "present":
                     status = dto.ClusterStatus.CONFIGURING
@@ -581,7 +590,8 @@ class Driver(base.Driver):
         self._log("Setting inventory variables for '%s'", inventory.name, ctx = ctx)
         inventory.variable_data._update(
             dict(
-                params,
+                # Parameters with a value of None should be omitted
+                { k: v for k, v in params.items() if v is not None },
                 cluster_id = inventory.id,
                 cluster_name = name,
                 cluster_type = cluster_type.name,
@@ -614,15 +624,12 @@ class Driver(base.Driver):
         self._log("Updating cluster '%s'", cluster.id, ctx = ctx)
         inventory = self._connection.inventories.get(cluster.id)
         inventory_variables = inventory.variable_data._as_dict()
-        # The new inventory variables are the new params + the injected variables
-        next_inventory_variables = dict(
-            params,
-            cluster_id = inventory.id,
-            cluster_name = cluster.name,
-            cluster_type = cluster.cluster_type,
-            cluster_user_ssh_public_key = inventory_variables["cluster_user_ssh_public_key"]
-        )
-        inventory.variable_data._update(next_inventory_variables)
+        for key, value in params.items():
+            if value is not None:
+                inventory_variables[key] = value
+            else:
+                inventory_variables.pop(key, None)
+        inventory.variable_data._update(inventory_variables)
         self._run_inventory(cluster.cluster_type, inventory, awx_credential, {}, ctx)
         return self.find_cluster(cluster.id, ctx)
 
