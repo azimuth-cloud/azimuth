@@ -6,6 +6,10 @@ SECRET_KEY = 'notsecret'
 DEBUG = True
 ALLOWED_HOSTS = []
 
+# Use cookie names that don't conflict by default
+CSRF_COOKIE_NAME = 'azimuth-csrftoken'
+SESSION_COOKIE_NAME = 'azimuth-sessionid'
+
 
 # Enable debug logging for rackit
 LOGGING = {
@@ -155,6 +159,10 @@ AZIMUTH = {
     #     # The port for the app proxy SSHD service
     #     # Defaults to 22 (standard SSH port) if not given
     #     # 'SSHD_PORT': 32222,
+    #     # The external URL of the app proxy registrar, as needed by clients
+    #     # REGISTRAR_EXTERNAL_URL = "https://registrar.apps.cloud.example.com",
+    #     # The admin URL of the app proxy registrar, for reserving subdomains
+    #     # REGISTRAR_ADMIN_URL = "http://registrar.internal"
     # },
 
     # AWX settings for Cluster-as-a-Service support (optional)

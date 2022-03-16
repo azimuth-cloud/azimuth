@@ -5,27 +5,35 @@
 import React, { useState } from 'react';
 
 import Button from 'react-bootstrap/Button';
+import Card from 'react-bootstrap/Card';
 import Col from 'react-bootstrap/Col';
 import DropdownButton from 'react-bootstrap/DropdownButton';
 import DropdownItem from 'react-bootstrap/DropdownItem';
 import Form from 'react-bootstrap/Form';
 import Image from 'react-bootstrap/Image';
+import ListGroup from 'react-bootstrap/ListGroup';
 import Modal from 'react-bootstrap/Modal';
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
-import Popover from 'react-bootstrap/Popover';
 import ProgressBar from 'react-bootstrap/ProgressBar';
 import Row from 'react-bootstrap/Row';
 import Table from 'react-bootstrap/Table';
 import Tooltip from 'react-bootstrap/Tooltip';
+
+import ReactMarkdown from 'react-markdown';
 
 import get from 'lodash/get';
 import truncate from 'lodash/truncate';
 
 import moment from 'moment';
 
+import nunjucks from 'nunjucks';
+import { sprintf } from 'sprintf-js';
+
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
+    faBookmark,
     faExclamationCircle,
+    faExternalLinkAlt,
     faQuestionCircle,
     faSave
 } from '@fortawesome/free-solid-svg-icons';
@@ -35,10 +43,155 @@ import { bindArgsToActions, sortBy, Loading } from '../../../utils';
 import { ClusterParameterField } from './parameter-field';
 
 
+const ClusterOverview = ({ cluster, clusterTypes }) => {
+    const {
+        fetching,
+        fetchError,
+        data: { [cluster.cluster_type]: clusterType }
+    } = clusterTypes;
+
+    if( clusterType ) {
+        let usage;
+        if( clusterType.usage_template ) {
+            // Register the sprintf function as the 'format' filter
+            const env = new nunjucks.Environment();
+            env.addFilter('format', sprintf);
+            console.log(clusterType)
+            usage = env.renderString(clusterType.usage_template, { cluster });
+        }
+        return (
+            <>
+                <Card className="mb-3">
+                    <Card.Body>
+                        <Row>
+                            <Col xs="auto" className="h-100 border-end">
+                                <Image src={clusterType.logo} fluid style={{ maxHeight: '80px' }} />
+                            </Col>
+                            <Col>
+                                <Card.Title className="border-bottom">{clusterType.label}</Card.Title>
+                                <ReactMarkdown source={clusterType.description} />
+                            </Col>
+                        </Row>
+                    </Card.Body>
+                </Card>
+                <ReactMarkdown source={usage} />
+            </>
+        );
+    }
+    else if( fetching ) {
+        return (
+            <Row className="justify-content-center">
+                <Col xs="auto" className="py-4">
+                    <Loading size="lg" message="Loading cluster types..."/>
+                </Col>
+            </Row>
+        );
+    }
+    else if( fetchError ) {
+        return (
+            <Row className="justify-content-center">
+                <Col xs="auto" className="py-4">
+                    <Error message={fetchError.message} />
+                </Col>
+            </Row>
+        );
+    }
+    else {
+        return (
+            <Row className="justify-content-center">
+                <Col xs="auto" className="py-4">
+                    <Error message={`Unable to find cluster type '${cluster.cluster_type}'`} />
+                </Col>
+            </Row>
+        );
+    }
+};
+
+
+const ClusterServicesCard = ({ cluster }) => {
+    const sortedServices = sortBy(cluster.services, service => service.name);
+    return (
+        <Card className="mb-3">
+            <Card.Header className="text-center">Cluster services</Card.Header>
+            {sortedServices.length > 0 ? (
+                <ListGroup variant="flush" activeKey={null}>
+                    {sortedServices.map(service => (
+                        <ListGroup.Item
+                            key={service.name}
+                            action
+                            href={service.url}
+                            target="_blank"
+                            className="service-list-group-item"
+                        >
+                            <span>
+                                {service.icon_url ? (
+                                    <img src={service.icon_url} alt={`${service.label} icon`} />
+                                ) : (
+                                    <FontAwesomeIcon icon={faBookmark} />
+                                )}
+                            </span>
+                            <span>{service.label}</span>
+                            <span><FontAwesomeIcon icon={faExternalLinkAlt} /></span>
+                        </ListGroup.Item>
+                    ))}
+                </ListGroup>
+            ) : (
+                <Card.Body>
+                    <Row>
+                        <Col className="text-muted text-center">
+                            No services enabled.
+                        </Col>
+                    </Row>
+                </Card.Body>
+            )}
+        </Card>
+    );
+};
+
+
+const ClusterDetailsMenuItem = ({ cluster, tenancy: { clusterTypes } }) => {
+    const [visible, setVisible] = useState(false);
+    const open = () => setVisible(true);
+    const close = () => setVisible(false);
+
+    return (
+        <>
+            <DropdownItem onSelect={open}>
+                Cluster details
+            </DropdownItem>
+            <Modal size="xl" backdrop="static" onHide={close} show={visible}>
+                <Modal.Header closeButton>
+                    <Modal.Title>Cluster details for {cluster.name}</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <Row>
+                        <Col xl={8}>
+                            <ClusterOverview
+                                cluster={cluster}
+                                clusterTypes={clusterTypes}
+                            />
+                        </Col>
+                        <Col xl={4}>
+                            <ClusterServicesCard cluster={cluster} />
+                        </Col>
+                    </Row>
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={close}>
+                        Close
+                    </Button>
+                </Modal.Footer>
+            </Modal>
+        </>
+    );
+};
+
+
 const UpdateClusterParametersMenuItem = ({
     cluster,
     tenancy,
     tenancyActions,
+    disabled,
     onSubmit
 }) => {
     const { clusterTypes: { data: clusterTypes } } = tenancy;
@@ -88,7 +241,7 @@ const UpdateClusterParametersMenuItem = ({
     // It will either become available, or it no longer exists
     return (
         <>
-            <DropdownItem onSelect={open} disabled={!clusterType}>
+            <DropdownItem onSelect={open} disabled={disabled || !clusterType}>
                 Update cluster options
             </DropdownItem>
             <Modal
@@ -135,7 +288,7 @@ const UpdateClusterParametersMenuItem = ({
 };
 
 
-const ConfirmPatchMenuItem = ({ name, onConfirm }) => {
+const ConfirmPatchMenuItem = ({ name, disabled, onConfirm }) => {
     const [visible, setVisible] = useState(false);
 
     const open = () => setVisible(true);
@@ -144,7 +297,7 @@ const ConfirmPatchMenuItem = ({ name, onConfirm }) => {
 
    return (
         <>
-            <DropdownItem onSelect={open}>
+            <DropdownItem onSelect={open} disabled={disabled}>
                 Patch cluster
             </DropdownItem>
             <Modal show={visible} backdrop="static" keyboard={false}>
@@ -210,31 +363,46 @@ const statusClasses = {
 };
 
 
-const ClusterStatus = ({ cluster }) => (
-    <span className={`fw-bold ${statusClasses[cluster.status]}`}>
-        {cluster.status}
-        {cluster.error_message && (
-            <OverlayTrigger
-                placement="right"
-                overlay={(
-                    <Popover>
-                        <Popover.Header>Error message</Popover.Header>
-                        <Popover.Body>{cluster.error_message}</Popover.Body>
-                    </Popover>
+const ClusterStatus = ({ cluster }) => {
+    const [errorVisible, setErrorVisible] = useState(false);
+    const openError = () => setErrorVisible(true);
+    const closeError = () => setErrorVisible(false);
+
+    return (
+        <>
+            <span className={`fw-bold ${statusClasses[cluster.status]}`}>
+                {cluster.status}
+                {cluster.error_message && (
+                    <Button
+                        variant="link"
+                        className="ms-1 text-reset"
+                        onClick={openError}
+                    >
+                        <FontAwesomeIcon icon={faQuestionCircle} />
+                        <span className="visually-hidden">Error message</span>
+                    </Button>
                 )}
-                trigger="click"
-                rootClose
-            >
-                <a
-                    className="ms-1 text-reset overlay-trigger"
-                    title="Error message"
-                >
-                    <FontAwesomeIcon icon={faQuestionCircle} />
-                </a>
-            </OverlayTrigger>
-        )}
-    </span>
-);
+            </span>
+            {cluster.error_message && (
+                <Modal size="xl" show={errorVisible} backdrop="static" onHide={closeError}>
+                    <Modal.Header closeButton>
+                        <Modal.Title>Error message</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>
+                        <pre>
+                            {cluster.error_message}
+                        </pre>
+                    </Modal.Body>
+                    <Modal.Footer>
+                        <Button variant="secondary" onClick={closeError}>
+                            Close
+                        </Button>
+                    </Modal.Footer>
+                </Modal>
+            )}
+        </>
+    );
+};
 
 const ClusterTask = ({ cluster: { task } }) => {
     const label = truncate(task, { length: 40 });
@@ -262,46 +430,56 @@ const ClusterPatched = ({ cluster: { patched }}) => {
 
 
 const ClusterActionsDropdown = ({
-    disabled,
     cluster,
     clusterActions,
     tenancy,
     tenancyActions
-}) => (
-    <DropdownButton
-        variant="secondary"
-        title={
-            disabled ? (
-                <Loading
-                    message="Working..."
-                    muted={false}
-                    visuallyHidden
-                    wrapperComponent="span"
-                />
-            ) : (
-                'Actions'
-            )
-        }
-        disabled={disabled}
-        className="float-end"
-    >
-        <ConfirmPatchMenuItem
-            name={cluster.name}
-            onConfirm={clusterActions.patch}
-        />
-        <UpdateClusterParametersMenuItem
-            cluster={cluster}
-            tenancy={tenancy}
-            tenancyActions={tenancyActions}
-            onSubmit={clusterActions.update}
-        />
-        <ConfirmDeleteMenuItem
-            name={cluster.name}
-            disabled={cluster.linked}
-            onConfirm={clusterActions.delete}
-        />
-    </DropdownButton>
-);
+}) => {
+    const inFlight = !!cluster.updating || !!cluster.deleting;
+    const working = ['CONFIGURING', 'DELETING'].includes(cluster.status);
+    return (
+        <DropdownButton
+            variant="secondary"
+            title={
+                inFlight ? (
+                    <Loading
+                        message="Working..."
+                        muted={false}
+                        visuallyHidden
+                        wrapperComponent="span"
+                    />
+                ) : (
+                    'Actions'
+                )
+            }
+            disabled={inFlight}
+            className="float-end"
+        >
+            <ClusterDetailsMenuItem
+                cluster={cluster}
+                tenancy={tenancy}
+            />
+            <ConfirmPatchMenuItem
+                name={cluster.name}
+                disabled={working}
+                onConfirm={clusterActions.patch}
+            />
+            <UpdateClusterParametersMenuItem
+                cluster={cluster}
+                tenancy={tenancy}
+                tenancyActions={tenancyActions}
+                disabled={working}
+                onSubmit={clusterActions.update}
+            />
+            <ConfirmDeleteMenuItem
+                name={cluster.name}
+                disabled={cluster.linked}
+                disabled={working}
+                onConfirm={clusterActions.delete}
+            />
+        </DropdownButton>
+    );
+};
 
 
 const ClusterRow = ({ cluster, clusterActions, tenancy, tenancyActions }) => {
@@ -323,11 +501,11 @@ const ClusterRow = ({ cluster, clusterActions, tenancy, tenancyActions }) => {
             <td>{cluster.patched ? <ClusterPatched cluster={cluster} /> : '-'}</td>
             <td className="resource-actions">
                 <ClusterActionsDropdown
-                  disabled={!!highlightClass}
-                  cluster={cluster}
-                  tenancy={tenancy}
-                  tenancyActions={tenancyActions}
-                  clusterActions={clusterActions} />
+                    cluster={cluster}
+                    tenancy={tenancy}
+                    tenancyActions={tenancyActions}
+                    clusterActions={clusterActions}
+                />
             </td>
         </tr>
     );

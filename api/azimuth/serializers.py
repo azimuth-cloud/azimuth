@@ -14,6 +14,7 @@ from django.urls import reverse
 from rest_framework import serializers
 
 from .cluster_api import dto as capi_dto
+from .cluster_engine import dto as clusters_dto, errors as clusters_errors
 from .provider import dto, errors
 from .settings import cloud_settings
 
@@ -438,10 +439,12 @@ class ExternalIPSerializer(make_dto_serializer(dto.ExternalIp)):
         return result
 
 
-ClusterParameterSerializer = make_dto_serializer(dto.ClusterParameter)
+ClusterParameterSerializer = make_dto_serializer(clusters_dto.ClusterParameter)
 
 
-class ClusterTypeSerializer(make_dto_serializer(dto.ClusterType)):
+class ClusterTypeSerializer(
+    make_dto_serializer(clusters_dto.ClusterType, exclude = ["services"])
+):
     parameters = ClusterParameterSerializer(many = True, read_only = True)
 
     def to_representation(self, obj):
@@ -459,8 +462,26 @@ class ClusterTypeSerializer(make_dto_serializer(dto.ClusterType)):
         return result
 
 
-class ClusterSerializer(make_dto_serializer(dto.Cluster)):
+class ClusterSerializer(make_dto_serializer(clusters_dto.Cluster, exclude = ["services"])):
     status = serializers.ReadOnlyField(source = "status.name")
+    services = serializers.SerializerMethodField()
+
+    def get_services(self, obj):
+        request = self.context.get("request")
+        tenant = self.context.get("tenant")
+        services = []
+        for service_dto in obj.services:
+            service_obj = dataclasses.asdict(service_dto)
+            service_obj.pop("fqdn", None)
+            service_obj["url"] = request.build_absolute_uri(
+                reverse("azimuth:cluster_service", kwargs = {
+                    "tenant": tenant,
+                    "cluster": obj.id,
+                    "service": service_dto.name,
+                })
+            )
+            services.append(service_obj)
+        return services
 
     def to_representation(self, obj):
         result = super().to_representation(obj)
@@ -493,22 +514,22 @@ class CreateClusterSerializer(serializers.Serializer):
     def validate_cluster_type(self, value):
         # Find the cluster type
         # Convert not found errors into validation errors
-        session = self.context["session"]
+        cluster_manager = self.context["cluster_manager"]
         try:
-            return session.find_cluster_type(value)
-        except errors.ObjectNotFoundError as exc:
+            return cluster_manager.find_cluster_type(value)
+        except clusters_errors.ObjectNotFoundError as exc:
             raise serializers.ValidationError(str(exc))
 
     def validate(self, data):
         # Force a validation of the parameter values for the cluster type
         # Convert the provider error into a DRF ValidationError
-        session = self.context["session"]
+        cluster_manager = self.context["cluster_manager"]
         try:
-            data["parameter_values"] = session.validate_cluster_params(
+            data["parameter_values"] = cluster_manager.validate_cluster_params(
                 data["cluster_type"],
                 data["parameter_values"]
             )
-        except errors.ValidationError as exc:
+        except clusters_errors.ValidationError as exc:
             raise serializers.ValidationError({ "parameter_values": exc.errors })
         return data
 
@@ -520,15 +541,15 @@ class UpdateClusterSerializer(serializers.Serializer):
         # Force a validation of the parameter values against the cluster
         # type for the cluster
         # Convert the provider error into a DRF ValidationError
-        session = self.context["session"]
+        cluster_manager = self.context["cluster_manager"]
         cluster = self.context["cluster"]
         try:
-            data["parameter_values"] = session.validate_cluster_params(
+            data["parameter_values"] = cluster_manager.validate_cluster_params(
                 cluster.cluster_type,
                 data["parameter_values"],
                 cluster.parameter_values
             )
-        except errors.ValidationError as exc:
+        except clusters_errors.ValidationError as exc:
             raise serializers.ValidationError({ "parameter_values": exc.errors })
         return data
 

@@ -286,22 +286,36 @@ const kindToControlMap = {
 };
 
 
-const BooleanParameterField = ({ parameter, value, onChange, isCreate }) => (
-    <Field
-        label={parameter.label}
-        helpText={<ReactMarkdown source={parameter.description} />}
-    >
-        <FormCheck
-            id={parameter.name}
-            type="checkbox"
-            required={parameter.required}
-            checked={value || false}
-            onChange={(evt) => onChange(evt.target.checked)}
-            disabled={parameter.immutable && !isCreate}
-            label={parameter.options.checkboxLabel || parameter.label}
-        />
-    </Field>
-);
+const BooleanParameterField = ({ parameter, value, onChange, isCreate }) => {
+    const [initial, _] = useState(value);
+    const checked = value ? true : false;
+    // Boolean parameters support "immutable" and an option called "permanent"
+    // The difference is subtle - an "immutable" boolean can only be set on create,
+    // so if it is false on create it can never be set to true
+    // However a "permanent" boolean can be set to true at any time, but once it
+    // becomes true it can never be set back to false
+    // Both options only take effect on an update
+    const disabled = (
+        !isCreate &&
+        (parameter.immutable || (parameter.options.permanent && initial))
+    );
+    return (
+        <Field
+            label={parameter.label}
+            helpText={<ReactMarkdown source={parameter.description} />}
+        >
+            <FormCheck
+                id={parameter.name}
+                type="checkbox"
+                required={parameter.required}
+                checked={checked}
+                onChange={(evt) => onChange(evt.target.checked)}
+                disabled={disabled}
+                label={parameter.options.checkboxLabel || parameter.label}
+            />
+        </Field>
+    );
+};
 
 
 const DefaultParameterField = ({

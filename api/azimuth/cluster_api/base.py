@@ -102,7 +102,7 @@ class Provider:
         """
         session_class = self.get_session_class()
         # Get the namespace to use by substituting the sanitised tenancy name into the template
-        tenancy_name = re.sub("[^a-z0-9]+", "-", cloud_session._tenancy.name.lower()).strip("-")
+        tenancy_name = re.sub("[^a-z0-9]+", "-", cloud_session.tenancy().name.lower()).strip("-")
         namespace = self._namespace_template.format(tenancy_name = tenancy_name)
         # Create an easykube client targetting our namespace
         client = ekconfig.sync_client(default_namespace = namespace)
@@ -139,8 +139,8 @@ class Session:
         logger.log(
             level,
             "[%s] [%s] " + message,
-            self._cloud_session._username,
-            self._cloud_session._tenancy.name,
+            self._cloud_session.username(),
+            self._cloud_session.tenancy().name,
             *args,
             **kwargs
         )

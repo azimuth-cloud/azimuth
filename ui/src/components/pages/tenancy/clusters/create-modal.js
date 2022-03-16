@@ -108,8 +108,8 @@ const ClusterParametersForm = ({
         () => Object.assign(
             {},
             ...parameters
-                .filter(p => p.required)
-                .map(p => ({ [p.name]: p.default || '' }))
+                .filter(p => p.required || p.default !== null)
+                .map(p => ({ [p.name]: p.default !== null ? p.default : '' }))
         )
     );
 

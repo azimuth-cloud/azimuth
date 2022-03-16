@@ -15,8 +15,9 @@ import dateutil.parser
 
 import rackit
 
+from ...cluster_engine.dto import Credential
+
 from .. import base, errors, dto
-from ..cluster_engine.base import Credential
 
 from . import api
 
@@ -303,11 +304,7 @@ class UnscopedSession(base.UnscopedSession):
             supports_volumes = False
         else:
             supports_volumes = True
-        return dto.Capabilities(
-            supports_volumes = supports_volumes,
-            # Clusters are supported if there is a cluster engine
-            supports_clusters = bool(self._cluster_engine)
-        )
+        return dto.Capabilities(supports_volumes = supports_volumes)
 
     @convert_exceptions
     def ssh_public_key(self, key_name):
@@ -437,6 +434,18 @@ class ScopedSession(base.ScopedSession):
             "[%s] [%s] " + message,
             self._username, self._tenancy.name, *args, **kwargs
         )
+
+    def username(self):
+        """
+        See :py:meth:`.base.ScopedSession.username`.
+        """
+        return self._username
+
+    def tenancy(self):
+        """
+        See :py:meth:`.base.ScopedSession.tenancy`.
+        """
+        return self._tenancy
 
     @convert_exceptions
     def quotas(self):
@@ -1295,39 +1304,50 @@ class ScopedSession(base.ScopedSession):
             )
         return self._cluster_manager
 
-    @convert_exceptions
-    def cluster_types(self):
+    def cluster_credential(self):
         """
-        See :py:meth:`.base.ScopedSession.cluster_types`.
+        See :py:meth:`.base.ScopedSession.cluster_credential`.
         """
-        return self.cluster_manager.cluster_types()
+        # Return a credential that uses the current token to interact with OpenStack
+        return Credential(
+            type = "openstack_token",
+            data = dict(
+                auth_url = self._connection.auth_url,
+                project_id = self._connection.project_id,
+                token = self._connection.token,
+                verify_ssl = self._connection.verify
+            )
+        )
 
-    @convert_exceptions
-    def find_cluster_type(self, name):
+    def cluster_parameters(self):
         """
-        See :py:meth:`.base.ScopedSession.find_cluster_type`.
+        See :py:meth:`.base.ScopedSession.cluster_parameters`.
         """
-        return self.cluster_manager.find_cluster_type(name)
+        # Inject information about the networks to use
+        return dict(
+            cluster_floating_network = self._external_network().name,
+            cluster_network = self._tenant_network(True).name
+        )
 
-    def _fixup_cluster(self, cluster):
+    def cluster_modify(self, cluster):
         """
-        Fix up the cluster with any OpenStack-specific changes.
+        See :py:meth:`.base.ScopedSession.cluster_modify`.
         """
         # Remove injected parameters from the cluster params
         params = {
             k: v
             for k, v in cluster.parameter_values.items()
-            if k != "cluster_network"
+            if k not in {"cluster_floating_network", "cluster_network"}
         }
         # Add any tags attached to the stack
         try:
             stack = self._connection.orchestration.stacks.find_by_stack_name(cluster.name)
-        except api.ServiceNotSupported:
-            stack = None
-        except rackit.NotFound:
-            stack = None
-        # We use this format because tags might exist on the stack but be None
-        stack_tags = tuple(getattr(stack, "tags", None) or [])
+        except (api.ServiceNotSupported, rackit.NotFound):
+            tags = cluster.tags
+        else:
+            tags = list(cluster.tags)
+            if stack:
+                tags.extend(stack.tags or [])
         original_error = (cluster.error_message or "").lower()
         # Convert quota-related error messages based on known OpenStack errors
         if any(m in original_error for m in {"quota exceeded", "exceedsavailablequota"}):
@@ -1342,113 +1362,14 @@ class ScopedSession(base.ScopedSession):
                     "Please check your tenancy quotas and try again."
                 )
         elif cluster.error_message:
-            error_message = (
-                "Error during cluster configuration. "
-                "Please contact support."
-            )
+            error_message = _replace_resource_names(cluster.error_message)
         else:
             error_message = None
         return dataclasses.replace(
             cluster,
             parameter_values = params,
-            tags = cluster.tags + stack_tags,
+            tags = tags,
             error_message = error_message
-        )
-
-    @convert_exceptions
-    def clusters(self):
-        """
-        See :py:meth:`.base.ScopedSession.clusters`.
-        """
-        return tuple(
-            self._fixup_cluster(c)
-            for c in self.cluster_manager.clusters()
-        )
-
-    @convert_exceptions
-    def find_cluster(self, id):
-        """
-        See :py:meth:`.base.ScopedSession.find_cluster`.
-        """
-        return self._fixup_cluster(self.cluster_manager.find_cluster(id))
-
-    def _cluster_credential(self):
-        """
-        Returns a credential containing the current OpenStack token to be used with the
-        cluster engine for making OpenStack resources.
-        """
-        return Credential(
-            type = "openstack_token",
-            data = dict(
-                auth_url = self._connection.auth_url,
-                project_id = self._connection.project_id,
-                token = self._connection.token,
-                verify_ssl = self._connection.verify
-            )
-        )
-
-    @convert_exceptions
-    def create_cluster(self, name, cluster_type, params, ssh_key):
-        """
-        See :py:meth:`.base.ScopedSession.create_cluster`.
-        """
-        params = self.validate_cluster_params(cluster_type, params)
-        # Inject information about the networks to use
-        params.update(
-            cluster_floating_network = self._external_network().name,
-            cluster_network = self._tenant_network(True).name
-        )
-        return self._fixup_cluster(
-            self.cluster_manager.create_cluster(
-                name,
-                cluster_type,
-                params,
-                ssh_key,
-                self._cluster_credential()
-            )
-        )
-
-    @convert_exceptions
-    def update_cluster(self, cluster, params):
-        """
-        See :py:meth:`.base.ScopedSession.update_cluster`.
-        """
-        if not isinstance(cluster, dto.Cluster):
-            cluster = self.find_cluster(cluster)
-        return self._fixup_cluster(
-            self.cluster_manager.update_cluster(
-                cluster,
-                self.validate_cluster_params(
-                    cluster.cluster_type,
-                    params,
-                    cluster.parameter_values
-                ),
-                self._cluster_credential()
-            )
-        )
-
-    @convert_exceptions
-    def patch_cluster(self, cluster):
-        """
-        See :py:meth:`.base.ScopedSession.patch_cluster`.
-        """
-        return self._fixup_cluster(
-            self.cluster_manager.patch_cluster(
-                cluster,
-                self._cluster_credential()
-            )
-        )
-
-    @convert_exceptions
-    def delete_cluster(self, cluster):
-        """
-        See :py:meth:`.base.ScopedSession.delete_cluster`.
-        """
-        return self._fixup_cluster(
-            self.cluster_manager.delete_cluster(
-                cluster,
-                self._cluster_credential()
-            )
         )
 
     @convert_exceptions

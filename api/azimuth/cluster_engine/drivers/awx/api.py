@@ -2,6 +2,8 @@
 Module containing helpers for interacting with the AWX API.
 """
 
+import json
+
 import requests
 
 import rackit
@@ -54,6 +56,12 @@ class Team(Resource):
         endpoint = "/teams/"
 
     roles = rackit.NestedResource(Role)
+
+    def associate_role(self, role):
+        connection = self._manager.connection
+        path = "{}roles/".format(self._path)
+        role_id = role.id if isinstance(role, Role) else role
+        connection.api_post(path, json = dict(id = role_id))
 
 
 class Playbooks(rackit.UnmanagedResource):
@@ -176,3 +184,10 @@ class Connection(rackit.Connection):
         if response.url.endswith("/migrations_notran/"):
             raise rackit.ServiceUnavailable('Migrations in progress')
         return response
+
+    def extract_error_message(self, response):
+        # Try to extract a JSON error message, falling back to text
+        try:
+            return response.json()["detail"]
+        except (json.JSONDecodeError, KeyError):
+            return response.text

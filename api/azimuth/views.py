@@ -5,7 +5,6 @@ Django views for interacting with the configured cloud provider.
 import dataclasses
 import functools
 import logging
-from urllib.parse import urlencode
 
 from django.shortcuts import redirect, render
 from django.urls import reverse
@@ -17,12 +16,11 @@ from docutils import core
 from rest_framework import decorators, permissions, response, status, exceptions as drf_exceptions
 from rest_framework.utils import formatting
 
-import requests
-
 from azimuth_auth.settings import auth_settings
 
 from . import serializers
 from .cluster_api import errors as cluster_api_errors
+from .cluster_engine import errors as cluster_engine_errors
 from .keystore import errors as keystore_errors
 from .provider import errors as provider_errors
 from .settings import cloud_settings
@@ -130,6 +128,48 @@ def convert_key_store_exceptions(view):
     return wrapper
 
 
+def convert_cluster_engine_exceptions(view):
+    """
+    Decorator that converts errors from :py:mod:`.cluster_engine.errors` into appropriate
+    HTTP responses or Django REST framework errors.
+    """
+    @functools.wraps(view)
+    def wrapper(*args, **kwargs):
+        try:
+            return view(*args, **kwargs)
+        # For provider errors that don't map to authentication/not found errors,
+        # return suitable responses
+        except cluster_engine_errors.UnsupportedOperationError as exc:
+            return response.Response(
+                { "detail": str(exc), "code": "unsupported_operation"},
+                status = status.HTTP_404_NOT_FOUND
+            )
+        except cluster_engine_errors.QuotaExceededError as exc:
+            return response.Response(
+                { "detail": str(exc), "code": "quota_exceeded"},
+                status = status.HTTP_409_CONFLICT
+            )
+        except cluster_engine_errors.InvalidOperationError as exc:
+            return response.Response(
+                { "detail": str(exc), "code": "invalid_operation"},
+                status = status.HTTP_409_CONFLICT
+            )
+        except cluster_engine_errors.BadInputError as exc:
+            return response.Response(
+                { "detail": str(exc), "code": "bad_input"},
+                status = status.HTTP_400_BAD_REQUEST
+            )
+        except cluster_engine_errors.ObjectNotFoundError as exc:
+            raise drf_exceptions.NotFound(str(exc))
+        except cluster_engine_errors.Error as exc:
+            log.exception("Unexpected cluster engine error occurred")
+            return response.Response(
+                { "detail": str(exc) },
+                status = status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    return wrapper
+
+
 def convert_cluster_api_exceptions(view):
     """
     Decorator that converts errors from :py:mod:`.cluster_api.errors` into appropriate
@@ -175,6 +215,7 @@ def provider_api_view(methods):
         view = convert_provider_exceptions(view)
         view = convert_key_store_exceptions(view)
         view = convert_cluster_api_exceptions(view)
+        view = convert_cluster_engine_exceptions(view)
         view = decorators.permission_classes([permissions.IsAuthenticated])(view)
         view = decorators.api_view(methods)(view)
         return view
@@ -186,7 +227,7 @@ def redirect_to_signin(view):
     Decorator that redirects unauthorized requests to the sign in page instead
     of returning a 401 to the client.
 
-    Primarily for use with views that use redirect_to_service_url to redirect users to
+    Primarily for use with views that use redirect_to_zenith_service to redirect users to
     external services.
     """
     @functools.wraps(view)
@@ -205,13 +246,13 @@ def redirect_to_signin(view):
     return wrapper
 
 
-def redirect_to_service_url(
+def redirect_to_zenith_service(
     request,
     service_type,
     service_name,
-    service_url,
+    service_fqdn,
     service_label = None,
-    readiness_url = None
+    readiness_path = "/"
 ):
     """
     Redirects to a service URL if it is ready.
@@ -220,37 +261,21 @@ def redirect_to_service_url(
     """
     if not service_label:
         service_label = " ".join(w.capitalize() for w in service_name.split("-"))
-    if not service_url:
+    if not service_fqdn:
         return render(
             request,
             "azimuth/service_not_available.html",
             { "service_name": service_label }
         )
-    # Try to fetch the readiness URL
-    # While it returns a 404, 503 or a certificate error (probably because cert-manager is
-    # still negotiating the certificate), the service is not ready
-    try:
-        resp = requests.get(
-            readiness_url or service_url,
-            verify = cloud_settings.APPS.VERIFY_SSL
-        )
-    except requests.exceptions.SSLError:
-        return render(
-            request,
-            "azimuth/service_not_ready.html",
-            { "service_name": service_label, "service_type": service_type }
-        )
-    if resp.status_code in {
-        status.HTTP_404_NOT_FOUND,
-        status.HTTP_503_SERVICE_UNAVAILABLE
-    }:
-        return render(
-            request,
-            "azimuth/service_not_ready.html",
-            { "service_name": service_label, "service_type": service_type }
-        )
+    redirect_url = cloud_settings.APPS.service_is_ready(service_fqdn, readiness_path)
+    if redirect_url:
+        return redirect(redirect_url)
     else:
-        return redirect(service_url)
+        return render(
+            request,
+            "azimuth/service_not_ready.html",
+            { "service_name": service_label, "service_type": service_type }
+        )
 
 
 @decorators.api_view(["GET"])
@@ -278,9 +303,11 @@ def session(request):
         # app proxy for the portal, not the cloud itself
         "capabilities": dict(
             dataclasses.asdict(request.auth.capabilities()),
+            # Clusters are supported if a cluster engine is configured
+            supports_clusters = bool(cloud_settings.CLUSTER_ENGINE),
             # Kubernetes is supported if a Cluster API provider is configured
             supports_kubernetes = bool(cloud_settings.CLUSTER_API_PROVIDER),
-            supports_apps = bool(cloud_settings.APPS.ENABLED),
+            supports_apps = bool(cloud_settings.APPS),
         ),
         "links": {
             "ssh_public_key": request.build_absolute_uri(reverse("azimuth:ssh_public_key")),
@@ -473,7 +500,7 @@ def machines(request, tenant):
         )
         # The web console is not permitted if there is no app proxy
         web_console_enabled = input_serializer.validated_data["web_console_enabled"]
-        if web_console_enabled and not cloud_settings.APPS.ENABLED:
+        if web_console_enabled and not cloud_settings.APPS:
             return response.Response(
                 {
                     "detail": "Web console is not available.",
@@ -508,32 +535,26 @@ def machines(request, tenant):
                         status = status.HTTP_409_CONFLICT
                     )
                 # Reserve a subdomain with the Zenith registrar
-                res = requests.post(f"{cloud_settings.APPS.REGISTRAR_ADMIN_URL}/admin/reserve")
-                res.raise_for_status()
+                reservation = cloud_settings.APPS.reserve_subdomain()
                 desktop_enabled = input_serializer.validated_data["desktop_enabled"]
                 params.update(
                     metadata = dict(
                         web_console_enabled = 1,
                         desktop_enabled = 1 if desktop_enabled else 0,
                         cloud_name = cloud_settings.CURRENT_CLOUD,
-                        apps_registrar_url = cloud_settings.APPS.REGISTRAR_EXTERNAL_URL,
+                        apps_registrar_url = cloud_settings.APPS.registrar_external_url,
                         # Pass the token from the registrar reservation
-                        apps_registrar_token = res.json()["token"],
+                        apps_registrar_token = reservation.token,
                         # Also indicate whether SSL should be verified for the registrar
-                        apps_registrar_verify_ssl = cloud_settings.APPS.VERIFY_SSL_CLIENTS,
-                        apps_sshd_host = cloud_settings.APPS.SSHD_HOST,
-                        apps_sshd_port = cloud_settings.APPS.SSHD_PORT,
-                        # Store the subdomain in the metadata so that we can retrieve it later,
-                        # even though the client does not need it
-                        apps_console_subdomain = res.json()["subdomain"]
+                        apps_registrar_verify_ssl = cloud_settings.APPS.verify_ssl_clients,
+                        apps_sshd_host = cloud_settings.APPS.sshd_host,
+                        apps_sshd_port = cloud_settings.APPS.sshd_port,
+                        # Store the subdomain and FQDN in the metadata so that we can retrieve
+                        # it later, even though the client does not need it
+                        apps_console_subdomain = reservation.subdomain,
+                        apps_console_fqdn = reservation.fqdn
                     ),
-                    userdata = "\n".join([
-                        "#!/usr/bin/env bash",
-                        "set -eo pipefail",
-                        "curl -fsSL {} | bash -s console".format(
-                            cloud_settings.APPS.POST_DEPLOY_SCRIPT_URL
-                        )
-                    ])
+                    userdata = cloud_settings.APPS.web_console_userdata()
                 )
             machine = session.create_machine(**params)
         output_serializer = serializers.MachineSerializer(
@@ -688,7 +709,7 @@ def machine_console(request, tenant, machine):
     """
     Redirects the user to the web console for the specified machine.
     """
-    console_url = None
+    console_fqdn = None
     try:
         # Make sure that the user has permission to access the machine
         with request.auth.scoped_session(tenant) as session:
@@ -697,16 +718,15 @@ def machine_console(request, tenant, machine):
         # If not, render an error page
         if machine.metadata.get("web_console_enabled", "0") == "1":
             # The subdomain is in the metadata of the machine
-            subdomain = machine.metadata["apps_console_subdomain"]
-            console_url = "http://{}.{}".format(subdomain, cloud_settings.APPS.BASE_DOMAIN)
+            console_fqdn = machine.metadata["apps_console_fqdn"]
     except provider_errors.ObjectNotFoundError:
         pass
-    return redirect_to_service_url(
+    return redirect_to_zenith_service(
         request,
         "web-console",
         "web-console",
-        console_url,
-        readiness_url = f"{console_url}/_ready"
+        console_fqdn,
+        readiness_path = "/_ready"
     )
 
 
@@ -872,12 +892,21 @@ def cluster_types(request, tenant):
     """
     Returns the cluster types available to the tenancy.
     """
-    with request.auth.scoped_session(tenant) as session:
-        serializer = serializers.ClusterTypeSerializer(
-            session.cluster_types(),
-            many = True,
-            context = { "request": request, "tenant": tenant }
+    if not cloud_settings.CLUSTER_ENGINE:
+        return response.Response(
+            {
+                "detail": "Clusters are not supported.",
+                "code": "unsupported_operation"
+            },
+            status = status.HTTP_404_NOT_FOUND
         )
+    with request.auth.scoped_session(tenant) as session:
+        with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
+            serializer = serializers.ClusterTypeSerializer(
+                cluster_manager.cluster_types(),
+                many = True,
+                context = { "request": request, "tenant": tenant }
+            )
     return response.Response(serializer.data)
 
 
@@ -886,11 +915,20 @@ def cluster_type_details(request, tenant, cluster_type):
     """
     Returns the requested cluster type.
     """
-    with request.auth.scoped_session(tenant) as session:
-        serializer = serializers.ClusterTypeSerializer(
-            session.find_cluster_type(cluster_type),
-            context = { "request": request, "tenant": tenant }
+    if not cloud_settings.CLUSTER_ENGINE:
+        return response.Response(
+            {
+                "detail": "Clusters are not supported.",
+                "code": "unsupported_operation"
+            },
+            status = status.HTTP_404_NOT_FOUND
         )
+    with request.auth.scoped_session(tenant) as session:
+        with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
+            serializer = serializers.ClusterTypeSerializer(
+                cluster_manager.find_cluster_type(cluster_type),
+                context = { "request": request, "tenant": tenant }
+            )
     return response.Response(serializer.data)
 
 
@@ -901,39 +939,47 @@ def clusters(request, tenant):
 
     On ``POST`` requests, create a new cluster.
     """
-    if request.method == "POST":
-        with request.auth.scoped_session(tenant) as session:
-            input_serializer = serializers.CreateClusterSerializer(
-                data = request.data,
-                context = { "session": session }
-            )
-            input_serializer.is_valid(raise_exception = True)
-            cluster = session.create_cluster(
-                input_serializer.validated_data["name"],
-                input_serializer.validated_data["cluster_type"],
-                input_serializer.validated_data["parameter_values"],
-                cloud_settings.SSH_KEY_STORE.get_key(
-                    request.user.username,
-                    # Pass the request and the sessions as keyword options
-                    # so that the key store can use them if it needs to
-                    request = request,
-                    unscoped_session = request.auth,
-                    scoped_session = session
-                )
-            )
-        output_serializer = serializers.ClusterSerializer(
-            cluster,
-            context = { "request": request, "tenant": tenant }
+    if not cloud_settings.CLUSTER_ENGINE:
+        return response.Response(
+            {
+                "detail": "Clusters are not supported.",
+                "code": "unsupported_operation"
+            },
+            status = status.HTTP_404_NOT_FOUND
         )
-        return response.Response(output_serializer.data)
-    else:
-        with request.auth.scoped_session(tenant) as session:
-            serializer = serializers.ClusterSerializer(
-                session.clusters(),
-                many = True,
-                context = { "request": request, "tenant": tenant }
-            )
-        return response.Response(serializer.data)
+    with request.auth.scoped_session(tenant) as session:
+        with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
+            if request.method == "POST":
+                input_serializer = serializers.CreateClusterSerializer(
+                    data = request.data,
+                    context = { "session": session, "cluster_manager": cluster_manager }
+                )
+                input_serializer.is_valid(raise_exception = True)
+                cluster = cluster_manager.create_cluster(
+                    input_serializer.validated_data["name"],
+                    input_serializer.validated_data["cluster_type"],
+                    input_serializer.validated_data["parameter_values"],
+                    cloud_settings.SSH_KEY_STORE.get_key(
+                        request.user.username,
+                        # Pass the request and the sessions as keyword options
+                        # so that the key store can use them if it needs to
+                        request = request,
+                        unscoped_session = request.auth,
+                        scoped_session = session
+                    )
+                )
+                output_serializer = serializers.ClusterSerializer(
+                    cluster,
+                    context = { "request": request, "tenant": tenant }
+                )
+                return response.Response(output_serializer.data)
+            else:
+                serializer = serializers.ClusterSerializer(
+                    cluster_manager.clusters(),
+                    many = True,
+                    context = { "request": request, "tenant": tenant }
+                )
+                return response.Response(serializer.data)
 
 
 @provider_api_view(["GET", "PUT", "DELETE"])
@@ -945,41 +991,52 @@ def cluster_details(request, tenant, cluster):
 
     On ``DELETE`` requests, delete the named cluster.
     """
-    if request.method == "PUT":
-        with request.auth.scoped_session(tenant) as session:
-            cluster = session.find_cluster(cluster)
-            input_serializer = serializers.UpdateClusterSerializer(
-                data = request.data,
-                context = dict(session = session, cluster = cluster)
-            )
-            input_serializer.is_valid(raise_exception = True)
-            updated = session.update_cluster(
-                cluster,
-                input_serializer.validated_data["parameter_values"]
-            )
-        output_serializer = serializers.ClusterSerializer(
-            updated,
-            context = { "request": request, "tenant": tenant }
+    if not cloud_settings.CLUSTER_ENGINE:
+        return response.Response(
+            {
+                "detail": "Clusters are not supported.",
+                "code": "unsupported_operation"
+            },
+            status = status.HTTP_404_NOT_FOUND
         )
-        return response.Response(output_serializer.data)
-    elif request.method == "DELETE":
-        with request.auth.scoped_session(tenant) as session:
-            deleted = session.delete_cluster(cluster)
-        if deleted:
-            serializer = serializers.ClusterSerializer(
-                deleted,
-                context = { "request": request, "tenant": tenant }
-            )
-            return response.Response(serializer.data)
-        else:
-            return response.Response()
-    else:
-        with request.auth.scoped_session(tenant) as session:
-            serializer = serializers.ClusterSerializer(
-                session.find_cluster(cluster),
-                context = { "request": request, "tenant": tenant }
-            )
-        return response.Response(serializer.data)
+    with request.auth.scoped_session(tenant) as session:
+        with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
+            if request.method == "PUT":
+                cluster = cluster_manager.find_cluster(cluster)
+                input_serializer = serializers.UpdateClusterSerializer(
+                    data = request.data,
+                    context = dict(
+                        session = session,
+                        cluster_manager = cluster_manager,
+                        cluster = cluster
+                    )
+                )
+                input_serializer.is_valid(raise_exception = True)
+                updated = cluster_manager.update_cluster(
+                    cluster,
+                    input_serializer.validated_data["parameter_values"]
+                )
+                output_serializer = serializers.ClusterSerializer(
+                    updated,
+                    context = { "request": request, "tenant": tenant }
+                )
+                return response.Response(output_serializer.data)
+            elif request.method == "DELETE":
+                deleted = cluster_manager.delete_cluster(cluster)
+                if deleted:
+                    serializer = serializers.ClusterSerializer(
+                        deleted,
+                        context = { "request": request, "tenant": tenant }
+                    )
+                    return response.Response(serializer.data)
+                else:
+                    return response.Response()
+            else:
+                serializer = serializers.ClusterSerializer(
+                    cluster_manager.find_cluster(cluster),
+                    context = { "request": request, "tenant": tenant }
+                )
+                return response.Response(serializer.data)
 
 
 @provider_api_view(["POST"])
@@ -987,12 +1044,48 @@ def cluster_patch(request, tenant, cluster):
     """
     Patch the given cluster.
     """
-    with request.auth.scoped_session(tenant) as session:
-        serializer = serializers.ClusterSerializer(
-            session.patch_cluster(cluster),
-            context = { "request": request, "tenant": tenant }
+    if not cloud_settings.CLUSTER_ENGINE:
+        return response.Response(
+            {
+                "detail": "Clusters are not supported.",
+                "code": "unsupported_operation"
+            },
+            status = status.HTTP_404_NOT_FOUND
         )
+    with request.auth.scoped_session(tenant) as session:
+        with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
+            serializer = serializers.ClusterSerializer(
+                cluster_manager.patch_cluster(cluster),
+                context = { "request": request, "tenant": tenant }
+            )
     return response.Response(serializer.data)
+
+
+@redirect_to_signin
+@provider_api_view(["GET"])
+def cluster_service(request, tenant, cluster, service):
+    """
+    Redirects the user to the specified service on the specified cluster.
+    """
+    service_fqdn = None
+    service_label = None
+    try:
+        if cloud_settings.CLUSTER_ENGINE:
+            with request.auth.scoped_session(tenant) as session:
+                with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
+                    cluster = cluster_manager.find_cluster(cluster)
+        service_obj = next(s for s in cluster.services if s.name == service)
+        service_fqdn = service_obj.fqdn
+        service_label = service_obj.label
+    except (cluster_engine_errors.ObjectNotFoundError, StopIteration):
+        pass
+    return redirect_to_zenith_service(
+        request,
+        "cluster",
+        service,
+        service_fqdn,
+        service_label = service_label
+    )
 
 
 @provider_api_view(["GET"])
@@ -1166,22 +1259,22 @@ def kubernetes_cluster_service(request, tenant, cluster, service):
     """
     Redirects the user to the specified service on the specified Kubernetes cluster.
     """
-    service_url = None
+    service_fqdn = None
     service_label = None
     try:
         if cloud_settings.CLUSTER_API_PROVIDER:
             with request.auth.scoped_session(tenant) as session:
                 with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
                     cluster = capi_session.find_cluster(cluster)
-        service = next(s for s in cluster.services if s.name == service)
-        service_url = f"http://{service.fqdn}"
-        service_label = service.label
+        service_obj = next(s for s in cluster.services if s.name == service)
+        service_fqdn = service_obj.fqdn
+        service_label = service_obj.label
     except (cluster_api_errors.ObjectNotFoundError, StopIteration):
         pass
-    return redirect_to_service_url(
+    return redirect_to_zenith_service(
         request,
         "kubernetes",
         service,
-        service_url,
+        service_fqdn,
         service_label = service_label
     )

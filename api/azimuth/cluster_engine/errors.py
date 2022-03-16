@@ -1,5 +1,5 @@
 """
-This module defines the exceptions that can be thrown by a cloud provider.
+This module defines the exceptions that can be thrown by a cluster engine.
 """
 
 
@@ -68,3 +68,16 @@ class OperationTimedOutError(Error, RuntimeError):
     """
     Raised when an operation takes too long to wait for.
     """
+
+
+class ValidationError(BadInputError):
+    """
+    Raised when a validation fails.
+    """
+    def __init__(self, message, errors):
+        super().__init__(message)
+        self._errors = errors
+
+    @property
+    def errors(self):
+        return self._errors
