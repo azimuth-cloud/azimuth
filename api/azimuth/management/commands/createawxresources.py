@@ -19,8 +19,8 @@ from cryptography.hazmat.primitives.serialization import (
 import rackit
 
 from ...settings import cloud_settings
-from ...provider.cluster_engine.awx.engine import CREDENTIAL_TYPE_NAMES
-from ...provider.cluster_engine.awx import api
+from ...cluster_engine.drivers.awx.driver import CREDENTIAL_TYPE_NAMES
+from ...cluster_engine.drivers.awx import api
 
 
 CAAS_ORGANISATION_NAME = "CaaS"
