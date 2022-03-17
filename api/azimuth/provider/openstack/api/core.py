@@ -112,7 +112,7 @@ class ResourceManager(rackit.ResourceManager):
         data = response.json()
         list_data = data[self.resource_cls._opts.resource_list_key]
         next_url = self.extract_next_url(data)
-        return list_data, next_url
+        return list_data, next_url, {}
 
     def extract_next_url(self, data):
         """

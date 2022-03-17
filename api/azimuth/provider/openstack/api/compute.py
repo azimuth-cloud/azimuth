@@ -33,9 +33,9 @@ class KeypairManager(ResourceManager):
         # For some reason, each item in a list response has the data
         # contained under a "keypair" key
         # We just want the actual data
-        list_data, next_url = super().extract_list(response)
+        list_data, next_url, params = super().extract_list(response)
         list_data = [item["keypair"] for item in list_data]
-        return list_data, next_url
+        return list_data, next_url, params
 
 
 class Keypair(Resource):

@@ -15,7 +15,7 @@ class ResourceManager(rackit.ResourceManager):
     """
     def extract_list(self, response):
         json = response.json()
-        return json['results'], json.get('next')
+        return json['results'], json.get('next'), {}
 
 
 class Resource(rackit.Resource):
