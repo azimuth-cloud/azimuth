@@ -39,7 +39,7 @@ const ClusterTypePanel = ({ clusterType, selected, onSelect }) => (
                 <Image src={clusterType.logo} fluid />
             </Card.Body>
             <Card.Body className="border-top text-center px-3 py-2">
-                <ReactMarkdown source={clusterType.description} />
+                <ReactMarkdown children={clusterType.description} />
             </Card.Body>
             <Card.Footer className="text-center">
                 <Button

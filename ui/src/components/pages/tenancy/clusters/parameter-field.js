@@ -302,7 +302,7 @@ const BooleanParameterField = ({ parameter, value, onChange, isCreate }) => {
     return (
         <Field
             label={parameter.label}
-            helpText={<ReactMarkdown source={parameter.description} />}
+            helpText={<ReactMarkdown children={parameter.description} />}
         >
             <FormCheck
                 id={parameter.name}
@@ -331,7 +331,7 @@ const DefaultParameterField = ({
         <Field
             label={parameter.label}
             required={parameter.required}
-            helpText={<ReactMarkdown source={parameter.description} />}
+            helpText={<ReactMarkdown children={parameter.description} />}
         >
             <Control
                 id={parameter.name}

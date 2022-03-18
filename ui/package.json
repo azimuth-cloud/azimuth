@@ -45,7 +45,7 @@
     "react-bootstrap": "^2.0.0-beta.0",
     "react-circle-progress-bar": "^0.1.4",
     "react-dom": "16.x",
-    "react-markdown": "4.x",
+    "react-markdown": "^8.0.1",
     "react-redux": "7.x",
     "react-router-bootstrap": "0.25.x",
     "react-router-dom": "5.x",

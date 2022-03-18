@@ -56,7 +56,6 @@ const ClusterOverview = ({ cluster, clusterTypes }) => {
             // Register the sprintf function as the 'format' filter
             const env = new nunjucks.Environment();
             env.addFilter('format', sprintf);
-            console.log(clusterType)
             usage = env.renderString(clusterType.usage_template, { cluster });
         }
         return (
@@ -69,12 +68,27 @@ const ClusterOverview = ({ cluster, clusterTypes }) => {
                             </Col>
                             <Col>
                                 <Card.Title className="border-bottom">{clusterType.label}</Card.Title>
-                                <ReactMarkdown source={clusterType.description} />
+                                <ReactMarkdown children={clusterType.description} />
                             </Col>
                         </Row>
                     </Card.Body>
                 </Card>
-                <ReactMarkdown source={usage} />
+                <ReactMarkdown
+                    components={{
+                        // Limit the headings to levels 5 and 6
+                        h1: 'h5',
+                        h2: 'h6',
+                        h3: 'h6',
+                        h4: 'h6',
+                        h5: 'h6',
+                        h6: 'h6',
+                        // Links should open in a new tab
+                        a: ({ node, children, ...props }) => (
+                            <a target="_blank" {...props}>{children}</a>
+                        )
+                    }}
+                    children={usage}
+                />
             </>
         );
     }
