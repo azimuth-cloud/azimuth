@@ -2,11 +2,11 @@
 This module contains the cluster engine implementation for AWX.
 """
 
-import dataclasses
 import functools
 import logging
 import json
 import re
+import time
 import typing as t
 import uuid
 
@@ -566,6 +566,7 @@ class Driver(base.Driver):
                         break
                     else:
                         remaining = remaining - 1
+                        time.sleep(1)
                 else:
                     raise errors.OperationTimedOutError("Timed out while removing inventory.")
             else:
