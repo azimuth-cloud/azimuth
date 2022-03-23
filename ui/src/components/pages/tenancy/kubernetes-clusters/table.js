@@ -347,7 +347,7 @@ const AddonsCard = ({ kubernetesCluster }) => {
                 <Table borderless className="details-table">
                     <tbody>
                         {sortedAddons.map(addon => (
-                            <tr>
+                            <tr key={addon.name}>
                                 <th><code>{addon.name}</code></th>
                                 <td>
                                     <ComponentStatus

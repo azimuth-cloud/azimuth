@@ -279,6 +279,7 @@ export const Form = ({ children, disabled = false, onSubmit, ...props }) => {
 export const ControlWithValidationMessage = ({
     children,
     validationMessage: customValidationMessage,
+    wrapperComponent: WrapperComponent = "div",
     ...props
 }) => {
     // Maintain the validation message from the last invalid event as internal state
@@ -302,7 +303,7 @@ export const ControlWithValidationMessage = ({
     // correctly as they use absolute positioning which anchors on the closest
     // explicitly positioned ancestor
     return (
-        <div className="position-relative">
+        <WrapperComponent className="position-relative">
             {React.cloneElement(
                 children,
                 { isInvalid, onInvalid, onChange }
@@ -312,7 +313,7 @@ export const ControlWithValidationMessage = ({
                     {validationMessage}
                 </BSForm.Control.Feedback>
             )}
-        </div>
+        </WrapperComponent>
     );
 };
 
@@ -327,11 +328,14 @@ export const Field = ({
     label = null,
     helpText = null,
     className = "",
+    wrapperComponent = "div",
     ...props
 }) => (
     <BSForm.Group controlId={name} className={`mb-3 ${className}`} {...props}>
         {label && <BSForm.Label>{label}</BSForm.Label>}
-        <ControlWithValidationMessage>{children}</ControlWithValidationMessage>
+        <ControlWithValidationMessage wrapperComponent={wrapperComponent}>
+            {children}
+        </ControlWithValidationMessage>
         {helpText && <BSForm.Text>{helpText}</BSForm.Text>}
     </BSForm.Group>
 );
