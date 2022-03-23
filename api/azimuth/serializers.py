@@ -654,7 +654,11 @@ class KubernetesClusterSerializer(
 class NodeGroupSpecSerializer(serializers.Serializer):
     name = serializers.RegexField("^[a-z][a-z0-9-]+[a-z0-9]$")
     machine_size = serializers.RegexField(ID_REGEX)
-    count = serializers.IntegerField(min_value = 0)
+    autoscale = serializers.BooleanField(default = False)
+    count = serializers.IntegerField(required = False, allow_null = True, min_value = 0)
+    # Currently, we don't support autoscaling groups that go to zero
+    min_count = serializers.IntegerField(required = False, allow_null = True, min_value = 1)
+    max_count = serializers.IntegerField(required = False, allow_null = True, min_value = 1)
 
     def validate_machine_size(self, value):
         session = self.context["session"]
@@ -662,6 +666,24 @@ class NodeGroupSpecSerializer(serializers.Serializer):
             return session.find_size(value)
         except errors.ObjectNotFoundError as exc:
             raise serializers.ValidationError(str(exc))
+
+    def validate(self, data):
+        errors = {}
+        if data["autoscale"]:
+            min_count = data.get("min_count")
+            if min_count is None:
+                errors["min_count"] = "Required for an autoscaling node group."
+            max_count = data.get("max_count")
+            if max_count is None:
+                errors["max_count"] = "Required for an autoscaling node group."
+            if min_count and max_count and max_count < min_count:
+                errors["max_count"] = "Must be greater than or equal to the minimum count."
+        else:
+            if data.get("count") is None:
+                errors["count"] = "Required for a non-autoscaling node group."
+        if errors:
+            raise serializers.ValidationError(errors)
+        return data
 
 
 class CreateKubernetesClusterSerializer(serializers.Serializer):
@@ -691,8 +713,11 @@ class CreateKubernetesClusterSerializer(serializers.Serializer):
             raise serializers.ValidationError(str(exc))
 
     def validate_node_groups(self, value):
-        # There must be at least one actual node, or the cluster will not deploy
-        if sum(ng["count"] for ng in value) < 1:
+        # There must be at least one worker node, or the cluster will not deploy
+        min_worker_count = 0
+        for ng in value:
+            min_worker_count += ng["min_count"] if ng["autoscale"] else ng["count"]
+        if min_worker_count < 1:
             raise serializers.ValidationError("There must be at least one worker node.")
         return value
 
@@ -728,7 +753,10 @@ class UpdateKubernetesClusterSerializer(serializers.Serializer):
             raise serializers.ValidationError(str(exc))
 
     def validate_node_groups(self, value):
-        # There must be at least one actual node, or the cluster will not deploy
-        if sum(ng["count"] for ng in value) < 1:
+        # There must be at least one worker node, or the cluster will not deploy
+        min_worker_count = 0
+        for ng in value:
+            min_worker_count += ng["min_count"] if ng["autoscale"] else ng["count"]
+        if min_worker_count < 1:
             raise serializers.ValidationError("There must be at least one worker node.")
         return value

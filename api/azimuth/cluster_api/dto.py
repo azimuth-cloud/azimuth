@@ -31,8 +31,14 @@ class NodeGroup:
     name: str
     #: The id of the size of machines in the node group
     machine_size_id: str
-    #: The number of machines in the node group
-    count: int
+    #: Indicates if the node group should autoscale
+    autoscale: bool
+    #: The fixed number of nodes in the node group when autoscale is false
+    count: t.Optional[int]
+    #: The minimum number of nodes in the node group when autoscale is true
+    min_count: t.Optional[int]
+    #: The maximum number of nodes in the node group when autoscale is true
+    max_count: t.Optional[int]
 
 
 @dataclasses.dataclass(frozen = True)

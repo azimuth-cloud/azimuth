@@ -20,11 +20,7 @@ const KubernetesClusters = ({ resourceData, resourceActions, ...props }) => (
 );
 
 
-export const TenancyKubernetesClustersPanel = ({
-    tenancy,
-    tenancyActions,
-    notificationActions
-}) => {
+export const TenancyKubernetesClustersPanel = ({ tenancy, tenancyActions }) => {
     usePageTitle('Kubernetes');
     useResourceInitialised(tenancy.sizes, tenancyActions.size.fetchList);
     useResourceInitialised(
@@ -41,8 +37,7 @@ export const TenancyKubernetesClustersPanel = ({
                 kubernetesClusterTemplates: tenancy.kubernetesClusterTemplates,
                 kubernetesClusterTemplateActions: tenancyActions.kubernetesClusterTemplate,
                 sizes: tenancy.sizes,
-                sizeActions: tenancyActions.size,
-                notificationActions
+                sizeActions: tenancyActions.size
             })}
         >
             <KubernetesClusters

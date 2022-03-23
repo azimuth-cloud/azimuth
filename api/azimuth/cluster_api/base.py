@@ -117,8 +117,14 @@ class NodeGroupSpec(t.TypedDict):
     name: str
     #: The size of nodes in the group
     machine_size: cloud_dto.Size
-    #: The target number of nodes in the group
-    count: int
+    #: Indicates if the node group should autoscale
+    autoscale: bool
+    #: The fixed number of nodes in the node group when autoscale is false
+    count: t.Optional[int]
+    #: The minimum number of nodes in the node group when autoscale is true
+    min_count: t.Optional[int]
+    #: The maximum number of nodes in the node group when autoscale is true
+    max_count: t.Optional[int]
 
 
 class Session:
@@ -245,7 +251,10 @@ class Session:
                         ),
                         None
                     ),
-                    ng["count"]
+                    ng.get("autoscale", False),
+                    ng.get("count"),
+                    ng.get("minCount"),
+                    ng.get("maxCount")
                 )
                 for ng in cluster.spec.get("nodeGroups", [])
             ],
@@ -320,7 +329,10 @@ class Session:
                 {
                     "name": ng["name"],
                     "machineSize": ng["machine_size"].name,
-                    "count": ng["count"],
+                    "autoscale": ng["autoscale"],
+                    "count": ng.get("count"),
+                    "minCount": ng.get("min_count"),
+                    "maxCount": ng.get("max_count"),
                 }
                 for ng in options["node_groups"]
             ]

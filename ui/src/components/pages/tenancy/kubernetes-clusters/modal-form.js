@@ -44,6 +44,16 @@ const NodeGroupModalForm = ({
     const getStateKey = key => state[key] || '';
     const setStateKey = key => value => setState(state => ({ ...state, [key]: value }));
     const setStateKeyFromInputEvent = key => evt => setStateKey(key)(evt.target.value);
+    const setAutoscaleFromCheckboxEvent = evt => {
+        const checked = evt.target.checked;
+        setState(state => ({
+            ...state,
+            autoscale: checked,
+            count: checked ? null : state.count,
+            min_count: checked ? state.min_count : null,
+            max_count: checked ? state.max_count : null
+        }));
+    };
 
     const handleCancel = () => {
         setState({});
@@ -59,6 +69,15 @@ const NodeGroupModalForm = ({
     const nameInUseMessage = (
         nodeGroupNames.some(name => name === getStateKey('name')) ?
             'Name is already in use for another node group.' :
+            ''
+    );
+
+    const autoscale = getStateKey('autoscale');
+    const minCount = getStateKey('min_count');
+    const maxCount = getStateKey('max_count');
+    const maxNodeCountMessage = (
+        autoscale && minCount && maxCount && parseInt(maxCount) < parseInt(minCount) ?
+            'Must be greater than or equal to the minimum count.' :
             ''
     );
 
@@ -100,20 +119,72 @@ const NodeGroupModalForm = ({
                         />
                     </Field>
                     <Field
-                        name="count"
-                        label="Node Count"
-                        helpText="The target number of nodes in the group."
+                        name="autoscale"
+                        helpText={
+                            "Allows the number of nodes in the group to scale between a maximum " +
+                            "and a minimum number based on workload."
+                        }
                     >
-                        <BSForm.Control
-                            placeholder="Node Count"
-                            type="number"
-                            required
-                            min="0"
-                            step="1"
-                            value={getStateKey('count')}
-                            onChange={setStateKeyFromInputEvent('count')}
+                        <BSForm.Check
+                            label="Enable autoscaling for this node group?"
+                            checked={getStateKey('autoscale')}
+                            onChange={setAutoscaleFromCheckboxEvent}
                         />
                     </Field>
+                    {getStateKey('autoscale') ? (
+                        <Row xs="1" md="2">
+                            <Field
+                                as={Col}
+                                name="min_count"
+                                label="Minimum Node Count"
+                                helpText="The minimum number of nodes in the group."
+                            >
+                                <BSForm.Control
+                                    placeholder="Minimum Node Count"
+                                    type="number"
+                                    required
+                                    min="1"
+                                    step="1"
+                                    value={getStateKey('min_count')}
+                                    onChange={setStateKeyFromInputEvent('min_count')}
+                                />
+                            </Field>
+                            <Field
+                                as={Col}
+                                name="max_count"
+                                label="Maximum Node Count"
+                                helpText="The maximum number of nodes in the group."
+                            >
+                                <BSForm.Control
+                                    as={InputWithCustomValidity}
+                                    placeholder="Maximum Node Count"
+                                    type="number"
+                                    required
+                                    min="1"
+                                    step="1"
+                                    value={getStateKey('max_count')}
+                                    onChange={setStateKeyFromInputEvent('max_count')}
+                                    validationMessage={maxNodeCountMessage}
+                                />
+                            </Field>
+                        </Row>
+                    ) : (
+                        <Field
+                            name="count"
+                            label="Node Count"
+                            helpText="The target number of nodes in the group."
+                        >
+                            <BSForm.Control
+                                placeholder="Node Count"
+                                type="number"
+                                required
+                                min="0"
+                                step="1"
+                                value={getStateKey('count')}
+                                onChange={setStateKeyFromInputEvent('count')}
+                            />
+                        </Field>
+                    )}
                 </Modal.Body>
                 <Modal.Footer>
                     <Button variant="success" type="submit">
@@ -136,7 +207,10 @@ const initialState = kubernetesCluster => {
             node_groups: kubernetesCluster.node_groups.map(ng => ({
                 name: ng.name,
                 machine_size: ng.machine_size.id,
-                count: ng.count
+                autoscale: ng.autoscale,
+                count: ng.count,
+                min_count: ng.min_count,
+                max_count: ng.max_count
             })),
             autohealing_enabled: kubernetesCluster.autohealing_enabled,
             cert_manager_enabled: kubernetesCluster.cert_manager_enabled,
@@ -206,7 +280,9 @@ export const KubernetesClusterModalForm = ({
         ]
     }));
 
-    const workerCount = state.node_groups.map(ng => parseInt(ng.count)).reduce((a, b) => a + b, 0);
+    const workerCount = state.node_groups
+        .map(ng => parseInt(ng.autoscale ? ng.min_count : ng.count))
+        .reduce((a, b) => a + b, 0);
     const workerCountMessage = workerCount < 1 ? 'At least one worker node is required.' : '';
     const [showWorkerCountMessage, setShowWorkerCountMessage] = useState(false);
     const workerCountOnInvalid = () => setShowWorkerCountMessage(true);
@@ -324,7 +400,13 @@ export const KubernetesClusterModalForm = ({
                                                     <MachineSizeLink sizes={sizes} sizeId={ng.machine_size} />
                                                 </td>
                                                 <td className="align-middle">
-                                                    {ng.count}
+                                                    {ng.autoscale ? (
+                                                        ng.min_count === ng.max_count ?
+                                                            ng.min_count :
+                                                            `${ng.min_count} - ${ng.max_count}`
+                                                    ) : (
+                                                        ng.count
+                                                    )}
                                                 </td>
                                                 <td className="pe-3 align-middle" style={{ width: '1%' }}>
                                                     <ButtonGroup>

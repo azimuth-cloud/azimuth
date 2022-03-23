@@ -15,6 +15,14 @@ import { faDatabase, faPlus, faSyncAlt } from '@fortawesome/free-solid-svg-icons
 import { Form, Field } from '../../../utils';
 
 
+const FormControlWithGB = ({ isInvalid, ...props }) => (
+    <InputGroup className={isInvalid ? "is-invalid" : undefined}>
+        <FormControl isInvalid={isInvalid} {...props} />
+        <InputGroup.Text>GB</InputGroup.Text>
+    </InputGroup>
+);
+
+
 export const CreateVolumeButton = ({ disabled, creating, create }) => {
     const [visible, setVisible] = useState(false);
     const [name, setName] = useState('');
@@ -78,18 +86,15 @@ export const CreateVolumeButton = ({ disabled, creating, create }) => {
                             label="Volume Size"
                             helpText="The volume size in GB."
                         >
-                            <InputGroup>
-                                <FormControl
-                                    placeholder="Volume size"
-                                    type="number"
-                                    required
-                                    min="1"
-                                    step="1"
-                                    value={size}
-                                    onChange={handleChange(setSize)}
-                                />
-                                <InputGroup.Text>GB</InputGroup.Text>
-                            </InputGroup>
+                            <FormControlWithGB
+                                placeholder="Volume size"
+                                type="number"
+                                required
+                                min="1"
+                                step="1"
+                                value={size}
+                                onChange={handleChange(setSize)}
+                            />
                         </Field>
                     </Modal.Body>
                     <Modal.Footer>
