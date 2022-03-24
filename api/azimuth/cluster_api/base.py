@@ -274,7 +274,8 @@ class Session:
                     node["phase"],
                     node.get("ip"),
                     node.get("kubeletVersion"),
-                    node.get("nodeGroup")
+                    node.get("nodeGroup"),
+                    dateutil.parser.parse(node["created"])
                 )
                 for name, node in cluster.get("status", {}).get("nodes", {}).items()
             ],

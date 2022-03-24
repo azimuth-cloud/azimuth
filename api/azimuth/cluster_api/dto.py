@@ -58,6 +58,8 @@ class Node:
     kubelet_version: t.Optional[str]
     #: The node group of the node
     node_group: t.Optional[str]
+    #: The time at which the node was created
+    created_at: datetime.datetime
 
 
 @dataclasses.dataclass(frozen = True)

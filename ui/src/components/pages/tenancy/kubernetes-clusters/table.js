@@ -404,6 +404,7 @@ const NodesTable = ({ kubernetesCluster, sizes }) => {
                     <th>Size</th>
                     <th>Kubelet Version</th>
                     <th>IP address</th>
+                    <th>Age</th>
                 </tr>
             </thead>
             <tbody>
@@ -431,6 +432,7 @@ const NodesTable = ({ kubernetesCluster, sizes }) => {
                         </td>
                         <td>{node.kubelet_version || '-'}</td>
                         <td>{node.ip || '-'}</td>
+                        <td>{moment(node.created_at).fromNow(true)}</td>
                     </tr>
                 ))}
             </tbody>
