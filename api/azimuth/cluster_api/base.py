@@ -272,6 +272,14 @@ class Session:
                     name,
                     node["role"],
                     node["phase"],
+                    next(
+                        (
+                            size.id
+                            for size in sizes
+                            if size.name == node["size"]
+                        ),
+                        None
+                    ),
                     node.get("ip"),
                     node.get("kubeletVersion"),
                     node.get("nodeGroup"),

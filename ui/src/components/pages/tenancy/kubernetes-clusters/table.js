@@ -190,19 +190,6 @@ const statusStyles = {
 };
 
 
-const NodeSizeLink = ({ kubernetesCluster, node, sizes }) => {
-    let sizeId;
-    if( node.role === "control-plane" ) {
-        sizeId = kubernetesCluster.control_plane_size.id;
-    }
-    else {
-        const nodeGroup = kubernetesCluster.node_groups.find(ng => ng.name === node.node_group);
-        sizeId = get(nodeGroup, ['machine_size', 'id']);
-    }
-    return <MachineSizeLink sizes={sizes} sizeId={sizeId} />;
-};
-
-
 const ClusterOverviewCard = ({ kubernetesCluster, kubernetesClusterTemplates }) => (
     <Card className="mb-3">
         <Card.Header className="text-center">Cluster details</Card.Header>
@@ -424,11 +411,7 @@ const NodesTable = ({ kubernetesCluster, sizes }) => {
                             />
                         </td>
                         <td>
-                            <NodeSizeLink
-                                kubernetesCluster={kubernetesCluster}
-                                node={node}
-                                sizes={sizes}
-                            />
+                            <MachineSizeLink sizes={sizes} sizeId={node.size.id} />
                         </td>
                         <td>{node.kubelet_version || '-'}</td>
                         <td>{node.ip || '-'}</td>

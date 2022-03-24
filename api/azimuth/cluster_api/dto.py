@@ -52,6 +52,8 @@ class Node:
     role: str
     #: The status of the node
     status: str
+    #: The id of the size of the node
+    size_id: str
     #: The internal IP of the node
     ip: t.Optional[str]
     #: The kubelet version of the node

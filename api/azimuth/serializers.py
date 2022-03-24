@@ -580,8 +580,10 @@ class KubernetesClusterNodeGroupSerializer(
     machine_size = SizeRefSerializer(source = "machine_size_id", read_only = True)
 
 
-class KubernetesClusterNodeSerializer(make_dto_serializer(capi_dto.Node)):
-    pass
+class KubernetesClusterNodeSerializer(
+    make_dto_serializer(capi_dto.Node, exclude = ["size_id"])
+):
+    size = SizeRefSerializer(source = "size_id", read_only = True)
 
 
 class KubernetesClusterAddonSerializer(make_dto_serializer(capi_dto.Addon)):
