@@ -318,8 +318,8 @@ class Driver(base.Driver):
                     latest.job_events.all(event = "runner_on_failed", order_by = "-created"),
                     None
                 )
-                host = event.event_data.get("host")
-                result = event.event_data.get("res")
+                host = getattr(event, "event_data", {}).get("host")
+                result = getattr(event, "event_data", {}).get("res", {})
                 no_log = result.pop("_ansible_no_log", False)
                 if no_log or not result:
                     msg = "Error during cluster configuration. Please contact support."
