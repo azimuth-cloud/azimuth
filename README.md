@@ -8,6 +8,7 @@ It is currently capable of targeting [OpenStack](https://www.openstack.org/) clo
 ## Contents  <!-- omit in toc -->
 
 - [Introduction](#introduction)
+- [Timeline](#timeline)
 - [Architecture](#architecture)
 - [Deploying Azimuth](#deploying-azimuth)
 - [Setting up a local development environment](#setting-up-a-local-development-environment)
@@ -41,12 +42,22 @@ Key features of Azimuth include:
     * Configure instance-specific security group rules.
   * Application proxy using Zenith:
     * Zenith uses SSH tunnels to expose services running behind NAT or a firewall to the internet
-      using operator-controlled, random domains - the exposed services do **not** need to be directly
-      accessible to the internet.
+      using operator-controlled, random domains.
+      * Exposed services do not need to be directly accessible to the internet.
+      * Exposed services do not consume a floating IP.
     * Zenith supports an auth callout for proxied services, which Azimuth uses to secure proxied services.
-    * Currently used to support authenticated web consoles using
-      [Apache Guacamole](https://guacamole.apache.org/) that do not consume a floating IP.
-    * More uses of Zenith coming soon...!
+    * Used by Azimuth to provide:
+      * Authenticated web consoles for VMs using [Apache Guacamole](https://guacamole.apache.org/).
+      * Web-based dashboards for clusters provisioned using the Kubernetes and Cluster-as-a-Service systems.
+  * Kubernetes-as-a-Service
+    * Operators configure a set of supported templates defining available Kubernetes versions,
+      networking configurations, custom addons etc.
+    * Uses [Cluster API](https://cluster-api.sigs.k8s.io/) to provision Kubernetes clusters.
+    * Supports Kubernetes version upgrades with minimal downtime using rolling node replacement.
+    * Supports auto-healing clusters that automatically identify and replace unhealthy nodes.
+    * Supports multiple node groups, including auto-scaling node groups.
+    * Transparently configures clusters so that they can make use of GPUs and accelerated networking (e.g. SR-IOV).
+    * Installs and configures addons for monitoring, logging and application provisioning.
   * Cluster-as-a-Service (CaaS)
     * Operators provide a catalog of appliances that can be deployed via the Azimuth portal.
     * Appliances are Ansible playbooks that provision and configure infrastructure.
@@ -55,6 +66,30 @@ Key features of Azimuth include:
     * Uses [AWX](https://github.com/ansible/awx), the open-source version of
       [Ansible Tower](https://docs.ansible.com/ansible-tower/), to manage Ansible playbook execution
       and [Consul](https://www.consul.io/) to store Terraform state.
+      
+## Timeline
+
+This section shows a timeline of the significant events in the development of Azimuth:
+
+  * **Autumn 2015**: Development begins on the JASMIN Cloud Portal, targetting JASMIN's VMware cloud.
+  * **Spring 2016**: JASMIN Cloud Portal goes into production.
+  * **Early 2017**: JASMIN Cloud plans to move to OpenStack, cloud portal v2 development begins.
+  * **Summer 2017**: JASMIN's OpenStack cloud goes into production, with the JASMIN Cloud Portal v2.
+  * **Spring 2019**: Work begins on JASMIN Cluster-as-a-Service with [StackHPC](https://www.stackhpc.com/).
+    * Initial work presented at [UKRI Cloud Workshop](https://cloud.ac.uk/workshops/feb2019/).
+  * **Summer 2019**: JASMIN Cluster-as-a-Service beta roll out.
+  * **Spring 2020**: JASMIN Cluster-as-a-Service adopted by customers, e.g. the
+    [ESA Climate Change Initiative Knowledge Exchange](https://climate.esa.int/en/) project.
+    * Production system presented at [UKRI Cloud Workshop](https://cloud.ac.uk/workshops/mar2020/).
+  * **Summer 2020**: Production rollout of JASMIN Cluster-as-a-Service.
+  * **Spring 2021**: StackHPC fork JASMIN Cloud Portal to develop it for [IRIS](https://www.iris.ac.uk/).
+  * **Summer 2021**: [Zenith application proxy](https://github.com/stackhpc/zenith) developed and used
+    to provide web consoles in Azimuth.
+  * **November 2021**: StackHPC fork detached and rebranded to Azimuth.
+  * **December 2021**: StackHPC Slurm appliance integrated into Cluster-as-a-Service.
+  * **January 2022**: Native Kubernetes support added using Cluster API.
+  * **February 2022**: Support for exposing services in Kubernetes using Zenith.
+  * **March 2022**: Support for exposing services in Cluster-as-a-Service appliances using Zenith.
 
 ## Architecture
 
