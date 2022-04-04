@@ -87,7 +87,7 @@ This section shows a timeline of the significant events in the development of Az
     to provide web consoles in Azimuth.
   * **November 2021**: StackHPC fork detached and rebranded to Azimuth.
   * **December 2021**: StackHPC Slurm appliance integrated into Cluster-as-a-Service.
-  * **January 2022**: Native Kubernetes support added using Cluster API.
+  * **January 2022**: Native Kubernetes support added using Cluster API (previously supported by JASMIN as a Cluster-as-a-Service appliance).
   * **February 2022**: Support for exposing services in Kubernetes using Zenith.
   * **March 2022**: Support for exposing services in Cluster-as-a-Service appliances using Zenith.
 
