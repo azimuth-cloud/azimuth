@@ -78,7 +78,7 @@ This section shows a timeline of the significant events in the development of Az
   * **Spring 2019**: Work begins on JASMIN Cluster-as-a-Service with [StackHPC](https://www.stackhpc.com/).
     * Initial work presented at [UKRI Cloud Workshop](https://cloud.ac.uk/workshops/feb2019/).
   * **Summer 2019**: JASMIN Cluster-as-a-Service beta roll out.
-  * **Spring 2020**: JASMIN Cluster-as-a-Service adopted by customers, e.g. the
+  * **Spring 2020**: JASMIN Cluster-as-a-Service in use by customers, e.g. the
     [ESA Climate Change Initiative Knowledge Exchange](https://climate.esa.int/en/) project.
     * Production system presented at [UKRI Cloud Workshop](https://cloud.ac.uk/workshops/mar2020/).
   * **Summer 2020**: Production rollout of JASMIN Cluster-as-a-Service.
