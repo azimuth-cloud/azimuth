@@ -600,7 +600,15 @@ class ScopedSession(base.ScopedSession):
         Returns the first network with the given tag, or None if there is not one.
         """
         tag = "portal-{}".format(net_type)
-        network = next(self._connection.network.networks.all(tags = tag), None)
+        network = next(
+            # Consider all the networks available to the project, but use ones
+            # owned by the project in preference
+            itertools.chain(
+                self._connection.network.networks.all(tags = tag),
+                self._connection.network.networks.all(tags = tag, project_id = None),
+            ),
+            None
+        )
         if network:
             self._log("Using tagged %s network '%s'", net_type, network.name)
         else:
@@ -671,7 +679,11 @@ class ScopedSession(base.ScopedSession):
             try:
                 external_network = self._external_network()
             except errors.InvalidOperationError:
-                pass
+                self._log(
+                    "Failed to find external network",
+                    level = logging.WARN,
+                    exc_info = True
+                )
             else:
                 self._log("Creating tenant router")
                 router = self._connection.network.routers.create(
