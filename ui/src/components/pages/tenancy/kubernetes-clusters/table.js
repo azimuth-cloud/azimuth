@@ -315,7 +315,7 @@ const ServiceCard = ({ kubernetesCluster }) => {
                 <Card.Body>
                     <Row>
                         <Col className="text-muted text-center">
-                            No services enabled.
+                            No services available.
                         </Col>
                     </Row>
                 </Card.Body>
