@@ -426,6 +426,7 @@ const NodesTable = ({ kubernetesCluster, sizes }) => {
 
 const KubernetesClusterDetailsMenuItem = ({
     kubernetesCluster,
+    kubernetesClusterActions,
     kubernetesClusterTemplates,
     sizes
 }) => {
@@ -461,6 +462,23 @@ const KubernetesClusterDetailsMenuItem = ({
                             </Col>
                         </Row>
                         <Tab.Content>
+                            <Row className="justify-content-end mb-2">
+                                <Col xs="auto">
+                                    <Button
+                                        variant="primary"
+                                        disabled={kubernetesCluster.fetching}
+                                        onClick={kubernetesClusterActions.fetchOne}
+                                        title="Refresh cluster"
+                                    >
+                                        <FontAwesomeIcon
+                                            icon={faSyncAlt}
+                                            spin={kubernetesCluster.fetching}
+                                            className="me-2"
+                                        />
+                                        Refresh
+                                    </Button>
+                                </Col>
+                            </Row>
                             <Tab.Pane eventKey="overview">
                                 <ClusterOverviewPanel
                                     kubernetesCluster={kubernetesCluster}
@@ -682,6 +700,7 @@ const ClusterActionsDropdown = ({
         />
         <KubernetesClusterDetailsMenuItem
             kubernetesCluster={kubernetesCluster}
+            kubernetesClusterActions={kubernetesClusterActions}
             kubernetesClusterTemplates={kubernetesClusterTemplates}
             sizes={sizes}
         />

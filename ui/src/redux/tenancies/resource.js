@@ -142,13 +142,30 @@ export function createReducer(actions, id, transform) {
                 };
             case actions.FETCH_LIST_FAILED:
                 return { ...state, fetching: false, fetchError: action.payload };
+            case actions.FETCH_ONE:
+                // Only set the fetching flag to true if we know about the object
+                if( state.data.hasOwnProperty(action.resourceId) )
+                    return {
+                        ...state,
+                        data: Object.assign(
+                            {},
+                            state.data,
+                            nextStateEntry(state, action.resourceId, { fetching: true })
+                        ),
+                    };
+                else
+                    return state;
             case actions.FETCH_ONE_SUCCEEDED:
                 return {
                     ...state,
                     data: Object.assign(
                         {},
                         state.data,
-                        nextStateEntry(state, id(action.payload), transform(action.payload))
+                        nextStateEntry(
+                            state,
+                            id(action.payload),
+                            { ...transform(action.payload), fetching: false }
+                        )
                     )
                 };
             case actions.FETCH_ONE_FAILED:
@@ -163,6 +180,15 @@ export function createReducer(actions, id, transform) {
                                 .filter(([id, _]) => id.toString() !== action.request.resourceId.toString())
                                 .map(([id, resource]) => ({ [id]: resource }))
                         )
+                    };
+                else if( state.data.hasOwnProperty(action.request.resourceId) )
+                    return {
+                        ...state,
+                        data: Object.assign(
+                            {},
+                            state.data,
+                            nextStateEntry(state, action.request.resourceId, { fetching: false })
+                        ),
                     };
                 else
                     return state;
