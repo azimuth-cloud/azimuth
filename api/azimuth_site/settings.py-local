@@ -203,6 +203,24 @@ AZIMUTH = {
     #             },
     #         },
     #     ],
+    #     # Optional custom execution environment for CaaS jobs
+    #     'EXECUTION_ENVIRONMENT': {
+    #         # The image to use for the execution environment (required)
+    #         'IMAGE': 'registry.example.com/azimuth/caas-ee:<tag>',
+    #         # Indicates if the image should be pulled for every job (defaults to false)
+    #         # This can be useful in development, but in production the recommended method is
+    #         # to set this to false and use immutable tags
+    #         'ALWAYS_PULL': False,
+    #         # Optional credentials if the image is in a private registry
+    #         'CREDENTIALS': {
+    #             # The registry host
+    #             'HOST': 'depaas-gitlab.int.cfms.org.uk:4567',
+    #             # The username to use to authenticate
+    #             'USERNAME': 'project_14_bot',
+    #             # The token/password to use to authenticate
+    #             'TOKEN': 'xWXtsLS9xU6ALy1PWKhT',
+    #         },
+    #     },
     #     # Definition of the default projects and job templates.
     #     #
     #     # Each item should have the required keys:
@@ -221,11 +239,6 @@ AZIMUTH = {
     #     #                  are dictionaries of Ansible extra_vars for those playbooks.
     #     #                  The special key '__ALL__' can be used to set common extra_vars
     #     #                  for all playbooks in a project.
-    #     #   * EXECUTION_ENVIRONMENT - A dictionary containing settings for a custom
-    #     #                             execution environment, containing the keys:
-    #     #     * IMAGE - The image for the execution environment (required).
-    #     #     * ALWAYS_PULL - Boolean indicating if the image should be pulled every time it is
-    #     #                     used or only when it is missing. Defaults to false.
     #     'DEFAULT_PROJECTS': [
     #         {
     #             'NAME': 'My Site Appliances',
