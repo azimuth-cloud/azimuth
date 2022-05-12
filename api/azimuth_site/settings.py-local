@@ -214,11 +214,11 @@ AZIMUTH = {
     #         # Optional credentials if the image is in a private registry
     #         'CREDENTIALS': {
     #             # The registry host
-    #             'HOST': 'depaas-gitlab.int.cfms.org.uk:4567',
+    #             'HOST': 'registry.example.com',
     #             # The username to use to authenticate
-    #             'USERNAME': 'project_14_bot',
+    #             'USERNAME': 'username',
     #             # The token/password to use to authenticate
-    #             'TOKEN': 'xWXtsLS9xU6ALy1PWKhT',
+    #             'TOKEN': 'token',
     #         },
     #     },
     #     # Definition of the default projects and job templates.
