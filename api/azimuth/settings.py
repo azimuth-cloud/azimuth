@@ -52,17 +52,12 @@ class AwxSettings(SettingsObject):
     #: The password to use for admin operations
     #: Defaults to the same as the CaaS password
     ADMIN_PASSWORD = Setting(default = lambda settings: settings.PASSWORD)
+    #: Settings for the AWX execution environment for the CaaS
+    EXECUTION_ENVIRONMENT = Setting(default = None)
     #: A list of extra credentials to create which will be attached to projects
-    EXTRA_CREDENTIALS = Setting(default = [])
+    EXTRA_CREDENTIALS = Setting(default = list)
     #: List of default projects to create
-    DEFAULT_PROJECTS = Setting(default = [
-        {
-            "NAME": "Demo Appliances",
-            "GIT_URL": "https://github.com/stackhpc/demo-appliances.git",
-            "GIT_VERSION": "master",
-            "METADATA_ROOT": "https://raw.githubusercontent.com/stackhpc/demo-appliances/master/ui-meta",
-        }
-    ])
+    DEFAULT_PROJECTS = Setting(default = list)
 
 
 class ClusterEngineSetting(Setting):

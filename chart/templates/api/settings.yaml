@@ -155,6 +155,19 @@ stringData:
         {{- fail (printf "Unsupported terraform backend '%s'" $clusterEngine.terraformBackend.type) }}
         {{- end }}
         {{- end }}
+        {{- with $clusterEngine.awx.executionEnvironment }}
+        EXECUTION_ENVIRONMENT:
+          IMAGE: {{ .image }}
+          {{- if .alwaysPull }}
+          ALWAYS_PULL: true
+          {{- end }}
+          {{- with .credentials }}
+          CREDENTIALS:
+            HOST: {{ .host }}
+            USERNAME: {{ quote .username }}
+            TOKEN: {{ quote .token }}
+          {{- end }}
+        {{- end }}
         {{- with $clusterEngine.awx.defaultProjects }}
         DEFAULT_PROJECTS:
           {{- range . }}
@@ -162,15 +175,8 @@ stringData:
             GIT_URL: {{ .gitUrl }}
             GIT_VERSION: {{ .gitVersion }}
             METADATA_ROOT: {{ .metadataRoot }}
-            {{- with .alwaysUpdate }}
-            ALWAYS_UPDATE: {{ . }}
-            {{- end }}
-            {{- with .executionEnvironment }}
-            EXECUTION_ENVIRONMENT:
-              IMAGE: {{ .image | quote }}
-              {{- with .alwaysPull }}
-              ALWAYS_PULL: {{ . }}
-              {{- end }}
+            {{- if .alwaysUpdate }}
+            ALWAYS_UPDATE: true
             {{- end }}
             {{- with .playbooks }}
             PLAYBOOKS: {{ toYaml . | nindent 14 }}

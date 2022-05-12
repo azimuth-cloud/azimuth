@@ -215,6 +215,64 @@ class Command(BaseCommand):
             organisation = connection.organisations.create(name = CAAS_ORGANISATION_NAME)
         return organisation
 
+    def ensure_organisation_ee_cred(self, connection, organisation, credentials):
+        """
+        Ensures that the registry credential for the CaaS organisation EE exists, if required.
+        """
+        ct = connection.credential_types.find_by_kind("registry")
+        credential_name = f"{CAAS_ORGANISATION_NAME} EE Credential"
+        credential = connection.credentials.find_by_name(credential_name)
+        params = dict(
+            credential_type = ct.id,
+            organization = organisation.id,
+            inputs = dict(
+                host = credentials["HOST"],
+                username = credentials["USERNAME"],
+                password = credentials["TOKEN"]
+            )
+        )
+        if credential:
+            self.stdout.write("Updating organisation registry credential")
+            credential = credential._update(**params)
+        else:
+            self.stdout.write("Creating registry credential for organisation")
+            credential = connection.credentials.create(name = credential_name, **params)
+        return credential
+
+    def ensure_organisation_ee(self, connection, organisation):
+        """
+        Ensures that the execution environment for the CaaS organisation exists, if required.
+        """
+        if not cloud_settings.AWX.EXECUTION_ENVIRONMENT:
+            self.stdout.write("Using default execution environment")
+            return None
+        credentials = cloud_settings.AWX.EXECUTION_ENVIRONMENT.get("CREDENTIALS")
+        if credentials:
+            credential = self.ensure_organisation_ee_cred(connection, organisation, credentials)
+        else:
+            credential = None
+        ee_name = f"{CAAS_ORGANISATION_NAME} EE"
+        ee = connection.execution_environments.find_by_name(ee_name)
+        params = dict(
+            image = cloud_settings.AWX.EXECUTION_ENVIRONMENT["IMAGE"],
+            organization = organisation.id,
+            pull = (
+                "always"
+                if cloud_settings.AWX.EXECUTION_ENVIRONMENT.get("ALWAYS_PULL", False)
+                else "missing"
+            ),
+            credential = getattr(credential, "id", None)
+        )
+        if ee:
+            self.stdout.write(f"Updating execution environment '{ee.name}'")
+            ee = ee._update(**params)
+        else:
+            self.stdout.write(f"Creating execution environment '{ee_name}'")
+            ee = connection.execution_environments.create(name = ee_name, **params)
+        # Set the execution environment as the default environment for the org
+        organisation._update(default_environment = ee.id)
+        return ee
+
     def ensure_galaxy_credential(self, connection, organisation):
         """
         Ensure that the organisation has a Galaxy credential.
@@ -349,42 +407,17 @@ class Command(BaseCommand):
             for cred_spec in cloud_settings.AWX.EXTRA_CREDENTIALS
         ]
 
-    def ensure_project_ee(self, connection, organisation, project_spec):
-        """
-        Ensure that the execution environment for the project exists, if configured.
-        """
-        ee_spec = project_spec.get('EXECUTION_ENVIRONMENT')
-        if not ee_spec:
-            self.stdout.write("Using global default execution environment")
-            return None
-        ee_name = f"{project_spec['NAME']} EE"
-        ee = connection.execution_environments.find_by_name(ee_name)
-        params = dict(
-            image = ee_spec['IMAGE'],
-            organization = organisation.id,
-            pull = "always" if ee_spec.get('ALWAYS_PULL', False) else "missing"
-        )
-        if ee:
-            self.stdout.write(f"Updating execution environment '{ee.name}'")
-            ee = ee._update(**params)
-        else:
-            self.stdout.write(f"Creating execution environment '{ee_name}'")
-            ee = connection.execution_environments.create(name = ee_name, **params)
-        return ee
-
     def ensure_project(self, connection, organisation, project_spec):
         """
         Ensure that the given project exists.
         """
-        project_ee = self.ensure_project_ee(connection, organisation, project_spec)
         project = connection.projects.find_by_name(project_spec['NAME'])
         params = dict(
             scm_type = 'git',
             scm_url = project_spec['GIT_URL'],
             scm_branch = project_spec['GIT_VERSION'],
             organization = organisation.id,
-            scm_update_on_launch = project_spec.get('ALWAYS_UPDATE', False),
-            default_environment = getattr(project_ee, 'id', None)
+            scm_update_on_launch = project_spec.get('ALWAYS_UPDATE', False)
         )
         if project:
             self.stdout.write(f"Updating project '{project.name}'")
@@ -520,6 +553,7 @@ class Command(BaseCommand):
         self.wait_for_awx(connection)
         credential_types = self.ensure_credential_types(connection)
         organisation = self.ensure_organisation(connection)
+        self.ensure_organisation_ee(connection, organisation)
         self.ensure_galaxy_credential(connection, organisation)
         deploy_keypair_cred = self.ensure_caas_deploy_keypair(
             connection,

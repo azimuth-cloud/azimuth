@@ -206,6 +206,22 @@ clusterEngine:
     # password secret should be specified
     adminUsername:
     adminPasswordSecretName:
+    # Definition of a custom execution environment for CaaS appliances
+    executionEnvironment:
+      # # The image to use for the execution environment (required)
+      # image: registry.example.com/azimuth/caas-ee:<tag>
+      # # Indicates if the image should be pulled for every job (defaults to false)
+      # # This can be useful in development, but in production the recommended method is
+      # # to set this to false and use immutable tags
+      # alwaysPull: false
+      # # Optional credentials if the image is in a private registry
+      # credentials:
+      #   # The registry host
+      #   host: registry.example.com
+      #   # The username to use to authenticate
+      #   username: <user>
+      #   # The token/password to use to authenticate
+      #   token: <registry token>
     # Definition of the default projects and job templates.
     # By default, the StackHPC demo appliances will be used
     defaultProjects:
@@ -232,12 +248,6 @@ clusterEngine:
       #     # This special key can be used to set common extra_vars for all playbooks in a project
       #     __ALL__: { var1: value1, var2: value2 }
       #     cluster1-playbook.yml: { var1: "override value1" }
-      #   # (ADVANCED) Definition of a custom execution environment for the project
-      #   executionEnvironment:
-      #     # The image to use (required)
-      #     image: registry.example.com/org/image:tag
-      #     # Whether to re-pull the image each time it is required (defaults to false if not given)
-      #     alwaysPull: true
   # Configuration for the Terraform backend
   terraformBackend:
     # Indicates if the Terraform backend should be configured
