@@ -536,25 +536,26 @@ def machines(request, tenant):
                     )
                 # Reserve a subdomain with the Zenith registrar
                 reservation = cloud_settings.APPS.reserve_subdomain()
-                desktop_enabled = input_serializer.validated_data["desktop_enabled"]
                 params.update(
                     metadata = dict(
                         web_console_enabled = 1,
-                        desktop_enabled = 1 if desktop_enabled else 0,
                         cloud_name = cloud_settings.CURRENT_CLOUD,
                         apps_registrar_url = cloud_settings.APPS.registrar_external_url,
                         # Pass the token from the registrar reservation
                         apps_registrar_token = reservation.token,
                         # Also indicate whether SSL should be verified for the registrar
-                        apps_registrar_verify_ssl = cloud_settings.APPS.verify_ssl_clients,
+                        apps_registrar_verify_ssl = (
+                            1
+                            if cloud_settings.APPS.verify_ssl_clients
+                            else 0
+                        ),
                         apps_sshd_host = cloud_settings.APPS.sshd_host,
                         apps_sshd_port = cloud_settings.APPS.sshd_port,
                         # Store the subdomain and FQDN in the metadata so that we can retrieve
                         # it later, even though the client does not need it
                         apps_console_subdomain = reservation.subdomain,
                         apps_console_fqdn = reservation.fqdn
-                    ),
-                    userdata = cloud_settings.APPS.web_console_userdata()
+                    )
                 )
             machine = session.create_machine(**params)
         output_serializer = serializers.MachineSerializer(

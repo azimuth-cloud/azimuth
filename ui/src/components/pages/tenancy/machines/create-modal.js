@@ -38,7 +38,6 @@ const CreateMachineModal = ({
     const [size, setSize] = useState('');
     const [webConsoleSupported, setWebConsoleSupported_] = useState(false);
     const [webConsoleEnabled, setWebConsoleEnabled_] = useState(false);
-    const [desktopEnabled, setDesktopEnabled] = useState(false);
     const setImage = imageId => {
         setImage_(imageId);
         setWebConsoleSupported(get(images.data, [imageId, "web_console_supported"], false));
@@ -51,7 +50,6 @@ const CreateMachineModal = ({
     const setWebConsoleEnabled = enabled_ => {
         const enabled = enabled_ || !sshKey.ssh_public_key
         setWebConsoleEnabled_(enabled);
-        setDesktopEnabled(enabled && desktopEnabled);
     };
     const reset = () => {
         setName('');
@@ -59,14 +57,12 @@ const CreateMachineModal = ({
         setSize('');
         setWebConsoleSupported_(false);
         setWebConsoleEnabled_(false);
-        setDesktopEnabled(false);
     };
 
     // When the modal is closed, reset the data before calling the cancel handler
     const handleClose = () => { reset(); onCancel(); };
     const setNameFromEvent = (evt) => setName(evt.target.value);
     const setWebConsoleEnabledFromEvent = evt => setWebConsoleEnabled(evt.target.checked);
-    const setDesktopEnabledFromEvent = evt => setDesktopEnabled(evt.target.checked);
 
     // On form submission, initiate the machine create before closing
     const handleSubmit = (evt) => {
@@ -75,8 +71,7 @@ const CreateMachineModal = ({
             name,
             image_id: image,
             size_id: size,
-            web_console_enabled: webConsoleEnabled,
-            desktop_enabled: desktopEnabled
+            web_console_enabled: webConsoleEnabled
         });
         reset();
         onSuccess();
@@ -150,11 +145,7 @@ const CreateMachineModal = ({
                                         </p>
                                     )}
                                     <p className="mb-0">
-                                        Installs{" "}
-                                        <a href="https://guacamole.apache.org/" target="_blank">
-                                            Apache Guacamole
-                                        </a>{" "}
-                                        to provide access to the machine via a web browser.
+                                        Installs software that provides access to the machine via a web browser.
                                     </p>
                                 </>
                             }
@@ -164,17 +155,6 @@ const CreateMachineModal = ({
                                 label="Enable web console?"
                                 checked={webConsoleEnabled}
                                 onChange={setWebConsoleEnabledFromEvent}
-                            />
-                        </Field>
-                        <Field
-                            name="desktop_enabled"
-                            helpText="WARNING: The remote desktop can take a long time to install and configure."
-                        >
-                            <BSForm.Check
-                                label="Enable remote desktop for web console?"
-                                disabled={!webConsoleEnabled}
-                                checked={desktopEnabled}
-                                onChange={setDesktopEnabledFromEvent}
                             />
                         </Field>
                     </>)}

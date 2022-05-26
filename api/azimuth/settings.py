@@ -124,11 +124,6 @@ class AppsSettings(SettingsObject):
     #: registrar using the external endpoint
     VERIFY_SSL_CLIENTS = Setting(default = True)
 
-    #: The URL of the script to use to install the web console on machines
-    CONSOLE_SCRIPT_URL = Setting(
-        default = "https://raw.githubusercontent.com/stackhpc/ansible-collection-azimuth-tools/main/bin/run-playbook"
-    )
-
 
 class ZenithSetting(Setting):
     """
@@ -148,8 +143,7 @@ class ZenithSetting(Setting):
                 apps_settings.SSHD_HOST,
                 apps_settings.SSHD_PORT,
                 apps_settings.VERIFY_SSL,
-                apps_settings.VERIFY_SSL_CLIENTS,
-                apps_settings.CONSOLE_SCRIPT_URL
+                apps_settings.VERIFY_SSL_CLIENTS
             )
         else:
             return None

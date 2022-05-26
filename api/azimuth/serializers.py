@@ -352,7 +352,6 @@ class CreateMachineSerializer(serializers.Serializer):
     image_id = serializers.RegexField(ID_REGEX, write_only = True)
     size_id = serializers.RegexField(ID_REGEX, write_only = True)
     web_console_enabled = serializers.BooleanField(default = False, write_only = True)
-    desktop_enabled = serializers.BooleanField(default = False, write_only = True)
 
 
 class FirewallRuleSerializer(
