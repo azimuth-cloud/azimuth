@@ -75,7 +75,7 @@ const ClusterTypeForm = ({ clusterTypes, selected, onSelect, goNext }) => {
                         ))
                     ) : (
                         <Col className="text-center text-muted py-4">
-                            No cluster types available.
+                            No platform templates available.
                         </Col>
                     )}
                 </Row>
@@ -148,12 +148,12 @@ const ClusterParametersForm = ({
                 </Row>
                 <Field
                     name="name"
-                    label="Cluster name"
+                    label="Platform name"
                     helpText="Must contain lower-case alphanumeric characters and dash (-) only."
                 >
                     <FormControl
                         type="text"
-                        placeholder="Cluster name"
+                        placeholder="Platform name"
                         required
                         pattern="[a-z0-9\-]+"
                         autoComplete="off"
@@ -180,7 +180,7 @@ const ClusterParametersForm = ({
                 </Button>
                 <Button variant="success" type="submit">
                     <FontAwesomeIcon icon={faPlus} className="me-2" />
-                    Create cluster
+                    Create platform
                 </Button>
             </Modal.Footer>
         </Form>
@@ -226,7 +226,7 @@ const CreateClusterModal = ({
             show={show}
         >
             <Modal.Header closeButton>
-                <Modal.Title>Create a new cluster</Modal.Title>
+                <Modal.Title>Create a new platform</Modal.Title>
             </Modal.Header>
             <Modal.Body>
                 <Nav
@@ -237,7 +237,7 @@ const CreateClusterModal = ({
                 >
                     <Nav.Item>
                         <Nav.Link eventKey="clusterType" className="p-3">
-                            Pick a cluster type
+                            Pick a platform type
                         </Nav.Link>
                     </Nav.Item>
                     <Nav.Item>
@@ -246,7 +246,7 @@ const CreateClusterModal = ({
                             disabled={!clusterType}
                             className="p-3"
                         >
-                            Set cluster options
+                            Configure platform
                         </Nav.Link>
                     </Nav.Item>
                 </Nav>
@@ -275,7 +275,7 @@ const CreateClusterModal = ({
                             {(tenancy.clusterTypes.fetchError && !tenancy.clusterTypes.fetching) ? (
                                 <Error message={tenancy.clusterTypes.fetchError.message} />
                             ) : (
-                                <Loading size="lg" message="Loading cluster types..."/>
+                                <Loading size="lg" message="Loading available platforms..."/>
                             )}
                         </Col>
                     </Row>
@@ -286,7 +286,7 @@ const CreateClusterModal = ({
 };
 
 
-export const CreateClusterButton = ({ sshKey, disabled, creating, ...props }) => {
+export const CreatePlatformButton = ({ sshKey, disabled, creating, ...props }) => {
     const [visible, setVisible] = useState(false);
     const open = () => setVisible(true);
     const close = () => setVisible(false);
@@ -296,14 +296,14 @@ export const CreateClusterButton = ({ sshKey, disabled, creating, ...props }) =>
                 variant="success"
                 disabled={sshKey.fetching || disabled || creating}
                 onClick={open}
-                title="Create a new cluster"
+                title="Create a new platform"
             >
                 <FontAwesomeIcon
                     icon={creating ? faSyncAlt : faSitemap}
                     spin={creating}
                     className="me-2"
                 />
-                {creating ? 'Creating cluster...' : 'New cluster'}
+                {creating ? 'Creating platform...' : 'New platform'}
             </Button>
             <ConnectedSSHKeyRequiredModal
                 show={visible}

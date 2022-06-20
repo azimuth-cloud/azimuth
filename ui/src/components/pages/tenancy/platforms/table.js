@@ -526,18 +526,7 @@ const ClusterRow = ({ cluster, clusterActions, tenancy, tenancyActions }) => {
 }
 
 
-export const ClustersTable = ({
-    clusters,
-    clusterActions,
-    tenancy,
-    tenancyActions
-}) => {
-    // We want to prevent clusters which are depended on by other clusters
-    // from being deleted
-    // So we need to work out which are the depended on clusters
-    // First, create a map of all the parameters that link to another
-    // cluster, indexed by cluster type
-    const clusterTypes = get(tenancy, ['clusterTypes', 'data']) || {};
+const clustersWithLinks = (clusterTypes, clusters) => {
     const linkedParams = Object.assign(
         {},
         ...Object.values(clusterTypes).map(ct => ({
@@ -556,7 +545,23 @@ export const ClustersTable = ({
     // ensure a consistent rendering
     const clustersWithLinkedTo = Object.values(clusters)
         .map(c => ({ ...c, linkedTo: linkedClusters.includes(c.name) }));
-    const sortedClusters = sortBy(clustersWithLinkedTo, c => c.name);
+    return clustersWithLinkedTo;
+};
+
+
+export const ClustersTable = ({
+    clusters,
+    clusterActions,
+    tenancy,
+    tenancyActions
+}) => {
+    // We want to prevent clusters which are depended on by other clusters
+    // from being deleted
+    // So we need to work out which are the depended on clusters
+    // First, create a map of all the parameters that link to another
+    // cluster, indexed by cluster type
+    const clusterTypes = get(tenancy, ['clusterTypes', 'data']) || {};
+    const sortedClusters = sortBy(clustersWithLinks(clusterTypes, clusters), c => c.name);
     return (
         <Table striped hover responsive className="resource-table clusters-table">
             <caption className="px-2">

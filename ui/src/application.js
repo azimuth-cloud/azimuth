@@ -20,11 +20,6 @@ import { Notifications } from './components/notifications';
 import { SplashPage } from './components/pages/splash';
 import { Dashboard } from './components/pages/dashboard';
 import { TenancyPage } from './components/pages/tenancy';
-import { TenancyOverviewPanel } from './components/pages/tenancy/overview';
-import { TenancyMachinesPanel } from './components/pages/tenancy/machines';
-import { TenancyVolumesPanel } from './components/pages/tenancy/volumes';
-import { TenancyKubernetesClustersPanel } from './components/pages/tenancy/kubernetes-clusters';
-import { TenancyClustersPanel } from './components/pages/tenancy/clusters';
 
 
 /**
@@ -144,23 +139,6 @@ const ProtectedRoute = connect(
 ));
 
 
-const TenancyOverviewPage = props => (
-    <ConnectedTenancyPage {...props}><TenancyOverviewPanel /></ConnectedTenancyPage>
-);
-const TenancyMachinesPage = props => (
-    <ConnectedTenancyPage {...props}><TenancyMachinesPanel /></ConnectedTenancyPage>
-);
-const TenancyVolumesPage = props => (
-    <ConnectedTenancyPage {...props}><TenancyVolumesPanel /></ConnectedTenancyPage>
-);
-const TenancyKubernetesClustersPage = props => (
-    <ConnectedTenancyPage {...props}><TenancyKubernetesClustersPanel /></ConnectedTenancyPage>
-);
-const TenancyClustersPage = props => (
-    <ConnectedTenancyPage {...props}><TenancyClustersPanel /></ConnectedTenancyPage>
-);
-
-
 export const Application = () => (
     <>
         <ConnectedNav />
@@ -174,29 +152,8 @@ export const Application = () => (
                     component={ConnectedDashboard}
                 />
                 <ProtectedRoute
-                    exact
-                    path="/tenancies/:id"
-                    component={TenancyOverviewPage}
-                />
-                <ProtectedRoute
-                    exact
-                    path="/tenancies/:id/machines"
-                    component={TenancyMachinesPage}
-                />
-                <ProtectedRoute
-                    exact
-                    path="/tenancies/:id/volumes"
-                    component={TenancyVolumesPage}
-                />
-                <ProtectedRoute
-                    exact
-                    path="/tenancies/:id/kubernetes"
-                    component={TenancyKubernetesClustersPage}
-                />
-                <ProtectedRoute
-                    exact
-                    path="/tenancies/:id/clusters"
-                    component={TenancyClustersPage}
+                    path="/tenancies/:id/:resource?"
+                    component={ConnectedTenancyPage}
                 />
                 <Route component={NotFound} />
             </Switch>

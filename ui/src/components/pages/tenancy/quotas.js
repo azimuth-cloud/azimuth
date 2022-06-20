@@ -57,8 +57,8 @@ const Quotas = (props) => (
 );
 
 
-export const TenancyOverviewPanel = ({ tenancy, tenancyActions }) => {
-    usePageTitle("Overview");
+export const TenancyQuotasPanel = ({ tenancy, tenancyActions }) => {
+    usePageTitle("Quotas");
     return (
         <ResourcePanel
             resource={tenancy.quotas}

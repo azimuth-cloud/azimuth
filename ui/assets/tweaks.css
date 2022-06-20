@@ -131,6 +131,29 @@
 
 
 /**
+ * Custom styles for platform cards.
+ */
+.platform-card {
+    margin-bottom: 1rem;
+}
+.platform-card > img {
+    padding: 0.5rem 1rem;
+    max-height: 120px;
+    object-fit: contain;
+}
+.platform-card > .card-body:not(:first-child) {
+    border-top: 1px solid var(--bs-gray-300) !important;
+    padding: 0.5rem 1rem;
+}
+.platform-card .card-subtitle {
+    color: var(--bs-gray-600) !important;
+}
+.platform-card .card-header, .platform-card .card-footer {
+    text-align: right;
+}
+
+
+/**
  * Custom styles for service list group items.
  */
 .service-list-group-item span {

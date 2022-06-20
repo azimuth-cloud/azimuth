@@ -7,12 +7,12 @@ import React from 'react';
 import { usePageTitle } from '../../../utils';
 
 import { useResourceInitialised, ResourcePanel } from '../resource-utils';
-import { ClustersTable } from './table';
-import { CreateClusterButton } from './create-modal';
+import { PlatformsGrid } from './grid';
+import { CreatePlatformButton } from './create-modal';
 
 
-const Clusters = ({ resourceData, resourceActions, ...props }) => (
-    <ClustersTable
+const Platforms = ({ resourceData, resourceActions, ...props }) => (
+    <PlatformsGrid
         clusters={resourceData}
         clusterActions={resourceActions}
         {...props}
@@ -20,19 +20,19 @@ const Clusters = ({ resourceData, resourceActions, ...props }) => (
 );
 
 
-export const TenancyClustersPanel = ({ sshKey, tenancy, tenancyActions }) => {
-    usePageTitle('Clusters');
+export const TenancyPlatformsPanel = ({ sshKey, tenancy, tenancyActions }) => {
+    usePageTitle('Platforms');
     // The clusters panel requires the cluster types to render
     useResourceInitialised(tenancy.clusterTypes, tenancyActions.clusterType.fetchList);
     return (
         <ResourcePanel
             resource={tenancy.clusters}
             resourceActions={tenancyActions.cluster}
-            resourceName="clusters"
-            createButtonComponent={CreateClusterButton}
+            resourceName="platforms"
+            createButtonComponent={CreatePlatformButton}
             createButtonExtraProps={({ sshKey, tenancy, tenancyActions })}
         >
-            <Clusters tenancy={tenancy} tenancyActions={tenancyActions} />
+            <Platforms tenancy={tenancy} tenancyActions={tenancyActions} />
         </ResourcePanel>
     );
 };
