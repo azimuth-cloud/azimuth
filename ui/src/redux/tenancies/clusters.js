@@ -66,7 +66,7 @@ export function reducer(state, action) {
                         nextStateEntry(
                             state,
                             action.clusterId,
-                            { updating: true }
+                            { patching: true }
                         )
                     ),
                 };
@@ -82,7 +82,7 @@ export function reducer(state, action) {
                     nextStateEntry(
                         state,
                         action.payload.id,
-                        { ...action.payload, updating: false }
+                        { ...action.payload, patching: false }
                     )
                 ),
             };
@@ -97,7 +97,7 @@ export function reducer(state, action) {
                         nextStateEntry(
                             state,
                             action.request.clusterId,
-                            { updating: false }
+                            { patching: false }
                         )
                     ),
                 };

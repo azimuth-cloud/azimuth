@@ -29,32 +29,29 @@ import { sortBy, Loading, Error, Form, Field } from '../../../utils';
 import { ConnectedSSHKeyRequiredModal } from '../../../ssh-key-update-modal';
 
 import { ClusterParameterField } from './parameter-field';
+import { ClusterTypeCard as ClusterTypeOverviewCard } from './grid';
 
 
-const ClusterTypePanel = ({ clusterType, selected, onSelect }) => (
-    <Col className="mb-3">
-        <Card>
-            <Card.Header as="h5">{clusterType.label}</Card.Header>
-            <Card.Body className="text-center">
-                <Image src={clusterType.logo} fluid />
-            </Card.Body>
-            <Card.Body className="border-top text-center px-3 py-2">
-                <ReactMarkdown children={clusterType.description} />
-            </Card.Body>
-            <Card.Footer className="text-center">
-                <Button
-                    variant={selected ? "success" : "primary"}
-                    onClick={onSelect}
-                    disabled={selected}
-                >
-                    {selected &&
-                        <FontAwesomeIcon icon={faCheckCircle} className="me-2" />
-                    }
-                    Select{selected && 'ed'}
-                </Button>
-            </Card.Footer>
-        </Card>
-    </Col>
+const ClusterTypeCard = ({ clusterType, selected, onSelect }) => (
+    <Card className="platform-type-card">
+        <Card.Header as="h5">{clusterType.label}</Card.Header>
+        <Card.Img src={clusterType.logo} />
+        <Card.Body className="small">
+            <ReactMarkdown children={clusterType.description} />
+        </Card.Body>
+        <Card.Footer className="text-center">
+            <Button
+                variant={selected ? "success" : "primary"}
+                onClick={onSelect}
+                disabled={selected}
+            >
+                {selected &&
+                    <FontAwesomeIcon icon={faCheckCircle} className="me-2" />
+                }
+                Select{selected && 'ed'}
+            </Button>
+        </Card.Footer>
+    </Card>
 );
 
 
@@ -66,12 +63,13 @@ const ClusterTypeForm = ({ clusterTypes, selected, onSelect, goNext }) => {
                 <Row xs={1} md={2} lg={3} xl={4} className="justify-content-center">
                     {sortedClusterTypes.length > 0 ? (
                         sortedClusterTypes.map((ct, i) => (
-                            <ClusterTypePanel
-                                key={i}
-                                clusterType={ct}
-                                selected={ct.name === selected}
-                                onSelect={() => onSelect(ct.name)}
-                            />
+                            <Col key={ct.name}>
+                                <ClusterTypeCard
+                                    clusterType={ct}
+                                    selected={ct.name === selected}
+                                    onSelect={() => onSelect(ct.name)}
+                                />
+                            </Col>
                         ))
                     ) : (
                         <Col className="text-center text-muted py-4">
@@ -96,7 +94,7 @@ const ClusterTypeForm = ({ clusterTypes, selected, onSelect, goNext }) => {
 
 
 const ClusterParametersForm = ({
-    clusterType: { label, description, logo, parameters },
+    clusterType,
     tenancy,
     tenancyActions,
     onSubmit,
@@ -107,7 +105,7 @@ const ClusterParametersForm = ({
         // For the initial state use the required fields, setting defaults where present
         () => Object.assign(
             {},
-            ...parameters
+            ...clusterType.parameters
                 .filter(p => p.required || p.default !== null)
                 .map(p => ({ [p.name]: p.default !== null ? p.default : '' }))
         )
@@ -135,15 +133,7 @@ const ClusterParametersForm = ({
             <Modal.Body>
                 <Row className="cluster-parameters-type justify-content-center mb-3">
                     <Col xs="auto">
-                        <div className="d-flex align-items-center">
-                            <div className="me-3">
-                                <Image src={logo} fluid />
-                            </div>
-                            <div>
-                                <h4>{label}</h4>
-                                <span className="text-muted">{description}</span>
-                            </div>
-                        </div>
+                        <ClusterTypeOverviewCard clusterType={clusterType} />
                     </Col>
                 </Row>
                 <Field
@@ -161,7 +151,7 @@ const ClusterParametersForm = ({
                         onChange={handleNameChange}
                     />
                 </Field>
-                {parameters.map(p => (
+                {clusterType.parameters.map(p => (
                     <ClusterParameterField
                         key={p.name}
                         tenancy={tenancy}

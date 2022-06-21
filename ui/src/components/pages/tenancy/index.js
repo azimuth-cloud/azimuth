@@ -47,7 +47,7 @@ const TenancyNav = ({ capabilities, url, tenancyId, selectedResource }) => {
             )}
             <Nav.Item as="li">
                 <LinkContainer exact to={`/tenancies/${tenancyId}/quotas`}>
-                    <Nav.Link>Quotas</Nav.Link>
+                    <Nav.Link>Usage</Nav.Link>
                 </LinkContainer>
             </Nav.Item>
             {nextExpanded ? (
