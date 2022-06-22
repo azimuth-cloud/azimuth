@@ -527,7 +527,7 @@ class Driver(base.Driver):
         name: str,
         cluster_type: dto.ClusterType,
         params: t.Mapping[str, t.Any],
-        ssh_key: str,
+        ssh_key: t.Optional[str],
         ctx: dto.Context
     ):
         """

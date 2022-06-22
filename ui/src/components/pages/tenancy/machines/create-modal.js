@@ -225,7 +225,7 @@ export const CreateMachineButton = ({ sshKey, capabilities, disabled, creating, 
                     show={visible}
                     onSuccess={close}
                     onCancel={close}
-                    showWarning={true}
+                    warningText="Before creating a machine, you must set an SSH public key."
                 >
                     <CreateMachineModal
                         creating={creating}

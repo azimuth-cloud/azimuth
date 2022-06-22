@@ -93,6 +93,8 @@ class ClusterType:
     description: Optional[str]
     #: The URL or data URI of the logo for the cluster type
     logo: Optional[str]
+    #: Indicates whether the cluster requires a user SSH key
+    requires_ssh_key: bool
     #: The parameters for the cluster type
     parameters: Sequence[ClusterParameter]
     #: The services for the cluster type
@@ -118,6 +120,7 @@ class ClusterType:
             spec.get('label', name),
             spec.get('description'),
             spec.get('logo'),
+            spec.get('requires_ssh_key', True),
             tuple(
                 ClusterParameter(
                     param['name'],

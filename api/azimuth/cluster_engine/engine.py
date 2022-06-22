@@ -226,11 +226,15 @@ class ClusterManager:
         name: str,
         cluster_type: dto.ClusterType,
         params: t.Mapping[str, t.Any],
-        ssh_key: str
+        ssh_key: t.Optional[str]
     ) -> dto.Cluster:
         """
         Creates a new cluster with the given name, type and parameters.
         """
+        if cluster_type.requires_ssh_key and not ssh_key:
+            raise errors.InvalidOperationError(
+                f"Clusters of type '{cluster_type.label}' require an SSH key."
+            )
         validated = getattr(params, "__validated__", False)
         # If the parameters have not already been validated, validated them
         if not validated:

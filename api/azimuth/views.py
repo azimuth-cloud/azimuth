@@ -955,11 +955,9 @@ def clusters(request, tenant):
                     context = { "session": session, "cluster_manager": cluster_manager }
                 )
                 input_serializer.is_valid(raise_exception = True)
-                cluster = cluster_manager.create_cluster(
-                    input_serializer.validated_data["name"],
-                    input_serializer.validated_data["cluster_type"],
-                    input_serializer.validated_data["parameter_values"],
-                    cloud_settings.SSH_KEY_STORE.get_key(
+                # If an SSH key is available, add it to the params
+                try:
+                    ssh_key = cloud_settings.SSH_KEY_STORE.get_key(
                         request.user.username,
                         # Pass the request and the sessions as keyword options
                         # so that the key store can use them if it needs to
@@ -967,6 +965,13 @@ def clusters(request, tenant):
                         unscoped_session = request.auth,
                         scoped_session = session
                     )
+                except keystore_errors.KeyNotFound:
+                    ssh_key = None
+                cluster = cluster_manager.create_cluster(
+                    input_serializer.validated_data["name"],
+                    input_serializer.validated_data["cluster_type"],
+                    input_serializer.validated_data["parameter_values"],
+                    ssh_key
                 )
                 output_serializer = serializers.ClusterSerializer(
                     cluster,

@@ -2,13 +2,12 @@
  * This module contains the modal dialog for cluster creation.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 
 import Button from 'react-bootstrap/Button';
 import Card from 'react-bootstrap/Card';
 import Col from 'react-bootstrap/Col';
 import FormControl from 'react-bootstrap/FormControl';
-import Image from 'react-bootstrap/Image';
 import Modal from 'react-bootstrap/Modal';
 import Nav from 'react-bootstrap/Nav';
 import Row from 'react-bootstrap/Row';
@@ -26,7 +25,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 
 import { sortBy, Loading, Error, Form, Field } from '../../../utils';
-import { ConnectedSSHKeyRequiredModal } from '../../../ssh-key-update-modal';
+import { ConnectedSSHKeyUpdateModal } from '../../../ssh-key-update-modal';
 
 import { ClusterParameterField } from './parameter-field';
 import { ClusterTypeCard as ClusterTypeOverviewCard } from './grid';
@@ -184,94 +183,106 @@ const CreateClusterModal = ({
     onCancel,
     create,
     tenancy,
-    tenancyActions
+    tenancyActions,
+    sshKey
 }) => {
     const [activeTab, setActiveTab] = useState('clusterType');
-    const [clusterType, setClusterType] = useState(null);
+    const [clusterTypeName, setClusterTypeName] = useState('');
     const reset = () => {
         setActiveTab('clusterType');
-        setClusterType(null);
+        setClusterTypeName('');
     };
-
-    // If we reset the active tab and cluster type when the modal closes, we
-    // get an ugly flicker as the animation completes
-    // Resetting data as the modal becomes visible fixes this
-    useEffect(() => { if( show ) reset(); }, [show]);
 
     const handleSubmit = ({ name, parameterValues }) => {
         create({
             name,
-            cluster_type: clusterType,
+            cluster_type: clusterTypeName,
             parameter_values: parameterValues
         });
         onSuccess();
     };
+
+    const clusterType = clusterTypeName ? tenancy.clusterTypes.data[clusterTypeName] : null;
+    const showSSHKeyModal = (
+        activeTab === "clusterParameters" &&
+        clusterType &&
+        clusterType.requires_ssh_key &&
+        !sshKey.ssh_public_key
+    );
     
     return (
-        <Modal
-            backdrop="static"
-            onHide={onCancel}
-            // Use a large modal for the cluster type selection
-            size={activeTab === "clusterType" ? "xl" : "lg"}
-            show={show}
-        >
-            <Modal.Header closeButton>
-                <Modal.Title>Create a new platform</Modal.Title>
-            </Modal.Header>
-            <Modal.Body>
-                <Nav
-                    variant="pills"
-                    justify
-                    activeKey={activeTab}
-                    onSelect={setActiveTab}
-                >
-                    <Nav.Item>
-                        <Nav.Link eventKey="clusterType" className="p-3">
-                            Pick a platform type
-                        </Nav.Link>
-                    </Nav.Item>
-                    <Nav.Item>
-                        <Nav.Link
-                            eventKey="clusterParameters"
-                            disabled={!clusterType}
-                            className="p-3"
-                        >
-                            Configure platform
-                        </Nav.Link>
-                    </Nav.Item>
-                </Nav>
-            </Modal.Body>
-            {tenancy.clusterTypes.initialised ? (
-                activeTab === "clusterType" ? (
-                    <ClusterTypeForm
-                        clusterTypes={tenancy.clusterTypes.data}
-                        selected={clusterType}
-                        onSelect={setClusterType}
-                        goNext={() => setActiveTab('clusterParameters')}
-                    />
-                ) : (
-                    <ClusterParametersForm
-                        tenancy={tenancy}
-                        tenancyActions={tenancyActions}
-                        clusterType={tenancy.clusterTypes.data[clusterType]}
-                        goBack={() => setActiveTab('clusterType')}
-                        onSubmit={handleSubmit}
-                    />
-                )
-            ) : (
+        <>
+            <Modal
+                backdrop="static"
+                onHide={onCancel}
+                onExited={reset}
+                // Use a large modal for the cluster type selection
+                size={activeTab === "clusterType" ? "xl" : "lg"}
+                show={show}
+            >
+                <Modal.Header closeButton>
+                    <Modal.Title>Create a new platform</Modal.Title>
+                </Modal.Header>
                 <Modal.Body>
-                    <Row className="justify-content-center">
-                        <Col xs="auto" className="py-4">
-                            {(tenancy.clusterTypes.fetchError && !tenancy.clusterTypes.fetching) ? (
-                                <Error message={tenancy.clusterTypes.fetchError.message} />
-                            ) : (
-                                <Loading size="lg" message="Loading available platforms..."/>
-                            )}
-                        </Col>
-                    </Row>
+                    <Nav
+                        variant="pills"
+                        justify
+                        activeKey={activeTab}
+                        onSelect={setActiveTab}
+                    >
+                        <Nav.Item>
+                            <Nav.Link eventKey="clusterType" className="p-3">
+                                Pick a platform type
+                            </Nav.Link>
+                        </Nav.Item>
+                        <Nav.Item>
+                            <Nav.Link
+                                eventKey="clusterParameters"
+                                disabled={!clusterType}
+                                className="p-3"
+                            >
+                                Configure platform
+                            </Nav.Link>
+                        </Nav.Item>
+                    </Nav>
                 </Modal.Body>
-            )}
-        </Modal>
+                {tenancy.clusterTypes.initialised ? (
+                    activeTab === "clusterType" ? (
+                        <ClusterTypeForm
+                            clusterTypes={tenancy.clusterTypes.data}
+                            selected={clusterTypeName}
+                            onSelect={setClusterTypeName}
+                            goNext={() => setActiveTab('clusterParameters')}
+                        />
+                    ) : (
+                        <ClusterParametersForm
+                            tenancy={tenancy}
+                            tenancyActions={tenancyActions}
+                            clusterType={clusterType}
+                            goBack={() => setActiveTab('clusterType')}
+                            onSubmit={handleSubmit}
+                        />
+                    )
+                ) : (
+                    <Modal.Body>
+                        <Row className="justify-content-center">
+                            <Col xs="auto" className="py-4">
+                                {(tenancy.clusterTypes.fetchError && !tenancy.clusterTypes.fetching) ? (
+                                    <Error message={tenancy.clusterTypes.fetchError.message} />
+                                ) : (
+                                    <Loading size="lg" message="Loading available platforms..."/>
+                                )}
+                            </Col>
+                        </Row>
+                    </Modal.Body>
+                )}
+            </Modal>
+            <ConnectedSSHKeyUpdateModal
+                show={showSSHKeyModal}
+                onCancel={() => setActiveTab('clusterType')}
+                warningText="The platform you have selected requires an SSH public key to be set."
+            />
+        </>
     );
 };
 
@@ -284,7 +295,7 @@ export const CreatePlatformButton = ({ sshKey, disabled, creating, ...props }) =
         <>
             <Button
                 variant="success"
-                disabled={sshKey.fetching || disabled || creating}
+                disabled={disabled || creating}
                 onClick={open}
                 title="Create a new platform"
             >
@@ -295,14 +306,14 @@ export const CreatePlatformButton = ({ sshKey, disabled, creating, ...props }) =
                 />
                 {creating ? 'Creating platform...' : 'New platform'}
             </Button>
-            <ConnectedSSHKeyRequiredModal
+            <CreateClusterModal
                 show={visible}
                 onSuccess={close}
                 onCancel={close}
-                showWarning={true}
-            >
-                <CreateClusterModal creating={creating} {...props} />
-            </ConnectedSSHKeyRequiredModal>
+                sshKey={sshKey}
+                creating={creating}
+                {...props}
+            />
         </>
     );
 };

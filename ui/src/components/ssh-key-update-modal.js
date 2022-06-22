@@ -63,27 +63,24 @@ const SSHKeyInput = ({ value, onChange, allowedKeyTypes, rsaMinBits, ...props })
     );
 };
 
- 
+
 export const SSHKeyUpdateModal = ({
     show,
     onSuccess,  // Success in this context is the form submitting successfully
     onCancel,
     sshKey,
     sshKeyActions,
-    showWarning = false,
+    warningText,
     ...props
 }) => {
     const [sshPublicKey, setSSHPublicKey] = useState(sshKey.ssh_public_key || '');
+    const reset = () => setSSHPublicKey(sshKey.ssh_public_key || '');
+
     // Account for the case where the SSH key is not initialised when the modal is opened
     // The form will be disabled until the SSH key is initialised so this is safe to do
     useEffect(
         () => { if( sshKey.initialised ) setSSHPublicKey(sshKey.ssh_public_key || ''); },
         [sshKey.initialised]
-    );
-    // In order to avoid a flicker, we reset the key as the modal opens, not closes
-    useEffect(
-        () => { if( show ) setSSHPublicKey(sshKey.ssh_public_key || ''); },
-        [show]
     );
 
     const handleSubmit = (evt) => {
@@ -93,7 +90,14 @@ export const SSHKeyUpdateModal = ({
     };
  
     return (
-        <Modal backdrop="static" show={show} onHide={onCancel} size="lg" {...props}>
+        <Modal
+            backdrop="static"
+            show={show}
+            onHide={onCancel}
+            onExited={reset}
+            size="lg"
+            {...props}
+        >
             <Modal.Header closeButton>
                 <Modal.Title>SSH public key</Modal.Title>
             </Modal.Header>
@@ -102,20 +106,17 @@ export const SSHKeyUpdateModal = ({
                 disabled={!sshKey.can_update || !sshKey.initialised || sshKey.updating}
             >
                 <Modal.Body>
-                    <Alert variant="info">
-                        <p className="mb-0">
-                            This SSH public key will be injected into machines that you create,
-                            allowing you to access those machines via SSH.
-                        </p>
-                    </Alert>
-                    {sshKey.can_update && showWarning && (
+                    {warningText && (
                         <Alert variant="warning">
-                            <p className="mb-0">
-                                Before creating a machine or cluster, you must
-                                set an SSH public key.
-                            </p>
+                            <p className="mb-0">{warningText}</p>
                         </Alert>
                     )}
+                    <Alert variant="info">
+                        <p className="mb-0">
+                            This SSH public key will be injected into platforms and machines that
+                            you create, allowing you to access those machines via SSH where supported.
+                        </p>
+                    </Alert>
                     {sshKey.initialised && !sshKey.can_update && (
                         <Alert variant="warning">
                             <p className="mb-0">
@@ -152,6 +153,7 @@ export const SSHKeyUpdateModal = ({
                     </Field>
                 </Modal.Body>
                 <Modal.Footer>
+                    <Button variant="secondary" onClick={onCancel}>Cancel</Button>
                     <Button variant="primary" type="submit">
                         <FontAwesomeIcon
                             icon={sshKey.updating ? faSyncAlt : faKey}
