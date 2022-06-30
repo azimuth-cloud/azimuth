@@ -39,7 +39,15 @@ const PlatformTypeSelectCard = ({ platformType, selected, onSelect }) => (
         <Card.Header as="h5">{platformType.name}</Card.Header>
         <Card.Img src={platformType.logo} />
         <Card.Body className="small">
-            <ReactMarkdown children={platformType.description} />
+            <ReactMarkdown
+                components={{
+                    // Links should open in a new tab
+                    a: ({ node, children, ...props }) => (
+                        <a target="_blank" {...props}>{children}</a>
+                    )
+                }}
+                children={platformType.description}
+            />
         </Card.Body>
         <Card.Footer className="text-center">
             <Button
@@ -262,7 +270,10 @@ const CreatePlatformModal = ({
                             kind: "kubernetes",
                             name: "Kubernetes",
                             logo: KubernetesIcon,
-                            description: "Kubernetes cluster"
+                            description: (
+                                "Kubernetes cluster with optional addons including Kubernetes dashboard, " +
+                                "monitoring, ingress and application dashboard."
+                            )
                         }
                     } :
                     undefined

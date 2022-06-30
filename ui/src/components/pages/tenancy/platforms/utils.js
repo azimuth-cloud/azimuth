@@ -30,7 +30,15 @@ export const PlatformTypeCard = ({ platformType }) => (
                 </Col>
                 <Col>
                     <Card.Title>{platformType.name}</Card.Title>
-                    <ReactMarkdown children={platformType.description} />
+                    <ReactMarkdown
+                        components={{
+                            // Links should open in a new tab
+                            a: ({ node, children, ...props }) => (
+                                <a target="_blank" {...props}>{children}</a>
+                            )
+                        }}
+                        children={platformType.description}
+                    />
                 </Col>
             </Row>
         </Card.Body>
