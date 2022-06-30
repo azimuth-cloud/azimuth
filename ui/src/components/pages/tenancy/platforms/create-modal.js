@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import Button from 'react-bootstrap/Button';
 import Card from 'react-bootstrap/Card';
 import Col from 'react-bootstrap/Col';
-import FormControl from 'react-bootstrap/FormControl';
 import Modal from 'react-bootstrap/Modal';
 import Nav from 'react-bootstrap/Nav';
 import Row from 'react-bootstrap/Row';
@@ -24,11 +23,9 @@ import {
     faSyncAlt
 } from '@fortawesome/free-solid-svg-icons';
 
-import { sortBy, Loading, Error, Form, Field } from '../../../utils';
+import { sortBy, Loading, Error } from '../../../utils';
 import { ConnectedSSHKeyUpdateModal } from '../../../ssh-key-update-modal';
 
-import { ClusterParameterField } from './clusters/parameter-field';
-import { ClusterTypeCard as ClusterTypeOverviewCard } from './grid';
 import { PlatformTypeCard } from './utils';
 
 import { useClusterFormState, ClusterForm } from './clusters/form';
@@ -102,25 +99,41 @@ const ClusterConfigurationForm = ({
     formId,
     clusterType,
     onSuccess,
+    onCancel,
+    sshKey,
     tenancy,
     tenancyActions
 }) => {
     const [formState, _] = useClusterFormState(clusterType, undefined);
+
+    const showSSHKeyModal = (
+        clusterType &&
+        clusterType.requires_ssh_key &&
+        !sshKey.ssh_public_key
+    );
+
     return (
-        <ClusterForm
-            id={formId}
-            formState={formState}
-            onSubmit={data => {
-                tenancyActions.cluster.create({
-                    name: data.name,
-                    cluster_type: clusterType.name,
-                    parameter_values: data.parameterValues
-                });
-                onSuccess();
-            }}
-            tenancy={tenancy}
-            tenancyActions={tenancyActions}
-        />
+        <>
+            <ClusterForm
+                id={formId}
+                formState={formState}
+                onSubmit={data => {
+                    tenancyActions.cluster.create({
+                        name: data.name,
+                        cluster_type: clusterType.name,
+                        parameter_values: data.parameterValues
+                    });
+                    onSuccess();
+                }}
+                tenancy={tenancy}
+                tenancyActions={tenancyActions}
+            />
+            <ConnectedSSHKeyUpdateModal
+                show={showSSHKeyModal}
+                onCancel={onCancel}
+                warningText="The platform you have selected requires an SSH public key to be set."
+            />
+        </>
     );
 };
 
@@ -173,6 +186,8 @@ const PlatformConfigurationForm = ({
                         formId="platform-create"
                         clusterType={platformType.object}
                         onSuccess={onSuccess}
+                        onCancel={goBack}
+                        sshKey={sshKey}
                         tenancy={tenancy}
                         tenancyActions={tenancyActions}
                     />
@@ -360,89 +375,6 @@ const CreatePlatformModal = ({
                 </Modal.Body>
             )}
         </Modal>
-    );
-
-    const clusterType = clusterTypeName ? tenancy.clusterTypes.data[clusterTypeName] : null;
-    const showSSHKeyModal = (
-        activeTab === "clusterParameters" &&
-        clusterType &&
-        clusterType.requires_ssh_key &&
-        !sshKey.ssh_public_key
-    );
-    
-    return (
-        <>
-            <Modal
-                backdrop="static"
-                onHide={onCancel}
-                onExited={reset}
-                // Use a large modal for the cluster type selection
-                size={activeTab === "platformType" ? "xl" : "lg"}
-                show={show}
-            >
-                <Modal.Header closeButton>
-                    <Modal.Title>Create a new platform</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    <Nav
-                        variant="pills"
-                        justify
-                        activeKey={activeTab}
-                        onSelect={setActiveTab}
-                    >
-                        <Nav.Item>
-                            <Nav.Link eventKey="platformType" className="p-3">
-                                Pick a platform type
-                            </Nav.Link>
-                        </Nav.Item>
-                        <Nav.Item>
-                            <Nav.Link
-                                eventKey="clusterParameters"
-                                disabled={!clusterType}
-                                className="p-3"
-                            >
-                                Configure platform
-                            </Nav.Link>
-                        </Nav.Item>
-                    </Nav>
-                </Modal.Body>
-                {tenancy.clusterTypes.initialised ? (
-                    activeTab === "platformType" ? (
-                        <ClusterTypeForm
-                            clusterTypes={tenancy.clusterTypes.data}
-                            selected={clusterTypeName}
-                            onSelect={setClusterTypeName}
-                            goNext={() => setActiveTab('clusterParameters')}
-                        />
-                    ) : (
-                        <ClusterParametersForm
-                            tenancy={tenancy}
-                            tenancyActions={tenancyActions}
-                            clusterType={clusterType}
-                            goBack={() => setActiveTab('platformType')}
-                            onSubmit={handleSubmit}
-                        />
-                    )
-                ) : (
-                    <Modal.Body>
-                        <Row className="justify-content-center">
-                            <Col xs="auto" className="py-4">
-                                {(tenancy.clusterTypes.fetchError && !tenancy.clusterTypes.fetching) ? (
-                                    <Error message={tenancy.clusterTypes.fetchError.message} />
-                                ) : (
-                                    <Loading size="lg" message="Loading available platforms..."/>
-                                )}
-                            </Col>
-                        </Row>
-                    </Modal.Body>
-                )}
-            </Modal>
-            <ConnectedSSHKeyUpdateModal
-                show={showSSHKeyModal}
-                onCancel={() => setActiveTab('platformType')}
-                warningText="The platform you have selected requires an SSH public key to be set."
-            />
-        </>
     );
 };
 
