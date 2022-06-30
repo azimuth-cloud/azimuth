@@ -19,26 +19,26 @@ import { Loading, bindArgsToActions, usePrevious } from '../../utils';
 import { TenancyQuotasPanel } from './quotas';
 import { TenancyMachinesPanel } from './machines';
 import { TenancyVolumesPanel } from './volumes';
-import { TenancyKubernetesClustersPanel } from './kubernetes-clusters';
 import { TenancyPlatformsPanel } from './platforms';
 
 
 const TenancyNav = ({ capabilities, url, tenancyId, selectedResource }) => {
     const [expanded, setExpanded] = useState(false);
     const previousExpanded = usePrevious(expanded);
+    const supportsPlatforms = capabilities.supports_clusters || capabilities.supports_kubernetes;
     const nextExpanded = (
         // Once the nav has expanded once, it should stay expanded
         previousExpanded ||
         // If the cloud doesn't support platforms, show the expanded menu always
-        !capabilities.supports_clusters ||
+        !supportsPlatforms ||
         // Show the expanded menu if the user is on an advanced tab
-        ['machines', 'volumes', 'kubernetes'].includes(selectedResource)
+        ['machines', 'volumes'].includes(selectedResource)
     );
     useEffect(() => { setExpanded(nextExpanded) }, [nextExpanded]);
 
     return (
         <Nav as="ul" variant="tabs" activeKey={url} className="mb-3">
-            {capabilities.supports_clusters && (
+            {supportsPlatforms && (
                 <Nav.Item as="li">
                     <LinkContainer to={`/tenancies/${tenancyId}/platforms`}>
                         <Nav.Link>Platforms</Nav.Link>
@@ -64,13 +64,6 @@ const TenancyNav = ({ capabilities, url, tenancyId, selectedResource }) => {
                             </LinkContainer>
                         </Nav.Item>
                     )}
-                    {capabilities.supports_kubernetes && (
-                        <Nav.Item as="li">
-                            <LinkContainer to={`/tenancies/${tenancyId}/kubernetes`}>
-                                <Nav.Link>Kubernetes</Nav.Link>
-                            </LinkContainer>
-                        </Nav.Item>
-                    )}
                 </>
             ) : (
                 <NavDropdown title="Advanced">
@@ -80,11 +73,6 @@ const TenancyNav = ({ capabilities, url, tenancyId, selectedResource }) => {
                     {capabilities.supports_volumes && (
                         <LinkContainer to={`/tenancies/${tenancyId}/volumes`}>
                             <NavDropdown.Item>Volumes</NavDropdown.Item>
-                        </LinkContainer>
-                    )}
-                    {capabilities.supports_kubernetes && (
-                        <LinkContainer to={`/tenancies/${tenancyId}/kubernetes`}>
-                            <NavDropdown.Item>Kubernetes</NavDropdown.Item>
                         </LinkContainer>
                     )}
                 </NavDropdown>
@@ -127,7 +115,11 @@ export const TenancyPage = ({
     // Check if a matched resource is present
     // If not, redirect to one based on the available capabilities
     if( !matchedResource ) {
-        const defaultResource = capabilities.supports_clusters ? 'platforms' : 'quotas';
+        const defaultResource = (
+            capabilities.supports_clusters || capabilities.supports_kubernetes ?
+                'platforms' :
+                'quotas'
+        );
         return <Redirect to={`${url}/${defaultResource}`} />;
     }
     
@@ -177,9 +169,6 @@ export const TenancyPage = ({
                     </Route>
                     <Route exact path={`${path}/volumes`}>
                         <TenancyVolumesPanel {...tenancyProps} />
-                    </Route>
-                    <Route exact path={`${path}/kubernetes`}>
-                        <TenancyKubernetesClustersPanel {...tenancyProps} />
                     </Route>
                     <Route exact path={`${path}/platforms`}>
                         <TenancyPlatformsPanel {...tenancyProps} />

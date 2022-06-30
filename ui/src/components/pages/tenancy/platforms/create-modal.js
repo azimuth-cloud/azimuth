@@ -1,7 +1,3 @@
-/**
- * This module contains the modal dialog for cluster creation.
- */
-
 import React, { useState } from 'react';
 
 import Button from 'react-bootstrap/Button';
@@ -11,6 +7,10 @@ import FormControl from 'react-bootstrap/FormControl';
 import Modal from 'react-bootstrap/Modal';
 import Nav from 'react-bootstrap/Nav';
 import Row from 'react-bootstrap/Row';
+
+import { StatusCodes } from 'http-status-codes';
+
+import get from 'lodash/get';
 
 import ReactMarkdown from 'react-markdown';
 
@@ -27,16 +27,22 @@ import {
 import { sortBy, Loading, Error, Form, Field } from '../../../utils';
 import { ConnectedSSHKeyUpdateModal } from '../../../ssh-key-update-modal';
 
-import { ClusterParameterField } from './parameter-field';
+import { ClusterParameterField } from './clusters/parameter-field';
 import { ClusterTypeCard as ClusterTypeOverviewCard } from './grid';
+import { PlatformTypeCard } from './utils';
+
+import { useClusterFormState, ClusterForm } from './clusters/form';
+
+import { useKubernetesClusterFormState, KubernetesClusterForm } from './kubernetes/form';
+import KubernetesIcon from './kubernetes/kubernetes-logo.png';
 
 
-const ClusterTypeCard = ({ clusterType, selected, onSelect }) => (
-    <Card className="platform-type-card">
-        <Card.Header as="h5">{clusterType.label}</Card.Header>
-        <Card.Img src={clusterType.logo} />
+const PlatformTypeSelectCard = ({ platformType, selected, onSelect }) => (
+    <Card className="platform-type-select-card">
+        <Card.Header as="h5">{platformType.name}</Card.Header>
+        <Card.Img src={platformType.logo} />
         <Card.Body className="small">
-            <ReactMarkdown children={clusterType.description} />
+            <ReactMarkdown children={platformType.description} />
         </Card.Body>
         <Card.Footer className="text-center">
             <Button
@@ -54,19 +60,19 @@ const ClusterTypeCard = ({ clusterType, selected, onSelect }) => (
 );
 
 
-const ClusterTypeForm = ({ clusterTypes, selected, onSelect, goNext }) => {
-    const sortedClusterTypes = sortBy(Object.values(clusterTypes), ct => ct.name);
+const PlatformTypeForm = ({ platformTypes, selected, onSelect, goNext }) => {
+    const sortedPlatformTypes = sortBy(Object.values(platformTypes), pt => pt.name);
     return (
         <>
-            <Modal.Body className="cluster-type-select pb-0">
+            <Modal.Body>
                 <Row xs={1} md={2} lg={3} xl={4} className="justify-content-center">
-                    {sortedClusterTypes.length > 0 ? (
-                        sortedClusterTypes.map((ct, i) => (
-                            <Col key={ct.name}>
-                                <ClusterTypeCard
-                                    clusterType={ct}
-                                    selected={ct.name === selected}
-                                    onSelect={() => onSelect(ct.name)}
+                    {sortedPlatformTypes.length > 0 ? (
+                        sortedPlatformTypes.map(pt => (
+                            <Col key={pt.id}>
+                                <PlatformTypeSelectCard
+                                    platformType={pt}
+                                    selected={pt.id === selected}
+                                    onSelect={() => onSelect(pt.id)}
                                 />
                             </Col>
                         ))
@@ -92,115 +98,269 @@ const ClusterTypeForm = ({ clusterTypes, selected, onSelect, goNext }) => {
 };
 
 
-const ClusterParametersForm = ({
+const ClusterConfigurationForm = ({
+    formId,
     clusterType,
+    onSuccess,
+    tenancy,
+    tenancyActions
+}) => {
+    const [formState, _] = useClusterFormState(clusterType, undefined);
+    return (
+        <ClusterForm
+            id={formId}
+            formState={formState}
+            onSubmit={data => {
+                tenancyActions.cluster.create({
+                    name: data.name,
+                    cluster_type: clusterType.name,
+                    parameter_values: data.parameterValues
+                });
+                onSuccess();
+            }}
+            tenancy={tenancy}
+            tenancyActions={tenancyActions}
+        />
+    );
+};
+
+
+const KubernetesConfigurationForm = ({
+    formId,
+    onSuccess,
+    kubernetesClusterActions,
+    kubernetesClusterTemplates,
+    kubernetesClusterTemplateActions,
+    sizes,
+    sizeActions
+}) => {
+    const [formState, _] = useKubernetesClusterFormState(undefined);
+    return (
+        <KubernetesClusterForm
+            id={formId}
+            formState={formState}
+            onSubmit={data => {
+                kubernetesClusterActions.create(data);
+                onSuccess();
+            }}
+            kubernetesClusterTemplates={kubernetesClusterTemplates}
+            kubernetesClusterTemplateActions={kubernetesClusterTemplateActions}
+            sizes={sizes}
+            sizeActions={sizeActions}
+        />
+    );
+};
+
+
+const PlatformConfigurationForm = ({
+    platformType,
+    sshKey,
     tenancy,
     tenancyActions,
-    onSubmit,
-    goBack
+    goBack,
+    onSuccess
 }) => {
-    const [name, setName] = useState('');
-    const [parameterValues, setParameterValues] = useState(
-        // For the initial state use the required fields, setting defaults where present
-        () => Object.assign(
-            {},
-            ...clusterType.parameters
-                .filter(p => p.required || p.default !== null)
-                .map(p => ({ [p.name]: p.default !== null ? p.default : '' }))
-        )
-    );
-
-    const handleNameChange = evt => setName(evt.target.value);
-    const handleParameterValueChange = (name) => (value) => setParameterValues(
-        prevState => {
-            if( value !== '' ) {
-                return { ...prevState, [name]: value };
-            }
-            else {
-                const { [name]: _, ...nextState } = prevState;
-                return nextState;
-            }
-        }
-    );
-    const handleSubmit = (evt) => {
-        evt.preventDefault();
-        onSubmit({ name, parameterValues });
-    };
-
     return (
-        <Form onSubmit={handleSubmit}>
+        <>
             <Modal.Body>
-                <Row className="cluster-parameters-type justify-content-center mb-3">
+                <Row className="justify-content-center mb-3">
                     <Col xs="auto">
-                        <ClusterTypeOverviewCard clusterType={clusterType} />
+                        <PlatformTypeCard platformType={platformType} />
                     </Col>
                 </Row>
-                <Field
-                    name="name"
-                    label="Platform name"
-                    helpText="Must contain lower-case alphanumeric characters and dash (-) only."
-                >
-                    <FormControl
-                        type="text"
-                        placeholder="Platform name"
-                        required
-                        pattern="[a-z0-9\-]+"
-                        autoComplete="off"
-                        value={name}
-                        onChange={handleNameChange}
-                    />
-                </Field>
-                {clusterType.parameters.map(p => (
-                    <ClusterParameterField
-                        key={p.name}
+                {platformType.kind === "clusterType" && (
+                    <ClusterConfigurationForm
+                        formId="platform-create"
+                        clusterType={platformType.object}
+                        onSuccess={onSuccess}
                         tenancy={tenancy}
                         tenancyActions={tenancyActions}
-                        isCreate={true}
-                        parameter={p}
-                        value={parameterValues[p.name] || ''}
-                        onChange={handleParameterValueChange(p.name)}
                     />
-                ))}
+                )}
+                {platformType.kind === "kubernetes" && (
+                    <KubernetesConfigurationForm
+                        formId="platform-create"
+                        onSuccess={onSuccess}
+                        kubernetesClusterActions={tenancyActions.kubernetesCluster}
+                        kubernetesClusterTemplates={tenancy.kubernetesClusterTemplates}
+                        kubernetesClusterTemplateActions={tenancyActions.kubernetesClusterTemplate}
+                        sizes={tenancy.sizes}
+                        sizeActions={tenancyActions.size}
+                    />
+                )}
             </Modal.Body>
             <Modal.Footer>
                 <Button variant="primary" onClick={goBack}>
                     <FontAwesomeIcon icon={faArrowCircleLeft} className="me-2" />
                     Back
                 </Button>
-                <Button variant="success" type="submit">
+                <Button variant="success" type="submit" form="platform-create">
                     <FontAwesomeIcon icon={faPlus} className="me-2" />
                     Create platform
                 </Button>
             </Modal.Footer>
-        </Form>
+        </>
     );
 };
 
 
-const CreateClusterModal = ({
+const CreatePlatformModal = ({
     show,
     onSuccess,
     onCancel,
-    create,
+    sshKey,
     tenancy,
-    tenancyActions,
-    sshKey
+    tenancyActions
 }) => {
-    const [activeTab, setActiveTab] = useState('clusterType');
-    const [clusterTypeName, setClusterTypeName] = useState('');
+    const [activeTab, setActiveTab] = useState("platformType");
+    const [platformTypeId, setPlatformTypeId] = useState("");
     const reset = () => {
-        setActiveTab('clusterType');
-        setClusterTypeName('');
+        setActiveTab("platformType");
+        setPlatformTypeId("");
     };
 
-    const handleSubmit = ({ name, parameterValues }) => {
-        create({
-            name,
-            cluster_type: clusterTypeName,
-            parameter_values: parameterValues
-        });
-        onSuccess();
+    const clusterTypesNotFound = (
+        get(tenancy.clusterTypes.fetchError, "statusCode") === StatusCodes.NOT_FOUND
+    );
+    const kubernetesClusterTemplatesNotFound = (
+        get(tenancy.kubernetesClusterTemplates.fetchError, "statusCode") === StatusCodes.NOT_FOUND
+    );
+    const platformTypesNotFound = clusterTypesNotFound && kubernetesClusterTemplatesNotFound;
+
+    // Get the aggregate resource for available cluster types + Kubernetes
+    // Kubernetes is just a static resource that is available when Kubernetes templates are
+    const resource = {
+        initialised: (
+            // When both are not found, we don't want to become initialised
+            !platformTypesNotFound &&
+            (tenancy.clusterTypes.initialised || clusterTypesNotFound) &&
+            (tenancy.kubernetesClusterTemplates.initialised || kubernetesClusterTemplatesNotFound)
+        ),
+        fetching: tenancy.clusterTypes.fetching || tenancy.kubernetesClusterTemplates.fetching,
+        data: Object.assign(
+            {},
+            (
+                !kubernetesClusterTemplatesNotFound ?
+                    {
+                        kubernetes: {
+                            id: "kubernetes",
+                            kind: "kubernetes",
+                            name: "Kubernetes",
+                            logo: KubernetesIcon,
+                            description: "Kubernetes cluster"
+                        }
+                    } :
+                    undefined
+            ),
+            ...Object.entries(tenancy.clusterTypes.data || {}).map(
+                ([key, value]) => ({
+                    [`clusterTypes/${key}`]: {
+                        id: `clusterTypes/${key}`,
+                        kind: "clusterType",
+                        name: value.label,
+                        logo: value.logo,
+                        description: value.description,
+                        object: value
+                    }
+                })
+            )
+        ),
+        // Not found isn't really an error for platforms, so exclude them
+        fetchErrors: Object.assign(
+            {},
+            ...[
+                ["clusterTypes", tenancy.clusterTypes.fetchError],
+                ["kubernetesClusterTemplates", tenancy.kubernetesClusterTemplates.fetchError]
+            ].filter(
+                ([_, e]) => !!e && e.statusCode !== StatusCodes.NOT_FOUND
+            ).map(
+                ([k, e]) => ({ [k]: e })
+            )
+        )
     };
+
+    return (
+        <Modal
+            backdrop="static"
+            onHide={onCancel}
+            onExited={reset}
+            // Use a large modal for the cluster type selection
+            size={activeTab === "platformType" ? "xl" : "lg"}
+            show={show}
+        >
+            <Modal.Header closeButton>
+                <Modal.Title>Create a new platform</Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
+                <Nav
+                    variant="pills"
+                    justify
+                    activeKey={activeTab}
+                    onSelect={setActiveTab}
+                >
+                    <Nav.Item>
+                        <Nav.Link eventKey="platformType" className="p-3">
+                            Pick a platform type
+                        </Nav.Link>
+                    </Nav.Item>
+                    <Nav.Item>
+                        <Nav.Link
+                            eventKey="platformConfiguration"
+                            disabled={!platformTypeId}
+                            className="p-3"
+                        >
+                            Configure platform
+                        </Nav.Link>
+                    </Nav.Item>
+                </Nav>
+            </Modal.Body>
+            {resource.initialised ? (
+                activeTab === "platformType" ? (
+                    <PlatformTypeForm
+                        platformTypes={resource.data}
+                        selected={platformTypeId}
+                        onSelect={setPlatformTypeId}
+                        goNext={() => setActiveTab("platformConfiguration")}
+                    />
+                ) : (
+                    <PlatformConfigurationForm
+                        platformType={resource.data[platformTypeId]}
+                        sshKey={sshKey}
+                        tenancy={tenancy}
+                        tenancyActions={tenancyActions}
+                        goBack={() => setActiveTab("platformType")}
+                        onSuccess={onSuccess}
+                    />
+                )
+            ) : (
+                <Modal.Body>
+                    <Row className="justify-content-center">
+                        {platformTypesNotFound ? (
+                            <Col xs="auto py-3">
+                                <Error message="Platforms are not supported." />
+                            </Col>
+                        ) : (
+                            (resource.fetchErrors && !resource.fetching) ? (
+                                <Col xs="auto py-3">
+                                    {Object.entries(resource.fetchErrors).map(([k, e]) =>
+                                        <Error key={k} message={e.message} />
+                                    )}
+                                </Col>
+                            ) : (
+                                <Col xs="auto py-5">
+                                    <Loading
+                                        size="lg"
+                                        iconSize="lg"
+                                        message={`Loading platform types...`}
+                                    />
+                                </Col>
+                            )
+                        )}
+                    </Row>
+                </Modal.Body>
+            )}
+        </Modal>
+    );
 
     const clusterType = clusterTypeName ? tenancy.clusterTypes.data[clusterTypeName] : null;
     const showSSHKeyModal = (
@@ -217,7 +377,7 @@ const CreateClusterModal = ({
                 onHide={onCancel}
                 onExited={reset}
                 // Use a large modal for the cluster type selection
-                size={activeTab === "clusterType" ? "xl" : "lg"}
+                size={activeTab === "platformType" ? "xl" : "lg"}
                 show={show}
             >
                 <Modal.Header closeButton>
@@ -231,7 +391,7 @@ const CreateClusterModal = ({
                         onSelect={setActiveTab}
                     >
                         <Nav.Item>
-                            <Nav.Link eventKey="clusterType" className="p-3">
+                            <Nav.Link eventKey="platformType" className="p-3">
                                 Pick a platform type
                             </Nav.Link>
                         </Nav.Item>
@@ -247,7 +407,7 @@ const CreateClusterModal = ({
                     </Nav>
                 </Modal.Body>
                 {tenancy.clusterTypes.initialised ? (
-                    activeTab === "clusterType" ? (
+                    activeTab === "platformType" ? (
                         <ClusterTypeForm
                             clusterTypes={tenancy.clusterTypes.data}
                             selected={clusterTypeName}
@@ -259,7 +419,7 @@ const CreateClusterModal = ({
                             tenancy={tenancy}
                             tenancyActions={tenancyActions}
                             clusterType={clusterType}
-                            goBack={() => setActiveTab('clusterType')}
+                            goBack={() => setActiveTab('platformType')}
                             onSubmit={handleSubmit}
                         />
                     )
@@ -279,7 +439,7 @@ const CreateClusterModal = ({
             </Modal>
             <ConnectedSSHKeyUpdateModal
                 show={showSSHKeyModal}
-                onCancel={() => setActiveTab('clusterType')}
+                onCancel={() => setActiveTab('platformType')}
                 warningText="The platform you have selected requires an SSH public key to be set."
             />
         </>
@@ -287,7 +447,7 @@ const CreateClusterModal = ({
 };
 
 
-export const CreatePlatformButton = ({ sshKey, disabled, creating, ...props }) => {
+export const CreatePlatformButton = ({ disabled, creating, ...props }) => {
     const [visible, setVisible] = useState(false);
     const open = () => setVisible(true);
     const close = () => setVisible(false);
@@ -306,11 +466,10 @@ export const CreatePlatformButton = ({ sshKey, disabled, creating, ...props }) =
                 />
                 {creating ? 'Creating platform...' : 'New platform'}
             </Button>
-            <CreateClusterModal
+            <CreatePlatformModal
                 show={visible}
                 onSuccess={close}
                 onCancel={close}
-                sshKey={sshKey}
                 creating={creating}
                 {...props}
             />

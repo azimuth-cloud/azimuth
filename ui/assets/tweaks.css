@@ -124,33 +124,36 @@
 
 
 /**
- * Custom styles for platform cards.
+ * Custom styles for platform and platform type selection cards.
  */
-.platform-card, .platform-type-card {
+.platform-type-select-card {
+    height: 100%;
+}
+.platform-card, .platform-type-select-card {
     margin-bottom: 1rem;
 }
-.platform-card > img, .platform-type-card > img {
+.platform-card > img, .platform-type-select-card > img {
     padding: 0.5rem 1rem;
     max-height: 120px;
     object-fit: contain;
 }
 .platform-card > .card-body,
-.platform-type-card > .card-body {
+.platform-type-select-card > .card-body {
     padding: 0.5rem 1rem;
 }
 .platform-card > .card-body:not(:first-child),
-.platform-type-card > .card-body:not(:first-child) {
+.platform-type-select-card > .card-body:not(:first-child) {
     border-top: 1px solid var(--bs-gray-300) !important;
 }
 .platform-card > .list-group + .card-body,
-.platform-type-card > .list-group + .card-body {
+.platform-type-select-card > .list-group + .card-body {
     border-top: none !important;
 }
 .platform-card .card-body > :last-child,
-.platform-type-card .card-body > :last-child {
+.platform-type-select-card .card-body > :last-child {
     margin-bottom: 0;
 }
-.platform-card .card-subtitle, .platform-type-card .card-subtitle {
+.platform-card .card-subtitle, .platform-type-select-card .card-subtitle {
     color: var(--bs-gray-600) !important;
 }
 .platform-card .card-header, .platform-card .card-footer {
@@ -159,24 +162,24 @@
 
 
 /**
- * Custom styles for the cluster type card.
+ * Custom styles for the platform type card.
  */
-.cluster-type-card {
+.platform-type-card {
     margin-bottom: 1rem;
 }
-.cluster-type-card .row {
+.platform-type-card .row {
     align-items: stretch;
 }
-.cluster-type-card img {
+.platform-type-card img {
     min-width: 70px;
     max-width: 100%;
     height: auto;
-    max-height: 100px;
+    max-height: 80px;
 }
-.cluster-type-card .col > :last-child {
+.platform-type-card .col > :last-child {
     margin-bottom: 0;
 }
-.cluster-type-card .card-title {
+.platform-type-card .card-title {
     border-bottom: 1px solid var(--bs-gray-300) !important;
 }
 

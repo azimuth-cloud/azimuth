@@ -47,6 +47,7 @@ export function createActionCreators(resourceName, actions) {
             type: actions.FETCH_LIST,
             tenancyId,
             apiRequest: true,
+            failSilently: true,
             successAction: actions.FETCH_LIST_SUCCEEDED,
             failureAction: actions.FETCH_LIST_FAILED,
             options: {

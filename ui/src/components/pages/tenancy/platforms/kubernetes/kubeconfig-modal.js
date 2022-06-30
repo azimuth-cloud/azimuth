@@ -1,42 +1,32 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 
 import Alert from 'react-bootstrap/Alert';
 import Button from 'react-bootstrap/Button';
 import Col from 'react-bootstrap/Col';
-import DropdownItem from 'react-bootstrap/DropdownItem';
 import Modal from 'react-bootstrap/Modal';
 import Row from 'react-bootstrap/Row';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCloudDownloadAlt, faPaste, faSyncAlt } from '@fortawesome/free-solid-svg-icons';
+import {
+    faCloudDownloadAlt,
+    faPaste,
+    faSyncAlt,
+    faUser
+} from '@fortawesome/free-solid-svg-icons';
  
-import { Error, Loading, usePrevious } from '../../../utils';
+import { Error, Loading } from '../../../../utils';
 
 
-export const KubeconfigMenuItem = ({ kubernetesCluster, kubernetesClusterActions, disabled }) => {
+export const KubeconfigButton = ({ kubernetesCluster, kubernetesClusterActions, ...props }) => {
     const [visible, setVisible] = useState(false);
-    const previousVisible = usePrevious(visible);
     const open = () => setVisible(true);
     const close = () => setVisible(false);
 
-    // When the modal opens, generate a kubeconfig if there is not one already
-    useEffect(
-        () => {
-            if(
-                visible &&
-                !previousVisible &&
-                !kubernetesCluster.generateKubeconfig &&
-                !kubernetesCluster.kubeconfig
-            )
-                kubernetesClusterActions.generateKubeconfig();
-        },
-        [
-            visible,
-            previousVisible,
-            kubernetesCluster.generatingKubeconfig,
-            kubernetesCluster.kubeconfig
-        ]
-    );
+    const generateKubeconfig = () => {
+        if( !kubernetesCluster.generatingKubeconfig && !kubernetesCluster.kubeconfig ) {
+            kubernetesClusterActions.generateKubeconfig();
+        }
+    };
 
     // Make a download URI for the kubeconfig if present
     const downloadURI = kubernetesCluster.kubeconfig ?
@@ -74,10 +64,17 @@ export const KubeconfigMenuItem = ({ kubernetesCluster, kubernetesClusterActions
  
     return (
         <>
-            <DropdownItem onSelect={open} disabled={disabled}>
-                Generate kubeconfig
-            </DropdownItem>
-            <Modal size="lg" backdrop="static" onHide={close} show={visible}>
+            <Button onClick={open} variant="secondary" {...props}>
+                <FontAwesomeIcon icon={faUser} className="me-2" />
+                Kubeconfig
+            </Button>
+            <Modal
+                size="lg"
+                backdrop="static"
+                onEntering={generateKubeconfig}
+                onHide={close}
+                show={visible}
+            >
                 <Modal.Header closeButton>
                     <Modal.Title>Kubeconfig for {kubernetesCluster.name}</Modal.Title>
                 </Modal.Header>

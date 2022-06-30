@@ -1264,6 +1264,14 @@ def kubernetes_cluster_service(request, tenant, cluster, service):
     """
     Redirects the user to the specified service on the specified Kubernetes cluster.
     """
+    if not cloud_settings.CLUSTER_API_PROVIDER:
+        return response.Response(
+            {
+                "detail": "Kubernetes clusters are not supported.",
+                "code": "unsupported_operation"
+            },
+            status = status.HTTP_404_NOT_FOUND
+        )
     service_fqdn = None
     service_label = None
     try:
