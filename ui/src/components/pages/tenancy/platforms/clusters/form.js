@@ -18,7 +18,7 @@ import { PlatformTypeCard } from '../utils';
 import { ClusterParameterField } from './parameter-field';
 
 
-const initialState = (clusterType, cluster) => {
+const initialParameterValues = (clusterType, cluster) => {
     if( cluster ) {
         return Object.assign(
             {},
@@ -43,8 +43,10 @@ const initialState = (clusterType, cluster) => {
 
 
 export const useClusterFormState = (clusterType, cluster) => {
-    const [name, setName] = useState("");
-    const [parameterValues, setParameterValues] = useState(initialState(clusterType, cluster));
+    const [name, setName] = useState(cluster ? cluster.name : "");
+    const [parameterValues, setParameterValues] = useState(
+        initialParameterValues(clusterType, cluster)
+    );
     return [
         {
             clusterType,
@@ -56,7 +58,7 @@ export const useClusterFormState = (clusterType, cluster) => {
         },
         () => {
             setName("");
-            setParameterValues(initialState(clusterType, cluster));
+            setParameterValues(initialParameterValues(clusterType, cluster));
         }
     ]
 };
