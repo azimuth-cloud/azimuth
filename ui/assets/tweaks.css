@@ -207,3 +207,30 @@
     color: var(--bs-primary);
     float: right;
 }
+
+
+/**
+ * Custom styles for collapsible cards.
+ */
+.collapsible-card .card-header {
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.collapsible-card .card-header:hover {
+    background-color: rgba(0, 0, 0, .07);
+}
+.collapsible-card .card-header::after {
+    content: "";
+    border-right: 0.3em solid transparent;
+    border-left: 0.3em solid transparent;
+}
+.collapsible-card .card-header.toggle-show::after {
+    border-top: 0.3em solid;
+    border-bottom: 0;
+}
+.collapsible-card .card-header.toggle-hide::after {
+    border-top: 0;
+    border-bottom: 0.3em solid;
+}

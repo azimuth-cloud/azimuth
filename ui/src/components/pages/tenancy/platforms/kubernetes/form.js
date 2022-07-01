@@ -4,6 +4,7 @@ import Button from 'react-bootstrap/Button';
 import ButtonGroup from 'react-bootstrap/ButtonGroup';
 import Card from 'react-bootstrap/Card';
 import Col from 'react-bootstrap/Col';
+import Collapse from 'react-bootstrap/Collapse';
 import BSForm from 'react-bootstrap/Form';
 import Modal from 'react-bootstrap/Modal';
 import Row from 'react-bootstrap/Row';
@@ -27,6 +28,20 @@ import {
 
 
 const InputWithCustomValidity = withCustomValidity("input");
+
+
+const CollapsibleCard = ({ children, show, toggle, title, className, ...props }) => (
+    <Card
+        className={className ? `${className} collapsible-card` : "collapsible-card"}
+        {...props}
+    >
+        <Card.Header onClick={toggle} className={show ? "toggle-show" : "toggle-hide"}>
+            {title}
+        </Card.Header>
+        {/* The nested div is important for a smooth transition */}
+        <Collapse in={show}><div>{children}</div></Collapse>
+    </Card>
+);
 
 
 const NodeGroupModalForm = ({
@@ -245,6 +260,17 @@ export const useKubernetesClusterFormState = kubernetesCluster => {
     const [nodeGroupEditIdx, setNodeGroupEditIdx] = useState(-1);
     // The indicates whether the worker count message should currently be visible
     const [showWorkerCountMessage, setShowWorkerCountMessage] = useState(false);
+    // Indicates whether the addons panel should be open
+    const [showAddons, setShowAddons] = useState(true);
+    // Indicates whether the advanced options panel should be open
+    // We open it by default if an advanced option is selected
+    const [showAdvancedOptions, setShowAdvancedOptions] = useState(
+        kubernetesCluster &&
+        (kubernetesCluster.ingress_enabled || kubernetesCluster.cert_manager_enabled)
+    );
+
+    const toggleShowAddons = () => setShowAddons(!showAddons);
+    const toggleShowAdvancedOptions = () => setShowAdvancedOptions(!showAdvancedOptions);
 
     return [
         {
@@ -254,12 +280,18 @@ export const useKubernetesClusterFormState = kubernetesCluster => {
             nodeGroupEditIdx,
             setNodeGroupEditIdx,
             showWorkerCountMessage,
-            setShowWorkerCountMessage
+            setShowWorkerCountMessage,
+            showAddons,
+            toggleShowAddons,
+            showAdvancedOptions,
+            toggleShowAdvancedOptions
         },
         () => {
             setData(initialState(kubernetesCluster));
             setNodeGroupEditIdx(-1);
             setShowWorkerCountMessage(false);
+            setShowAddons(true);
+            setShowAdvancedOptions(false);
         }
     ];
 };
@@ -457,20 +489,16 @@ export const KubernetesClusterForm = ({
                         </Table>
                     </div>
                 </Card>
-                <Card>
-                    <Card.Header>Cluster Addons</Card.Header>
+                <CollapsibleCard
+                    title="Cluster Addons"
+                    show={formState.showAddons}
+                    toggle={formState.toggleShowAddons}
+                    className="mb-3"
+                >
                     <Card.Body className="pb-0">
                         <Field
-                            name="cert_manager_enabled"
-                        >
-                            <BSForm.Check
-                                label="Enable cert-manager?"
-                                checked={getStateKey('cert_manager_enabled')}
-                                onChange={setStateFromCheckboxEvent('cert_manager_enabled')}
-                            />
-                        </Field>
-                        <Field
                             name="dashboard_enabled"
+                            helpText="Allows you to view and manage resources in your cluster using a web browser."
                         >
                             <BSForm.Check
                                 label="Enable Kubernetes Dashboard?"
@@ -479,16 +507,8 @@ export const KubernetesClusterForm = ({
                             />
                         </Field>
                         <Field
-                            name="ingress_enabled"
-                        >
-                            <BSForm.Check
-                                label="Enable Kubernetes Ingress?"
-                                checked={getStateKey('ingress_enabled')}
-                                onChange={setStateFromCheckboxEvent('ingress_enabled')}
-                            />
-                        </Field>
-                        <Field
                             name="monitoring_enabled"
+                            helpText="Enables collection of cluster metrics and web-based dashboards for visualisation."
                         >
                             <BSForm.Check
                                 label="Enable cluster monitoring?"
@@ -498,6 +518,10 @@ export const KubernetesClusterForm = ({
                         </Field>
                         <Field
                             name="apps_enabled"
+                            helpText={
+                                "The applications dashboard allows you to easily deploy applications such as " +
+                                "JupyterHub onto your cluster."
+                            }
                         >
                             <BSForm.Check
                                 label="Enable applications dashboard?"
@@ -506,7 +530,56 @@ export const KubernetesClusterForm = ({
                             />
                         </Field>
                     </Card.Body>
-                </Card>
+                </CollapsibleCard>
+                <CollapsibleCard
+                    title="Advanced Options"
+                    show={formState.showAdvancedOptions}
+                    toggle={formState.toggleShowAdvancedOptions}
+                >
+                    <Card.Body className="pb-0">
+                        <Field
+                            name="ingress_enabled"
+                            helpText={
+                                <>
+                                    Allows the use of{" "}
+                                    <a
+                                        href="https://kubernetes.io/docs/concepts/services-networking/ingress/"
+                                        target="_blank"
+                                    >
+                                        Kubernetes Ingress
+                                    </a>{" "}
+                                    to expose services in the cluster via a load balancer.
+                                    <br />
+                                    <span className="text-danger">
+                                        Requires an external IP for the load balancer.
+                                    </span>
+                                </>
+                            }
+                        >
+                            <BSForm.Check
+                                label="Enable Kubernetes Ingress?"
+                                checked={getStateKey('ingress_enabled')}
+                                onChange={setStateFromCheckboxEvent('ingress_enabled')}
+                            />
+                        </Field>
+                        <Field
+                            name="cert_manager_enabled"
+                            helpText={
+                                <>
+                                    Allows the use of{" "}
+                                    <a href="https://cert-manager.io" target="_blank">cert-manager</a>{" "}
+                                    to manage TLS certificates for cluster services.
+                                </>
+                            }
+                        >
+                            <BSForm.Check
+                                label="Enable cert-manager?"
+                                checked={getStateKey('cert_manager_enabled')}
+                                onChange={setStateFromCheckboxEvent('cert_manager_enabled')}
+                            />
+                        </Field>
+                    </Card.Body>
+                </CollapsibleCard>
                 <InputWithCustomValidity
                     id="worker_count"
                     tabIndex={-1}
