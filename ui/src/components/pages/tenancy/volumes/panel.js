@@ -4,6 +4,13 @@
 
 import React from 'react';
 
+import Alert from 'react-bootstrap/Alert';
+import Col from 'react-bootstrap/Col';
+import Row from 'react-bootstrap/Row';
+
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faExclamationCircle } from '@fortawesome/free-solid-svg-icons';
+
 import { usePageTitle } from '../../../utils';
 
 import { useResourceInitialised, ResourcePanel } from '../resource-utils';
@@ -11,17 +18,37 @@ import { CreateVolumeButton } from './create-modal';
 import { VolumesTable } from './table';
 
 
-const Volumes = ({ resourceData, resourceActions, machines, machineActions }) => (
-    <VolumesTable
-        volumes={resourceData}
-        volumeActions={resourceActions}
-        machines={machines}
-        machineActions={machineActions}
-    />
+const Volumes = ({ resourceData, resourceActions, capabilities, machines, machineActions }) => (
+    <>
+        {(capabilities.supports_clusters || capabilities.supports_kubernetes) && (
+            <Row className="justify-content-center">
+                <Col xs="auto">
+                    <Alert variant="warning" className="d-flex align-items-center">
+                        <div className="me-3">
+                            <FontAwesomeIcon
+                                icon={faExclamationCircle}
+                                size="lg"
+                            />
+                        </div>
+                        <div>
+                            Deleting volumes that are part of a platform may cause
+                            potentially unrecoverable issues, including data loss.
+                        </div>
+                    </Alert>
+                </Col>
+            </Row>
+        )}
+        <VolumesTable
+            volumes={resourceData}
+            volumeActions={resourceActions}
+            machines={machines}
+            machineActions={machineActions}
+        />
+    </>
 );
 
 
-export const TenancyVolumesPanel = ({ tenancy, tenancyActions }) => {
+export const TenancyVolumesPanel = ({ capabilities, tenancy, tenancyActions }) => {
     usePageTitle('Volumes');
     // To render the volumes, we need the machines
     useResourceInitialised(tenancy.machines, tenancyActions.machine.fetchList);
@@ -33,6 +60,7 @@ export const TenancyVolumesPanel = ({ tenancy, tenancyActions }) => {
             createButtonComponent={CreateVolumeButton}
         >
             <Volumes
+                capabilities={capabilities}
                 machines={tenancy.machines}
                 machineActions={tenancyActions.machine}
             />
