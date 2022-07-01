@@ -18,7 +18,7 @@ import { actionCreators as notificationActions } from './redux/notifications';
 import { Navigation } from './components/navigation';
 import { Notifications } from './components/notifications';
 import { SplashPage } from './components/pages/splash';
-import { Dashboard } from './components/pages/dashboard';
+import { TenanciesPage } from './components/pages/tenancies';
 import { TenancyPage } from './components/pages/tenancy';
 
 
@@ -60,9 +60,9 @@ const ConnectedSplashPage = connect(
 )(SplashPage);
 
 
-const ConnectedDashboard = connect(
+const ConnectedTenanciesPage = connect(
     (state) => ({ tenancies: state.tenancies }),
-)(Dashboard);
+)(TenanciesPage);
 
 
 const ConnectedTenancyPage = connect(
@@ -106,7 +106,7 @@ const NotFound = connect(
         title: 'Not Found',
         message: 'The page you requested was not found.'
     });
-    return <Redirect to="/dashboard" />;
+    return <Redirect to="/tenancies" />;
 });
 
 
@@ -148,8 +148,8 @@ export const Application = () => (
                 <Route exact path="/" component={ConnectedSplashPage} />
                 <ProtectedRoute
                     exact
-                    path="/dashboard"
-                    component={ConnectedDashboard}
+                    path="/tenancies"
+                    component={ConnectedTenanciesPage}
                 />
                 <ProtectedRoute
                     path="/tenancies/:id/:resource?"

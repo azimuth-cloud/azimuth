@@ -118,7 +118,7 @@ AZIMUTH = {
     'AVAILABLE_CLOUDS': {
         'example': {
             'label': 'Example Cloud',
-            'url': 'http://localhost:3000/dashboard',
+            'url': 'http://localhost:3000/tenancies',
         },
     },
     'CURRENT_CLOUD': 'example',

@@ -48,7 +48,7 @@ export const SplashPage = ({ cloudsFetching, clouds, currentCloud }) => {
                             IP addresses, provision and attach volumes and, where supported, create and
                             manage clusters using Cluster-as-a-Service.
                         </p>
-                        <LinkContainer to={`/dashboard`}>
+                        <LinkContainer to={`/tenancies`}>
                             <Button variant="primary" size="lg">
                                 <FontAwesomeIcon fixedWidth icon={faCloud} className="me-2" />
                                 My Tenancies

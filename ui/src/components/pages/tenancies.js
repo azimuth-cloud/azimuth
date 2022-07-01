@@ -1,7 +1,3 @@
-/**
- * This module contains the component for rendering the tenancies dashboard.
- */
-
 import React, { useState } from 'react';
 
 import Alert from 'react-bootstrap/Alert';
@@ -12,28 +8,19 @@ import Row from 'react-bootstrap/Row';
 
 import { LinkContainer } from 'react-router-bootstrap';
 
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faInfoCircle } from '@fortawesome/free-solid-svg-icons';
-
-import Cookies from 'js-cookie';
-
 import { sortBy, usePageTitle, Loading } from '../utils';
 
 
-export const Dashboard = ({ tenancies: { fetching, data: tenancies }}) => {
-    usePageTitle('Dashboard');
+export const TenanciesPage = ({ tenancies: { fetching, data: tenancies }}) => {
+    usePageTitle('Tenancies');
 
-    const [showHint, setShowHint] = useState(Cookies.get("azimuth-dashboard-hint-dismissed") !== "1");
-    const dismissHint = () => {
-        Cookies.set("azimuth-dashboard-hint-dismissed", "1");
-        setShowHint(false);
-    };
+    const [showHint, setShowHint] = useState(true);
+    const dismissHint = () => setShowHint(false);
 
     // Sort the tenancies by name before rendering
     const sortedTenancies = sortBy(Object.values(tenancies || {}), t => t.name);
     return (
         <>
-            <h1 className="border-bottom pb-1 mb-4">Dashboard</h1>
             {showHint && (
                 <Row>
                     <Col md={{ span: 8, offset: 2 }}>
@@ -56,8 +43,8 @@ export const Dashboard = ({ tenancies: { fetching, data: tenancies }}) => {
             )}
             <Row>
                 <Col md={{ span: 6, offset: 3 }}>
-                    <Card>
-                        <Card.Header as="h5" className="py-3">Available tenancies</Card.Header>
+                    <Card className="mb-3">
+                        <Card.Header as="h5" className="py-3">Pick a tenancy</Card.Header>
                         {sortedTenancies.length > 0 ? (
                             <ListGroup variant="flush">
                                 {sortedTenancies.map(t =>

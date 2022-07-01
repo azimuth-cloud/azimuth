@@ -154,7 +154,7 @@ export const TenancyPage = ({
                 <h1 className="border-bottom pb-1 mb-4">
                     <code>{currentTenancy.name}</code>{" "}
                     <span className="fs-6">
-                        (<Link to="/dashboard">switch tenancy</Link>)
+                        (<Link to="/tenancies">switch tenancy</Link>)
                     </span>
                 </h1>
                 <TenancyNav
@@ -192,6 +192,6 @@ export const TenancyPage = ({
     }
     else {
         // Otherwise redirect
-        return <Redirect to="/dashboard" />;
+        return <Redirect to="/tenancies" />;
     }
 };

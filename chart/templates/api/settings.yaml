@@ -33,7 +33,7 @@ stringData:
         {{ $settings.currentCloud.name }}:
           label: {{ $settings.currentCloud.label }}
           {{- $proto := $ingress.tls.enabled | ternary "https" "http" }}
-          url: {{ printf "%s://%s/dashboard" $proto $ingress.host }}
+          url: {{ printf "%s://%s/tenancies" $proto $ingress.host }}
         {{- range $settings.availableClouds }}
         {{ .name }}:
           label: {{ .label | quote }}

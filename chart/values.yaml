@@ -100,7 +100,7 @@ settings:
   availableClouds: []
     # - name: example
     #   label: 'Example Cloud'
-    #   url: http://cloud.example.local/dashboard
+    #   url: http://cloud.example.local/tenancies
   # The current cloud
   currentCloud:
     name: example
