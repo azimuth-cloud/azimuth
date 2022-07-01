@@ -35,13 +35,17 @@ import { PlatformTypeCard, PlatformServicesListGroup, PlatformDeleteButton } fro
 import { ClusterModalForm } from './form';
 
 
+const nunjucksEnv = new nunjucks.Environment();
+// Register the sprintf function as the 'format' filter
+nunjucksEnv.addFilter("format", sprintf);
+// Register an additional filter for selecting a service by name
+nunjucksEnv.addFilter("service", (cluster, name) => cluster.services.find(s => s.name === name));
+
+
 const ClusterUsage = ({ cluster, clusterType }) => {
     let usage;
     if( clusterType.usage_template ) {
-        // Register the sprintf function as the 'format' filter
-        const env = new nunjucks.Environment();
-        env.addFilter('format', sprintf);
-        usage = env.renderString(clusterType.usage_template, { cluster });
+        usage = nunjucksEnv.renderString(clusterType.usage_template, { cluster });
     }
     return (
         <ReactMarkdown
