@@ -85,15 +85,6 @@ export const Navigation = ({
                                 )}
                             </NavDropdown>
                         )}
-                        {sortedTenancies.length > 0 && (
-                            <NavDropdown title="Select Tenancy">
-                                {sortedTenancies.map(t =>
-                                    <LinkContainer key={t.id} to={`/tenancies/${t.id}`}>
-                                        <NavDropdown.Item>{t.name}</NavDropdown.Item>
-                                    </LinkContainer>
-                                )}
-                            </NavDropdown>
-                        )}
                     </Nav>
                     <Nav>
                         {username ? (

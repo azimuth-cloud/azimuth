@@ -10,7 +10,7 @@ import NavDropdown from 'react-bootstrap/NavDropdown';
 import Row from 'react-bootstrap/Row';
 
 import { LinkContainer } from 'react-router-bootstrap';
-import { Redirect, Route, Switch, useRouteMatch, useParams } from 'react-router-dom';
+import { Link, Redirect, Route, Switch, useRouteMatch, useParams } from 'react-router-dom';
 
 import get from 'lodash/get';
 
@@ -152,7 +152,10 @@ export const TenancyPage = ({
         return (
             <>
                 <h1 className="border-bottom pb-1 mb-4">
-                    <code>{currentTenancy.name}</code>
+                    <code>{currentTenancy.name}</code>{" "}
+                    <span className="fs-6">
+                        (<Link to="/dashboard">switch tenancy</Link>)
+                    </span>
                 </h1>
                 <TenancyNav
                     capabilities={capabilities}
