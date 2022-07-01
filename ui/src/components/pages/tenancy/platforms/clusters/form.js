@@ -161,7 +161,7 @@ export const ClusterModalForm = ({
             </Modal.Header>
             <Modal.Body>
                 {clusterType && (
-                    <Row className="justify-content-center mb-3">
+                    <Row className="justify-content-center">
                         <Col xs="auto">
                             <PlatformTypeCard
                                 platformType={{

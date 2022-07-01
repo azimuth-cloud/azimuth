@@ -184,7 +184,7 @@ const PlatformConfigurationForm = ({
     return (
         <>
             <Modal.Body>
-                <Row className="justify-content-center mb-3">
+                <Row className="justify-content-center">
                     <Col xs="auto">
                         <PlatformTypeCard platformType={platformType} />
                     </Col>
