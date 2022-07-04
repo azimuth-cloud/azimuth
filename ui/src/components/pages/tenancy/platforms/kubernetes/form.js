@@ -263,11 +263,7 @@ export const useKubernetesClusterFormState = kubernetesCluster => {
     // Indicates whether the addons panel should be open
     const [showAddons, setShowAddons] = useState(true);
     // Indicates whether the advanced options panel should be open
-    // We open it by default if an advanced option is selected
-    const [showAdvancedOptions, setShowAdvancedOptions] = useState(
-        kubernetesCluster &&
-        (kubernetesCluster.ingress_enabled || kubernetesCluster.cert_manager_enabled)
-    );
+    const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
 
     const toggleShowAddons = () => setShowAddons(!showAddons);
     const toggleShowAdvancedOptions = () => setShowAdvancedOptions(!showAdvancedOptions);
@@ -391,16 +387,6 @@ export const KubernetesClusterForm = ({
                         required
                         value={getStateKey('control_plane_size')}
                         onChange={setStateKey('control_plane_size')}
-                    />
-                </Field>
-                <Field
-                    name="autohealing_enabled"
-                    helpText="If enabled, the cluster will try to remediate unhealthy nodes automatically."
-                >
-                    <BSForm.Check
-                        label="Enable auto-healing?"
-                        checked={getStateKey('autohealing_enabled')}
-                        onChange={setStateFromCheckboxEvent('autohealing_enabled')}
                     />
                 </Field>
                 <Card className="mb-3">
@@ -537,6 +523,16 @@ export const KubernetesClusterForm = ({
                     toggle={formState.toggleShowAdvancedOptions}
                 >
                     <Card.Body className="pb-0">
+                        <Field
+                            name="autohealing_enabled"
+                            helpText="If enabled, the cluster will try to remediate unhealthy nodes automatically."
+                        >
+                            <BSForm.Check
+                                label="Enable auto-healing?"
+                                checked={getStateKey('autohealing_enabled')}
+                                onChange={setStateFromCheckboxEvent('autohealing_enabled')}
+                            />
+                        </Field>
                         <Field
                             name="ingress_enabled"
                             helpText={
