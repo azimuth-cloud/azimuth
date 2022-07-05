@@ -282,13 +282,16 @@ def redirect_to_zenith_service(
 # The info endpoint does not require authentication
 @decorators.authentication_classes([])
 def cloud_info(request):
-    return response.Response({
+    data = {
         "available_clouds": cloud_settings.AVAILABLE_CLOUDS,
         "current_cloud": cloud_settings.CURRENT_CLOUD,
         "links": {
             "session": request.build_absolute_uri(reverse("azimuth:session"))
         }
-    })
+    }
+    if cloud_settings.METRICS.CLOUD_METRICS_URL:
+        data["links"]["metrics"] = cloud_settings.METRICS.CLOUD_METRICS_URL
+    return response.Response(data)
 
 
 @provider_api_view(["GET"])

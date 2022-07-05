@@ -155,6 +155,17 @@ class ZenithSetting(Setting):
             return None
 
 
+class MetricsSetting(SettingsObject):
+    """
+    Settings object for the metrics settings.
+    """
+    #: The URL of the cloud metrics page
+    CLOUD_METRICS_URL = Setting(default = None)
+    #: The URL template for tenant metrics pages
+    #: Will be interpolated with the tenancy ID
+    TENANT_METRICS_URL_TEMPLATE = Setting(default = None)
+
+
 class AzimuthSettings(SettingsObject):
     """
     Settings object for the ``AZIMUTH`` setting.
@@ -208,6 +219,9 @@ class AzimuthSettings(SettingsObject):
     AVAILABLE_CLOUDS = Setting()
     #: The name of the current cloud
     CURRENT_CLOUD = Setting()
+
+    #: Configuration for cloud metrics dashboards
+    METRICS = NestedSetting(MetricsSetting)
 
 
 cloud_settings = AzimuthSettings("AZIMUTH")

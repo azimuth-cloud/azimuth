@@ -54,6 +54,12 @@
 }
 
 
+/* Remove the focus styles for external links */
+.nav-tabs .nav-link[target="_blank"]:focus {
+    border-color: transparent !important;
+}
+
+
 /* Make progress bars look nice */
 .progress {
     height: auto;

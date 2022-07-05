@@ -22,7 +22,7 @@ import { TenancyVolumesPanel } from './volumes';
 import { TenancyPlatformsPanel } from './platforms';
 
 
-const TenancyNav = ({ capabilities, url, tenancyId, selectedResource }) => {
+const TenancyNav = ({ capabilities, url, currentTenancy, selectedResource }) => {
     const [expanded, setExpanded] = useState(false);
     const previousExpanded = usePrevious(expanded);
     const supportsPlatforms = capabilities.supports_clusters || capabilities.supports_kubernetes;
@@ -40,26 +40,33 @@ const TenancyNav = ({ capabilities, url, tenancyId, selectedResource }) => {
         <Nav as="ul" variant="tabs" activeKey={url} className="mb-3">
             {supportsPlatforms && (
                 <Nav.Item as="li">
-                    <LinkContainer to={`/tenancies/${tenancyId}/platforms`}>
+                    <LinkContainer to={`/tenancies/${currentTenancy.id}/platforms`}>
                         <Nav.Link>Platforms</Nav.Link>
                     </LinkContainer>
                 </Nav.Item>
             )}
             <Nav.Item as="li">
-                <LinkContainer exact to={`/tenancies/${tenancyId}/quotas`}>
-                    <Nav.Link>Usage</Nav.Link>
+                <LinkContainer exact to={`/tenancies/${currentTenancy.id}/quotas`}>
+                    <Nav.Link>Quotas</Nav.Link>
                 </LinkContainer>
             </Nav.Item>
+            {currentTenancy.links.metrics && (
+                <Nav.Item as="li">
+                    <Nav.Link href={currentTenancy.links.metrics} target="_blank">
+                        Metrics
+                    </Nav.Link>
+                </Nav.Item>
+            )}
             {nextExpanded ? (
                 <>
                     <Nav.Item as="li">
-                        <LinkContainer to={`/tenancies/${tenancyId}/machines`}>
+                        <LinkContainer to={`/tenancies/${currentTenancy.id}/machines`}>
                             <Nav.Link>Machines</Nav.Link>
                         </LinkContainer>
                     </Nav.Item>
                     {capabilities.supports_volumes && (
                         <Nav.Item as="li">
-                            <LinkContainer to={`/tenancies/${tenancyId}/volumes`}>
+                            <LinkContainer to={`/tenancies/${currentTenancy.id}/volumes`}>
                                 <Nav.Link>Volumes</Nav.Link>
                             </LinkContainer>
                         </Nav.Item>
@@ -67,11 +74,11 @@ const TenancyNav = ({ capabilities, url, tenancyId, selectedResource }) => {
                 </>
             ) : (
                 <NavDropdown title="Advanced">
-                    <LinkContainer to={`/tenancies/${tenancyId}/machines`}>
+                    <LinkContainer to={`/tenancies/${currentTenancy.id}/machines`}>
                         <NavDropdown.Item>Machines</NavDropdown.Item>
                     </LinkContainer>
                     {capabilities.supports_volumes && (
-                        <LinkContainer to={`/tenancies/${tenancyId}/volumes`}>
+                        <LinkContainer to={`/tenancies/${currentTenancy.id}/volumes`}>
                             <NavDropdown.Item>Volumes</NavDropdown.Item>
                         </LinkContainer>
                     )}
@@ -160,7 +167,7 @@ export const TenancyPage = ({
                 <TenancyNav
                     capabilities={capabilities}
                     url={url}
-                    tenancyId={currentTenancy.id}
+                    currentTenancy={currentTenancy}
                     selectedResource={matchedResource}
                 />
                 <Switch>

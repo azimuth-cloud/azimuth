@@ -35,7 +35,8 @@ const ConnectedNav = connect(
         currentTenancy: state.tenancies.current,
         cloudsFetching: state.clouds.fetching,
         clouds: state.clouds.available_clouds,
-        currentCloud: state.clouds.current_cloud
+        currentCloud: state.clouds.current_cloud,
+        links: state.clouds.links
     }),
     (dispatch) => ({
         sshKeyActions: bindActionCreators(sshKeyActions, dispatch)

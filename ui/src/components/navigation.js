@@ -13,6 +13,9 @@ import { LinkContainer } from 'react-router-bootstrap';
 
 import get from 'lodash/get';
 
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTachometerAlt } from '@fortawesome/free-solid-svg-icons';
+
 import { sortBy, Loading } from './utils';
 import { SSHKeyUpdateModal } from './ssh-key-update-modal';
 
@@ -48,7 +51,8 @@ export const Navigation = ({
     currentCloud: currentCloudName,
     tenancies,
     sshKey,
-    sshKeyActions
+    sshKeyActions,
+    links
 }) => {
     const currentCloud = get(clouds, currentCloudName);
     const sortedClouds = sortBy(
@@ -84,6 +88,12 @@ export const Navigation = ({
                                     </NavDropdown.Item>
                                 )}
                             </NavDropdown>
+                        )}
+                        {links && links.metrics && (
+                            <Nav.Link href={links.metrics} target="_blank">
+                                <FontAwesomeIcon icon={faTachometerAlt} className="me-2" />
+                                Cloud Metrics
+                            </Nav.Link>
                         )}
                     </Nav>
                     <Nav>
