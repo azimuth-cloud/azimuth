@@ -157,7 +157,7 @@ class ZenithSetting(Setting):
 
 class MetricsSetting(SettingsObject):
     """
-    Settings object for the metrics settings.
+    Settings object for the metrics URLs.
     """
     #: The URL of the cloud metrics page
     CLOUD_METRICS_URL = Setting(default = None)
@@ -222,6 +222,9 @@ class AzimuthSettings(SettingsObject):
 
     #: Configuration for cloud metrics dashboards
     METRICS = NestedSetting(MetricsSetting)
+
+    #: URL for documentation
+    DOCUMENTATION_URL = Setting(default = "https://stackhpc.github.io/azimuth-user-docs/")
 
 
 cloud_settings = AzimuthSettings("AZIMUTH")

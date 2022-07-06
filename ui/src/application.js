@@ -56,7 +56,8 @@ const ConnectedSplashPage = connect(
     (state) => ({
         cloudsFetching: state.clouds.fetching,
         clouds: state.clouds.available_clouds,
-        currentCloud: state.clouds.current_cloud
+        currentCloud: state.clouds.current_cloud,
+        links: state.clouds.links
     })
 )(SplashPage);
 

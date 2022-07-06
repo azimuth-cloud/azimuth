@@ -49,6 +49,9 @@ stringData:
         TENANT_METRICS_URL_TEMPLATE: {{ quote . }}
         {{- end }}
       {{- end }}
+      {{- with $settings.documentationUrl }}
+      DOCUMENTATION_URL: {{ quote . }}
+      {{- end }}
   03-cloud-authenticator.yaml: |
     AZIMUTH_AUTH:
       AUTHENTICATOR:

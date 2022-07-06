@@ -14,7 +14,12 @@ import { LinkContainer } from 'react-router-bootstrap';
 import get from 'lodash/get';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCloud, faTachometerAlt, faUser } from '@fortawesome/free-solid-svg-icons';
+import {
+    faBook,
+    faCloud,
+    faTachometerAlt,
+    faUser
+} from '@fortawesome/free-solid-svg-icons';
 
 import { sortBy, Loading } from './utils';
 import { SSHKeyUpdateModal } from './ssh-key-update-modal';
@@ -66,7 +71,7 @@ export const Navigation = ({
         tenancy => tenancy.name
     );
     return (
-        <Navbar bg="dark" variant="dark" className="mb-3">
+        <Navbar bg="dark" variant="dark" className="mb-3" expand="lg">
             <Container>
                 <LinkContainer to="/">
                     <Navbar.Brand>
@@ -76,8 +81,8 @@ export const Navigation = ({
                         }
                     </Navbar.Brand>
                 </LinkContainer>
-                <Navbar.Toggle />
-                <Navbar.Collapse>
+                <Navbar.Toggle aria-controls="navbar-main" />
+                <Navbar.Collapse id="navbar-main">
                     <Nav className="me-auto">
                         {/* Only show the cloud switcher if there is more than one cloud */}
                         {currentCloud && sortedClouds.length > 0 && (
@@ -96,14 +101,20 @@ export const Navigation = ({
                                 )}
                             </NavDropdown>
                         )}
-                        {links && links.metrics && (
+                    </Nav>
+                    <Nav>
+                        {username && links && links.metrics && (
                             <Nav.Link href={links.metrics} target="_blank" active={false}>
                                 <FontAwesomeIcon icon={faTachometerAlt} className="me-2" />
                                 Cloud Metrics
                             </Nav.Link>
                         )}
-                    </Nav>
-                    <Nav>
+                        {links && links.documentation && (
+                            <Nav.Link href={links.documentation} target="_blank" active={false}>
+                                <FontAwesomeIcon icon={faBook} className="me-2" />
+                                Documentation
+                            </Nav.Link>
+                        )}
                         {username ? (
                             <NavDropdown
                                 title={(
@@ -123,7 +134,7 @@ export const Navigation = ({
                             </NavDropdown>
                         ) : (
                             initialising ? (
-                                <Navbar.Text><Loading /></Navbar.Text>
+                                <Navbar.Text><Loading message="Loading..." /></Navbar.Text>
                             ) : (
                                 <Nav.Link href={`/auth/login/?next=${window.location.pathname}`}>
                                     Sign In

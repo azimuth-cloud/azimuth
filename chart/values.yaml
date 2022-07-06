@@ -111,6 +111,9 @@ settings:
     # cloudMetricsUrl:
     # The URL template for the tenant metrics dashboards
     # tenantMetricsUrlTemplate:
+  # The URL for documentation
+  # By default, the standard Azimuth user documentation will be used
+  documentationUrl:
   # The name of the CSRF cookie
   csrfCookieName:
   # The name of the session cookie

@@ -286,7 +286,8 @@ def cloud_info(request):
         "available_clouds": cloud_settings.AVAILABLE_CLOUDS,
         "current_cloud": cloud_settings.CURRENT_CLOUD,
         "links": {
-            "session": request.build_absolute_uri(reverse("azimuth:session"))
+            "session": request.build_absolute_uri(reverse("azimuth:session")),
+            "documentation": cloud_settings.DOCUMENTATION_URL,
         }
     }
     if cloud_settings.METRICS.CLOUD_METRICS_URL:

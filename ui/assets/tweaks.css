@@ -71,6 +71,21 @@
 
 
 /**
+ * Styles for the splash page images.
+ */
+.splash-images {
+    text-align: center;
+}
+.splash-images img {
+    object-fit: contain;
+    max-height: 140px;
+    max-width: 200px;
+    padding: 1rem;
+    margin: 0 0.5rem 0.5rem;
+}
+
+
+/**
  * Styles for the notifications container.
  */
 .notifications-container {
