@@ -18,8 +18,6 @@ import {
 
 import ReactMarkdown from 'react-markdown';
 
-import { sortBy } from '../../../utils';
-
 
 export const PlatformTypeCard = ({ platformType }) => (
     <Card className="platform-type-card">
@@ -46,33 +44,30 @@ export const PlatformTypeCard = ({ platformType }) => (
 );
 
 
-export const PlatformServicesListGroup = ({ services, disabled }) => {
-    const sortedServices = sortBy(services, service => service.label);
-    return (
-        <ListGroup variant="flush" activeKey={null}>
-            {sortedServices.map(service => (
-                <ListGroup.Item
-                    key={service.name}
-                    action
-                    href={service.url}
-                    disabled={disabled}
-                    target="_blank"
-                    className="service-list-group-item"
-                >
-                    <span>
-                        {service.icon_url ? (
-                            <img src={service.icon_url} alt={`${service.label} icon`} />
-                        ) : (
-                            <FontAwesomeIcon icon={faBookmark} />
-                        )}
-                    </span>
-                    <span>{service.label}</span>
-                    <span><FontAwesomeIcon icon={faExternalLinkAlt} /></span>
-                </ListGroup.Item>
-            ))}
-        </ListGroup>
-    );
-};
+export const PlatformServicesListGroup = ({ services, disabled }) => (
+    <ListGroup variant="flush" activeKey={null}>
+        {services.map(service => (
+            <ListGroup.Item
+                key={service.name}
+                action
+                href={service.url}
+                disabled={disabled}
+                target="_blank"
+                className="service-list-group-item"
+            >
+                <span>
+                    {service.icon_url ? (
+                        <img src={service.icon_url} alt={`${service.label} icon`} />
+                    ) : (
+                        <FontAwesomeIcon icon={faBookmark} />
+                    )}
+                </span>
+                <span>{service.label}</span>
+                <span><FontAwesomeIcon icon={faExternalLinkAlt} /></span>
+            </ListGroup.Item>
+        ))}
+    </ListGroup>
+);
 
 
 export const PlatformDeleteButton = ({ name, inFlight, disabled, onConfirm, ...props }) => {

@@ -332,7 +332,9 @@ const ServiceCard = ({ kubernetesCluster }) => (
     <Card className="mb-3">
         <Card.Header className="text-center">Services</Card.Header>
         {kubernetesCluster.services.length > 0 ? (
-            <PlatformServicesListGroup services={kubernetesCluster.services} />
+            <PlatformServicesListGroup
+                services={sortBy(kubernetesCluster.services, s => s.label)}
+            />
         ) : (
             <Card.Body>
                 <Row>
@@ -675,7 +677,9 @@ export const KubernetesCard = ({
                 <Card.Subtitle>Kubernetes</Card.Subtitle>
             </Card.Body>
             {kubernetesCluster.services.length > 0 && (
-                <PlatformServicesListGroup services={kubernetesCluster.services} />
+                <PlatformServicesListGroup
+                    services={sortBy(kubernetesCluster.services, s => s.label)}
+                />
             )}
             <Card.Body className="small text-muted">
                 Created {moment(kubernetesCluster.created_at).fromNow()}
