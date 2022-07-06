@@ -14,8 +14,6 @@ import { Link, Redirect, Route, Switch, useRouteMatch, useParams } from 'react-r
 
 import get from 'lodash/get';
 
-import IframeResizer from 'iframe-resizer-react';
-
 import { Loading, bindArgsToActions, usePrevious } from '../../utils';
 
 import { TenancyQuotasPanel } from './quotas';
@@ -54,9 +52,9 @@ const TenancyNav = ({ capabilities, url, currentTenancy, selectedResource }) => 
             </Nav.Item>
             {currentTenancy.links.metrics && (
                 <Nav.Item as="li">
-                    <LinkContainer exact to={`/tenancies/${currentTenancy.id}/metrics`}>
-                        <Nav.Link>Metrics</Nav.Link>
-                    </LinkContainer>
+                    <Nav.Link href={currentTenancy.links.metrics} target="_blank">
+                        Metrics
+                    </Nav.Link>
                 </Nav.Item>
             )}
             {nextExpanded ? (
@@ -185,21 +183,6 @@ export const TenancyPage = ({
                     <Route exact path={`${path}/platforms`}>
                         <TenancyPlatformsPanel {...tenancyProps} />
                     </Route>
-                    {currentTenancy.links.metrics && (
-                        <Route exact path={`${path}/metrics`}>
-                            <Row>
-                                <Col>
-                                    <IframeResizer
-                                        src={currentTenancy.links.metrics}
-                                        width="100%"
-                                        scrolling="no"
-                                        frameBorder={0}
-                                        heightCalculationMethod="max"
-                                    />
-                                </Col>
-                            </Row>
-                        </Route>
-                    )}
                 </Switch>
             </>
         );

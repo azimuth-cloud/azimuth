@@ -14,7 +14,7 @@ import { LinkContainer } from 'react-router-bootstrap';
 import get from 'lodash/get';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTachometerAlt } from '@fortawesome/free-solid-svg-icons';
+import { faCloud, faTachometerAlt, faUser } from '@fortawesome/free-solid-svg-icons';
 
 import { sortBy, Loading } from './utils';
 import { SSHKeyUpdateModal } from './ssh-key-update-modal';
@@ -72,7 +72,7 @@ export const Navigation = ({
                     <Navbar.Brand>
                         {currentCloud ?
                             currentCloud.label :
-                            (cloudsFetching ? <Loading /> : "Cloud Portal")
+                            (cloudsFetching ? <Loading /> : "Azimuth")
                         }
                     </Navbar.Brand>
                 </LinkContainer>
@@ -81,7 +81,14 @@ export const Navigation = ({
                     <Nav className="me-auto">
                         {/* Only show the cloud switcher if there is more than one cloud */}
                         {currentCloud && sortedClouds.length > 0 && (
-                            <NavDropdown title="Other Clouds">
+                            <NavDropdown
+                                title={(
+                                    <>
+                                        <FontAwesomeIcon icon={faCloud} className="me-2" />
+                                        Other Clouds
+                                    </>
+                                )}
+                            >
                                 {sortedClouds.map(c =>
                                     <NavDropdown.Item key={c.name} href={c.url}>
                                         {c.label}
@@ -90,7 +97,7 @@ export const Navigation = ({
                             </NavDropdown>
                         )}
                         {links && links.metrics && (
-                            <Nav.Link href={links.metrics} target="_blank">
+                            <Nav.Link href={links.metrics} target="_blank" active={false}>
                                 <FontAwesomeIcon icon={faTachometerAlt} className="me-2" />
                                 Cloud Metrics
                             </Nav.Link>
@@ -98,7 +105,14 @@ export const Navigation = ({
                     </Nav>
                     <Nav>
                         {username ? (
-                            <NavDropdown title={username}>
+                            <NavDropdown
+                                title={(
+                                    <>
+                                        <FontAwesomeIcon icon={faUser} className="me-2" />
+                                        {username}
+                                    </>
+                                )}
+                            >
                                 <SSHKeyUpdateMenuItem
                                     sshKey={sshKey}
                                     sshKeyActions={sshKeyActions}
