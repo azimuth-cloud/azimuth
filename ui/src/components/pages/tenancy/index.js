@@ -14,6 +14,8 @@ import { Link, Redirect, Route, Switch, useRouteMatch, useParams } from 'react-r
 
 import get from 'lodash/get';
 
+import IframeResizer from 'iframe-resizer-react';
+
 import { Loading, bindArgsToActions, usePrevious } from '../../utils';
 
 import { TenancyQuotasPanel } from './quotas';
@@ -186,7 +188,13 @@ export const TenancyPage = ({
                     <Route exact path={`${path}/metrics`}>
                         <Row>
                             <Col>
-                                <iframe src={currentTenancy.links.metrics} />
+                                <IframeResizer
+                                    src={currentTenancy.links.metrics}
+                                    width="100%"
+                                    scrolling="no"
+                                    frameBorder={0}
+                                    heightCalculationMethod="max"
+                                />
                             </Col>
                         </Row>
                     </Route>
