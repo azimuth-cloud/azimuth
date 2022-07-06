@@ -185,6 +185,10 @@ class AzimuthSettings(SettingsObject):
     #: Cluster API configuration
     CLUSTER_API_PROVIDER = ClusterApiProviderSetting()
 
+    #: Configuration for curated sizes
+    #: If given, should be a map of index to alternative name
+    CURATED_SIZES = Setting(default = None)
+
     #: SSH key store configuration
     SSH_KEY_STORE = ObjectFactorySetting(
         # By default, use functionality from the provider to store SSH keys

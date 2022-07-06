@@ -120,6 +120,9 @@ settings:
   sessionCookieName:
   # The name of the next URL cookie
   nextUrlCookieName:
+  # Map of curated sizes
+  # If given, this should be a map of size id to alternative name
+  curatedSizes:
 
 # The authenticator to use
 # The parameters for the provider will be re-used where appropriate

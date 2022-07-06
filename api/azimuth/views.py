@@ -459,8 +459,18 @@ def sizes(request, tenant):
     Returns the machine sizes available to the specified tenancy.
     """
     with request.auth.scoped_session(tenant) as session:
+        sizes = session.sizes()
+        if cloud_settings.CURATED_SIZES:
+            sizes = [
+                dataclasses.replace(
+                    size,
+                    name = cloud_settings.CURATED_SIZES[size.id]
+                )
+                for size in sizes
+                if size.id in cloud_settings.CURATED_SIZES
+            ]
         serializer = serializers.SizeSerializer(
-            session.sizes(),
+            sizes,
             many = True,
             context = { "request": request, "tenant": tenant }
         )
@@ -473,8 +483,14 @@ def size_details(request, tenant, size):
     Returns the details for the specified machine size.
     """
     with request.auth.scoped_session(tenant) as session:
+        size = session.find_size(size)
+        if cloud_settings.CURATED_SIZES and size.id in cloud_settings.CURATED_SIZES:
+            size = dataclasses.replace(
+                size,
+                name = cloud_settings.CURATED_SIZES[size.id]
+            )
         serializer = serializers.SizeSerializer(
-            session.find_size(size),
+            size,
             context = { "request": request, "tenant": tenant }
         )
     return response.Response(serializer.data)

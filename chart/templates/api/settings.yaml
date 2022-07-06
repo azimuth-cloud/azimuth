@@ -52,6 +52,9 @@ stringData:
       {{- with $settings.documentationUrl }}
       DOCUMENTATION_URL: {{ quote . }}
       {{- end }}
+      {{- with $settings.curatedSizes }}
+      CURATED_SIZES: {{ toYaml . | nindent 8 }}
+      {{- end }}
   03-cloud-authenticator.yaml: |
     AZIMUTH_AUTH:
       AUTHENTICATOR:
