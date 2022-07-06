@@ -40,6 +40,15 @@ stringData:
           url: {{ .url | quote }}
         {{- end }}
       CURRENT_CLOUD: {{ $settings.currentCloud.name }}
+      {{- with $settings.metrics }}
+      METRICS:
+        {{- with .cloudMetricsUrl }}
+        CLOUD_METRICS_URL: {{ quote . }}
+        {{- end }}
+        {{- with .tenantMetricsUrlTemplate }}
+        TENANT_METRICS_URL_TEMPLATE: {{ quote . }}
+        {{- end }}
+      {{- end }}
   03-cloud-authenticator.yaml: |
     AZIMUTH_AUTH:
       AUTHENTICATOR:

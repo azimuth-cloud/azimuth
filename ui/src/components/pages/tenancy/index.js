@@ -52,9 +52,9 @@ const TenancyNav = ({ capabilities, url, currentTenancy, selectedResource }) => 
             </Nav.Item>
             {currentTenancy.links.metrics && (
                 <Nav.Item as="li">
-                    <Nav.Link href={currentTenancy.links.metrics} target="_blank">
-                        Metrics
-                    </Nav.Link>
+                    <LinkContainer exact to={`/tenancies/${currentTenancy.id}/metrics`}>
+                        <Nav.Link>Metrics</Nav.Link>
+                    </LinkContainer>
                 </Nav.Item>
             )}
             {nextExpanded ? (
@@ -182,6 +182,13 @@ export const TenancyPage = ({
                     </Route>
                     <Route exact path={`${path}/platforms`}>
                         <TenancyPlatformsPanel {...tenancyProps} />
+                    </Route>
+                    <Route exact path={`${path}/metrics`}>
+                        <Row>
+                            <Col>
+                                <iframe src={currentTenancy.links.metrics} />
+                            </Col>
+                        </Row>
                     </Route>
                 </Switch>
             </>

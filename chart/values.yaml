@@ -105,6 +105,12 @@ settings:
   currentCloud:
     name: example
     label: Example
+  # The metrics URLs, if available
+  metrics:
+    # The URL for the cloud metrics dashboard
+    # cloudMetricsUrl:
+    # The URL template for the tenant metrics dashboards
+    # tenantMetricsUrlTemplate:
   # The name of the CSRF cookie
   csrfCookieName:
   # The name of the session cookie
