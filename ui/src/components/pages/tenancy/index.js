@@ -185,19 +185,21 @@ export const TenancyPage = ({
                     <Route exact path={`${path}/platforms`}>
                         <TenancyPlatformsPanel {...tenancyProps} />
                     </Route>
-                    <Route exact path={`${path}/metrics`}>
-                        <Row>
-                            <Col>
-                                <IframeResizer
-                                    src={currentTenancy.links.metrics}
-                                    width="100%"
-                                    scrolling="no"
-                                    frameBorder={0}
-                                    heightCalculationMethod="max"
-                                />
-                            </Col>
-                        </Row>
-                    </Route>
+                    {currentTenancy.links.metrics && (
+                        <Route exact path={`${path}/metrics`}>
+                            <Row>
+                                <Col>
+                                    <IframeResizer
+                                        src={currentTenancy.links.metrics}
+                                        width="100%"
+                                        scrolling="no"
+                                        frameBorder={0}
+                                        heightCalculationMethod="max"
+                                    />
+                                </Col>
+                            </Row>
+                        </Route>
+                    )}
                 </Switch>
             </>
         );
