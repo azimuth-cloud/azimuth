@@ -33,13 +33,28 @@ stringData:
         {{ $settings.currentCloud.name }}:
           label: {{ $settings.currentCloud.label }}
           {{- $proto := $ingress.tls.enabled | ternary "https" "http" }}
-          url: {{ printf "%s://%s/dashboard" $proto $ingress.host }}
+          url: {{ printf "%s://%s/tenancies" $proto $ingress.host }}
         {{- range $settings.availableClouds }}
         {{ .name }}:
           label: {{ .label | quote }}
           url: {{ .url | quote }}
         {{- end }}
       CURRENT_CLOUD: {{ $settings.currentCloud.name }}
+      {{- with $settings.metrics }}
+      METRICS:
+        {{- with .cloudMetricsUrl }}
+        CLOUD_METRICS_URL: {{ quote . }}
+        {{- end }}
+        {{- with .tenantMetricsUrlTemplate }}
+        TENANT_METRICS_URL_TEMPLATE: {{ quote . }}
+        {{- end }}
+      {{- end }}
+      {{- with $settings.documentationUrl }}
+      DOCUMENTATION_URL: {{ quote . }}
+      {{- end }}
+      {{- with $settings.curatedSizes }}
+      CURATED_SIZES: {{ toYaml . | nindent 8 }}
+      {{- end }}
   03-cloud-authenticator.yaml: |
     AZIMUTH_AUTH:
       AUTHENTICATOR:

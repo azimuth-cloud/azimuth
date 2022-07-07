@@ -100,17 +100,29 @@ settings:
   availableClouds: []
     # - name: example
     #   label: 'Example Cloud'
-    #   url: http://cloud.example.local/dashboard
+    #   url: http://cloud.example.local/tenancies
   # The current cloud
   currentCloud:
     name: example
     label: Example
+  # The metrics URLs, if available
+  metrics:
+    # The URL for the cloud metrics dashboard
+    # cloudMetricsUrl:
+    # The URL template for the tenant metrics dashboards
+    # tenantMetricsUrlTemplate:
+  # The URL for documentation
+  # By default, the standard Azimuth user documentation will be used
+  documentationUrl:
   # The name of the CSRF cookie
   csrfCookieName:
   # The name of the session cookie
   sessionCookieName:
   # The name of the next URL cookie
   nextUrlCookieName:
+  # Map of curated sizes
+  # If given, this should be a map of size id to alternative name
+  curatedSizes:
 
 # The authenticator to use
 # The parameters for the provider will be re-used where appropriate

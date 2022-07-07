@@ -28,6 +28,16 @@ ZENITH_FQDN_VAR_TPL = "zenith_fqdn_{}"
 ZENITH_TOKEN_VAR_TPL = "zenith_token_{}"
 
 
+def index_or_len(items, value):
+    """
+    Returns the index of the given value in items, or the length of the list if not present.
+    """
+    try:
+        return items.index(value)
+    except ValueError:
+        return len(items)
+
+
 class Engine:
     """
     Class for the cluster engine.
@@ -75,7 +85,11 @@ class ClusterManager:
         """
         return self._driver.find_cluster_type(name, self._ctx)
 
-    def _cluster_modify(self, cluster: dto.Cluster) -> dto.Cluster:
+    def _cluster_modify(
+        self,
+        cluster: dto.Cluster,
+        cluster_types: t.Optional[t.Dict[str, dto.ClusterType]] = None
+    ) -> dto.Cluster:
         """
         Modifies a cluster returned from a driver before returning it.
 
@@ -112,10 +126,25 @@ class ClusterManager:
                     params.pop(subdomain_variable)
                 )
             )
+        # Try to order the services according to the cluster type
+        if cluster_types is not None:
+            cluster_type = cluster_types.get(cluster.cluster_type)
+        else:
+            try:
+                cluster_type = self.find_cluster_type(cluster.cluster_type)
+            except errors.ObjectNotFoundError:
+                cluster_type = None
+        cluster_type_service_names = [
+            s.name
+            for s in getattr(cluster_type, "services", [])
+        ]
         cluster = dataclasses.replace(
             cluster,
             parameter_values = params,
-            services = services
+            services = sorted(
+                services,
+                key = lambda s: (index_or_len(cluster_type_service_names, s.name), s.label)
+            )
         )
         return self._cloud_session.cluster_modify(cluster)
 
@@ -123,8 +152,14 @@ class ClusterManager:
         """
         List the clusters that are deployed.
         """
+        cluster_types = None
         for cluster in self._driver.clusters(self._ctx):
-            yield self._cluster_modify(cluster)
+            if not cluster_types:
+                cluster_types = {
+                    ct.name: ct
+                    for ct in self.cluster_types()
+                }
+            yield self._cluster_modify(cluster, cluster_types)
 
     def find_cluster(self, id: str) -> dto.Cluster:
         """
@@ -226,11 +261,15 @@ class ClusterManager:
         name: str,
         cluster_type: dto.ClusterType,
         params: t.Mapping[str, t.Any],
-        ssh_key: str
+        ssh_key: t.Optional[str]
     ) -> dto.Cluster:
         """
         Creates a new cluster with the given name, type and parameters.
         """
+        if cluster_type.requires_ssh_key and not ssh_key:
+            raise errors.InvalidOperationError(
+                f"Clusters of type '{cluster_type.label}' require an SSH key."
+            )
         validated = getattr(params, "__validated__", False)
         # If the parameters have not already been validated, validated them
         if not validated:

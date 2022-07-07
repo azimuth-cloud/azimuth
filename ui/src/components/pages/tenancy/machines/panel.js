@@ -4,6 +4,13 @@
 
 import React from 'react';
 
+import Alert from 'react-bootstrap/Alert';
+import Col from 'react-bootstrap/Col';
+import Row from 'react-bootstrap/Row';
+
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faExclamationCircle } from '@fortawesome/free-solid-svg-icons';
+
 import { usePageTitle } from '../../../utils';
 
 import { useResourceInitialised, ResourcePanel } from '../resource-utils';
@@ -11,12 +18,33 @@ import { CreateMachineButton } from './create-modal';
 import { MachinesTable } from './table';
 
 
-const Machines = ({ resourceData, resourceActions, ...props }) => (
-    <MachinesTable
-        machines={resourceData}
-        machineActions={resourceActions}
-        {...props}
-    />
+const Machines = ({ resourceData, resourceActions, capabilities, ...props }) => (
+        <>
+        {(capabilities.supports_clusters || capabilities.supports_kubernetes) && (
+            <Row className="justify-content-center">
+                <Col xs="auto">
+                    <Alert variant="warning" className="d-flex align-items-center">
+                        <div className="me-3">
+                            <FontAwesomeIcon
+                                icon={faExclamationCircle}
+                                size="lg"
+                            />
+                        </div>
+                        <div>
+                            Deleting machines that are part of a platform may cause
+                            potentially unrecoverable issues.
+                        </div>
+                    </Alert>
+                </Col>
+            </Row>
+        )}
+        <MachinesTable
+            machines={resourceData}
+            machineActions={resourceActions}
+            capabilities={capabilities}
+            {...props}
+        />
+    </>
 );
 
 
@@ -58,6 +86,7 @@ export const TenancyMachinesPanel = ({
             }}
         >
             <Machines
+                capabilities={capabilities}
                 images={images}
                 sizes={sizes}
                 externalIps={externalIps}

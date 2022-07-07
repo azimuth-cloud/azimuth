@@ -172,6 +172,12 @@ class TenancySerializer(make_dto_serializer(dto.Tenancy)):
                     })
                 ),
             })
+        if cloud_settings.METRICS.TENANT_METRICS_URL_TEMPLATE:
+            result.setdefault("links", {}).update({
+                "metrics": cloud_settings.METRICS.TENANT_METRICS_URL_TEMPLATE.format(
+                    tenant_id = obj.id
+                ),
+            })
         return result
 
 

@@ -34,7 +34,7 @@ class AzimuthAuthSettings(SettingsObject):
     #: The allowed domains for the next URL
     NEXT_URL_ALLOWED_DOMAINS = Setting(default = set)
     #: The default next URL if the user-supplied URL is not given or not permitted
-    NEXT_URL_DEFAULT_URL = Setting(default = "/dashboard")
+    NEXT_URL_DEFAULT_URL = Setting(default = "/tenancies")
 
     #: The HTTP parameter to get the message code from
     MESSAGE_CODE_PARAM = Setting(default = "code")

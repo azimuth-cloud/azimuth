@@ -13,6 +13,14 @@ import { LinkContainer } from 'react-router-bootstrap';
 
 import get from 'lodash/get';
 
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+    faBook,
+    faCloud,
+    faTachometerAlt,
+    faUser
+} from '@fortawesome/free-solid-svg-icons';
+
 import { sortBy, Loading } from './utils';
 import { SSHKeyUpdateModal } from './ssh-key-update-modal';
 
@@ -48,7 +56,8 @@ export const Navigation = ({
     currentCloud: currentCloudName,
     tenancies,
     sshKey,
-    sshKeyActions
+    sshKeyActions,
+    links
 }) => {
     const currentCloud = get(clouds, currentCloudName);
     const sortedClouds = sortBy(
@@ -62,22 +71,29 @@ export const Navigation = ({
         tenancy => tenancy.name
     );
     return (
-        <Navbar bg="dark" variant="dark" className="mb-3">
+        <Navbar bg="dark" variant="dark" className="mb-3" expand="lg">
             <Container>
                 <LinkContainer to="/">
                     <Navbar.Brand>
                         {currentCloud ?
                             currentCloud.label :
-                            (cloudsFetching ? <Loading /> : "Cloud Portal")
+                            (cloudsFetching ? <Loading /> : "Azimuth")
                         }
                     </Navbar.Brand>
                 </LinkContainer>
-                <Navbar.Toggle />
-                <Navbar.Collapse>
+                <Navbar.Toggle aria-controls="navbar-main" />
+                <Navbar.Collapse id="navbar-main">
                     <Nav className="me-auto">
                         {/* Only show the cloud switcher if there is more than one cloud */}
                         {currentCloud && sortedClouds.length > 0 && (
-                            <NavDropdown title="Other Clouds">
+                            <NavDropdown
+                                title={(
+                                    <>
+                                        <FontAwesomeIcon icon={faCloud} className="me-2" />
+                                        Other Clouds
+                                    </>
+                                )}
+                            >
                                 {sortedClouds.map(c =>
                                     <NavDropdown.Item key={c.name} href={c.url}>
                                         {c.label}
@@ -85,19 +101,29 @@ export const Navigation = ({
                                 )}
                             </NavDropdown>
                         )}
-                        {sortedTenancies.length > 0 && (
-                            <NavDropdown title="Select Tenancy">
-                                {sortedTenancies.map(t =>
-                                    <LinkContainer key={t.id} to={`/tenancies/${t.id}`}>
-                                        <NavDropdown.Item>{t.name}</NavDropdown.Item>
-                                    </LinkContainer>
-                                )}
-                            </NavDropdown>
-                        )}
                     </Nav>
                     <Nav>
+                        {username && links && links.metrics && (
+                            <Nav.Link href={links.metrics} target="_blank" active={false}>
+                                <FontAwesomeIcon icon={faTachometerAlt} className="me-2" />
+                                Cloud Metrics
+                            </Nav.Link>
+                        )}
+                        {links && links.documentation && (
+                            <Nav.Link href={links.documentation} target="_blank" active={false}>
+                                <FontAwesomeIcon icon={faBook} className="me-2" />
+                                Documentation
+                            </Nav.Link>
+                        )}
                         {username ? (
-                            <NavDropdown title={username}>
+                            <NavDropdown
+                                title={(
+                                    <>
+                                        <FontAwesomeIcon icon={faUser} className="me-2" />
+                                        {username}
+                                    </>
+                                )}
+                            >
                                 <SSHKeyUpdateMenuItem
                                     sshKey={sshKey}
                                     sshKeyActions={sshKeyActions}
@@ -108,7 +134,7 @@ export const Navigation = ({
                             </NavDropdown>
                         ) : (
                             initialising ? (
-                                <Navbar.Text><Loading /></Navbar.Text>
+                                <Navbar.Text><Loading message="Loading..." /></Navbar.Text>
                             ) : (
                                 <Nav.Link href={`/auth/login/?next=${window.location.pathname}`}>
                                     Sign In

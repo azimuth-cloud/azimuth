@@ -282,13 +282,17 @@ def redirect_to_zenith_service(
 # The info endpoint does not require authentication
 @decorators.authentication_classes([])
 def cloud_info(request):
-    return response.Response({
+    data = {
         "available_clouds": cloud_settings.AVAILABLE_CLOUDS,
         "current_cloud": cloud_settings.CURRENT_CLOUD,
         "links": {
-            "session": request.build_absolute_uri(reverse("azimuth:session"))
+            "session": request.build_absolute_uri(reverse("azimuth:session")),
+            "documentation": cloud_settings.DOCUMENTATION_URL,
         }
-    })
+    }
+    if cloud_settings.METRICS.CLOUD_METRICS_URL:
+        data["links"]["metrics"] = cloud_settings.METRICS.CLOUD_METRICS_URL
+    return response.Response(data)
 
 
 @provider_api_view(["GET"])
@@ -455,8 +459,18 @@ def sizes(request, tenant):
     Returns the machine sizes available to the specified tenancy.
     """
     with request.auth.scoped_session(tenant) as session:
+        sizes = session.sizes()
+        if cloud_settings.CURATED_SIZES:
+            sizes = [
+                dataclasses.replace(
+                    size,
+                    name = cloud_settings.CURATED_SIZES[size.id]
+                )
+                for size in sizes
+                if size.id in cloud_settings.CURATED_SIZES
+            ]
         serializer = serializers.SizeSerializer(
-            session.sizes(),
+            sizes,
             many = True,
             context = { "request": request, "tenant": tenant }
         )
@@ -469,8 +483,14 @@ def size_details(request, tenant, size):
     Returns the details for the specified machine size.
     """
     with request.auth.scoped_session(tenant) as session:
+        size = session.find_size(size)
+        if cloud_settings.CURATED_SIZES and size.id in cloud_settings.CURATED_SIZES:
+            size = dataclasses.replace(
+                size,
+                name = cloud_settings.CURATED_SIZES[size.id]
+            )
         serializer = serializers.SizeSerializer(
-            session.find_size(size),
+            size,
             context = { "request": request, "tenant": tenant }
         )
     return response.Response(serializer.data)
@@ -955,11 +975,9 @@ def clusters(request, tenant):
                     context = { "session": session, "cluster_manager": cluster_manager }
                 )
                 input_serializer.is_valid(raise_exception = True)
-                cluster = cluster_manager.create_cluster(
-                    input_serializer.validated_data["name"],
-                    input_serializer.validated_data["cluster_type"],
-                    input_serializer.validated_data["parameter_values"],
-                    cloud_settings.SSH_KEY_STORE.get_key(
+                # If an SSH key is available, add it to the params
+                try:
+                    ssh_key = cloud_settings.SSH_KEY_STORE.get_key(
                         request.user.username,
                         # Pass the request and the sessions as keyword options
                         # so that the key store can use them if it needs to
@@ -967,6 +985,13 @@ def clusters(request, tenant):
                         unscoped_session = request.auth,
                         scoped_session = session
                     )
+                except keystore_errors.KeyNotFound:
+                    ssh_key = None
+                cluster = cluster_manager.create_cluster(
+                    input_serializer.validated_data["name"],
+                    input_serializer.validated_data["cluster_type"],
+                    input_serializer.validated_data["parameter_values"],
+                    ssh_key
                 )
                 output_serializer = serializers.ClusterSerializer(
                     cluster,
@@ -1259,6 +1284,14 @@ def kubernetes_cluster_service(request, tenant, cluster, service):
     """
     Redirects the user to the specified service on the specified Kubernetes cluster.
     """
+    if not cloud_settings.CLUSTER_API_PROVIDER:
+        return response.Response(
+            {
+                "detail": "Kubernetes clusters are not supported.",
+                "code": "unsupported_operation"
+            },
+            status = status.HTTP_404_NOT_FOUND
+        )
     service_fqdn = None
     service_label = None
     try:

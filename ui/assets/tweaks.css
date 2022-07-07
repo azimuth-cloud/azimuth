@@ -6,6 +6,8 @@
 /* These rules make stacked modals sit nicely */
 .modal-backdrop.show ~ .modal-backdrop.show { z-index: 1080; }
 .modal.show ~ .modal.show { z-index: 2000; }
+.modal-backdrop.show ~ .modal-backdrop.show ~ .modal-backdrop.show { z-index: 2080; }
+.modal.show ~ .modal.show ~ .modal.show { z-index: 3000; }
 
 
 /**
@@ -46,6 +48,43 @@
 }
 
 
+/* Allow an overlay trigger to have the correct cursor */
+.overlay-trigger {
+    cursor: pointer;
+}
+
+
+/* Remove the focus styles for external links */
+.nav-tabs .nav-link[target="_blank"]:focus {
+    border-color: transparent !important;
+}
+
+
+/* Make progress bars look nice */
+.progress {
+    height: auto;
+    font-size: 0.85rem;
+}
+.progress-bar {
+    padding: 0.25rem 1rem;
+}
+
+
+/**
+ * Styles for the splash page images.
+ */
+.splash-images {
+    text-align: center;
+}
+.splash-images img {
+    object-fit: contain;
+    max-height: 140px;
+    max-width: 200px;
+    padding: 1rem;
+    margin: 0 0.5rem 0.5rem;
+}
+
+
 /**
  * Styles for the notifications container.
  */
@@ -80,16 +119,6 @@
     vertical-align: middle;
     white-space: nowrap;
 }
-.resource-table .progress {
-    height: auto;
-    font-size: 0.85rem;
-}
-.resource-table .progress-bar {
-    padding: 0.25rem 1rem;
-}
-.resource-table .overlay-trigger {
-    cursor: pointer;
-}
 /* The last column of a resource table is always an actions column
    which should shrink to fit the content */
 .resource-table tr > td:last-child {
@@ -116,17 +145,63 @@
 
 
 /**
- * Custom styles for the cluster-type cards.
+ * Custom styles for platform and platform type selection cards.
  */
-.cluster-type-select .card .img-fluid {
-    margin: 0 auto;
-    max-height: 120px;
+.platform-type-select-card {
+    height: 100%;
 }
-.card-body > :last-child {
+.platform-card, .platform-type-select-card {
+    margin-bottom: 1rem;
+}
+.platform-card > img, .platform-type-select-card > img {
+    padding: 0.5rem 1rem;
+    max-height: 120px;
+    object-fit: contain;
+}
+.platform-card > .card-body,
+.platform-type-select-card > .card-body {
+    padding: 0.5rem 1rem;
+}
+.platform-card > .card-body:not(:first-child),
+.platform-type-select-card > .card-body:not(:first-child) {
+    border-top: 1px solid var(--bs-gray-300) !important;
+}
+.platform-card > .list-group + .card-body,
+.platform-type-select-card > .list-group + .card-body {
+    border-top: none !important;
+}
+.platform-card .card-body > :last-child,
+.platform-type-select-card .card-body > :last-child {
     margin-bottom: 0;
 }
-.cluster-parameters-type .img-fluid {
+.platform-card .card-subtitle, .platform-type-select-card .card-subtitle {
+    color: var(--bs-gray-600) !important;
+}
+.platform-card .card-header, .platform-card .card-footer {
+    text-align: right;
+}
+
+
+/**
+ * Custom styles for the platform type card.
+ */
+.platform-type-card {
+    margin-bottom: 1rem;
+}
+.platform-type-card .row {
+    align-items: stretch;
+}
+.platform-type-card img {
+    min-width: 70px;
+    max-width: 100%;
+    height: auto;
     max-height: 80px;
+}
+.platform-type-card .col > :last-child {
+    margin-bottom: 0;
+}
+.platform-type-card .card-title {
+    border-bottom: 1px solid var(--bs-gray-300) !important;
 }
 
 
@@ -152,4 +227,31 @@
 .service-list-group-item span:last-child {
     color: var(--bs-primary);
     float: right;
+}
+
+
+/**
+ * Custom styles for collapsible cards.
+ */
+.collapsible-card .card-header {
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.collapsible-card .card-header:hover {
+    background-color: rgba(0, 0, 0, .07);
+}
+.collapsible-card .card-header::after {
+    content: "";
+    border-right: 0.3em solid transparent;
+    border-left: 0.3em solid transparent;
+}
+.collapsible-card .card-header.toggle-show::after {
+    border-top: 0.3em solid;
+    border-bottom: 0;
+}
+.collapsible-card .card-header.toggle-hide::after {
+    border-top: 0;
+    border-bottom: 0.3em solid;
 }

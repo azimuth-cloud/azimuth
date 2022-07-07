@@ -18,13 +18,8 @@ import { actionCreators as notificationActions } from './redux/notifications';
 import { Navigation } from './components/navigation';
 import { Notifications } from './components/notifications';
 import { SplashPage } from './components/pages/splash';
-import { Dashboard } from './components/pages/dashboard';
+import { TenanciesPage } from './components/pages/tenancies';
 import { TenancyPage } from './components/pages/tenancy';
-import { TenancyOverviewPanel } from './components/pages/tenancy/overview';
-import { TenancyMachinesPanel } from './components/pages/tenancy/machines';
-import { TenancyVolumesPanel } from './components/pages/tenancy/volumes';
-import { TenancyKubernetesClustersPanel } from './components/pages/tenancy/kubernetes-clusters';
-import { TenancyClustersPanel } from './components/pages/tenancy/clusters';
 
 
 /**
@@ -40,7 +35,8 @@ const ConnectedNav = connect(
         currentTenancy: state.tenancies.current,
         cloudsFetching: state.clouds.fetching,
         clouds: state.clouds.available_clouds,
-        currentCloud: state.clouds.current_cloud
+        currentCloud: state.clouds.current_cloud,
+        links: state.clouds.links
     }),
     (dispatch) => ({
         sshKeyActions: bindActionCreators(sshKeyActions, dispatch)
@@ -60,14 +56,15 @@ const ConnectedSplashPage = connect(
     (state) => ({
         cloudsFetching: state.clouds.fetching,
         clouds: state.clouds.available_clouds,
-        currentCloud: state.clouds.current_cloud
+        currentCloud: state.clouds.current_cloud,
+        links: state.clouds.links
     })
 )(SplashPage);
 
 
-const ConnectedDashboard = connect(
+const ConnectedTenanciesPage = connect(
     (state) => ({ tenancies: state.tenancies }),
-)(Dashboard);
+)(TenanciesPage);
 
 
 const ConnectedTenancyPage = connect(
@@ -111,7 +108,7 @@ const NotFound = connect(
         title: 'Not Found',
         message: 'The page you requested was not found.'
     });
-    return <Redirect to="/dashboard" />;
+    return <Redirect to="/tenancies" />;
 });
 
 
@@ -144,23 +141,6 @@ const ProtectedRoute = connect(
 ));
 
 
-const TenancyOverviewPage = props => (
-    <ConnectedTenancyPage {...props}><TenancyOverviewPanel /></ConnectedTenancyPage>
-);
-const TenancyMachinesPage = props => (
-    <ConnectedTenancyPage {...props}><TenancyMachinesPanel /></ConnectedTenancyPage>
-);
-const TenancyVolumesPage = props => (
-    <ConnectedTenancyPage {...props}><TenancyVolumesPanel /></ConnectedTenancyPage>
-);
-const TenancyKubernetesClustersPage = props => (
-    <ConnectedTenancyPage {...props}><TenancyKubernetesClustersPanel /></ConnectedTenancyPage>
-);
-const TenancyClustersPage = props => (
-    <ConnectedTenancyPage {...props}><TenancyClustersPanel /></ConnectedTenancyPage>
-);
-
-
 export const Application = () => (
     <>
         <ConnectedNav />
@@ -170,33 +150,12 @@ export const Application = () => (
                 <Route exact path="/" component={ConnectedSplashPage} />
                 <ProtectedRoute
                     exact
-                    path="/dashboard"
-                    component={ConnectedDashboard}
+                    path="/tenancies"
+                    component={ConnectedTenanciesPage}
                 />
                 <ProtectedRoute
-                    exact
-                    path="/tenancies/:id"
-                    component={TenancyOverviewPage}
-                />
-                <ProtectedRoute
-                    exact
-                    path="/tenancies/:id/machines"
-                    component={TenancyMachinesPage}
-                />
-                <ProtectedRoute
-                    exact
-                    path="/tenancies/:id/volumes"
-                    component={TenancyVolumesPage}
-                />
-                <ProtectedRoute
-                    exact
-                    path="/tenancies/:id/kubernetes"
-                    component={TenancyKubernetesClustersPage}
-                />
-                <ProtectedRoute
-                    exact
-                    path="/tenancies/:id/clusters"
-                    component={TenancyClustersPage}
+                    path="/tenancies/:id/:resource?"
+                    component={ConnectedTenancyPage}
                 />
                 <Route component={NotFound} />
             </Switch>

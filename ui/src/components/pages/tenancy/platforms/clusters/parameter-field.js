@@ -16,7 +16,7 @@ import get from 'lodash/get';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faTimes } from '@fortawesome/free-solid-svg-icons';
 
-import { Field, Select, withCustomValidity } from '../../../utils';
+import { Field, Select, withCustomValidity } from '../../../../utils';
 
 import {
     SizeSelectControl,
@@ -24,7 +24,7 @@ import {
     VolumeSelectControl,
     MachineSelectControl,
     ClusterSelectControl
-} from '../resource-utils';
+} from '../../resource-utils';
 
 
 const InputWithCustomValidity = withCustomValidity("input");
@@ -302,7 +302,17 @@ const BooleanParameterField = ({ parameter, value, onChange, isCreate }) => {
     return (
         <Field
             label={parameter.label}
-            helpText={<ReactMarkdown children={parameter.description} />}
+            helpText={
+                <ReactMarkdown
+                    components={{
+                        // Links should open in a new tab
+                        a: ({ node, children, ...props }) => (
+                            <a target="_blank" {...props}>{children}</a>
+                        )
+                    }}
+                    children={parameter.description}
+                />
+            }
         >
             <FormCheck
                 id={parameter.name}
@@ -331,7 +341,17 @@ const DefaultParameterField = ({
         <Field
             label={parameter.label}
             required={parameter.required}
-            helpText={<ReactMarkdown children={parameter.description} />}
+            helpText={
+                <ReactMarkdown
+                    components={{
+                        // Links should open in a new tab
+                        a: ({ node, children, ...props }) => (
+                            <a target="_blank" {...props}>{children}</a>
+                        )
+                    }}
+                    children={parameter.description}
+                />
+            }
         >
             <Control
                 id={parameter.name}
