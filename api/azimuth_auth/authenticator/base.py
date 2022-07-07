@@ -27,22 +27,9 @@ class BaseAuthenticator:
 
     def auth_complete(self, request):
         """
-        Process a request for the complete endpoint and return either a (token, expires) tuple
-        if the authentication was successful or None if not.
-
-        expires should be an ISO-8601 formatted string representing the time at which the token
-        expires. It may be None if the token does not expire.
+        Process a request for the complete endpoint and return either a token if the
+        authentication was successful or None if not.
 
         This method may receive GET or POST requests depending on the implementation.
-        """
-        raise NotImplementedError
-
-    def refresh_token(self, token):
-        """
-        Given an existing token, attempt to obtain a new token and return a new (token, expires)
-        tuple.
-
-        If the authenticator does not support token refresh, NotImplementedError should be
-        raised.
         """
         raise NotImplementedError

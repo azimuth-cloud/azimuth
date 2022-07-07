@@ -36,7 +36,7 @@ class FormAuthenticator(BaseAuthenticator):
         """
         Given the data from a successful form validation, attempt an authentication.
 
-        Should return a (token, expires) tuple if the authentication is successful, None otherwise.
+        Should return a token if the authentication is successful, None otherwise.
         """
         raise NotImplementedError
 

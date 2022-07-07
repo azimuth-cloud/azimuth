@@ -22,10 +22,6 @@ class AzimuthAuthSettings(SettingsObject):
 
     #: For the session middleware, this is the name of the session key in which the token is stored
     TOKEN_SESSION_KEY = Setting(default = "token")
-    #: For the session middleware, this is the amount of time, in seconds, before the token expires that
-    #: middleware will attempt to refresh it
-    #: Defaults to 10 minutes if not given
-    TOKEN_REFRESH_INTERVAL = Setting(default = 600)
 
     #: The HTTP parameter to get the next URL from
     NEXT_URL_PARAM = Setting(default = "next")
