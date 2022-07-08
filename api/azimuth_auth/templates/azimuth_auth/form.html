@@ -8,7 +8,7 @@
 <div class="row justify-content-md-center">
     <div class="modal position-relative d-block mt-5">
         <div class="modal-dialog">
-            <form method="POST" action="{% url "azimuth_auth:complete" %}">
+            <form method="POST" action="{{ auth_complete_url }}">
                 {% csrf_token %}
                 <div class="modal-content">
                     <div class="modal-header">
@@ -24,6 +24,7 @@
                         {% endfor %}
                     </div>
                     <div class="modal-footer">
+                        {% change_auth_button %}
                         <button type="submit" class="btn btn-primary">Sign in</button>
                     </div>
                 </div>

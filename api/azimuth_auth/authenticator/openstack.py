@@ -6,12 +6,12 @@ from urllib.parse import urlencode
 
 from django import forms
 from django.shortcuts import redirect
-from django.urls import reverse
 
 import requests
 
 from .base import BaseAuthenticator
 from .form import FormAuthenticator
+from .redirect import RedirectAuthenticator
 
 
 class OpenStackFormAuthenticator(FormAuthenticator):
@@ -92,7 +92,7 @@ class ApplicationCredentialAuthenticator(OpenStackFormAuthenticator):
         )
 
 
-class FederatedAuthenticator(BaseAuthenticator):
+class FederatedAuthenticator(RedirectAuthenticator):
     """
     Authenticator that authenticates with an OpenStack cloud using federated identity.
 
@@ -107,10 +107,8 @@ class FederatedAuthenticator(BaseAuthenticator):
     def __init__(self, auth_url, provider):
         self.federation_url = "{}/auth/OS-FEDERATION/websso/{}".format(auth_url, provider)
 
-    def auth_start(self, request):
-        origin_url = request.build_absolute_uri(reverse('azimuth_auth:complete'))
-        redirect_url = "{}?{}".format(self.federation_url, urlencode({ 'origin': origin_url }))
-        return redirect(redirect_url)
+    def get_redirect_to(self, request, auth_complete_url):
+        return "{}?{}".format(self.federation_url, urlencode({ 'origin': auth_complete_url }))
 
     def auth_complete(self, request):
         # The token should be in the POST data

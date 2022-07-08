@@ -3,6 +3,7 @@ Custom template tags for the Azimuth auth package.
 """
 
 from django import template
+from django.urls import reverse
 
 from ..settings import auth_settings
 
@@ -16,6 +17,17 @@ def field_with_classes(field, *classes):
     Adds the specified classes to the HTML element produced for the field.
     """
     return field.as_widget(attrs = { 'class': ' '.join(classes) })
+
+
+@register.inclusion_tag('azimuth_auth/change_auth_button.html', takes_context = True)
+def change_auth_button(context):
+    """
+    Renders the change auth button, but only if there are multiple authenticators.
+    """
+    return {
+        'link_url': "{}?change_method=1".format(reverse('azimuth_auth:login')),
+        'render_button': len(auth_settings.AUTHENTICATORS) > 1,
+    }
 
 
 @register.inclusion_tag('azimuth_auth/message.html', takes_context = True)
