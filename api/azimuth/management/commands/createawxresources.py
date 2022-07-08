@@ -466,8 +466,14 @@ class Command(BaseCommand):
         # Update with specific variables for the playbook
         extra_vars.update(extra_vars_spec.get(playbook, {}))
         # The metadata root should be in the project spec
+        # If can have the git version interpolated into it
+        git_version = project_spec['GIT_VERSION']
+        metadata_root = project_spec['METADATA_ROOT'].format(
+            git_version = git_version,
+            gitVersion = git_version
+        )
         # The metadata file should be named after the playbook
-        metadata_url = f"{project_spec['METADATA_ROOT']}/{playbook}"
+        metadata_url = f"{metadata_root}/{playbook}"
         job_template = connection.job_templates.find_by_name(template_name)
         params = dict(
             description = metadata_url,
