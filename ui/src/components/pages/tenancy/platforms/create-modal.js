@@ -70,7 +70,7 @@ const PlatformTypeForm = ({ platformTypes, selected, onSelect, goNext }) => {
     return (
         <>
             <Modal.Body>
-                <Row xs={1} md={2} lg={3} xl={4} className="justify-content-center">
+                <Row xs={1} sm={2} lg={3} xl={4} className="justify-content-center g-3">
                     {sortedPlatformTypes.length > 0 ? (
                         sortedPlatformTypes.map(pt => (
                             <Col key={pt.id}>

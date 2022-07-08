@@ -10,6 +10,7 @@ from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.views.decorators.http import require_http_methods, require_safe
 
+from .forms import AuthenticatorSelectForm
 from .settings import auth_settings
 
 
@@ -97,7 +98,10 @@ def set_next_url_cookie(response, next_url, secure):
             secure = secure,
             samesite = (
                 "None"
-                if auth_settings.AUTHENTICATOR.uses_crossdomain_post_requests
+                if any(
+                    a['AUTHENTICATOR'].uses_crossdomain_post_requests
+                    for a in auth_settings.AUTHENTICATORS
+                )
                 else "Lax"
             )
         )
@@ -106,11 +110,10 @@ def set_next_url_cookie(response, next_url, secure):
     return response
 
 
-def redirect_to_login(code = None):
+def redirect_with_code(redirect_to, code = None):
     """
-    Redirect to the login endpoint with an optional code.
+    Redirect to the given URL with an optional code.
     """
-    redirect_to = reverse("azimuth_auth:login")
     if code:
         redirect_to = "{}?{}".format(
             redirect_to,
@@ -119,26 +122,115 @@ def redirect_to_login(code = None):
     return redirect(redirect_to)
 
 
-@require_safe
+def redirect_to_login(code = None):
+    """
+    Redirect to the login endpoint with an optional code.
+    """
+    return redirect_with_code(reverse("azimuth_auth:login"), code)
+
+
+def redirect_to_start(authenticator, code = None):
+    """
+    Redirect to the specified authenticator with an optional code.
+    """
+    if any(a["NAME"] == authenticator for a in auth_settings.AUTHENTICATORS):
+        return redirect_with_code(
+            reverse(
+                "azimuth_auth:start",
+                kwargs = { "authenticator": authenticator }
+            ),
+            code
+        )
+    else:
+        return redirect_to_login(code)
+
+
+@require_http_methods(["GET", "POST"])
 def login(request):
     """
-    Begin the authentication flow for the configured authenticator.
+    Begin the authentication flow by selecting an authenticator.
     """
-    next_url = get_next_url(request)
-    response = auth_settings.AUTHENTICATOR.auth_start(request)
-    return set_next_url_cookie(response, next_url, request.is_secure())
+    response = None
+    # If a remembered authenticator is set and is valid, use it unless we are
+    # explicitly changing methods
+    authenticator = request.get_signed_cookie(auth_settings.AUTHENTICATOR_COOKIE_NAME, None)
+    if (
+        authenticator and
+        any(a["NAME"] == authenticator for a in auth_settings.AUTHENTICATORS) and
+        request.GET.get("change_method", "0") != "1"
+    ):
+        response = redirect("azimuth_auth:start", authenticator = authenticator)
+    elif len(auth_settings.AUTHENTICATORS) > 1:
+        # If there are multiple authenticators, render the selection form
+        if request.method == "POST":
+            form = AuthenticatorSelectForm(request.POST)
+            if form.is_valid():
+                authenticator = form.cleaned_data["authenticator"]
+                remember = form.cleaned_data.get("remember", False)
+                response = redirect("azimuth_auth:start", authenticator = authenticator)
+                if remember:
+                    response.set_signed_cookie(
+                        auth_settings.AUTHENTICATOR_COOKIE_NAME,
+                        authenticator,
+                        httponly = True,
+                        secure = request.is_secure()
+                    )
+                else:
+                    response.delete_cookie(auth_settings.AUTHENTICATOR_COOKIE_NAME)
+                return response
+        else:
+            form = AuthenticatorSelectForm()
+        response = render(request, "azimuth_auth/select.html", { "form": form })
+    else:
+        # If there is only one authenticator, redirect straight to it
+        authenticator = auth_settings.AUTHENTICATORS[0]["NAME"]
+        response = redirect("azimuth_auth:start", authenticator = authenticator)
+    return set_next_url_cookie(response, get_next_url(request), request.is_secure())
+
+
+@require_safe
+def start(request, authenticator):
+    """
+    Start the authentication flow for the selected authenticator.
+    """
+    try:
+        authenticator_obj = next(
+            a["AUTHENTICATOR"]
+            for a in auth_settings.AUTHENTICATORS
+            if a["NAME"] == authenticator
+        )
+    except StopIteration:
+        return redirect_to_login("invalid_authentication_method")
+    else:
+        return authenticator_obj.auth_start(
+            request,
+            request.build_absolute_uri(
+                reverse(
+                    "azimuth_auth:complete",
+                    kwargs = { "authenticator": authenticator }
+                )
+            )
+        )
 
 
 @require_http_methods(["GET", "POST"])
 @csrf_exempt
-def complete(request):
+def complete(request, authenticator):
     """
     Complete the authentication flow for the configured authenticator.
     """
+    try:
+        authenticator_obj = next(
+            a["AUTHENTICATOR"]
+            for a in auth_settings.AUTHENTICATORS
+            if a["NAME"] == authenticator
+        )
+    except StopIteration:
+        return redirect_to_login("invalid_authentication_method")
     def handle_request(request):
         # The auth_complete method of the authenticator should return a token or null
         # depending on whether authentication was successful
-        token = auth_settings.AUTHENTICATOR.auth_complete(request)
+        token = authenticator_obj.auth_complete(request)
         if token:
             # On a successful authentication, store the token in the session
             request.session[auth_settings.TOKEN_SESSION_KEY] = token
@@ -152,9 +244,9 @@ def complete(request):
             return set_next_url_cookie(response, None, request.is_secure())
         else:
             # On a failed authentication, redirect to login but indicate that the auth failed
-            return redirect_to_login("invalid_credentials")
+            return redirect_to_start(authenticator, authenticator_obj.failure_code)
     # Enable CSRF protection unless it will break the authenticator
-    if not auth_settings.AUTHENTICATOR.uses_crossdomain_post_requests:
+    if not authenticator_obj.uses_crossdomain_post_requests:
         handle_request = csrf_protect(handle_request)
     return handle_request(request)
 

@@ -13,14 +13,6 @@ class Provider:
     """
     Class for a cloud provider.
     """
-    def authenticate(self, username: str, password: str) -> 'UnscopedSession':
-        """
-        Creates a new unscoped session for this provider using the given credentials.
-        """
-        raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
-        )
-
     def from_token(self, token: str) -> 'UnscopedSession':
         """
         Creates an unscoped session from the given token as returned from the

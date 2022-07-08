@@ -1,0 +1,52 @@
+{% extends "azimuth_auth/base.html" %}
+
+{% load azimuth_auth_tags %}
+
+{% block head_title %}Sign in{% endblock %}
+
+{% block content %}
+<div class="row justify-content-md-center">
+    <div class="modal position-relative d-block mt-5">
+        <div class="modal-dialog">
+            <form method="POST" action="{{ auth_complete_url }}">
+                {% csrf_token %}
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Choose an authentication method</h5>
+                    </div>
+                    <div class="modal-body">
+                        {% auth_message %}
+                        <div class="mb-3">
+                            <label
+                                for="{{ form.authenticator.id_for_label }}"
+                                class="visually-hidden form-label"
+                            >
+                                {{ form.authenticator.label }}
+                            </label>
+                            {% field_with_classes form.authenticator "form-select" %}
+                        </div>
+                        <div>
+                            <div class="form-check">
+                                {% field_with_classes form.remember "form-check-input" %}
+                                <label
+                                    for="{{ form.remember.id_for_label }}"
+                                    class="form-check-label"
+                                >
+                                    {{ form.remember.label }}
+                                </label>
+                            </div>
+                            <div class="form-text">
+                                If checked, you will be automatically redirected to the selected
+                                authentication method next time you need to sign in.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Next</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

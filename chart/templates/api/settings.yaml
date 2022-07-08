@@ -1,5 +1,5 @@
 {{- $settings := .Values.settings -}}
-{{- $authenticator := .Values.authenticator -}}
+{{- $authenticators := .Values.authenticators -}}
 {{- $provider := .Values.provider -}}
 {{- $apps := .Values.apps -}}
 {{- $clusterEngine := .Values.clusterEngine -}}
@@ -55,21 +55,37 @@ stringData:
       {{- with $settings.curatedSizes }}
       CURATED_SIZES: {{ toYaml . | nindent 8 }}
       {{- end }}
-  03-cloud-authenticator.yaml: |
+  03-cloud-authenticators.yaml: |
+    {{- if empty $authenticators }}
+    {{- fail "No authenticators are defined" }}
+    {{- end }}
     AZIMUTH_AUTH:
-      AUTHENTICATOR:
-        {{- if (eq $authenticator.type "openstack-password") }}
-        FACTORY: azimuth_auth.authenticator.openstack.PasswordAuthenticator
-        PARAMS:
-          AUTH_URL: {{ default $provider.openstack.authUrl $authenticator.openstackPassword.authUrl }}
-          DOMAIN: {{ default $provider.openstack.domain $authenticator.openstackPassword.domain }}
-          VERIFY_SSL: {{ default $provider.openstack.verifySsl $authenticator.openstackPassword.verifySsl }}
-        {{- else if (eq $authenticator.type "openstack-federation") }}
-        FACTORY: azimuth_auth.authenticator.openstack.FederatedAuthenticator
-        PARAMS:
-          FEDERATION_URL: {{ $authenticator.openstackFederation.federationUrl }}
-        {{- else }}
-        {{- fail (printf "Unrecognised authenticator '%s'" $authenticator.type) }}
+      AUTHENTICATORS:
+        {{- range $authenticators }}
+        - NAME: {{ quote .name }}
+          {{- with .label }}
+          LABEL: {{ quote . }}
+          {{- end }}
+          AUTHENTICATOR:
+            {{- if (eq .type "openstack-password") }}
+            FACTORY: azimuth_auth.authenticator.openstack.PasswordAuthenticator
+            PARAMS:
+              AUTH_URL: {{ default $provider.openstack.authUrl .openstackPassword.authUrl }}
+              DOMAIN: {{ default $provider.openstack.domain .openstackPassword.domain }}
+              VERIFY_SSL: {{ default $provider.openstack.verifySsl .openstackPassword.verifySsl }}
+            {{- else if (eq .type "openstack-application-credential") }}
+            FACTORY: azimuth_auth.authenticator.openstack.ApplicationCredentialAuthenticator
+            PARAMS:
+              AUTH_URL: {{ default $provider.openstack.authUrl .openstackApplicationCredential.authUrl }}
+              VERIFY_SSL: {{ default $provider.openstack.verifySsl .openstackApplicationCredential.verifySsl }}
+            {{- else if (eq .type "openstack-federation") }}
+            FACTORY: azimuth_auth.authenticator.openstack.FederatedAuthenticator
+            PARAMS:
+              AUTH_URL: {{ default $provider.openstack.authUrl .openstackFederation.authUrl }}
+              PROVIDER: {{ required "provider is required for openstack-federation" .openstackFederation.provider }}
+            {{- else }}
+            {{- fail (printf "Unrecognised authenticator '%s'" .type) }}
+            {{- end }}
         {{- end }}
   04-cloud-provider.yaml: |
     AZIMUTH:

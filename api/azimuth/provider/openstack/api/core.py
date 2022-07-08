@@ -15,56 +15,6 @@ import rackit
 logger = logging.getLogger(__name__)
 
 
-class AuthParams:
-    """
-    Builder object for setting authentication parameters.
-    """
-    def __init__(self, params = None):
-        self.params = params or dict()
-
-    def use_token(self, token):
-        """
-        Returns an auth object using the given token for authentication.
-        """
-        params = self.params.copy()
-        params.update(identity = dict(methods = ['token'], token = dict(id = token)))
-        return self.__class__(params)
-
-    def use_password(self, domain, username, password):
-        """
-        Returns an auth object using the given domain, username and password
-        for authentication.
-        """
-        params = self.params.copy()
-        params.update(
-            identity = dict(
-                methods = ['password'],
-                password = dict(
-                    user = dict(
-                        domain = dict(name = domain),
-                        name = username,
-                        password = password
-                    )
-                )
-            )
-        )
-        return self.__class__(params)
-
-    def use_project_id(self, project_id):
-        """
-        Returns an auth object scoped to the given project.
-        """
-        params = self.params.copy()
-        params.update(scope = dict(project = dict(id = project_id)))
-        return self.__class__(params)
-
-    def as_dict(self):
-        """
-        Returns the auth parameters as a dict.
-        """
-        return self.params.copy()
-
-
 class UnmanagedResourceOptions(rackit.resource.Options):
     def __init__(self, options = None):
         options = options or dict()
@@ -204,6 +154,18 @@ class AuthProjectManager(ResourceManager):
     """
     Custom manager for projects implementing pagination.
     """
+    def extract_list(self, response):
+        list_data, next_url, next_params = super().extract_list(response)
+        # HACK
+        # When the current token is for an app cred, limit the returned results to the project
+        # that the app cred is for
+        # This is a hack around the fact app creds are able to list all the projects that the
+        # owner can see, even though they cannot use those projects
+        # IMHO this is a bug
+        if self.connection.auth_method == "application_credential":
+            list_data = [p for p in list_data if p['id'] == self.connection.project_id]
+        return list_data, next_url, next_params
+
     def extract_next_url(self, data):
         return data.get('links', {}).get('next')
 
@@ -229,10 +191,10 @@ class Connection(rackit.Connection):
     """
     projects = rackit.RootResource(AuthProject)
 
-    def __init__(self, auth_url, params, interface = 'public', verify = True):
+    def __init__(self, auth_url, token, interface = 'public', verify = True):
         # Store the given parameters, as it is sometimes useful to be able to query them later
         self.auth_url = auth_url.rstrip('/')
-        self.params = params
+        self.token = token
         self.interface = interface
         self.verify = verify
 
@@ -245,23 +207,24 @@ class Connection(rackit.Connection):
         # Once the superclass init is called, we can use the api_{} methods
         super().__init__(auth_url, session)
 
-        # Attempt the authentication
+        # Confirm whether the token is still valid
+        # If this returns anything other than a 200, close the session
         try:
-            response = self.api_post('/auth/tokens', json = dict(auth = params.as_dict()))
+            response = self.api_get('/auth/tokens', headers = { 'X-Subject-Token': token })
         except rackit.ApiError:
-            # If the authentication fails, make sure we close the session
             session.close()
             raise
-        # Extract the token from the headers
-        self.token = response.headers['X-Subject-Token']
-        # Extract information from the response
+
+        # Extract information about the user and project from the response
         json = response.json()
+        self.auth_method = json['token']['methods'][0]
         user = json['token']['user']
         self.user_id = user['id']
         self.username = user['name']
         project = json['token'].get('project', {})
         self.project_id = project.get('id')
         self.project_name = project.get('name')
+
         # Extract the endpoints from the catalog on the correct interface
         self.endpoints = {}
         for entry in json['token'].get('catalog', []):
@@ -295,13 +258,21 @@ class Connection(rackit.Connection):
             project_id = project_or_id.id
         else:
             project_id = project_or_id
-        return Connection(
-            self.auth_url,
-            # Use token authentication with our token
-            AuthParams().use_token(self.token).use_project_id(project_id),
-            self.interface,
-            self.verify
-        )
+        if project_id == self.project_id:
+            return self
+        else:
+            # Obtain a new token with the requested scope
+            response = self.api_post(
+                '/auth/tokens',
+                json = dict(
+                    auth = dict(
+                        identity = dict(methods = ['token'], token = dict(id = self.token)),
+                        scope = dict(project = dict(id = project_id))
+                    )
+                )
+            )
+            token = response.headers['X-Subject-Token']
+            return self.__class__(self.auth_url, token, self.interface, self.verify)
 
 
 class ServiceNotSupported(RuntimeError):

@@ -182,48 +182,19 @@ class Provider(base.Provider):
         self._cluster_engine = cluster_engine
 
     @convert_exceptions
-    def authenticate(self, username, password):
-        """
-        See :py:meth:`.base.Provider.authenticate`.
-        """
-        logger.info("Authenticating user '%s' with OpenStack", username)
-        # Create an API connection using the username and password
-        auth_params = api.AuthParams().use_password(self._domain, username, password)
-        try:
-            conn = api.Connection(self._auth_url, auth_params, self._interface, self._verify_ssl)
-        except rackit.Unauthorized:
-            logger.info("Authentication failed for user '%s'", username)
-            # We want to use a different error message to convert_exceptions
-            raise errors.AuthenticationError("Invalid username or password.")
-        else:
-            logger.info("Sucessfully authenticated user '%s'", username)
-            return UnscopedSession(
-                conn,
-                metadata_prefix = self._metadata_prefix,
-                internal_net_template = self._internal_net_template,
-                external_net_template = self._external_net_template,
-                create_internal_net = self._create_internal_net,
-                internal_net_cidr = self._internal_net_cidr,
-                az_backdoor_net_map = self._az_backdoor_net_map,
-                backdoor_vnic_type = self._backdoor_vnic_type,
-                cluster_engine = self._cluster_engine
-            )
-
-    @convert_exceptions
     def from_token(self, token):
         """
         See :py:meth:`.base.Provider.from_token`.
         """
         logger.info("Authenticating token with OpenStack")
-        auth_params = api.AuthParams().use_token(token)
         try:
-            conn = api.Connection(self._auth_url, auth_params, self._interface, self._verify_ssl)
+            conn = api.Connection(self._auth_url, token, self._interface, self._verify_ssl)
         except (rackit.Unauthorized, rackit.NotFound):
             logger.info("Authentication failed for token")
             # Failing to validate a token is a 404 for some reason
             raise errors.AuthenticationError("Your session has expired.")
         else:
-            logger.info("Sucessfully authenticated user '%s'", conn.username)
+            logger.info("Successfully authenticated user '%s'", conn.username)
             return UnscopedSession(
                 conn,
                 metadata_prefix = self._metadata_prefix,

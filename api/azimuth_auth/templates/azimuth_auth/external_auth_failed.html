@@ -1,0 +1,26 @@
+{% extends "azimuth_auth/base.html" %}
+
+{% load azimuth_auth_tags %}
+
+{% block head_title %}Authentication failed{% endblock %}
+
+{% block content %}
+<div class="row justify-content-md-center">
+    <div class="modal position-relative d-block mt-5">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Authentication failed</h5>
+                </div>
+                <div class="modal-body pb-0">
+                    {% auth_message %}
+                </div>
+                <div class="modal-footer">
+                    {% change_auth_button %}
+                    <a class="btn btn-primary" href="{{ try_again_link }}">Try again</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

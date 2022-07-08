@@ -36,13 +36,20 @@ class FormAuthenticator(BaseAuthenticator):
         """
         Given the data from a successful form validation, attempt an authentication.
 
-        Should return a (token, expires) tuple if the authentication is successful, None otherwise.
+        Should return a token if the authentication is successful, None otherwise.
         """
         raise NotImplementedError
 
-    def auth_start(self, request):
+    def auth_start(self, request, auth_complete_url):
         # Just render an empty form
-        return render(request, self.template, { 'form': self.get_form() })
+        return render(
+            request,
+            self.template,
+            {
+                'form': self.get_form(),
+                'auth_complete_url': auth_complete_url,
+            }
+        )
 
     def auth_complete(self, request):
         # For a non-POST request, there is nothing to do

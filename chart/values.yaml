@@ -124,18 +124,45 @@ settings:
   # If given, this should be a map of size id to alternative name
   curatedSizes:
 
-# The authenticator to use
-# The parameters for the provider will be re-used where appropriate
-authenticator:
-  # The type of authenticator to use (currently only openstack-{password,federation} are supported)
-  type: openstack-password
-  # By default, the OpenStack password authenticator will use the parameters from
-  # the OpenStack provider
-  openstackPassword: {}
-  # Parameters for the OpenStack federation authenticator
-  openstackFederation:
-    # The URL that should be used for the federated authentication
-    federationUrl: https://keystone.cloud.example.local/v3/auth/OS-FEDERATION/websso/<authtype>
+# The authenticators to use
+# The parameters for the provider will be re-used where appropriate, e.g. the auth URL
+# The authenticators appear to the user in the order they are defined here, so the
+# first authenticator will be selected by default
+authenticators: []
+  # - # The name of the authenticator
+  #   name: password
+  #   # The human-readable name for the authenticator (defaults to name if not given)
+  #   label: Username + Password
+  #   # The type of authenticator to use
+  #   # Currently only openstack-{password,application-credential,federation} are supported
+  #   type: openstack-password
+  #   # Parameters for the OpenStack password authenticator
+  #   openstackPassword:
+  #     # The Keystone auth URL
+  #     # By default, the auth URL from the provider will be used
+  #     authUrl:
+  #     # The domain to use
+  #     # By default, the domain from the provider will be used
+  #     domain:
+  #     # Whether or not to verify SSL
+  #     # By default, the setting from the provider will used
+  #     verifySsl:
+  #   # Parameters for the OpenStack application credential authenticator
+  #   openstackApplicationCredential:
+  #     # The Keystone auth URL
+  #     # By default, the auth URL from the provider will be used
+  #     authUrl:
+  #     # Whether or not to verify SSL
+  #     # By default, the setting from the provider will used
+  #     verifySsl:
+  #   # Parameters for the OpenStack federation authenticator
+  #   openstackFederation:
+  #     # The Keystone auth URL
+  #     # By default, the auth URL from the provider will be used
+  #     authUrl:
+  #     # The name of the provider that should be used, where the URL is
+  #     # <auth url>/auth/OS-FEDERATION/websso/<provider>
+  #     provider:
 
 # The cloud provider to use
 provider:
