@@ -150,9 +150,6 @@
 .platform-type-select-card {
     height: 100%;
 }
-.platform-card, .platform-type-select-card {
-    margin-bottom: 1rem;
-}
 .platform-card > img, .platform-type-select-card > img {
     padding: 0.5rem 1rem;
     max-height: 120px;
