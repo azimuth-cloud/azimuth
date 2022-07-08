@@ -86,6 +86,7 @@ stringData:
             {{- else }}
             {{- fail (printf "Unrecognised authenticator '%s'" .type) }}
             {{- end }}
+        {{- end }}
   04-cloud-provider.yaml: |
     AZIMUTH:
       PROVIDER:
