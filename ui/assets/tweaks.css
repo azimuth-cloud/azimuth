@@ -252,3 +252,29 @@
     border-top: 0;
     border-bottom: 0.3em solid;
 }
+
+
+/**
+ * Styles for the sticky footer.
+ */
+.sticky-footer-wrap {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+.sticky-footer-content {
+    flex: 1;
+}
+.sticky-footer {
+    margin-top: 1.5rem;
+    background-color: rgba(var(--bs-light-rgb),var(--bs-bg-opacity));
+    padding: 1.5rem;
+    border-top: 2px solid var(--bs-gray-300);
+    vertical-align: middle;
+    line-height: 1.1rem;
+    text-align: right;
+}
+.sticky-footer img {
+    height: 1.1rem;
+    margin: -5px 0 0 2px;
+}

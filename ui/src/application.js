@@ -21,6 +21,8 @@ import { SplashPage } from './components/pages/splash';
 import { TenanciesPage } from './components/pages/tenancies';
 import { TenancyPage } from './components/pages/tenancy';
 
+import { Footer } from './components/footer';
+
 
 /**
  * Where components need to be bound to the Redux state, generate the connectors
@@ -142,23 +144,26 @@ const ProtectedRoute = connect(
 
 
 export const Application = () => (
-    <>
-        <ConnectedNav />
-        <Container>
-            <ConnectedNotifications />
-            <Switch>
-                <Route exact path="/" component={ConnectedSplashPage} />
-                <ProtectedRoute
-                    exact
-                    path="/tenancies"
-                    component={ConnectedTenanciesPage}
-                />
-                <ProtectedRoute
-                    path="/tenancies/:id/:resource?"
-                    component={ConnectedTenancyPage}
-                />
-                <Route component={NotFound} />
-            </Switch>
-        </Container>
-    </>
+    <div className="sticky-footer-wrap">
+        <div className="sticky-footer-content">
+            <ConnectedNav />
+            <Container>
+                <ConnectedNotifications />
+                <Switch>
+                    <Route exact path="/" component={ConnectedSplashPage} />
+                    <ProtectedRoute
+                        exact
+                        path="/tenancies"
+                        component={ConnectedTenanciesPage}
+                    />
+                    <ProtectedRoute
+                        path="/tenancies/:id/:resource?"
+                        component={ConnectedTenancyPage}
+                    />
+                    <Route component={NotFound} />
+                </Switch>
+            </Container>
+        </div>
+        <Footer />
+    </div>
 );
