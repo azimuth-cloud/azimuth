@@ -6,7 +6,7 @@ import StackHPCLogo from './StackHPC_logo.png';
 
 
 export const Footer = () => (
-    <div class="sticky-footer">
+    <div className="sticky-footer">
         <a href="https://github.com/stackhpc/azimuth" target="_blank">Azimuth</a>,{" "}
         supported by{" "}
         <a href="https://stackhpc.com" target="_blank">
