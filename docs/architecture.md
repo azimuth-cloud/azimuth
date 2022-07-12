@@ -1,17 +1,19 @@
 # Azimuth Architecture  <!-- omit in toc -->
 
 This document describes the architecture of Azimuth in detail, including the integration with
-the [Zenith application proxy](https://github.com/stackhpc/zenith) and the Cluster-as-a-Service
-subsystem.
+the [Zenith application proxy](https://github.com/stackhpc/zenith),
+[Kubernetes](https://kubernetes.io/) support using [Cluster API](https://cluster-api.sigs.k8s.io/)
+and the Cluster-as-a-Service (CaaS) subsystem.
 
 Azimuth consists of a [Python](https://www.python.org/) backend providing a REST API (different
-to the OpenStack API) and a Javascript frontend written in [React](https://reactjs.org/). The
-primary function of Azimuth is as a regular OpenStack client, presenting a simplified interface
-for provisioning servers and volumes and making the networking as easy and transparent as possible.
+to the OpenStack API) and a Javascript frontend written in [React](https://reactjs.org/).
+It is possible to deploy Azimuth without Zenith, Kubernetes and CaaS support, in which case
+it is just a regular OpenStack client presenting a simplified interface for provisioning servers
+and volumes while hiding the details of the underlying networking from the user.
 
-The application proxy and Cluster-as-a-Service subsystems provide additional functionality
-above and beyond that provided by OpenStack, such as secure web consoles and the ability to
-provision complex, multi-machine appliances.
+When Zenith, Kubernetes and CaaS support are enabled for a fully-featured Azimuth deployment
+there are many more components involved with complex interactions, which this document describes
+in more detail.
 
 > **NOTE**
 >
@@ -24,13 +26,12 @@ provision complex, multi-machine appliances.
 
 - [Architecture Diagram](#architecture-diagram)
 - [Network discovery and auto-creation](#network-discovery-and-auto-creation)
-- [Zenith integration](#zenith-integration)
+- [Kubernetes](#kubernetes)
+- [Cluster-as-a-Service (CaaS)](#cluster-as-a-service-caas)
+- [Zenith integrations](#zenith-integrations)
   - [Authentication of proxied services](#authentication-of-proxied-services)
-  - [Web console support](#web-console-support)
-- [Cluster-as-a-Service (CaaS) subsystem](#cluster-as-a-service-caas-subsystem)
-  - [Custom AWX credentials](#custom-awx-credentials)
-  - [Use of Terraform for provisioning](#use-of-terraform-for-provisioning)
-  - [Customising the parameter form for an appliance](#customising-the-parameter-form-for-an-appliance)
+  - [Integration with Kubernetes](#integration-with-kubernetes)
+  - [Integration with Cluster-as-a-Service (CaaS)](#integration-with-cluster-as-a-service-caas)
 
 ## Architecture Diagram
 
@@ -75,12 +76,20 @@ connecting the newly-created internal network and the external network.
 This "auto-create" behaviour for the internal network can be disabled, in which case not finding
 a tagged internal network will raise a configuration error.
 
-## Zenith integration
+## Kubernetes
+
+Coming soon!
+
+## Cluster-as-a-Service (CaaS)
+
+Coming soon!
+
+## Zenith integrations
 
 Azimuth optionally integrates with the [Zenith proxy](https://github.com/stackhpc/zenith).
-Currently, Zenith is used to provide access to authenticated web consoles for provisioned servers
-without the need to consume a floating IP, but many more integrations are planned in the near
-future.
+When enabled, Azimuth will use Zenith to provide authenticated access to platform services
+such as web-based consoles + desktops, monitoring dashboards and Jupyter Notebooks without
+the need to consume a floating IP.
 
 Azimuth integrates with Zenith in two places, which are shown as "External components" in the
 [Zenith architecture diagram](https://github.com/stackhpc/zenith/blob/main/docs/architecture.md#architecture-diagram):
@@ -134,53 +143,10 @@ The flow when an unauthenticated user tries to access an authenticated Zenith se
   1. Azimuth responds to the Zenith proxy that the request can proceed.
   1. The request is forwarded to the proxied service down the Zenith tunnel.
 
-### Web console support
+### Integration with Kubernetes
 
-When Zenith is enabled, a user can optionally request that a machine is provisioned with a web
-console using [Apache Guacamole](https://guacamole.apache.org/). The web console is installed
-and configured using the `console` playbook from the
-[stackhpc.azimuth_tools Ansible collection](https://github.com/stackhpc/ansible-collection-azimuth-tools),
-and uses [Podman](https://podman.io/) to run Guacamole and the Zenith client as containers.
+Coming soon!
 
-Please see the [Zenith client docs](https://github.com/stackhpc/zenith/blob/main/docs/client.md)
-for details on the Zenith client commands and options.
+### Integration with Cluster-as-a-Service (CaaS)
 
-When the web console is enabled for a server, the following steps are executed to establish
-the web console and corresponding Zenith tunnel:
-
-  1. Azimuth calls out to the Zenith registrar on its admin interface (which is internal to
-     the cluster) to reserve a domain and receives a token in return.
-  1. Azimuth places the token, the allocated subdomain and connection information for the Zenith
-     registrar and SSHD services in the
-     [instance metadata](https://docs.openstack.org/nova/latest/user/metadata.html).
-  1. Azimuth also sets the
-     [instance user data](https://docs.openstack.org/nova/latest/user/metadata.html#user-data)
-     to a script that invokes the `stackhpc.azimuth_tools.console` playbook.
-  1. The playbook installs and configures Guacamole.
-  1. The playbook reads the Zenith token from the metadata service and runs `zenith-client init`
-     to generate a new SSH keypair and register the public key.
-  1. The playbook runs `zenith-client connect` using the registered SSH keypair. It passes
-     the OpenStack project ID from the instance metadata as an auth parameter (see above).
-  1. Traffic can now flow via the secure Zenith tunnel to Guacamole, with authentication
-     and TLS termination provided by the Zenith proxy.
-
-When a user accesses the web console for a server in the Azimuth UI, the API will fetch the
-instance from OpenStack, extract the subdomain from the instance metadata and redirect the
-user to the web console for that server.
-
-It is important to note that this does **not** require the server running Guacamole to be
-accessible from outside the project or to have any inbound firewall rules at all. Even if
-the server was assigned a floating IP, Guacamole is not bound to a public interface so would
-still not be directly accessible.
-
-In fact, Guacamole and the Zenith client run in a Podman pod (similar to a Kubernetes pod)
-which has an isolated network context, and so are not even bound to the host's loopback
-interface - they are only bound to the pod's isolated interface.
-
-## Cluster-as-a-Service (CaaS) subsystem
-
-### Custom AWX credentials
-
-### Use of Terraform for provisioning
-
-### Customising the parameter form for an appliance
+Coming soon!
