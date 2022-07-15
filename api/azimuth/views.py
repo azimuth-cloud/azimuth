@@ -6,6 +6,7 @@ import dataclasses
 import functools
 import logging
 
+from django.template import Context, Engine
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -453,6 +454,60 @@ def image_details(request, tenant, image):
     return response.Response(serializer.data)
 
 
+_SIZE_UNITS = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+
+def _format_size(amount, original_units):
+    """
+    Formats a size by increasing the units when it is possible to do so
+    without reducing the precision.
+    """
+    # If the amount is zero, then use the given units
+    if amount == 0:
+        return f"0{original_units}"
+    # Start with the original amount and unit
+    formatted_amount = amount
+    units_index = _SIZE_UNITS.index(original_units)
+    # While dividing by 1024 yields an integer, move up a unit
+    while units_index < len(_SIZE_UNITS) - 1:
+        if formatted_amount % 1024 == 0:
+            formatted_amount = int(formatted_amount / 1024)
+            units_index = units_index + 1
+        else:
+            break
+    # Return the formatted value
+    return f"{formatted_amount}{_SIZE_UNITS[units_index]}"
+
+
+def _curated_size(cloud_size, curated_size_spec):
+    """
+    Given a cloud size and the matching spec for a curated size,
+    return the new size.
+    """
+    curated_size = cloud_size
+    if "name" in curated_size_spec:
+        curated_size = dataclasses.replace(
+            curated_size,
+            name = curated_size_spec["name"]
+        )
+    if "description" in curated_size_spec:
+        template = Engine.get_default().from_string(curated_size_spec["description"])
+        curated_size = dataclasses.replace(
+            curated_size,
+            description = template.render(
+                Context({
+                    "cpus": cloud_size.cpus,
+                    "ram": _format_size(cloud_size.ram, "MB"),
+                    "disk": _format_size(cloud_size.disk, "GB"),
+                    "ephemeral_disk": _format_size(cloud_size.ephemeral_disk, "GB")
+                })
+            )
+        )
+    return dataclasses.replace(
+        curated_size,
+        sort_idx = curated_size_spec.get("sort_idx", 0)
+    )
+
+
 @provider_api_view(["GET"])
 def sizes(request, tenant):
     """
@@ -461,13 +516,15 @@ def sizes(request, tenant):
     with request.auth.scoped_session(tenant) as session:
         sizes = session.sizes()
         if cloud_settings.CURATED_SIZES:
+            # Index the curated sizes by id, maintaining the sort index
+            curated_size_specs = {
+                cs["id"]: dict(cs, sort_idx = idx)
+                for idx, cs in enumerate(cloud_settings.CURATED_SIZES)
+            }
             sizes = [
-                dataclasses.replace(
-                    size,
-                    name = cloud_settings.CURATED_SIZES[size.id]
-                )
+                _curated_size(size, curated_size_specs[size.id])
                 for size in sizes
-                if size.id in cloud_settings.CURATED_SIZES
+                if size.id in curated_size_specs
             ]
         serializer = serializers.SizeSerializer(
             sizes,
@@ -484,11 +541,17 @@ def size_details(request, tenant, size):
     """
     with request.auth.scoped_session(tenant) as session:
         size = session.find_size(size)
-        if cloud_settings.CURATED_SIZES and size.id in cloud_settings.CURATED_SIZES:
-            size = dataclasses.replace(
-                size,
-                name = cloud_settings.CURATED_SIZES[size.id]
-            )
+        if cloud_settings.CURATED_SIZES:
+            try:
+                curated_size_spec = next(
+                    dict(cs, sort_idx = idx)
+                    for idx, cs in enumerate(cloud_settings.CURATED_SIZES)
+                    if cs["id"] == size.id
+                )
+            except StopIteration:
+                pass
+            else:
+                size = _curated_size(size, curated_size_spec)
         serializer = serializers.SizeSerializer(
             size,
             context = { "request": request, "tenant": tenant }

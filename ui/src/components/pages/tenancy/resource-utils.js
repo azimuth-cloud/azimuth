@@ -246,17 +246,28 @@ export const ImageSelectControl = ({
 );
 
 
+const defaultSizeDescription = size => {
+    const descriptionParts = [
+        `${size.cpus} cpus`,
+        `${formatSize(size.ram, "MB")} RAM`,
+        `${formatSize(size.disk, "GB")} disk`
+    ];
+    if( size.ephemeral_disk && size.ephemeral_disk > 0 )
+        descriptionParts.push(`${formatSize(size.ephemeral_disk, "GB")} ephemeral disk`)
+    return descriptionParts.join(", ");
+};
+
+
 export const SizeSelectControl = (props) => (
     <ResourceSelectControl
         resourceName="size"
-        sortOptions={(sizes) => sortBy(sizes, s => [s.cpus, s.ram, s.disk])}
+        // Maintain the ordering from the API
+        sortOptions={(sizes) => sortBy(sizes, s => [s.sort_idx || 0, s.cpus, s.ram, s.disk])}
         formatOptionLabel={(opt) => (
             <>
                 {opt.name}
                 <small className="ms-2 text-muted">
-                    {opt.cpus} cpus,{" "}
-                    {formatSize(opt.ram, "MB")} RAM,{" "}
-                    {formatSize(opt.disk, "GB")} disk
+                    {opt.description || defaultSizeDescription(opt)}
                 </small>
             </>
         )}
