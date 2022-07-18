@@ -134,16 +134,9 @@ is much more complex and has many dependencies:
   * Consul for Zenith service discovery and Terraform state for CaaS.
 
 To manage this complexity, we use [Ansible](https://www.ansible.com/) to deploy Azimuth
-and all of it's dependencies using playbooks and roles from the
-[azimuth-ops collection](https://github.com/stackhpc/ansible-collection-azimuth-ops).
-The playbooks and roles in this collection are able to provision and manage a Kubernetes
-cluster in an OpenStack project and deploy Azimuth and all it's dependencies onto that
-cluster.
-
-This collection is designed to be used with configurations derived from the
-[Azimuth reference configuration](https://github.com/stackhpc/azimuth-config). Please
-see the documentation for the reference configuration for more information on deploying
-Azimuth for your cloud.
+and all of it's dependencies. See the
+[Azimuth Deployment Documentation](https://stackhpc.github.io/azimuth-config/) for
+more details.
 
 ## Setting up a local development environment
 
