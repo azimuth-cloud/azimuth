@@ -150,8 +150,6 @@ class Provider(base.Provider):
                             no vNIC type will be specified (default ``None``).
         verify_ssl: If ``True`` (the default), verify SSL certificates. If ``False``
                     SSL certificates are not verified.
-        cluster_engine: The :py:class:`~..cluster.base.Engine` to use for clusters.
-                        If not given, clusters are disabled.
     """
     provider_name = "openstack"
 
@@ -165,8 +163,7 @@ class Provider(base.Provider):
                        internal_net_cidr = "192.168.3.0/24",
                        az_backdoor_net_map = None,
                        backdoor_vnic_type = None,
-                       verify_ssl = True,
-                       cluster_engine = None):
+                       verify_ssl = True):
         # Strip any trailing slashes from the auth URL
         self._auth_url = auth_url.rstrip("/")
         self._domain = domain
@@ -179,7 +176,6 @@ class Provider(base.Provider):
         self._az_backdoor_net_map = az_backdoor_net_map or dict()
         self._backdoor_vnic_type = backdoor_vnic_type
         self._verify_ssl = verify_ssl
-        self._cluster_engine = cluster_engine
 
     @convert_exceptions
     def from_token(self, token):
@@ -203,8 +199,7 @@ class Provider(base.Provider):
                 create_internal_net = self._create_internal_net,
                 internal_net_cidr = self._internal_net_cidr,
                 az_backdoor_net_map = self._az_backdoor_net_map,
-                backdoor_vnic_type = self._backdoor_vnic_type,
-                cluster_engine = self._cluster_engine
+                backdoor_vnic_type = self._backdoor_vnic_type
             )
 
 
@@ -221,8 +216,7 @@ class UnscopedSession(base.UnscopedSession):
                        create_internal_net = True,
                        internal_net_cidr = "192.168.3.0/24",
                        az_backdoor_net_map = None,
-                       backdoor_vnic_type = None,
-                       cluster_engine = None):
+                       backdoor_vnic_type = None):
         self._connection = connection
         self._metadata_prefix = metadata_prefix
         self._internal_net_template = internal_net_template
@@ -231,7 +225,6 @@ class UnscopedSession(base.UnscopedSession):
         self._internal_net_cidr = internal_net_cidr
         self._az_backdoor_net_map = az_backdoor_net_map or dict()
         self._backdoor_vnic_type = backdoor_vnic_type
-        self._cluster_engine = cluster_engine
 
     def token(self):
         """
@@ -354,8 +347,7 @@ class UnscopedSession(base.UnscopedSession):
                 create_internal_net = self._create_internal_net,
                 internal_net_cidr = self._internal_net_cidr,
                 az_backdoor_net_map = self._az_backdoor_net_map,
-                backdoor_vnic_type = self._backdoor_vnic_type,
-                cluster_engine = self._cluster_engine
+                backdoor_vnic_type = self._backdoor_vnic_type
             )
         except (rackit.Unauthorized, rackit.Forbidden):
             raise errors.ObjectNotFoundError(
@@ -385,8 +377,7 @@ class ScopedSession(base.ScopedSession):
                        create_internal_net = True,
                        internal_net_cidr = "192.168.3.0/24",
                        az_backdoor_net_map = None,
-                       backdoor_vnic_type = None,
-                       cluster_engine = None):
+                       backdoor_vnic_type = None):
         self._username = username
         self._tenancy = tenancy
         self._connection = connection
@@ -397,7 +388,6 @@ class ScopedSession(base.ScopedSession):
         self._internal_net_cidr = internal_net_cidr
         self._az_backdoor_net_map = az_backdoor_net_map or dict()
         self._backdoor_vnic_type = backdoor_vnic_type
-        self._cluster_engine = cluster_engine
 
     def _log(self, message, *args, level = logging.INFO, **kwargs):
         logger.log(
@@ -1266,27 +1256,6 @@ class ScopedSession(base.ScopedSession):
         self._connection.block_store.volumes.get(volume.id, force = True)
         return self.find_volume(volume.id)
 
-    @property
-    def cluster_manager(self):
-        """
-        Returns the cluster manager for the tenancy.
-        """
-        # Lazily instantiate the cluster manager the first time it is asked for.
-        if not hasattr(self, "_cluster_manager"):
-            if self._cluster_engine:
-                self._cluster_manager = self._cluster_engine.create_manager(
-                    self._username,
-                    self._tenancy
-                )
-            else:
-                self._cluster_manager = None
-        # If there is still no cluster manager, clusters are not supported
-        if not self._cluster_manager:
-            raise errors.UnsupportedOperationError(
-                "Clusters are not supported for this tenancy."
-            )
-        return self._cluster_manager
-
     def cluster_credential(self):
         """
         See :py:meth:`.base.ScopedSession.cluster_credential`.
@@ -1362,6 +1331,3 @@ class ScopedSession(base.ScopedSession):
         """
         # Make sure the underlying api connection is closed
         self._connection.close()
-        # Also close the cluster manager if one has been created
-        if getattr(self, "_cluster_manager", None):
-            self._cluster_manager.close()
