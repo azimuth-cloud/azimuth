@@ -1,4 +1,4 @@
-![Azimuth](./branding/azimuth-logo-blue-text.png | height=50)
+<img src="./branding/azimuth-logo-blue-text.png" height="150" />
 
 Azimuth provides a self-service portal for managing cloud resources, with a focus on simplifying
 the use of cloud for high-performance computing (HPC) and artificial intelligence (AI) use cases.
