@@ -42,7 +42,7 @@ module.exports = {
         new HtmlWebpackPlugin({
             title: 'Cloud Portal',
             template: 'assets/index.template.html',
-            favicon: '../branding/azimuth-logo-blue.png',
+            favicon: 'assets/favicon.ico',
             hash: true
         }),
         // Add CSS links with hashes for cache busting
