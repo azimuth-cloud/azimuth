@@ -249,6 +249,13 @@ def cloud_size_constraint(cloud_session, options, **kwargs):
         if 'min_disk' in options and size.disk < options['min_disk']:
             raise v.Invalid('Size does not have enough disk.')
         return size
+    def min_ephemeral_disk(size):
+        if (
+            'min_ephemeral_disk' in options and
+            size.ephemeral_disk < options['min_ephemeral_disk']
+        ):
+            raise v.Invalid('Size does not have enough ephemeral disk.')
+        return size
     return v.All(
         v.Coerce(str),
         convert_not_found(
@@ -258,6 +265,7 @@ def cloud_size_constraint(cloud_session, options, **kwargs):
         min_cpus,
         min_ram,
         min_disk,
+        min_ephemeral_disk,
         lambda s: s.id
     )
 

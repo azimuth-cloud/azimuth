@@ -120,9 +120,17 @@ settings:
   sessionCookieName:
   # The name of the next URL cookie
   nextUrlCookieName:
-  # Map of curated sizes
-  # If given, this should be a map of size id to alternative name
+  # List of curated sizes
   curatedSizes:
+    # - # The ID of the flavor in the target cloud
+    #   id: "<id>"
+    #   # (OPTIONAL) The alternative name
+    #   name: "<name>"
+    #   # (OPTIONAL) The alternative description
+    #   # This is treated as a template with access to the "cpus", "ram", "disk"
+    #   # and "ephemeral_disk" for the current flavor
+    #   description: >-
+    #     {{ cpus }} CPUs, {{ ram }} RAM, {{ disk }} disk, {{ ephemeral_disk }} ephemeral disk
 
 # The authenticators to use
 # The parameters for the provider will be re-used where appropriate, e.g. the auth URL

@@ -5,13 +5,7 @@ This module defines data-transfer objects used by providers.
 from dataclasses import dataclass
 from datetime import datetime
 import enum
-import io
-import json
-import re
-from typing import Any, Mapping, Optional, Sequence, Tuple
-
-import yaml
-import requests
+from typing import Mapping, Optional, Sequence, Tuple
 
 
 @dataclass(frozen = True)
@@ -82,13 +76,18 @@ class Size:
     id: str
     #: The human-readable name of the size
     name: str
+    #: The description of the size
+    description: Optional[str]
     #: The number of CPUs
     cpus: int
     #: The amount of RAM in MB
     ram: int
-    #: The size of the image's disk in GB
-    #: Can be -1 to indicate no root disk size limit
+    #: The size of the root disk in GB
     disk: int
+    #: The size of the ephemeral disk in GB
+    ephemeral_disk: int
+    #: The sort index of the size in the UI
+    sort_idx: int = 0
 
 
 @enum.unique

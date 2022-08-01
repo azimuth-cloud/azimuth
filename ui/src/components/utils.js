@@ -81,17 +81,11 @@ const SIZE_UNITS = ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
  */
 export const formatSize = (amount, originalUnits) => {
     // If the amount is zero, then use the given units
-    if( amount === 0 ) return `0 ${originalUnits}`;
-    // Start with the original amount and unit
-    let formattedAmount = amount;
-    let unitsIndex = SIZE_UNITS.indexOf(originalUnits);
-    // While dividing by 1024 yields an integer, move up a unit
-    while( unitsIndex < SIZE_UNITS.length - 1 ) {
-        if( formattedAmount % 1024 !== 0 ) break;
-        formattedAmount = formattedAmount / 1024;
-        unitsIndex = unitsIndex + 1;
-    }
-    // Return the formatted value
+    if( amount === 0 ) return `0${originalUnits}`;
+    var exponent = Math.floor(Math.log(amount) / Math.log(1024));
+    // The '*1' is to convert back to a number, so we get 1GB instead of 1.00GB
+    const formattedAmount = Number((amount / Math.pow(1024, exponent)).toFixed(2) * 1);
+    const unitsIndex = SIZE_UNITS.indexOf(originalUnits) + exponent;
     return `${formattedAmount}${SIZE_UNITS[unitsIndex]}`;
 };
 

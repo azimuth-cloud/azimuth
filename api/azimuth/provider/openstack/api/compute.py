@@ -21,6 +21,7 @@ class Flavor(ResourceWithDetail):
     class Meta:
         endpoint = '/flavors'
         aliases = dict(
+            ephemeral_disk = 'OS-FLV-EXT-DATA:ephemeral',
             is_disabled = 'OS-FLV-DISABLED:disabled'
         )
 

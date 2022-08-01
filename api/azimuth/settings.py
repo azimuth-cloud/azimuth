@@ -186,7 +186,12 @@ class AzimuthSettings(SettingsObject):
     CLUSTER_API_PROVIDER = ClusterApiProviderSetting()
 
     #: Configuration for curated sizes
-    #: If given, should be a map of index to alternative name
+    #: If given, should be a list of dictionaries
+    #: Each item must contain an "id" key, corresponding to a flavor in the target cloud
+    #: Each item can also optionally define "name" and "description" keys to replace the
+    #: name reported by the cloud and the default description
+    #: The description is treated as a Django template, and receives the variables "cpus",
+    #: "ram", "disk" and "ephemeral_disk"
     CURATED_SIZES = Setting(default = None)
 
     #: SSH key store configuration

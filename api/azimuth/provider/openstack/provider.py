@@ -529,9 +529,11 @@ class ScopedSession(base.ScopedSession):
         return dto.Size(
             api_flavor.id,
             api_flavor.name,
+            getattr(api_flavor, "description", None),
             api_flavor.vcpus,
             api_flavor.ram,
-            api_flavor.disk
+            api_flavor.disk,
+            getattr(api_flavor, "ephemeral_disk", 0)
         )
 
     @convert_exceptions
