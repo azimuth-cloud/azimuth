@@ -28,14 +28,6 @@
 .btn-link:focus { box-shadow: none !important; }
 
 
-/* Without this, dropdown menus are clipped by the responsive wrapper */
-.table-responsive {
-    /* 300px should accommodate most menus */
-    padding-bottom: 300px;
-    margin-bottom: -300px;
-}
-
-
 /**
  * Styles for rendering pre elements in a modal.
  */
@@ -268,13 +260,10 @@
 .sticky-footer {
     margin-top: 1.5rem;
     background-color: rgba(var(--bs-light-rgb),var(--bs-bg-opacity));
-    padding: 1.5rem;
+    padding: 1rem 2rem;
     border-top: 2px solid var(--bs-gray-300);
-    vertical-align: middle;
-    line-height: 1.1rem;
     text-align: right;
 }
 .sticky-footer img {
-    height: 1.1rem;
-    margin: -5px 0 0 2px;
+    height: 2.5rem;
 }
