@@ -5,6 +5,7 @@ Django views for interacting with the configured cloud provider.
 import dataclasses
 import functools
 import logging
+import math
 
 from django.template import Context, Engine
 from django.shortcuts import redirect, render
@@ -458,22 +459,20 @@ _SIZE_UNITS = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
 
 def _format_size(amount, original_units):
     """
-    Formats a size by increasing the units when it is possible to do so
-    without reducing the precision.
+    Formats a size by increasing the units when it is possible to do so.
     """
     # If the amount is zero, then use the given units
     if amount == 0:
         return f"0{original_units}"
-    # Start with the original amount and unit
-    formatted_amount = amount
-    units_index = _SIZE_UNITS.index(original_units)
-    # While dividing by 1024 yields an integer, move up a unit
-    while units_index < len(_SIZE_UNITS) - 1:
-        if formatted_amount % 1024 == 0:
-            formatted_amount = int(formatted_amount / 1024)
-            units_index = units_index + 1
-        else:
-            break
+    # Otherwise calculate the exponent and the formatted amount
+    exponent = math.floor(math.log(amount) / math.log(1024))
+    new_amount = (amount / math.pow(1024, exponent))
+    # Make sure the new amount renders nicely for integers, e.g. 1GB vs 1.00GB
+    if new_amount % 1 == 0:
+        formatted_amount = int(new_amount)
+    else:
+        formatted_amount = f"{new_amount:.2f}"
+    units_index = _SIZE_UNITS.index(original_units) + exponent;
     # Return the formatted value
     return f"{formatted_amount}{_SIZE_UNITS[units_index]}"
 

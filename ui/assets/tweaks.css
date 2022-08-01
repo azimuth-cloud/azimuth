@@ -40,6 +40,12 @@
 }
 
 
+/* Make the popovers wide enough for large flavor names */
+.popover {
+    max-width: 400px;
+}
+
+
 /* Allow an overlay trigger to have the correct cursor */
 .overlay-trigger {
     cursor: pointer;

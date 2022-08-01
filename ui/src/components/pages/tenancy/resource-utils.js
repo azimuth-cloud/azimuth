@@ -132,6 +132,12 @@ const MachineSizePopover = ({ children, size, ...props }) => (
                                 <th className="text-end">Disk size</th>
                                 <td>{formatSize(size.disk, "GB")}</td>
                             </tr>
+                            {size.ephemeral_disk > 0 && (
+                                <tr>
+                                    <th className="text-end">Ephemeral disk</th>
+                                    <td>{formatSize(size.ephemeral_disk, "GB")}</td>
+                                </tr>
+                            )}
                         </tbody>
                     </Table>
                 </Popover.Body>
@@ -252,7 +258,7 @@ const defaultSizeDescription = size => {
         `${formatSize(size.ram, "MB")} RAM`,
         `${formatSize(size.disk, "GB")} disk`
     ];
-    if( size.ephemeral_disk && size.ephemeral_disk > 0 )
+    if( size.ephemeral_disk > 0 )
         descriptionParts.push(`${formatSize(size.ephemeral_disk, "GB")} ephemeral disk`)
     return descriptionParts.join(", ");
 };
@@ -262,7 +268,10 @@ export const SizeSelectControl = (props) => (
     <ResourceSelectControl
         resourceName="size"
         // Maintain the ordering from the API
-        sortOptions={(sizes) => sortBy(sizes, s => [s.sort_idx || 0, s.cpus, s.ram, s.disk])}
+        sortOptions={(sizes) => sortBy(
+            sizes,
+            s => [s.sort_idx || 0, s.cpus, s.ram, s.disk, s.ephemeral_disk]
+        )}
         formatOptionLabel={(opt) => (
             <>
                 {opt.name}

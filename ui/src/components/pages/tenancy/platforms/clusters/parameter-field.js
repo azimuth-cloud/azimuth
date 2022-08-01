@@ -193,6 +193,7 @@ const CloudSizeControl = ({
     min_cpus: minCPUs,
     min_ram: minRAM,
     min_disk: minDisk,
+    min_ephemeral_disk: minEphemeralDisk,
     ...props
 }) => (
     <SizeSelectControl
@@ -203,6 +204,7 @@ const CloudSizeControl = ({
             if( !!minCPUs && size.cpus < minCPUs ) return false;
             if( !!minRAM && size.ram < minRAM ) return false;
             if( !!minDisk && size.disk < minDisk ) return false;
+            if( !!minEphemeralDisk && size.ephemeral_disk < minEphemeralDisk ) return false;
             return true;
         }}
     />
