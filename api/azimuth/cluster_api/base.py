@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 # Get the easykube configuration from the environment
-ekconfig = Configuration.from_environment()
+ekconfig = Configuration.from_environment(default_field_manager = "azimuth")
 
 
 ClusterTemplate = ResourceSpec(

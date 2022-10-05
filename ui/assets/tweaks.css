@@ -258,6 +258,18 @@
 .platform-type-select-card {
     height: 100%;
 }
+.platform-card-wrapper, .platform-type-select-card-wrapper {
+    flex: 0 0 auto;
+    width: 100%;
+}
+@media (min-width: 576px) {
+    .platform-card-wrapper {
+        width: 350px;
+    }
+    .platform-type-select-card-wrapper {
+        width: 270px;
+    }
+}
 .platform-card > img, .platform-type-select-card > img {
     padding: 0.5rem 1rem;
     max-height: 120px;
