@@ -199,7 +199,7 @@ const MachineRow = ({
         );
     return (
         <tr className={highlightClass || undefined}>
-            <td>{machine.name}</td>
+            <td className="text-wrap">{machine.name}</td>
             {/* Allow long image names to wrap */}
             <td className="text-wrap">{get(machine.image, 'name', '-')}</td>
             <td><MachineSizeLink sizes={sizes} sizeId={machine.size.id} /></td>

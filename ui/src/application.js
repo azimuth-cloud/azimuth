@@ -4,8 +4,6 @@
 
 import React, { useEffect } from 'react';
 
-import Container from 'react-bootstrap/Container';
-
 import { Switch, Route, Redirect } from 'react-router-dom';
 
 import { bindActionCreators } from 'redux';
@@ -32,16 +30,12 @@ const ConnectedNav = connect(
     (state) => ({
         initialising: state.session.initialising,
         username: state.session.username,
-        sshKey: state.sshKey,
         tenancies: state.tenancies.data,
         currentTenancy: state.tenancies.current,
         cloudsFetching: state.clouds.fetching,
         clouds: state.clouds.available_clouds,
         currentCloud: state.clouds.current_cloud,
         links: state.clouds.links
-    }),
-    (dispatch) => ({
-        sshKeyActions: bindActionCreators(sshKeyActions, dispatch)
     })
 )(Navigation);
 
@@ -95,7 +89,8 @@ const ConnectedTenancyPage = connect(
             clusterType: bindActionCreators(tenancyActions.clusterType, dispatch),
             cluster: bindActionCreators(tenancyActions.cluster, dispatch)
         },
-        notificationActions: bindActionCreators(notificationActions, dispatch)
+        notificationActions: bindActionCreators(notificationActions, dispatch),
+        sshKeyActions: bindActionCreators(sshKeyActions, dispatch)
     })
 )(TenancyPage);
 
@@ -145,24 +140,22 @@ const ProtectedRoute = connect(
 
 export const Application = () => (
     <div className="sticky-footer-wrap">
-        <div className="sticky-footer-content">
+        <div className="sticky-footer-content d-flex flex-column">
             <ConnectedNav />
-            <Container>
-                <ConnectedNotifications />
-                <Switch>
-                    <Route exact path="/" component={ConnectedSplashPage} />
-                    <ProtectedRoute
-                        exact
-                        path="/tenancies"
-                        component={ConnectedTenanciesPage}
-                    />
-                    <ProtectedRoute
-                        path="/tenancies/:id/:resource?"
-                        component={ConnectedTenancyPage}
-                    />
-                    <Route component={NotFound} />
-                </Switch>
-            </Container>
+            <ConnectedNotifications />
+            <Switch>
+                <Route exact path="/" component={ConnectedSplashPage} />
+                <ProtectedRoute
+                    exact
+                    path="/tenancies"
+                    component={ConnectedTenanciesPage}
+                />
+                <ProtectedRoute
+                    path="/tenancies/:id/:resource?"
+                    component={ConnectedTenancyPage}
+                />
+                <Route component={NotFound} />
+            </Switch>
         </div>
         <Footer />
     </div>

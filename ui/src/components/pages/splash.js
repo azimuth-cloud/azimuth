@@ -28,8 +28,8 @@ export const SplashPage = ({ cloudsFetching, clouds, currentCloud, links }) => {
     // Get the current cloud label
     const cloudLabel = get(clouds, [currentCloud, "label"]);
     return (
-        <div className="p-5 mb-4 bg-light">
-            <Container fluid className="py-4">
+        <Container className="py-4">
+            <div className="p-5 mb-4 bg-light border border-2">
                 <h1 className="display-5 fw-bold mb-4">
                     {cloudLabel ?
                         cloudLabel :
@@ -104,7 +104,7 @@ export const SplashPage = ({ cloudsFetching, clouds, currentCloud, links }) => {
                         </Row>
                     </Col>
                 </Row>
-            </Container>
-        </div>
+            </div>
+        </Container>
     );
 };

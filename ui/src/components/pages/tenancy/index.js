@@ -5,14 +5,27 @@
 import React, { useEffect, useState } from 'react';
 
 import Col from 'react-bootstrap/Col';
+import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
 import NavDropdown from 'react-bootstrap/NavDropdown';
 import Row from 'react-bootstrap/Row';
 
 import { LinkContainer } from 'react-router-bootstrap';
-import { Link, Redirect, Route, Switch, useRouteMatch, useParams } from 'react-router-dom';
+import { Redirect, Route, Switch, useRouteMatch, useParams } from 'react-router-dom';
 
 import get from 'lodash/get';
+
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+    faDatabase,
+    faDesktop,
+    faKey,
+    faSignOutAlt,
+    faSitemap,
+    faSlidersH,
+    faTachometerAlt,
+    faTools
+} from '@fortawesome/free-solid-svg-icons';
 
 import { Loading, bindArgsToActions, usePrevious } from '../../utils';
 
@@ -21,70 +34,160 @@ import { TenancyMachinesPanel } from './machines';
 import { TenancyVolumesPanel } from './volumes';
 import { TenancyPlatformsPanel } from './platforms';
 
+import { SSHKeyUpdateModal } from '../../ssh-key-update-modal';
+import { expand } from 'rxjs/operators';
 
-const TenancyNav = ({ capabilities, url, currentTenancy, selectedResource }) => {
-    const [expanded, setExpanded] = useState(false);
-    const previousExpanded = usePrevious(expanded);
-    const supportsPlatforms = capabilities.supports_clusters || capabilities.supports_kubernetes;
-    const nextExpanded = (
-        // Once the nav has expanded once, it should stay expanded
-        previousExpanded ||
-        // If the cloud doesn't support platforms, show the expanded menu always
-        !supportsPlatforms ||
-        // Show the expanded menu if the user is on an advanced tab
-        ['machines', 'volumes'].includes(selectedResource)
+
+const SSHKeyUpdateNavLink = ({ sshKey, sshKeyActions }) => {
+    const [visible, setVisible] = useState(false);
+    const open = () => setVisible(true);
+    const close = () => setVisible(false);
+    return (
+        <>
+            <Nav.Link
+                onClick={open}
+                disabled={!sshKey.initialised}
+                title="SSH public key"
+            >
+                <FontAwesomeIcon
+                    icon={faKey}
+                    fixedWidth
+                />
+                <span className="nav-link-text">SSH public key</span>
+            </Nav.Link>
+            <SSHKeyUpdateModal
+                show={visible}
+                // In this case, we just want to close the modal whether
+                // it is a cancel or a successful submission
+                onSuccess={close}
+                onCancel={close}
+                sshKey={sshKey}
+                sshKeyActions={sshKeyActions}
+            />
+        </>
     );
-    useEffect(() => { setExpanded(nextExpanded) }, [nextExpanded]);
+};
+
+
+const TenancyNav = ({
+    sshKey,
+    sshKeyActions,
+    capabilities,
+    url,
+    currentTenancy,
+    selectedResource
+}) => {
+    const [userExpanded, setUserExpanded] = useState(false);
+    const toggleUserExpanded = () => setUserExpanded(expanded => !expanded);
+    const supportsPlatforms = capabilities.supports_clusters || capabilities.supports_kubernetes;
+    const selectedResourceIsAdvanced = ['machines', 'volumes'].includes(selectedResource);
+    // If the cloud doesn't support platforms, always show the advanced resources
+    // If the user is on an advanced tab, show the items even if they are not expanded
+    const expanded = (userExpanded || !supportsPlatforms || selectedResourceIsAdvanced);
 
     return (
-        <Nav as="ul" variant="tabs" activeKey={url} className="mb-3">
-            {supportsPlatforms && (
+        <>
+            <Nav as="ul" activeKey={url} className="sidebar-nav border-bottom">
                 <Nav.Item as="li">
-                    <LinkContainer to={`/tenancies/${currentTenancy.id}/platforms`}>
-                        <Nav.Link>Platforms</Nav.Link>
+                    <LinkContainer to={`/tenancies`}>
+                        <Nav.Link title="Switch tenancy">
+                            <FontAwesomeIcon
+                                icon={faSignOutAlt}
+                                transform={{ rotate: 180 }}
+                                fixedWidth
+                            />
+                            <span className="nav-link-text">Switch tenancy</span>
+                        </Nav.Link>
                     </LinkContainer>
                 </Nav.Item>
-            )}
-            <Nav.Item as="li">
-                <LinkContainer exact to={`/tenancies/${currentTenancy.id}/quotas`}>
-                    <Nav.Link>Quotas</Nav.Link>
-                </LinkContainer>
-            </Nav.Item>
-            {currentTenancy.links.metrics && (
-                <Nav.Item as="li">
-                    <Nav.Link href={currentTenancy.links.metrics} target="_blank">
-                        Metrics
-                    </Nav.Link>
-                </Nav.Item>
-            )}
-            {nextExpanded ? (
-                <>
+                <SSHKeyUpdateNavLink sshKey={sshKey} sshKeyActions={sshKeyActions} />
+            </Nav>
+            <Nav as="ul" variant="pills" activeKey={url} className="sidebar-nav">
+                {supportsPlatforms && (
                     <Nav.Item as="li">
-                        <LinkContainer to={`/tenancies/${currentTenancy.id}/machines`}>
-                            <Nav.Link>Machines</Nav.Link>
+                        <LinkContainer to={`/tenancies/${currentTenancy.id}/platforms`}>
+                            <Nav.Link title="Platforms">
+                                <FontAwesomeIcon
+                                    icon={faSitemap}
+                                    fixedWidth
+                                />
+                                <span className="nav-link-text">Platforms</span>
+                            </Nav.Link>
                         </LinkContainer>
                     </Nav.Item>
-                    {capabilities.supports_volumes && (
-                        <Nav.Item as="li">
-                            <LinkContainer to={`/tenancies/${currentTenancy.id}/volumes`}>
-                                <Nav.Link>Volumes</Nav.Link>
+                )}
+                <Nav.Item as="li">
+                    <LinkContainer exact to={`/tenancies/${currentTenancy.id}/quotas`}>
+                        <Nav.Link title="Quotas">
+                            <FontAwesomeIcon
+                                icon={faSlidersH}
+                                fixedWidth
+                            />
+                            <span className="nav-link-text">Quotas</span>
+                        </Nav.Link>
+                    </LinkContainer>
+                </Nav.Item>
+                {currentTenancy.links.metrics && (
+                    <Nav.Item as="li">
+                        <Nav.Link
+                            href={currentTenancy.links.metrics}
+                            target="_blank"
+                            title="Project metrics"
+                        >
+                            <FontAwesomeIcon
+                                icon={faTachometerAlt}
+                                fixedWidth
+                            />
+                            <span className="nav-link-text">Project metrics</span>
+                        </Nav.Link>
+                    </Nav.Item>
+                )}
+                {supportsPlatforms && (
+                    <Nav.Item as="li">
+                        <Nav.Link
+                            title="Advanced"
+                            onClick={toggleUserExpanded}
+                            disabled={selectedResourceIsAdvanced}
+                            className={`nav-toggle toggle-${expanded ? "show" : "hide"}`}
+                        >
+                            <FontAwesomeIcon
+                                icon={faTools}
+                                fixedWidth
+                            />
+                            <span className="nav-link-text">Advanced</span>
+                        </Nav.Link>
+                    </Nav.Item>
+                )}
+                {expanded && (
+                    <>
+                        <Nav.Item as="li" className={supportsPlatforms ? "nav-item-nested" : undefined}>
+                            <LinkContainer to={`/tenancies/${currentTenancy.id}/machines`}>
+                                <Nav.Link title="Machines">
+                                    <FontAwesomeIcon
+                                        icon={faDesktop}
+                                        fixedWidth
+                                    />
+                                    <span className="nav-link-text">Machines</span>
+                                </Nav.Link>
                             </LinkContainer>
                         </Nav.Item>
-                    )}
-                </>
-            ) : (
-                <NavDropdown title="Advanced">
-                    <LinkContainer to={`/tenancies/${currentTenancy.id}/machines`}>
-                        <NavDropdown.Item>Machines</NavDropdown.Item>
-                    </LinkContainer>
-                    {capabilities.supports_volumes && (
-                        <LinkContainer to={`/tenancies/${currentTenancy.id}/volumes`}>
-                            <NavDropdown.Item>Volumes</NavDropdown.Item>
-                        </LinkContainer>
-                    )}
-                </NavDropdown>
-            )}
-        </Nav>
+                        {capabilities.supports_volumes && (
+                            <Nav.Item as="li" className={supportsPlatforms ? "nav-item-nested" : undefined}>
+                                <LinkContainer to={`/tenancies/${currentTenancy.id}/volumes`}>
+                                    <Nav.Link title="Volumes">
+                                        <FontAwesomeIcon
+                                            icon={faDatabase}
+                                            fixedWidth
+                                        />
+                                        <span className="nav-link-text">Volumes</span>
+                                    </Nav.Link>
+                                </LinkContainer>
+                            </Nav.Item>
+                        )}
+                    </>
+                )}
+            </Nav>
+        </>
     );
 };
 
@@ -92,6 +195,7 @@ const TenancyNav = ({ capabilities, url, currentTenancy, selectedResource }) => 
 export const TenancyPage = ({
     capabilities,
     sshKey,
+    sshKeyActions,
     tenancies: { fetching, data: tenancies, current: currentTenancy },
     tenancyActions,
     notificationActions
@@ -157,34 +261,39 @@ export const TenancyPage = ({
             notificationActions
         };
         return (
-            <>
-                <h1 className="border-bottom pb-1 mb-4">
-                    <code>{currentTenancy.name}</code>{" "}
-                    <span className="fs-6">
-                        (<Link to="/tenancies">switch tenancy</Link>)
-                    </span>
-                </h1>
-                <TenancyNav
-                    capabilities={capabilities}
-                    url={url}
-                    currentTenancy={currentTenancy}
-                    selectedResource={matchedResource}
-                />
-                <Switch>
-                    <Route exact path={`${path}/quotas`}>
-                        <TenancyQuotasPanel {...tenancyProps} />
-                    </Route>
-                    <Route exact path={`${path}/machines`}>
-                        <TenancyMachinesPanel {...tenancyProps} />
-                    </Route>
-                    <Route exact path={`${path}/volumes`}>
-                        <TenancyVolumesPanel {...tenancyProps} />
-                    </Route>
-                    <Route exact path={`${path}/platforms`}>
-                        <TenancyPlatformsPanel {...tenancyProps} />
-                    </Route>
-                </Switch>
-            </>
+            <Container fluid className="flex-grow-1 d-flex flex-column">
+                <Row className="flex-grow-1">
+                    <div className="sidebar">
+                        <TenancyNav
+                            sshKey={sshKey}
+                            sshKeyActions={sshKeyActions}
+                            capabilities={capabilities}
+                            url={url}
+                            currentTenancy={currentTenancy}
+                            selectedResource={matchedResource}
+                        />
+                    </div>
+                    <Col>
+                        <h1 className="border-bottom pb-1 mb-4">
+                            <code>{currentTenancy.name}</code>
+                        </h1>
+                        <Switch>
+                            <Route exact path={`${path}/quotas`}>
+                                <TenancyQuotasPanel {...tenancyProps} />
+                            </Route>
+                            <Route exact path={`${path}/machines`}>
+                                <TenancyMachinesPanel {...tenancyProps} />
+                            </Route>
+                            <Route exact path={`${path}/volumes`}>
+                                <TenancyVolumesPanel {...tenancyProps} />
+                            </Route>
+                            <Route exact path={`${path}/platforms`}>
+                                <TenancyPlatformsPanel {...tenancyProps} />
+                            </Route>
+                        </Switch>
+                    </Col>
+                </Row>
+            </Container>
         );
     }
     else if( fetching || (tenancies || {}).hasOwnProperty(matchedId) ) {
