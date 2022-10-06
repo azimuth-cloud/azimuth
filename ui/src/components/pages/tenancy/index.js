@@ -10,7 +10,7 @@ import Nav from 'react-bootstrap/Nav';
 import Row from 'react-bootstrap/Row';
 
 import { LinkContainer } from 'react-router-bootstrap';
-import { Navigate, Routes, Route, useLocation, useParams } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 
 import get from 'lodash/get';
 
@@ -26,7 +26,7 @@ import {
     faTools
 } from '@fortawesome/free-solid-svg-icons';
 
-import { Loading, bindArgsToActions } from '../../utils';
+import { bindArgsToActions } from '../../utils';
 
 import { TenancyQuotasPanel } from './quotas';
 import { TenancyMachinesPanel } from './machines';
@@ -231,14 +231,16 @@ export const TenancyResourcePage = ({
     return (
         <Container fluid className="flex-grow-1 d-flex flex-column">
             <Row className="flex-grow-1">
-                <div className="sidebar">
-                    <TenancyNav
-                        sshKey={sshKey}
-                        sshKeyActions={sshKeyActions}
-                        capabilities={capabilities}
-                        currentTenancy={currentTenancy}
-                        selectedResource={resource}
-                    />
+                <div className="sidebar-container">
+                    <div className="sidebar">
+                        <TenancyNav
+                            sshKey={sshKey}
+                            sshKeyActions={sshKeyActions}
+                            capabilities={capabilities}
+                            currentTenancy={currentTenancy}
+                            selectedResource={resource}
+                        />
+                    </div>
                 </div>
                 <Col>
                     <h1 className="border-bottom pb-1 mb-4">
