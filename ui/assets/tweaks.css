@@ -120,6 +120,9 @@
     white-space: nowrap;
     overflow: hidden;
 }
+.sidebar-nav .nav-link:not(.active):hover {
+    background-color: var(--bs-gray-300);
+}
 .sidebar-nav .nav-link-text {
     margin-left: -9999999px;
     transition: margin-left 0s step-end .15s;
@@ -297,6 +300,9 @@
 .platform-card .card-header, .platform-card .card-footer {
     text-align: right;
 }
+.create-platform-card {
+    max-width: 600px;
+}
 
 
 /**
@@ -319,6 +325,27 @@
 }
 .platform-type-card .card-title {
     border-bottom: 1px solid var(--bs-gray-300) !important;
+}
+
+
+/**
+ * Custom styles for quota cards.
+ */
+.quota-card-wrapper {
+    flex: 0 0 auto;
+    width: 100%;
+}
+@media (min-width: 576px) {
+    .quota-card-wrapper {
+        width: 250px;
+    }
+}
+.CircularProgressbar-text {
+    fill: var(--bs-body-color) !important;
+}
+.quota-no-limit .CircularProgressbar-text {
+    font-size: 14px !important;
+    opacity: 0.4;
 }
 
 

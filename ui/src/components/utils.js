@@ -73,7 +73,7 @@ export const sortBy = (data, keyFn, reverse = false) => [...data].sort(
 );
 
 
-const SIZE_UNITS = ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+const SIZE_UNITS = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
 
 /**
  * This function formats a size by increasing the units when it is possible

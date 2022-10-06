@@ -2,7 +2,7 @@
  * This module contains components for the tenancy machines page.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 
 import Button from 'react-bootstrap/Button';
 import ButtonGroup from 'react-bootstrap/ButtonGroup';
@@ -61,6 +61,10 @@ export const TenancyPlatformsPanel = ({
     tenancyActions
 }) => {
     usePageTitle('Platforms');
+
+    // Storing the state for whether the create modal is visible at this level
+    // allows us to open it from the grid as well (in the "no platforms" case)
+    const [createModalVisible, setCreateModalVisible] = useState(false);
 
     // Initialise the required resources
     useResourceInitialised(tenancy.sizes, tenancyActions.size.fetchList);
@@ -139,6 +143,8 @@ export const TenancyPlatformsPanel = ({
                 <Col xs="auto">
                     <ButtonGroup>
                         <CreatePlatformButton
+                            visible={createModalVisible}
+                            setVisible={setCreateModalVisible}
                             disabled={!resource.initialised}
                             creating={!!resource.creating}
                             sshKey={sshKey}
@@ -163,6 +169,8 @@ export const TenancyPlatformsPanel = ({
             </Row>
             {resource.initialised ? (
                 <PlatformsGrid
+                    showCreateModal={() => setCreateModalVisible(true)}
+                    creating={resource.creating}
                     platforms={resource.data}
                     tenancy={tenancy}
                     tenancyActions={tenancyActions}

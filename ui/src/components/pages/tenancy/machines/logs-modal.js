@@ -118,7 +118,7 @@ export const MachineLogsMenuItem = ({ machine, machineActions, ...props }) => {
  
     return (
         <>
-            <DropdownItem onSelect={open} {...props}>
+            <DropdownItem onClick={open} {...props}>
                 View machine logs
             </DropdownItem>
             <Modal size="xl" backdrop="static" onHide={close} show={visible}>

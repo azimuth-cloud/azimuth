@@ -7,11 +7,10 @@ import React, { useEffect, useState } from 'react';
 import Col from 'react-bootstrap/Col';
 import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
-import NavDropdown from 'react-bootstrap/NavDropdown';
 import Row from 'react-bootstrap/Row';
 
 import { LinkContainer } from 'react-router-bootstrap';
-import { Redirect, Route, Switch, useRouteMatch, useParams } from 'react-router-dom';
+import { Navigate, Routes, Route, useLocation, useParams } from 'react-router-dom';
 
 import get from 'lodash/get';
 
@@ -27,7 +26,7 @@ import {
     faTools
 } from '@fortawesome/free-solid-svg-icons';
 
-import { Loading, bindArgsToActions, usePrevious } from '../../utils';
+import { Loading, bindArgsToActions } from '../../utils';
 
 import { TenancyQuotasPanel } from './quotas';
 import { TenancyMachinesPanel } from './machines';
@@ -35,7 +34,6 @@ import { TenancyVolumesPanel } from './volumes';
 import { TenancyPlatformsPanel } from './platforms';
 
 import { SSHKeyUpdateModal } from '../../ssh-key-update-modal';
-import { expand } from 'rxjs/operators';
 
 
 const SSHKeyUpdateNavLink = ({ sshKey, sshKeyActions }) => {
@@ -73,7 +71,6 @@ const TenancyNav = ({
     sshKey,
     sshKeyActions,
     capabilities,
-    url,
     currentTenancy,
     selectedResource
 }) => {
@@ -87,7 +84,7 @@ const TenancyNav = ({
 
     return (
         <>
-            <Nav as="ul" activeKey={url} className="sidebar-nav border-bottom">
+            <Nav as="ul" className="sidebar-nav border-bottom">
                 <Nav.Item as="li">
                     <LinkContainer to={`/tenancies`}>
                         <Nav.Link title="Switch tenancy">
@@ -102,7 +99,7 @@ const TenancyNav = ({
                 </Nav.Item>
                 <SSHKeyUpdateNavLink sshKey={sshKey} sshKeyActions={sshKeyActions} />
             </Nav>
-            <Nav as="ul" variant="pills" activeKey={url} className="sidebar-nav">
+            <Nav as="ul" variant="pills" className="sidebar-nav">
                 {supportsPlatforms && (
                     <Nav.Item as="li">
                         <LinkContainer to={`/tenancies/${currentTenancy.id}/platforms`}>
@@ -117,7 +114,7 @@ const TenancyNav = ({
                     </Nav.Item>
                 )}
                 <Nav.Item as="li">
-                    <LinkContainer exact to={`/tenancies/${currentTenancy.id}/quotas`}>
+                    <LinkContainer to={`/tenancies/${currentTenancy.id}/quotas`}>
                         <Nav.Link title="Quotas">
                             <FontAwesomeIcon
                                 icon={faSlidersH}
@@ -133,6 +130,7 @@ const TenancyNav = ({
                             href={currentTenancy.links.metrics}
                             target="_blank"
                             title="Project metrics"
+                            active={false}
                         >
                             <FontAwesomeIcon
                                 icon={faTachometerAlt}
@@ -192,122 +190,87 @@ const TenancyNav = ({
 };
 
 
-export const TenancyPage = ({
+export const TenancyResourcePage = ({
+    resource,
     capabilities,
     sshKey,
     sshKeyActions,
-    tenancies: { fetching, data: tenancies, current: currentTenancy },
+    tenancies: { current: currentTenancy },
     tenancyActions,
     notificationActions
 }) => {
-    // Get the path parameters
-    const { path, url } = useRouteMatch();
-    const { id: matchedId, resource: matchedResource } = useParams();
-
-    // When the tenancy matched in the path changes, initiate a switch if required
-    const currentId = get(currentTenancy, 'id');
-    useEffect(
-        () => { if( !fetching && matchedId !== currentId ) tenancyActions.switchTo(matchedId) },
-        [fetching, matchedId, currentId]
-    );
-
-    // If the tenancy does not exist, emit a notification
+    // If a resource has been selected that we don't support, emit a notification
     useEffect(
         () => {
-            if( !currentId && !fetching && !(tenancies || {}).hasOwnProperty(matchedId) )
+            if( !["platforms", "quotas", "machines", "volumes"].includes(resource) ) {
                 notificationActions.error({
                     title: 'Not Found',
-                    message: `Tenancy '${matchedId}' does not exist.`
+                    message: `Resource '${resource}' does not exist.`
                 });
+            }
         },
-        [fetching, matchedId, currentId, tenancies]
+        [resource]
     );
 
-    // Check if a matched resource is present
-    // If not, redirect to one based on the available capabilities
-    if( !matchedResource ) {
-        const defaultResource = (
-            capabilities.supports_clusters || capabilities.supports_kubernetes ?
-                'platforms' :
-                'quotas'
-        );
-        return <Redirect to={`${url}/${defaultResource}`} />;
+    let PanelComponent;
+    if( resource === "platforms" ) {
+        PanelComponent = TenancyPlatformsPanel;
     }
-    
-    if( currentTenancy ) {
-        // If there is a current tenancy, render the page
-        const tenancyProps = {
-            sshKey,
-            capabilities,
-            tenancy: currentTenancy,
-            tenancyActions: {
-                quota: bindArgsToActions(tenancyActions.quota, currentTenancy.id),
-                image: bindArgsToActions(tenancyActions.image, currentTenancy.id),
-                size: bindArgsToActions(tenancyActions.size, currentTenancy.id),
-                externalIp: bindArgsToActions(tenancyActions.externalIp, currentTenancy.id),
-                volume: bindArgsToActions(tenancyActions.volume, currentTenancy.id),
-                machine: bindArgsToActions(tenancyActions.machine, currentTenancy.id),
-                kubernetesClusterTemplate: bindArgsToActions(
-                    tenancyActions.kubernetesClusterTemplate,
-                    currentTenancy.id
-                ),
-                kubernetesCluster: bindArgsToActions(
-                    tenancyActions.kubernetesCluster,
-                    currentTenancy.id
-                ),
-                clusterType: bindArgsToActions(tenancyActions.clusterType, currentTenancy.id),
-                cluster: bindArgsToActions(tenancyActions.cluster, currentTenancy.id)
-            },
-            notificationActions
-        };
-        return (
-            <Container fluid className="flex-grow-1 d-flex flex-column">
-                <Row className="flex-grow-1">
-                    <div className="sidebar">
-                        <TenancyNav
-                            sshKey={sshKey}
-                            sshKeyActions={sshKeyActions}
-                            capabilities={capabilities}
-                            url={url}
-                            currentTenancy={currentTenancy}
-                            selectedResource={matchedResource}
-                        />
-                    </div>
-                    <Col>
-                        <h1 className="border-bottom pb-1 mb-4">
-                            <code>{currentTenancy.name}</code>
-                        </h1>
-                        <Switch>
-                            <Route exact path={`${path}/quotas`}>
-                                <TenancyQuotasPanel {...tenancyProps} />
-                            </Route>
-                            <Route exact path={`${path}/machines`}>
-                                <TenancyMachinesPanel {...tenancyProps} />
-                            </Route>
-                            <Route exact path={`${path}/volumes`}>
-                                <TenancyVolumesPanel {...tenancyProps} />
-                            </Route>
-                            <Route exact path={`${path}/platforms`}>
-                                <TenancyPlatformsPanel {...tenancyProps} />
-                            </Route>
-                        </Switch>
-                    </Col>
-                </Row>
-            </Container>
-        );
+    else if( resource === "quotas" ) {
+        PanelComponent = TenancyQuotasPanel;
     }
-    else if( fetching || (tenancies || {}).hasOwnProperty(matchedId) ) {
-        // If fetching tenancies or the matched id is in the tenancy data, allow more time
-        return (
-            <Row className="justify-content-center">
-                <Col xs="auto" className="mt-5">
-                    <Loading iconSize="lg" size="lg" message="Loading tenancies..." />
-                </Col>
-            </Row>
-        );
+    else if( resource === "machines" ) {
+        PanelComponent = TenancyMachinesPanel;
+    }
+    else if( resource === "volumes" ) {
+        PanelComponent = TenancyVolumesPanel;
     }
     else {
-        // Otherwise redirect
-        return <Redirect to="/tenancies" />;
+        return <Navigate to={`/tenancies/${currentTenancy.id}`} />;
     }
+    return (
+        <Container fluid className="flex-grow-1 d-flex flex-column">
+            <Row className="flex-grow-1">
+                <div className="sidebar">
+                    <TenancyNav
+                        sshKey={sshKey}
+                        sshKeyActions={sshKeyActions}
+                        capabilities={capabilities}
+                        currentTenancy={currentTenancy}
+                        selectedResource={resource}
+                    />
+                </div>
+                <Col>
+                    <h1 className="border-bottom pb-1 mb-4">
+                        <code>{currentTenancy.name}</code>
+                    </h1>
+                    <PanelComponent
+                        sshKey={sshKey}
+                        capabilities={capabilities}
+                        tenancy={currentTenancy}
+                        // Bind all the actions to the current tenancy
+                        tenancyActions={{
+                            quota: bindArgsToActions(tenancyActions.quota, currentTenancy.id),
+                            image: bindArgsToActions(tenancyActions.image, currentTenancy.id),
+                            size: bindArgsToActions(tenancyActions.size, currentTenancy.id),
+                            externalIp: bindArgsToActions(tenancyActions.externalIp, currentTenancy.id),
+                            volume: bindArgsToActions(tenancyActions.volume, currentTenancy.id),
+                            machine: bindArgsToActions(tenancyActions.machine, currentTenancy.id),
+                            kubernetesClusterTemplate: bindArgsToActions(
+                                tenancyActions.kubernetesClusterTemplate,
+                                currentTenancy.id
+                            ),
+                            kubernetesCluster: bindArgsToActions(
+                                tenancyActions.kubernetesCluster,
+                                currentTenancy.id
+                            ),
+                            clusterType: bindArgsToActions(tenancyActions.clusterType, currentTenancy.id),
+                            cluster: bindArgsToActions(tenancyActions.cluster, currentTenancy.id)
+                        }}
+                        notificationActions={notificationActions}
+                    />
+                </Col>
+            </Row>
+        </Container>
+    );
 };

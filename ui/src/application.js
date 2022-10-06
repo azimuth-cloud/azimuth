@@ -4,7 +4,10 @@
 
 import React, { useEffect } from 'react';
 
-import { Switch, Route, Redirect } from 'react-router-dom';
+import Col from 'react-bootstrap/Col';
+import Row from 'react-bootstrap/Row';
+
+import { Navigate, Routes, Route, useParams } from 'react-router-dom';
 
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -13,11 +16,13 @@ import { actionCreators as sshKeyActions } from './redux/ssh-public-key';
 import { actionCreators as tenancyActions } from './redux/tenancies';
 import { actionCreators as notificationActions } from './redux/notifications';
 
+import { Loading } from './components/utils';
+
 import { Navigation } from './components/navigation';
 import { Notifications } from './components/notifications';
 import { SplashPage } from './components/pages/splash';
 import { TenanciesPage } from './components/pages/tenancies';
-import { TenancyPage } from './components/pages/tenancy';
+import { TenancyResourcePage } from './components/pages/tenancy';
 
 import { Footer } from './components/footer';
 
@@ -63,7 +68,7 @@ const ConnectedTenanciesPage = connect(
 )(TenanciesPage);
 
 
-const ConnectedTenancyPage = connect(
+const ConnectedTenancyResourcePage = connect(
     (state) => ({
         capabilities: state.session.capabilities,
         sshKey: state.sshKey,
@@ -71,7 +76,6 @@ const ConnectedTenancyPage = connect(
     }),
     (dispatch) => ({
         tenancyActions: {
-            switchTo: (tenancyId) => dispatch(tenancyActions.switchTo(tenancyId)),
             quota: bindActionCreators(tenancyActions.quota, dispatch),
             image: bindActionCreators(tenancyActions.image, dispatch),
             size: bindActionCreators(tenancyActions.size, dispatch),
@@ -92,7 +96,10 @@ const ConnectedTenancyPage = connect(
         notificationActions: bindActionCreators(notificationActions, dispatch),
         sshKeyActions: bindActionCreators(sshKeyActions, dispatch)
     })
-)(TenancyPage);
+)(props => {
+    const { resource: matchedResource } = useParams();
+    return <TenancyResourcePage {...props} resource={matchedResource} />;
+});
 
 
 const NotFound = connect(
@@ -105,7 +112,7 @@ const NotFound = connect(
         title: 'Not Found',
         message: 'The page you requested was not found.'
     });
-    return <Redirect to="/tenancies" />;
+    return <Navigate to="/tenancies" />;
 });
 
 
@@ -124,18 +131,89 @@ const RedirectToLogin = () => {
 }
 
 
-const ProtectedRoute = connect(
+const Protected = connect(
     (state) => ({ session: state.session })
-)(({ component: Component, session, ...rest }) => (
-    <Route
-        {...rest}
-        render={props => {
-            if( session.username ) return <Component {...props} />;
-            else if( session.initialising ) return null;
-            else return <RedirectToLogin />;
-        }}
-    />
-));
+)(({ children , session }) => {
+    if( session.username ) return children;
+    else if( session.initialising ) return null;
+    else return <RedirectToLogin />;
+});
+
+
+/**
+ * This component does two things:
+ *
+ *   1. Ensures that the tenancy matched by the URL exists, and redirects to selection if not
+ *   2. Ensures that the tenancy matched by the URL is the currently loaded tenancy
+ */
+const EnsureTenancy = connect(
+    (state) => ({ tenancies: state.tenancies }),
+    (dispatch) => ({
+        switchTenancy: tenancyId => dispatch(tenancyActions.switchTo(tenancyId)),
+        notificationActions: bindActionCreators(notificationActions, dispatch),
+    })
+)(({
+    children,
+    tenancies: { fetching, data: tenancies, current: currentTenancy },
+    switchTenancy,
+    notificationActions
+}) => {
+    const { id: matchedId } = useParams();
+    const currentId = currentTenancy ? currentTenancy.id : null;
+
+    const matchedTenancyExists = (tenancies || {}).hasOwnProperty(matchedId);
+    const matchedTenancyLoaded = matchedId === currentId;
+
+    useEffect(
+        () => {
+            // If we are still fetching, then wait
+            if( fetching ) return;
+            // If the matched tenancy doesn't exist, raise a notification
+            if( !matchedTenancyExists ) notificationActions.error({
+                title: 'Not Found',
+                message: `Tenancy '${matchedId}' does not exist.`
+            });
+            // If we need to switch tenancy, do that
+            if( !matchedTenancyLoaded ) switchTenancy(matchedId);
+        },
+        [fetching, matchedTenancyExists, matchedTenancyLoaded]
+    );
+
+    if( matchedTenancyExists && matchedTenancyLoaded ) {
+        return children;
+    }
+    else if( fetching ) {
+        return (
+            <Row className="justify-content-center">
+                <Col xs="auto" className="mt-5">
+                    <Loading iconSize="lg" size="lg" message="Loading tenancies..." />
+                </Col>
+            </Row>
+        );
+    }
+    else if( !matchedTenancyExists ) {
+        return <Navigate to="/tenancies" />;
+    }
+    else {
+        // A switch has been requested - there is nothing to render
+        return null;
+    }
+});
+
+
+const RedirectToDefaultResource = connect(
+    (state) => ({
+        capabilities: state.session.capabilities,
+        tenancies: state.tenancies
+    }),
+)(({ capabilities, tenancies: { current: currentTenancy } }) => {
+    const defaultResource = (
+        capabilities.supports_clusters || capabilities.supports_kubernetes ?
+            'platforms' :
+            'quotas'
+    );
+    return <Navigate to={`/tenancies/${currentTenancy.id}/${defaultResource}`} />;
+});
 
 
 export const Application = () => (
@@ -143,19 +221,34 @@ export const Application = () => (
         <div className="sticky-footer-content d-flex flex-column">
             <ConnectedNav />
             <ConnectedNotifications />
-            <Switch>
-                <Route exact path="/" component={ConnectedSplashPage} />
-                <ProtectedRoute
-                    exact
+            <Routes>
+                <Route index element={<ConnectedSplashPage />} />
+                <Route
+                    path="/tenancies/:id/:resource"
+                    element={
+                        <Protected>
+                            <EnsureTenancy>
+                                <ConnectedTenancyResourcePage />
+                            </EnsureTenancy>
+                        </Protected>
+                    }
+                />
+                <Route
+                    path="/tenancies/:id"
+                    element={
+                        <Protected>
+                            <EnsureTenancy>
+                                <RedirectToDefaultResource />
+                            </EnsureTenancy>
+                        </Protected>
+                    }
+                />
+                <Route
                     path="/tenancies"
-                    component={ConnectedTenanciesPage}
+                    element={<Protected><ConnectedTenanciesPage /></Protected>}
                 />
-                <ProtectedRoute
-                    path="/tenancies/:id/:resource?"
-                    component={ConnectedTenancyPage}
-                />
-                <Route component={NotFound} />
-            </Switch>
+                <Route path="*" element={<NotFound />} />
+            </Routes>
         </div>
         <Footer />
     </div>

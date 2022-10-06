@@ -29,7 +29,7 @@ const ConfirmDeleteMenuItem = ({ name, disabled, onConfirm }) => {
             <DropdownItem
                 className={disabled ? undefined : "text-danger"}
                 disabled={disabled}
-                onSelect={open}
+                onClick={open}
             >
                 Delete volume
             </DropdownItem>
@@ -100,7 +100,7 @@ const VolumeActionsDropdown = ({
         />
         <DropdownItem
             disabled={!volume.machine}
-            onSelect={() => volumeActions.update({ machine_id: null })}
+            onClick={() => volumeActions.update({ machine_id: null })}
         >
             Detach volume from machine
         </DropdownItem>

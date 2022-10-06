@@ -367,7 +367,7 @@ export const MachineFirewallMenuItem = ({ machine, machineActions, ...props }) =
 
     return (
         <>
-            <DropdownItem onSelect={open} {...props}>
+            <DropdownItem onClick={open} {...props}>
                 Firewall rules
             </DropdownItem>
             <Modal size="xl" backdrop="static" onHide={close} show={visible}>

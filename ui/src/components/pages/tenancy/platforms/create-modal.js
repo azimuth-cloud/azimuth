@@ -390,8 +390,13 @@ const CreatePlatformModal = ({
 };
 
 
-export const CreatePlatformButton = ({ disabled, creating, ...props }) => {
-    const [visible, setVisible] = useState(false);
+export const CreatePlatformButton = ({
+    visible,
+    setVisible,
+    disabled,
+    creating,
+    ...props
+}) => {
     const open = () => setVisible(true);
     const close = () => setVisible(false);
     return (

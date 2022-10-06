@@ -37,7 +37,7 @@ const ConfirmDeleteMenuItem = ({ name, onConfirm }) => {
 
     return (
         <>
-            <DropdownItem className="text-danger" onSelect={open}>
+            <DropdownItem className="text-danger" onClick={open}>
                 Delete machine
             </DropdownItem>
             <Modal show={visible} backdrop="static" keyboard={false}>
@@ -132,7 +132,7 @@ const MachineActionsDropdown = ({
             )}
         />
         <DropdownItem
-            onSelect={() => externalIpActions.update(
+            onClick={() => externalIpActions.update(
                 machineExternalIp,
                 { machine_id: null }
             )}
@@ -145,19 +145,19 @@ const MachineActionsDropdown = ({
             machineActions={machineActions}
         />
         <DropdownItem
-            onSelect={machineActions.start}
+            onClick={machineActions.start}
             disabled={['ACTIVE', 'ERROR'].includes(machine.status.type)}
         >
             Start machine
         </DropdownItem>
         <DropdownItem
-            onSelect={machineActions.stop}
+            onClick={machineActions.stop}
             disabled={machine.status.type !== 'ACTIVE'}
         >
             Stop machine
         </DropdownItem>
         <DropdownItem
-            onSelect={machineActions.restart}
+            onClick={machineActions.restart}
             disabled={machine.status.type !== 'ACTIVE'}
         >
             Restart machine

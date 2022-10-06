@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
 
@@ -11,11 +11,12 @@ import { Application } from './application';
 import { store } from './redux';
 
 
-ReactDOM.render(
+const container = document.getElementById("react-root");
+const root = createRoot(container);
+root.render(
     <Provider store={store}>
         <BrowserRouter>
             <Application />
         </BrowserRouter>
-    </Provider>,
-    document.getElementById("react-root")
+    </Provider>
 );
