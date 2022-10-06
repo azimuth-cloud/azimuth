@@ -3,7 +3,7 @@ entries:
   azimuth:
   - apiVersion: v2
     appVersion: 2b7f92b
-    created: "2022-10-06T17:35:09.206413008Z"
+    created: "2022-10-06T18:11:10.149710324Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -34,7 +34,7 @@ entries:
     version: 0.1.0-dev.0.zenith-registrar-support.514
   - apiVersion: v2
     appVersion: f408a51
-    created: "2022-10-06T17:35:09.187612658Z"
+    created: "2022-10-06T18:11:10.127618767Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -65,7 +65,7 @@ entries:
     version: 0.1.0-dev.0.zenith-registrar-support.513
   - apiVersion: v2
     appVersion: e98a6ce
-    created: "2022-10-06T17:35:09.168172802Z"
+    created: "2022-10-06T18:11:10.109029725Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -96,7 +96,7 @@ entries:
     version: 0.1.0-dev.0.zenith-registrar-support.512
   - apiVersion: v2
     appVersion: 9b3beea
-    created: "2022-10-06T17:35:09.147451136Z"
+    created: "2022-10-06T18:11:10.090053659Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -127,7 +127,7 @@ entries:
     version: 0.1.0-dev.0.zenith-registrar-support.511
   - apiVersion: v2
     appVersion: 90b4781
-    created: "2022-10-06T17:35:09.129341491Z"
+    created: "2022-10-06T18:11:10.071905544Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -158,7 +158,7 @@ entries:
     version: 0.1.0-dev.0.zenith-registrar-support.510
   - apiVersion: v2
     appVersion: b8576f5
-    created: "2022-10-06T17:35:09.110119336Z"
+    created: "2022-10-06T18:11:10.053336603Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -189,7 +189,7 @@ entries:
     version: 0.1.0-dev.0.zenith-registrar-support.509
   - apiVersion: v2
     appVersion: 68a492e
-    created: "2022-10-06T17:35:09.092007291Z"
+    created: "2022-10-06T18:11:10.035012278Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -220,7 +220,7 @@ entries:
     version: 0.1.0-dev.0.zenith-registrar-support.508
   - apiVersion: v2
     appVersion: fab0058
-    created: "2022-10-06T17:35:09.073408542Z"
+    created: "2022-10-06T18:11:10.01698487Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -251,7 +251,7 @@ entries:
     version: 0.1.0-dev.0.zenith-registrar-support.507
   - apiVersion: v2
     appVersion: b7791e1
-    created: "2022-10-06T17:35:09.054139388Z"
+    created: "2022-10-06T18:11:09.998713248Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: f0181046b0e396c5eec6f5868bc6ab78d8ed2655322a512ed87eed533fee5b02
     name: azimuth
@@ -261,7 +261,7 @@ entries:
     version: 0.1.0-dev.0.readme-timeline.598
   - apiVersion: v2
     appVersion: c0e1e69
-    created: "2022-10-06T17:35:09.053065579Z"
+    created: "2022-10-06T18:11:09.997481872Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 640f3898662da3b336c1a28c047791c084c0f3547884b2bcef6659f7547b5987
     name: azimuth
@@ -271,7 +271,7 @@ entries:
     version: 0.1.0-dev.0.readme-timeline.597
   - apiVersion: v2
     appVersion: d81e0cf
-    created: "2022-10-06T17:35:09.051799869Z"
+    created: "2022-10-06T18:11:09.996087086Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: c96101d2597e034faa9916b92ef26b625334d4c07c0dda895c06c66a2ced8bc6
     name: azimuth
@@ -281,7 +281,7 @@ entries:
     version: 0.1.0-dev.0.readme-timeline.596
   - apiVersion: v2
     appVersion: 6d65beb
-    created: "2022-10-06T17:35:09.050516359Z"
+    created: "2022-10-06T18:11:09.994861611Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 710dc8db201d57c3928e10eb16ed35423932f301710ffd47d82597296c36cdb5
     name: azimuth
@@ -291,7 +291,7 @@ entries:
     version: 0.1.0-dev.0.master.652
   - apiVersion: v2
     appVersion: 9ece640
-    created: "2022-10-06T17:35:09.048931346Z"
+    created: "2022-10-06T18:11:09.993603634Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 0b511d53cb12acad36cb8764ad6e331a69b98275cf73d8baa4a6b5a2cbe052a8
     name: azimuth
@@ -301,7 +301,7 @@ entries:
     version: 0.1.0-dev.0.master.649
   - apiVersion: v2
     appVersion: 0edf93d
-    created: "2022-10-06T17:35:09.046866629Z"
+    created: "2022-10-06T18:11:09.992056739Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 3e75a4be861a102a2f636a7fc6a765c0b65d143c0bf55e2fc58be93f95482b24
     name: azimuth
@@ -311,7 +311,7 @@ entries:
     version: 0.1.0-dev.0.master.642
   - apiVersion: v2
     appVersion: 9c34eff
-    created: "2022-10-06T17:35:09.04566392Z"
+    created: "2022-10-06T18:11:09.99011872Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 4d70a886f7354cd00eb34127c3e4de30a2cd2412c06126405b4d260fc8752b7b
     name: azimuth
@@ -321,7 +321,7 @@ entries:
     version: 0.1.0-dev.0.master.640
   - apiVersion: v2
     appVersion: cb945b9
-    created: "2022-10-06T17:35:09.04450991Z"
+    created: "2022-10-06T18:11:09.988885744Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 197caf511e492e2aa298a30db93fb5b2041cabecb0b6088ecaf4793225c6ba75
     name: azimuth
@@ -331,7 +331,7 @@ entries:
     version: 0.1.0-dev.0.master.639
   - apiVersion: v2
     appVersion: f217976
-    created: "2022-10-06T17:35:09.043401602Z"
+    created: "2022-10-06T18:11:09.987615366Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: f3cf9eafdd8d5b9d5742db6d00d289f353cf1ed1c6ba593f6a8456f3471f8514
     name: azimuth
@@ -341,7 +341,7 @@ entries:
     version: 0.1.0-dev.0.master.638
   - apiVersion: v2
     appVersion: b734be5
-    created: "2022-10-06T17:35:09.042241892Z"
+    created: "2022-10-06T18:11:09.986386191Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: b97f31e806eae9be7565fd7a409fa2f169588059b88b4e281295a3d9f6f08199
     name: azimuth
@@ -351,7 +351,7 @@ entries:
     version: 0.1.0-dev.0.master.635
   - apiVersion: v2
     appVersion: "5106697"
-    created: "2022-10-06T17:35:09.041108783Z"
+    created: "2022-10-06T18:11:09.985164616Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: a9a6e26bc28d574f95f19caf41e644b0e2c84cc82445ec336884945d41ff980d
     name: azimuth
@@ -361,7 +361,7 @@ entries:
     version: 0.1.0-dev.0.master.628
   - apiVersion: v2
     appVersion: be0ded7
-    created: "2022-10-06T17:35:09.039887473Z"
+    created: "2022-10-06T18:11:09.98394334Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 286539e7f8d478ab9e0f66583b75f537716b9d20a9ad30e84635d93e3a3126af
     name: azimuth
@@ -371,7 +371,7 @@ entries:
     version: 0.1.0-dev.0.master.605
   - apiVersion: v2
     appVersion: "4214e07"
-    created: "2022-10-06T17:35:09.038662864Z"
+    created: "2022-10-06T18:11:09.982711965Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: f43520c5c680578fc70cf67308412d527f7ab718f91000d799aab426e1d439c9
     name: azimuth
@@ -381,7 +381,7 @@ entries:
     version: 0.1.0-dev.0.master.602
   - apiVersion: v2
     appVersion: cd32c1a
-    created: "2022-10-06T17:35:09.037551055Z"
+    created: "2022-10-06T18:11:09.981537993Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 7409ec7d4d9c943bf0a46d7d3932d214f7da90002e28eedfb470536ca3a1fe78
     name: azimuth
@@ -391,7 +391,7 @@ entries:
     version: 0.1.0-dev.0.master.601
   - apiVersion: v2
     appVersion: c5b2d4f
-    created: "2022-10-06T17:35:09.036351445Z"
+    created: "2022-10-06T18:11:09.980317718Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 9ce7b3fea48b04a31cdd661df838e875b5d57b0ddd6ecd3ff0cae24d971992eb
     name: azimuth
@@ -401,7 +401,7 @@ entries:
     version: 0.1.0-dev.0.master.600
   - apiVersion: v2
     appVersion: 587b059
-    created: "2022-10-06T17:35:09.034645031Z"
+    created: "2022-10-06T18:11:09.979075041Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: fb7fe7ed25f045db79ba220d24ba0cda5c71a043709114530561df1ce2011e93
     name: azimuth
@@ -411,7 +411,7 @@ entries:
     version: 0.1.0-dev.0.master.595
   - apiVersion: v2
     appVersion: cf1e51e
-    created: "2022-10-06T17:35:09.032977218Z"
+    created: "2022-10-06T18:11:09.977352136Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: e456ab8eec564e15689f3564f3fb7570419c6255d53650d5ab38cf189bbc4eeb
     name: azimuth
@@ -421,7 +421,7 @@ entries:
     version: 0.1.0-dev.0.master.594
   - apiVersion: v2
     appVersion: "4117551"
-    created: "2022-10-06T17:35:09.031280304Z"
+    created: "2022-10-06T18:11:09.975438518Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: dd50c044761935a005104727eab227fbc129fe1d71eccf35eb9217a3377bc26d
     name: azimuth
@@ -431,7 +431,7 @@ entries:
     version: 0.1.0-dev.0.master.591
   - apiVersion: v2
     appVersion: 968e4f1
-    created: "2022-10-06T17:35:09.030025694Z"
+    created: "2022-10-06T18:11:09.974255845Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: ecd86a7a9989923f22c320232a0c6cbb8a8c507dd7d3ed2c4df4dcaebe3e06b9
     name: azimuth
@@ -441,7 +441,7 @@ entries:
     version: 0.1.0-dev.0.master.589
   - apiVersion: v2
     appVersion: f8b9901
-    created: "2022-10-06T17:35:09.028810785Z"
+    created: "2022-10-06T18:11:09.97302297Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 3ee390af93b992f2e82825fc0c51ffe44f74dce3e2acda50c4a71730c40c15a0
     name: azimuth
@@ -451,7 +451,7 @@ entries:
     version: 0.1.0-dev.0.master.588
   - apiVersion: v2
     appVersion: b70cc66
-    created: "2022-10-06T17:35:09.027530974Z"
+    created: "2022-10-06T18:11:09.971837497Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 76a6dc875609af82747553b3d66d2ec0ebede9a22e28a222cc043da032494b99
     name: azimuth
@@ -461,7 +461,7 @@ entries:
     version: 0.1.0-dev.0.master.587
   - apiVersion: v2
     appVersion: 6d1eb4e
-    created: "2022-10-06T17:35:09.026326965Z"
+    created: "2022-10-06T18:11:09.970610421Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 6742a71d88e5662ae53a6535a10a974e4b82454922d66e85c1cc8d0cac369e3d
     name: azimuth
@@ -471,7 +471,7 @@ entries:
     version: 0.1.0-dev.0.master.586
   - apiVersion: v2
     appVersion: ab5bb5d
-    created: "2022-10-06T17:35:09.024827853Z"
+    created: "2022-10-06T18:11:09.969393647Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 26edc32573635ad88960db47b8ec63999ce85726cdd7d3a8a700c3f0bec26d18
     name: azimuth
@@ -481,7 +481,7 @@ entries:
     version: 0.1.0-dev.0.master.585
   - apiVersion: v2
     appVersion: fef537f
-    created: "2022-10-06T17:35:09.023620243Z"
+    created: "2022-10-06T18:11:09.96815357Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: d710fa7a6cd728dfab7303c8fa3ca5c488e8baaeb9dcecbff49bf5d48930e4d9
     name: azimuth
@@ -491,7 +491,7 @@ entries:
     version: 0.1.0-dev.0.master.584
   - apiVersion: v2
     appVersion: 453925e
-    created: "2022-10-06T17:35:09.022324833Z"
+    created: "2022-10-06T18:11:09.966925395Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: d4d523ace3560fdb3afd7b42d6a52d7d8257181fcfdfc829c73716a34d191628
     name: azimuth
@@ -501,7 +501,7 @@ entries:
     version: 0.1.0-dev.0.master.569
   - apiVersion: v2
     appVersion: f82ad60
-    created: "2022-10-06T17:35:09.021021322Z"
+    created: "2022-10-06T18:11:09.965670318Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -539,7 +539,7 @@ entries:
     version: 0.1.0-dev.0.master.536
   - apiVersion: v2
     appVersion: b0b0c55
-    created: "2022-10-06T17:35:09.001825668Z"
+    created: "2022-10-06T18:11:09.94665665Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -577,7 +577,7 @@ entries:
     version: 0.1.0-dev.0.master.535
   - apiVersion: v2
     appVersion: 94f76ed
-    created: "2022-10-06T17:35:08.982781516Z"
+    created: "2022-10-06T18:11:09.927684984Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -608,7 +608,7 @@ entries:
     version: 0.1.0-dev.0.master.524
   - apiVersion: v2
     appVersion: 2aefaa7
-    created: "2022-10-06T17:35:08.965137774Z"
+    created: "2022-10-06T18:11:09.909111543Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -639,7 +639,7 @@ entries:
     version: 0.1.0-dev.0.master.521
   - apiVersion: v2
     appVersion: dc53a0c
-    created: "2022-10-06T17:35:08.945061213Z"
+    created: "2022-10-06T18:11:09.890761216Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -670,7 +670,7 @@ entries:
     version: 0.1.0-dev.0.master.520
   - apiVersion: v2
     appVersion: 55f3b31
-    created: "2022-10-06T17:35:08.92712367Z"
+    created: "2022-10-06T18:11:09.872388487Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -701,7 +701,7 @@ entries:
     version: 0.1.0-dev.0.master.519
   - apiVersion: v2
     appVersion: ef8dc2b
-    created: "2022-10-06T17:35:08.909878831Z"
+    created: "2022-10-06T18:11:09.852686577Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -732,7 +732,7 @@ entries:
     version: 0.1.0-dev.0.master.518
   - apiVersion: v2
     appVersion: ab48acb
-    created: "2022-10-06T17:35:08.892073189Z"
+    created: "2022-10-06T18:11:09.83400753Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -763,7 +763,7 @@ entries:
     version: 0.1.0-dev.0.master.517
   - apiVersion: v2
     appVersion: 34bcc7d
-    created: "2022-10-06T17:35:08.873294638Z"
+    created: "2022-10-06T18:11:09.815354584Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -794,7 +794,7 @@ entries:
     version: 0.1.0-dev.0.master.516
   - apiVersion: v2
     appVersion: b7beb0c
-    created: "2022-10-06T17:35:08.85363418Z"
+    created: "2022-10-06T18:11:09.796909951Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -825,7 +825,7 @@ entries:
     version: 0.1.0-dev.0.master.515
   - apiVersion: v2
     appVersion: 10ab8da
-    created: "2022-10-06T17:35:08.835358734Z"
+    created: "2022-10-06T18:11:09.778736334Z"
     dependencies:
     - condition: consul.enabled
       name: consul
@@ -850,7 +850,7 @@ entries:
     version: 0.1.0-dev.0.master.506
   - apiVersion: v2
     appVersion: a5e89b7
-    created: "2022-10-06T17:35:08.817775193Z"
+    created: "2022-10-06T18:11:09.761427471Z"
     dependencies:
     - condition: consul.enabled
       name: consul
@@ -875,7 +875,7 @@ entries:
     version: 0.1.0-dev.0.master.505
   - apiVersion: v2
     appVersion: 9abf11e
-    created: "2022-10-06T17:35:08.799593647Z"
+    created: "2022-10-06T18:11:09.743639078Z"
     dependencies:
     - condition: consul.enabled
       name: consul
@@ -900,7 +900,7 @@ entries:
     version: 0.1.0-dev.0.master.504
   - apiVersion: v2
     appVersion: 807ea86
-    created: "2022-10-06T17:35:08.780418294Z"
+    created: "2022-10-06T18:11:09.725990294Z"
     dependencies:
     - condition: consul.enabled
       name: consul
@@ -925,7 +925,7 @@ entries:
     version: 0.1.0-dev.0.master.503
   - apiVersion: v2
     appVersion: e786263
-    created: "2022-10-06T17:35:08.757440709Z"
+    created: "2022-10-06T18:11:09.70834251Z"
     dependencies:
     - condition: consul.enabled
       name: consul
@@ -950,7 +950,7 @@ entries:
     version: 0.1.0-dev.0.master.502
   - apiVersion: v2
     appVersion: 00ca5ce
-    created: "2022-10-06T17:35:08.734923529Z"
+    created: "2022-10-06T18:11:09.690588819Z"
     dependencies:
     - condition: consul.enabled
       name: consul
@@ -975,7 +975,7 @@ entries:
     version: 0.1.0-dev.0.master.501
   - apiVersion: v2
     appVersion: f87a1ad
-    created: "2022-10-06T17:35:08.717371488Z"
+    created: "2022-10-06T18:11:09.673082444Z"
     dependencies:
     - condition: consul.enabled
       name: consul
@@ -1000,7 +1000,7 @@ entries:
     version: 0.1.0-dev.0.master.500
   - apiVersion: v2
     appVersion: d666b6d
-    created: "2022-10-06T17:35:08.699980749Z"
+    created: "2022-10-06T18:11:09.655525265Z"
     dependencies:
     - condition: consul.enabled
       name: consul
@@ -1025,7 +1025,7 @@ entries:
     version: 0.1.0-dev.0.master.499
   - apiVersion: v2
     appVersion: c6ad4b3
-    created: "2022-10-06T17:35:08.682457008Z"
+    created: "2022-10-06T18:11:09.637906783Z"
     dependencies:
     - condition: consul.enabled
       name: consul
@@ -1050,7 +1050,7 @@ entries:
     version: 0.1.0-dev.0.master.498
   - apiVersion: v2
     appVersion: 86e5a94
-    created: "2022-10-06T17:35:08.664585365Z"
+    created: "2022-10-06T18:11:09.620550517Z"
     dependencies:
     - condition: consul.enabled
       name: consul
@@ -1075,7 +1075,7 @@ entries:
     version: 0.1.0-dev.0.master.497
   - apiVersion: v2
     appVersion: ad8cbea
-    created: "2022-10-06T17:35:08.646307519Z"
+    created: "2022-10-06T18:11:09.600485484Z"
     dependencies:
     - condition: consul.enabled
       name: consul
@@ -1100,7 +1100,7 @@ entries:
     version: 0.1.0-dev.0.master.496
   - apiVersion: v2
     appVersion: e84d968
-    created: "2022-10-06T17:35:08.629187181Z"
+    created: "2022-10-06T18:11:09.582615886Z"
     dependencies:
     - condition: consul.enabled
       name: consul
@@ -1124,7 +1124,7 @@ entries:
     version: 0.1.0-dev.0.master.495
   - apiVersion: v2
     appVersion: 9f6645c
-    created: "2022-10-06T17:35:08.610874934Z"
+    created: "2022-10-06T18:11:09.565130012Z"
     dependencies:
     - condition: consul.enabled
       name: consul
@@ -1148,7 +1148,7 @@ entries:
     version: 0.1.0-dev.0.master.494
   - apiVersion: v2
     appVersion: 17ca3e2
-    created: "2022-10-06T17:35:08.594193701Z"
+    created: "2022-10-06T18:11:09.547905054Z"
     dependencies:
     - condition: consul.enabled
       name: consul
@@ -1172,7 +1172,7 @@ entries:
     version: 0.1.0-dev.0.master.493
   - apiVersion: v2
     appVersion: f86546d
-    created: "2022-10-06T17:35:08.576348758Z"
+    created: "2022-10-06T18:11:09.530649794Z"
     dependencies:
     - condition: consul.enabled
       name: consul
@@ -1196,7 +1196,7 @@ entries:
     version: 0.1.0-dev.0.master.492
   - apiVersion: v2
     appVersion: d549ee7
-    created: "2022-10-06T17:35:08.558108912Z"
+    created: "2022-10-06T18:11:09.513368332Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1227,7 +1227,7 @@ entries:
     version: 0.1.0-dev.0.logo-hack-splash.527
   - apiVersion: v2
     appVersion: a4422ab
-    created: "2022-10-06T17:35:08.538787957Z"
+    created: "2022-10-06T18:11:09.494967902Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 74f9fd66e6999738f347268399aed3429bbb820a4011dc96ed6cdd457ed6bcf5
     name: azimuth
@@ -1237,7 +1237,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.567
   - apiVersion: v2
     appVersion: 84b4ecd
-    created: "2022-10-06T17:35:08.537413446Z"
+    created: "2022-10-06T18:11:09.493756128Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: c97ea5a7b94445e85afcd896ccde29254a80fd95ea3e88e452bf4beb0add6859
     name: azimuth
@@ -1247,7 +1247,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.566
   - apiVersion: v2
     appVersion: 34b95d8
-    created: "2022-10-06T17:35:08.536042035Z"
+    created: "2022-10-06T18:11:09.492522356Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: c061d4dc92b901d1f7bdc94e60f04e57c0371e0027dc49566f6af5430abe865a
     name: azimuth
@@ -1257,7 +1257,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.565
   - apiVersion: v2
     appVersion: 1b047ef
-    created: "2022-10-06T17:35:08.534889025Z"
+    created: "2022-10-06T18:11:09.491244682Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1295,7 +1295,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.564
   - apiVersion: v2
     appVersion: 3d9478c
-    created: "2022-10-06T17:35:08.515413269Z"
+    created: "2022-10-06T18:11:09.472616294Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1333,7 +1333,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.563
   - apiVersion: v2
     appVersion: c7c1c1b
-    created: "2022-10-06T17:35:08.49559471Z"
+    created: "2022-10-06T18:11:09.453993607Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1371,7 +1371,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.562
   - apiVersion: v2
     appVersion: 65b7b6f
-    created: "2022-10-06T17:35:08.475852252Z"
+    created: "2022-10-06T18:11:09.434994797Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1409,7 +1409,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.561
   - apiVersion: v2
     appVersion: 245db08
-    created: "2022-10-06T17:35:08.455093286Z"
+    created: "2022-10-06T18:11:09.416185199Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1447,7 +1447,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.560
   - apiVersion: v2
     appVersion: 333239d
-    created: "2022-10-06T17:35:08.430884792Z"
+    created: "2022-10-06T18:11:09.397220692Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1485,7 +1485,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.559
   - apiVersion: v2
     appVersion: f6304c7
-    created: "2022-10-06T17:35:08.410822031Z"
+    created: "2022-10-06T18:11:09.378762414Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1523,7 +1523,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.558
   - apiVersion: v2
     appVersion: f9a4bef
-    created: "2022-10-06T17:35:08.389640561Z"
+    created: "2022-10-06T18:11:09.359914713Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1561,7 +1561,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.557
   - apiVersion: v2
     appVersion: 933afda
-    created: "2022-10-06T17:35:08.364668161Z"
+    created: "2022-10-06T18:11:09.341381931Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1599,7 +1599,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.556
   - apiVersion: v2
     appVersion: cd9f814
-    created: "2022-10-06T17:35:08.341702277Z"
+    created: "2022-10-06T18:11:09.322666638Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1637,7 +1637,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.555
   - apiVersion: v2
     appVersion: e6dec22
-    created: "2022-10-06T17:35:08.313759053Z"
+    created: "2022-10-06T18:11:09.30419796Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1675,7 +1675,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.554
   - apiVersion: v2
     appVersion: "1939365"
-    created: "2022-10-06T17:35:08.293851093Z"
+    created: "2022-10-06T18:11:09.285899791Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1713,7 +1713,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.553
   - apiVersion: v2
     appVersion: f00a8dc
-    created: "2022-10-06T17:35:08.275593347Z"
+    created: "2022-10-06T18:11:09.266115736Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1751,7 +1751,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.552
   - apiVersion: v2
     appVersion: 6dcdb37
-    created: "2022-10-06T17:35:08.257169599Z"
+    created: "2022-10-06T18:11:09.247532451Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1789,7 +1789,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.551
   - apiVersion: v2
     appVersion: 17ae2e2
-    created: "2022-10-06T17:35:08.237700743Z"
+    created: "2022-10-06T18:11:09.229104275Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1827,7 +1827,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.550
   - apiVersion: v2
     appVersion: acb1f93
-    created: "2022-10-06T17:35:08.218709891Z"
+    created: "2022-10-06T18:11:09.210047062Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1865,7 +1865,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.549
   - apiVersion: v2
     appVersion: e95bc5e
-    created: "2022-10-06T17:35:08.200368244Z"
+    created: "2022-10-06T18:11:09.191287167Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1903,7 +1903,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.548
   - apiVersion: v2
     appVersion: b0c7492
-    created: "2022-10-06T17:35:08.182603301Z"
+    created: "2022-10-06T18:11:09.172462268Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1941,7 +1941,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.547
   - apiVersion: v2
     appVersion: aaa6681
-    created: "2022-10-06T17:35:08.164293255Z"
+    created: "2022-10-06T18:11:09.153397154Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -1979,7 +1979,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.546
   - apiVersion: v2
     appVersion: 17be79d
-    created: "2022-10-06T17:35:08.145568305Z"
+    created: "2022-10-06T18:11:09.134046025Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -2017,7 +2017,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.545
   - apiVersion: v2
     appVersion: edaedd7
-    created: "2022-10-06T17:35:08.126553052Z"
+    created: "2022-10-06T18:11:09.113795442Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -2055,7 +2055,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.544
   - apiVersion: v2
     appVersion: +Inf
-    created: "2022-10-06T17:35:08.106520792Z"
+    created: "2022-10-06T18:11:09.093518958Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -2093,7 +2093,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.543
   - apiVersion: v2
     appVersion: 509b573
-    created: "2022-10-06T17:35:08.087892442Z"
+    created: "2022-10-06T18:11:09.074338838Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -2131,7 +2131,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.542
   - apiVersion: v2
     appVersion: 083fbf8
-    created: "2022-10-06T17:35:08.068121484Z"
+    created: "2022-10-06T18:11:09.055292526Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -2169,7 +2169,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.541
   - apiVersion: v2
     appVersion: 742faef
-    created: "2022-10-06T17:35:08.048315425Z"
+    created: "2022-10-06T18:11:09.033725867Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -2207,7 +2207,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.540
   - apiVersion: v2
     appVersion: c79f635
-    created: "2022-10-06T17:35:08.028560767Z"
+    created: "2022-10-06T18:11:09.014241529Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -2245,7 +2245,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.539
   - apiVersion: v2
     appVersion: 872ee16
-    created: "2022-10-06T17:35:08.008784508Z"
+    created: "2022-10-06T18:11:08.994813695Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -2283,7 +2283,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.538
   - apiVersion: v2
     appVersion: fe9438e
-    created: "2022-10-06T17:35:07.98911055Z"
+    created: "2022-10-06T18:11:08.974428304Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -2321,7 +2321,7 @@ entries:
     version: 0.1.0-dev.0.k8s-zenith.537
   - apiVersion: v2
     appVersion: c85879d
-    created: "2022-10-06T17:35:07.969250591Z"
+    created: "2022-10-06T18:11:08.95534369Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: efac585af4cd5eb8b5fb2020e4250087bf3c1bf78a3646f1c581825d82b5ebdc
     name: azimuth
@@ -2331,7 +2331,7 @@ entries:
     version: 0.1.0-dev.0.fix-verify-precedence.641
   - apiVersion: v2
     appVersion: 999fae4
-    created: "2022-10-06T17:35:07.967977481Z"
+    created: "2022-10-06T18:11:08.954119118Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 63cd59e2a4847242cad9ef7ef785e34931a84a57f8a71de93f524e64f064d9b6
     name: azimuth
@@ -2341,7 +2341,7 @@ entries:
     version: 0.1.0-dev.0.featurecaas-zenith.572
   - apiVersion: v2
     appVersion: f291b13
-    created: "2022-10-06T17:35:07.966701071Z"
+    created: "2022-10-06T18:11:08.952919048Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: fb143ddbec57769e2e38d320406399753091380d571736416786172b1d908cc2
     name: azimuth
@@ -2351,7 +2351,7 @@ entries:
     version: 0.1.0-dev.0.featurecaas-zenith.571
   - apiVersion: v2
     appVersion: 2d8721b
-    created: "2022-10-06T17:35:07.965497061Z"
+    created: "2022-10-06T18:11:08.951693577Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: d9c8e996eaa65f6f73727f8842cdea885d7e66347266d8f01afbb726c42e99ea
     name: azimuth
@@ -2361,7 +2361,7 @@ entries:
     version: 0.1.0-dev.0.featurecaas-zenith.570
   - apiVersion: v2
     appVersion: 41fd1ac
-    created: "2022-10-06T17:35:07.96408215Z"
+    created: "2022-10-06T18:11:08.950517808Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 14fef3d47d21f84def9a40af4c5e44a64a69ef2dcf21bb9fca611b6eb70dfa05
     name: azimuth
@@ -2371,7 +2371,7 @@ entries:
     version: 0.1.0-dev.0.featurecaas-zenith.569
   - apiVersion: v2
     appVersion: ee4289e
-    created: "2022-10-06T17:35:07.962421836Z"
+    created: "2022-10-06T18:11:08.949220532Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: fdbcf561009dfaaa4570f2170daaa77d81d9a75632af266318f43abfed4b6ba4
     name: azimuth
@@ -2381,7 +2381,7 @@ entries:
     version: 0.1.0-dev.0.featurecaas-zenith.568
   - apiVersion: v2
     appVersion: 87f0d3c
-    created: "2022-10-06T17:35:07.96034692Z"
+    created: "2022-10-06T18:11:08.947116509Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 4dc3007f197ec7db27f948ce026bbb58ec2126b813cc96cf8c9fcb6db85d0f58
     name: azimuth
@@ -2391,7 +2391,7 @@ entries:
     version: 0.1.0-dev.0.feature-web-console-images.606
   - apiVersion: v2
     appVersion: 5dbbb60
-    created: "2022-10-06T17:35:07.95909871Z"
+    created: "2022-10-06T18:11:08.945614022Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 738f78a78383d5cb65d1b2426ef3d8733c47f5dc2e680cd2f43771b5aab793af
     name: azimuth
@@ -2401,7 +2401,7 @@ entries:
     version: 0.1.0-dev.0.feature-simple-footer.637
   - apiVersion: v2
     appVersion: bb7febf
-    created: "2022-10-06T17:35:07.957928Z"
+    created: "2022-10-06T18:11:08.94438895Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: cd6eb14276d1d01a20127157c2851bbd7e01405bac97045891fbe89b88aa32db
     name: azimuth
@@ -2410,8 +2410,18 @@ entries:
     - azimuth-0.1.0-dev.0.feature-simple-footer.636.tgz
     version: 0.1.0-dev.0.feature-simple-footer.636
   - apiVersion: v2
+    appVersion: 44f0f2b
+    created: "2022-10-06T18:11:08.943126977Z"
+    description: Helm chart for deploying the Azimuth Portal.
+    digest: 89115938acd89a9cc9ae19cc2fbe82d61c224e7715c2b804bd545a25e76be495
+    name: azimuth
+    type: application
+    urls:
+    - azimuth-0.1.0-dev.0.feature-sidebar-layout.658.tgz
+    version: 0.1.0-dev.0.feature-sidebar-layout.658
+  - apiVersion: v2
     appVersion: 3be9bcd
-    created: "2022-10-06T17:35:07.95664499Z"
+    created: "2022-10-06T18:11:08.941883004Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 99d501ed1e993a1cc27eea5c9f627c4574f7e9d4888ce50ad996035164254f1b
     name: azimuth
@@ -2421,7 +2431,7 @@ entries:
     version: 0.1.0-dev.0.feature-sidebar-layout.657
   - apiVersion: v2
     appVersion: c40243e
-    created: "2022-10-06T17:35:07.955524881Z"
+    created: "2022-10-06T18:11:08.940668533Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 3957dfb683ffec71b8fc71958344e827ec80ec596f63668a1d45991f594d0e9a
     name: azimuth
@@ -2431,7 +2441,7 @@ entries:
     version: 0.1.0-dev.0.feature-sidebar-layout.655
   - apiVersion: v2
     appVersion: b4047e3
-    created: "2022-10-06T17:35:07.954279771Z"
+    created: "2022-10-06T18:11:08.939437061Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 6b13107054a7dfec9c1cbe57aa91982b3b997cf9dcdf4507b6e959c4d84e3f91
     name: azimuth
@@ -2441,7 +2451,7 @@ entries:
     version: 0.1.0-dev.0.feature-sidebar-layout.653
   - apiVersion: v2
     appVersion: 1e0d2dc
-    created: "2022-10-06T17:35:07.953167962Z"
+    created: "2022-10-06T18:11:08.938116084Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: b03773e3c99de2bfd8fefe0d3e1c4293e33e3430196b28847e4ca0518e34b17b
     name: azimuth
@@ -2451,7 +2461,7 @@ entries:
     version: 0.1.0-dev.0.feature-platforms-panel.627
   - apiVersion: v2
     appVersion: e2501af
-    created: "2022-10-06T17:35:07.951956953Z"
+    created: "2022-10-06T18:11:08.93684911Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: a36961f2df8d1237828bb760a89d199f0ffc2ea85884b086165d0b4f13acf261
     name: azimuth
@@ -2461,7 +2471,7 @@ entries:
     version: 0.1.0-dev.0.feature-platforms-panel.626
   - apiVersion: v2
     appVersion: ed79c13
-    created: "2022-10-06T17:35:07.950718143Z"
+    created: "2022-10-06T18:11:08.935236616Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 233cc45a87eef2930ddfa103daee4460e230703d298bdb513feed711f0afd51b
     name: azimuth
@@ -2471,7 +2481,7 @@ entries:
     version: 0.1.0-dev.0.feature-platforms-panel.625
   - apiVersion: v2
     appVersion: a8d22c6
-    created: "2022-10-06T17:35:07.949006529Z"
+    created: "2022-10-06T18:11:08.933564918Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 1e6d879525c2e768aba59fdef8e0f2e6ea1a83e01cc136ef839ce5bfed9aa4e1
     name: azimuth
@@ -2481,7 +2491,7 @@ entries:
     version: 0.1.0-dev.0.feature-platforms-panel.624
   - apiVersion: v2
     appVersion: db64435
-    created: "2022-10-06T17:35:07.947139914Z"
+    created: "2022-10-06T18:11:08.932019328Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: b0c7876eb951e4ef106a56bce3c83fcef1be309a65909d4d71adcf730ea1f50e
     name: azimuth
@@ -2491,7 +2501,7 @@ entries:
     version: 0.1.0-dev.0.feature-platforms-panel.623
   - apiVersion: v2
     appVersion: fe95bb6
-    created: "2022-10-06T17:35:07.945989505Z"
+    created: "2022-10-06T18:11:08.930712152Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 5c5617528b635712ec676234e195d21d9f0f1d10271b43c70f661d7fdad55908
     name: azimuth
@@ -2501,7 +2511,7 @@ entries:
     version: 0.1.0-dev.0.feature-platforms-panel.621
   - apiVersion: v2
     appVersion: 3c4c35f
-    created: "2022-10-06T17:35:07.944689294Z"
+    created: "2022-10-06T18:11:08.929419276Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: c37aa38f8da404255db41cc971a78ba52998609b1656997e8ac75d1ac5a49313
     name: azimuth
@@ -2511,7 +2521,7 @@ entries:
     version: 0.1.0-dev.0.feature-platforms-panel.620
   - apiVersion: v2
     appVersion: 9451d21
-    created: "2022-10-06T17:35:07.943352684Z"
+    created: "2022-10-06T18:11:08.928226806Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: f72f354cc0ff9fa4ec706d685927b2c5022eae2cf17832c64aa0aab95a4dea9f
     name: azimuth
@@ -2521,7 +2531,7 @@ entries:
     version: 0.1.0-dev.0.feature-platforms-panel.619
   - apiVersion: v2
     appVersion: 5e056fb
-    created: "2022-10-06T17:35:07.942015173Z"
+    created: "2022-10-06T18:11:08.926993034Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 4d0de7480f7db050d42122e80b311a4684d5c255f98a20f8ad1ff7d5f8ad5273
     name: azimuth
@@ -2531,7 +2541,7 @@ entries:
     version: 0.1.0-dev.0.feature-platforms-panel.618
   - apiVersion: v2
     appVersion: fabcea1
-    created: "2022-10-06T17:35:07.940704562Z"
+    created: "2022-10-06T18:11:08.925778263Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 9f7a662bbcf587dc665bd9e09fa6432d8fe52fefd4a528859a0bb6898441fd6a
     name: azimuth
@@ -2541,7 +2551,7 @@ entries:
     version: 0.1.0-dev.0.feature-platforms-panel.617
   - apiVersion: v2
     appVersion: b0f7484
-    created: "2022-10-06T17:35:07.939448852Z"
+    created: "2022-10-06T18:11:08.924060463Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 7bec25fb0af403d0ee669e1059665fcdc680bd9d8d23e852031bd7e40e0942f3
     name: azimuth
@@ -2551,7 +2561,7 @@ entries:
     version: 0.1.0-dev.0.feature-platforms-panel.616
   - apiVersion: v2
     appVersion: 7e9c928
-    created: "2022-10-06T17:35:07.938225443Z"
+    created: "2022-10-06T18:11:08.922828291Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: b35d61d5fd1f81c159c210057c9c65e6493436af3f873cec1e2f3da55143b68b
     name: azimuth
@@ -2561,7 +2571,7 @@ entries:
     version: 0.1.0-dev.0.feature-platforms-panel.615
   - apiVersion: v2
     appVersion: 80a1f67
-    created: "2022-10-06T17:35:07.936866932Z"
+    created: "2022-10-06T18:11:08.921573418Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: b897f29280e57dbe469d2a73e12522eb051e671c917cf6a8057d956113d263be
     name: azimuth
@@ -2571,7 +2581,7 @@ entries:
     version: 0.1.0-dev.0.feature-platforms-panel.614
   - apiVersion: v2
     appVersion: 5a1df3b
-    created: "2022-10-06T17:35:07.934770615Z"
+    created: "2022-10-06T18:11:08.919423792Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 578fe4bac080a5ece801509e75524d2d5444cfba4ef72b2d2fc8a4e52b8ac581
     name: azimuth
@@ -2581,7 +2591,7 @@ entries:
     version: 0.1.0-dev.0.feature-platforms-panel.613
   - apiVersion: v2
     appVersion: cc62af9
-    created: "2022-10-06T17:35:07.932989701Z"
+    created: "2022-10-06T18:11:08.917882702Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 6152954a568aae84f3d89dbd6fef2c676a387b0f92b7f041ba1f84f84ae1fb5b
     name: azimuth
@@ -2591,7 +2601,7 @@ entries:
     version: 0.1.0-dev.0.feature-platforms-panel.612
   - apiVersion: v2
     appVersion: e35ba96
-    created: "2022-10-06T17:35:07.93168309Z"
+    created: "2022-10-06T18:11:08.916667331Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: a8a0c0e9601efe4c6b11920de571d646fbc4483c1282808d77e76bca99e840d3
     name: azimuth
@@ -2601,7 +2611,7 @@ entries:
     version: 0.1.0-dev.0.feature-platforms-panel.611
   - apiVersion: v2
     appVersion: 067352e
-    created: "2022-10-06T17:35:07.93041598Z"
+    created: "2022-10-06T18:11:08.915418259Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: afcff0ff106003c4b54ce889ccd431ce8eaca0586383f4b4e05dd5e64b05354a
     name: azimuth
@@ -2611,7 +2621,7 @@ entries:
     version: 0.1.0-dev.0.feature-platforms-panel.610
   - apiVersion: v2
     appVersion: 9bac82c
-    created: "2022-10-06T17:35:07.92917437Z"
+    created: "2022-10-06T18:11:08.914223589Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: b12fe5198bacc91153b12a904ba9fa9df18f58980464bda91047a9b36615d3d0
     name: azimuth
@@ -2621,7 +2631,7 @@ entries:
     version: 0.1.0-dev.0.feature-platforms-panel.609
   - apiVersion: v2
     appVersion: c2f0172
-    created: "2022-10-06T17:35:07.92791386Z"
+    created: "2022-10-06T18:11:08.913033919Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 4f0c1068290ce1a240e3c289714717c9ce7189f51da71fa4f2951bd1a097a6ec
     name: azimuth
@@ -2631,7 +2641,7 @@ entries:
     version: 0.1.0-dev.0.feature-platforms-panel.608
   - apiVersion: v2
     appVersion: 72820dd
-    created: "2022-10-06T17:35:07.92665155Z"
+    created: "2022-10-06T18:11:08.91184215Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 72527a712c44f7d8e2f2e13fe2c43aace811336b6ea1820d9835f66609eb6094
     name: azimuth
@@ -2641,7 +2651,7 @@ entries:
     version: 0.1.0-dev.0.feature-platforms-panel.607
   - apiVersion: v2
     appVersion: ebed046
-    created: "2022-10-06T17:35:07.92540444Z"
+    created: "2022-10-06T18:11:08.910619678Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 5d832469e259958a4b34c4e63b7a1b319926a2e2faf2ac82aef324f5bae65226
     name: azimuth
@@ -2651,7 +2661,7 @@ entries:
     version: 0.1.0-dev.0.feature-platforms-panel.606
   - apiVersion: v2
     appVersion: ed7b737
-    created: "2022-10-06T17:35:07.924091329Z"
+    created: "2022-10-06T18:11:08.909160693Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 4834dfa77de1a425b1103be0c3014e156e12df1e9e13c0e5537933754cf19046
     name: azimuth
@@ -2661,7 +2671,7 @@ entries:
     version: 0.1.0-dev.0.feature-node-details.593
   - apiVersion: v2
     appVersion: 624ed01
-    created: "2022-10-06T17:35:07.922621817Z"
+    created: "2022-10-06T18:11:08.906552441Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: be0f223e427bf6348c058c0e0f755a8a31f037f5e1370090d9aaa12f5ef6928e
     name: azimuth
@@ -2671,7 +2681,7 @@ entries:
     version: 0.1.0-dev.0.feature-node-details.592
   - apiVersion: v2
     appVersion: 9a1f513
-    created: "2022-10-06T17:35:07.920361899Z"
+    created: "2022-10-06T18:11:08.905412974Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 082397250543e59fcb982a0f6f22bba4281f88e49209581c7031e2819b452426
     name: azimuth
@@ -2681,7 +2691,7 @@ entries:
     version: 0.1.0-dev.0.feature-k8s-autoscale.590
   - apiVersion: v2
     appVersion: dcf42cd
-    created: "2022-10-06T17:35:07.919084889Z"
+    created: "2022-10-06T18:11:08.904259307Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: d1b869809a14d17f77690968398e97109b209d992bb78140f486d64b42c6ba80
     name: azimuth
@@ -2691,7 +2701,7 @@ entries:
     version: 0.1.0-dev.0.feature-community-images.568
   - apiVersion: v2
     appVersion: a5c76ac
-    created: "2022-10-06T17:35:07.917732978Z"
+    created: "2022-10-06T18:11:08.90311494Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: c20df0bf548e7557df71479616c152726b6756032f64af65a95802b9e1e1ce29
     name: azimuth
@@ -2701,7 +2711,7 @@ entries:
     version: 0.1.0-dev.0.feature-caas-zenith.583
   - apiVersion: v2
     appVersion: 955a751
-    created: "2022-10-06T17:35:07.916482768Z"
+    created: "2022-10-06T18:11:08.901959073Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 86e4ea9775e9608a288a85b6c76e662be5dffa8cc12c1e418e3d22f8734d70b3
     name: azimuth
@@ -2711,7 +2721,7 @@ entries:
     version: 0.1.0-dev.0.feature-caas-zenith.582
   - apiVersion: v2
     appVersion: ad2b446
-    created: "2022-10-06T17:35:07.915217958Z"
+    created: "2022-10-06T18:11:08.900775504Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 67223d035d836be27cbb0be942c2e15ff0015fd7d7553c4e98143a82e168de29
     name: azimuth
@@ -2721,7 +2731,7 @@ entries:
     version: 0.1.0-dev.0.feature-caas-zenith.581
   - apiVersion: v2
     appVersion: 0a73724
-    created: "2022-10-06T17:35:07.913902648Z"
+    created: "2022-10-06T18:11:08.899527231Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: c690482e04b694d4b73e04fd8d21be96a5fdd06ad3a04bee5bd39d3811fd1e5f
     name: azimuth
@@ -2731,7 +2741,7 @@ entries:
     version: 0.1.0-dev.0.feature-caas-zenith.580
   - apiVersion: v2
     appVersion: 37b58ec
-    created: "2022-10-06T17:35:07.912637937Z"
+    created: "2022-10-06T18:11:08.898329161Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 4d0af9fae6b6556bec9401cc52c35608d8fcae02239d350a188b72a3d88b3586
     name: azimuth
@@ -2741,7 +2751,7 @@ entries:
     version: 0.1.0-dev.0.feature-branding.646
   - apiVersion: v2
     appVersion: 1b3e67d
-    created: "2022-10-06T17:35:07.911369627Z"
+    created: "2022-10-06T18:11:08.897108189Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: e77e6e976d0cb6b101ca793344eca30503259fcf0d77f482db44fea82ab43613
     name: azimuth
@@ -2751,7 +2761,7 @@ entries:
     version: 0.1.0-dev.0.feature-better-curated-flavors.653
   - apiVersion: v2
     appVersion: 8a5350b
-    created: "2022-10-06T17:35:07.909999616Z"
+    created: "2022-10-06T18:11:08.895445492Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: e7c84161f57add10d14703ba1b26749c7fe8031c860fba6b2b92e9d146767d31
     name: azimuth
@@ -2761,7 +2771,7 @@ entries:
     version: 0.1.0-dev.0.feature-better-curated-flavors.651
   - apiVersion: v2
     appVersion: d7a29f0
-    created: "2022-10-06T17:35:07.908525404Z"
+    created: "2022-10-06T18:11:08.893442375Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: ddc9e87b69df470f3c5ba0428898053bef1cdeee812dc1823830a081e0870838
     name: azimuth
@@ -2771,7 +2781,7 @@ entries:
     version: 0.1.0-dev.0.feature-better-curated-flavors.640
   - apiVersion: v2
     appVersion: c1b19c1
-    created: "2022-10-06T17:35:07.906535788Z"
+    created: "2022-10-06T18:11:08.892242005Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 56f867c1df1aeee82b3c665dbf2ff6440cd33f2a32391de436d3cec930e4074b
     name: azimuth
@@ -2781,7 +2791,7 @@ entries:
     version: 0.1.0-dev.0.feature-awx-ee-private-image.604
   - apiVersion: v2
     appVersion: 670dc95
-    created: "2022-10-06T17:35:07.905281178Z"
+    created: "2022-10-06T18:11:08.891024934Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 67b3cf9343b431dc7f731e2ad704cc10ce07461c0b0b84e7e8206ef289706161
     name: azimuth
@@ -2791,7 +2801,7 @@ entries:
     version: 0.1.0-dev.0.feature-app-cred-authenticator.634
   - apiVersion: v2
     appVersion: d8b0b70
-    created: "2022-10-06T17:35:07.903999668Z"
+    created: "2022-10-06T18:11:08.88975166Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 4d3885f3bbd862b82a18eecaa5a7b270d21b76f168cd10c09b0f397e43cea088
     name: azimuth
@@ -2801,7 +2811,7 @@ entries:
     version: 0.1.0-dev.0.feature-app-cred-authenticator.633
   - apiVersion: v2
     appVersion: 1ac723b
-    created: "2022-10-06T17:35:07.902672458Z"
+    created: "2022-10-06T18:11:08.888538289Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 25935d2efbbefa3d6fb1fe2aa688c78ae012fb46eb84d1a05b77d9419a4e72f3
     name: azimuth
@@ -2811,7 +2821,7 @@ entries:
     version: 0.1.0-dev.0.feature-app-cred-authenticator.632
   - apiVersion: v2
     appVersion: 5c4e5f9
-    created: "2022-10-06T17:35:07.901298246Z"
+    created: "2022-10-06T18:11:08.887207011Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: 7f03b8b8c3ad34dcb62282cd406a769f52771f4783031523f36571b960e79778
     name: azimuth
@@ -2821,7 +2831,7 @@ entries:
     version: 0.1.0-dev.0.feature-app-cred-authenticator.631
   - apiVersion: v2
     appVersion: 0c20344
-    created: "2022-10-06T17:35:07.899984336Z"
+    created: "2022-10-06T18:11:08.885964239Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: de3bc0b16a7fedacdf0b2b11f77a5d993ebfed32759b70cfbeec06da4add328b
     name: azimuth
@@ -2831,7 +2841,7 @@ entries:
     version: 0.1.0-dev.0.feature-app-cred-authenticator.630
   - apiVersion: v2
     appVersion: 42ec102
-    created: "2022-10-06T17:35:07.898657725Z"
+    created: "2022-10-06T18:11:08.884704565Z"
     description: Helm chart for deploying the Azimuth Portal.
     digest: c3c7d03e47b51061da7e4d136240d0b88224e127c1a848d0630414f83382958c
     name: azimuth
@@ -2841,7 +2851,7 @@ entries:
     version: 0.1.0-dev.0.feature-app-cred-authenticator.629
   - apiVersion: v2
     appVersion: e7ab90e
-    created: "2022-10-06T17:35:07.897491316Z"
+    created: "2022-10-06T18:11:08.883426691Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -2879,7 +2889,7 @@ entries:
     version: 0.1.0-dev.0.cluster-api.533
   - apiVersion: v2
     appVersion: d9bf743
-    created: "2022-10-06T17:35:07.878423963Z"
+    created: "2022-10-06T18:11:08.864875807Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -2917,7 +2927,7 @@ entries:
     version: 0.1.0-dev.0.cluster-api.532
   - apiVersion: v2
     appVersion: e2b597e
-    created: "2022-10-06T17:35:07.859257009Z"
+    created: "2022-10-06T18:11:08.845631484Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -2948,7 +2958,7 @@ entries:
     version: 0.1.0-dev.0.cluster-api.531
   - apiVersion: v2
     appVersion: 48d65f2
-    created: "2022-10-06T17:35:07.840180557Z"
+    created: "2022-10-06T18:11:08.825083684Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -2979,7 +2989,7 @@ entries:
     version: 0.1.0-dev.0.cluster-api.530
   - apiVersion: v2
     appVersion: "2289502"
-    created: "2022-10-06T17:35:07.821013703Z"
+    created: "2022-10-06T18:11:08.806141178Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -3010,7 +3020,7 @@ entries:
     version: 0.1.0-dev.0.cluster-api.529
   - apiVersion: v2
     appVersion: a52392f
-    created: "2022-10-06T17:35:07.802099551Z"
+    created: "2022-10-06T18:11:08.787496589Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -3041,7 +3051,7 @@ entries:
     version: 0.1.0-dev.0.cluster-api.528
   - apiVersion: v2
     appVersion: 5d646da
-    created: "2022-10-06T17:35:07.781859789Z"
+    created: "2022-10-06T18:11:08.769279925Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -3072,7 +3082,7 @@ entries:
     version: 0.1.0-dev.0.cluster-api.527
   - apiVersion: v2
     appVersion: e154811
-    created: "2022-10-06T17:35:07.76082512Z"
+    created: "2022-10-06T18:11:08.750386522Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -3103,7 +3113,7 @@ entries:
     version: 0.1.0-dev.0.cluster-api.526
   - apiVersion: v2
     appVersion: 72fcccc
-    created: "2022-10-06T17:35:07.742819176Z"
+    created: "2022-10-06T18:11:08.731476118Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -3134,7 +3144,7 @@ entries:
     version: 0.1.0-dev.0.cluster-api.525
   - apiVersion: v2
     appVersion: 50a51bc
-    created: "2022-10-06T17:35:07.724780732Z"
+    created: "2022-10-06T18:11:08.71284083Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -3165,7 +3175,7 @@ entries:
     version: 0.1.0-dev.0.cluster-api.524
   - apiVersion: v2
     appVersion: 0746c42
-    created: "2022-10-06T17:35:07.706212383Z"
+    created: "2022-10-06T18:11:08.694117036Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -3196,7 +3206,7 @@ entries:
     version: 0.1.0-dev.0.add-logo.528
   - apiVersion: v2
     appVersion: 51a2e6a
-    created: "2022-10-06T17:35:07.687305031Z"
+    created: "2022-10-06T18:11:08.67568756Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -3227,7 +3237,7 @@ entries:
     version: 0.1.0-dev.0.add-logo.526
   - apiVersion: v2
     appVersion: 06c4cab
-    created: "2022-10-06T17:35:07.667592573Z"
+    created: "2022-10-06T18:11:08.654732137Z"
     dependencies:
     - condition: awx.enabled
       name: awx-operator
@@ -3256,4 +3266,4 @@ entries:
     urls:
     - azimuth-0.1.0-dev.0.add-logo.525.tgz
     version: 0.1.0-dev.0.add-logo.525
-generated: "2022-10-06T17:35:07.646821107Z"
+generated: "2022-10-06T18:11:08.633952323Z"
