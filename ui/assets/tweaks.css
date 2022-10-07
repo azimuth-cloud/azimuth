@@ -167,19 +167,23 @@
     border-bottom: 0.3em solid;
 }
 @media (max-width: 1799px) {
-    .sidebar:hover {
+    .sidebar:hover, .sidebar.expanded {
         width: 280px;
     }
-    .sidebar:hover .sidebar-nav .nav-link-text {
+    .sidebar:hover .sidebar-nav .nav-link-text,
+    .sidebar.expanded .sidebar-nav .nav-link-text {
         margin-left: 0;
     }
-    .sidebar:hover .sidebar-nav .svg-inline--fa {
+    .sidebar:hover .sidebar-nav .svg-inline--fa,
+    .sidebar.expanded .sidebar-nav .svg-inline--fa {
         margin-right: 1rem;
     }
-    .sidebar:hover .sidebar-nav .nav-link.nav-toggle::after {
+    .sidebar:hover .sidebar-nav .nav-link.nav-toggle::after,
+    .sidebar.expanded .sidebar-nav .nav-link.nav-toggle::after {
         opacity: 1;
     }
-    .sidebar:hover .sidebar-nav .nav-item-nested .nav-link-text {
+    .sidebar:hover .sidebar-nav .nav-item-nested .nav-link-text,
+    .sidebar.expanded .sidebar-nav .nav-item-nested .nav-link-text {
         margin-left: 1rem;
     }
 }

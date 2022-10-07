@@ -199,6 +199,17 @@ export const TenancyResourcePage = ({
     tenancyActions,
     notificationActions
 }) => {
+    // When the component is mounted, we show the sidebar by applying a class
+    // The class is removed on a timer, after which the hover CSS rules take over
+    const [sidebarExpanded, setSidebarExpanded] = useState(true);
+    useEffect(
+        () => {
+            const timeout = setTimeout(() => setSidebarExpanded(false), 500);
+            return () => clearTimeout(timeout);
+        },
+        []
+    );
+
     // If a resource has been selected that we don't support, emit a notification
     useEffect(
         () => {
@@ -232,7 +243,7 @@ export const TenancyResourcePage = ({
         <Container fluid className="flex-grow-1 d-flex flex-column">
             <Row className="flex-grow-1">
                 <div className="sidebar-container">
-                    <div className="sidebar">
+                    <div className={`sidebar${sidebarExpanded ? " expanded" : ""}`}>
                         <TenancyNav
                             sshKey={sshKey}
                             sshKeyActions={sshKeyActions}
