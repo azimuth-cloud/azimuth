@@ -96,7 +96,7 @@
 }
 .sidebar {
     position: relative;
-    z-index: 9999;
+    z-index: 1000; /* Above selects, but below modals */
     height: 100%;
     width: calc(4.5em + 2px);
     background-color: rgba(var(--bs-light-rgb), 1);

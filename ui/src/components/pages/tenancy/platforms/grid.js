@@ -82,16 +82,10 @@ export const PlatformsGrid = ({
                         </Card.Header>
                         <Card.Body>
                             <p>Create the first platform in this tenancy!</p>
-                            <p>
-                                Platforms help you become productive faster by automating{" "}
-                                many of the tasks usually performed by an administrator when{" "}
-                                deploying complex software systems.
-                            </p>
                             <p className="mb-0">
-                                If the available platforms do not suit your use case,{" "}
-                                you can still provision individual machines using the{" "}
-                                <Link to={`/tenancies/${tenancy.id}/machines`}>machines panel</Link>{" "}
-                                that can be configured manually.
+                                Platforms help you become productive faster by automating{" "}
+                                the deployment of complex software systems and making them{" "}
+                                easy to access.
                             </p>
                         </Card.Body>
                         <Card.Footer className="text-center">
