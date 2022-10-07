@@ -78,7 +78,6 @@ export const TenancyMachinesPanel = ({
             createButtonComponent={CreateMachineButton}
             createButtonExtraProps={{
                 sshKey,
-                capabilities,
                 images,
                 imageActions,
                 sizes,

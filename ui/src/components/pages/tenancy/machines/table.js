@@ -37,7 +37,7 @@ const ConfirmDeleteMenuItem = ({ name, onConfirm }) => {
 
     return (
         <>
-            <DropdownItem className="text-danger" onSelect={open}>
+            <DropdownItem className="text-danger" onClick={open}>
                 Delete machine
             </DropdownItem>
             <Modal show={visible} backdrop="static" keyboard={false}>
@@ -114,13 +114,6 @@ const MachineActionsDropdown = ({
         disabled={disabled}
         className="float-end"
     >
-        <DropdownItem
-            href={machine.links.console}
-            target="_blank"
-            disabled={!machine.web_console_enabled}
-        >
-            Access web console
-        </DropdownItem>
         <AttachExternalIpMenuItem
             machine={machine}
             externalIps={externalIps}
@@ -132,7 +125,7 @@ const MachineActionsDropdown = ({
             )}
         />
         <DropdownItem
-            onSelect={() => externalIpActions.update(
+            onClick={() => externalIpActions.update(
                 machineExternalIp,
                 { machine_id: null }
             )}
@@ -145,19 +138,19 @@ const MachineActionsDropdown = ({
             machineActions={machineActions}
         />
         <DropdownItem
-            onSelect={machineActions.start}
+            onClick={machineActions.start}
             disabled={['ACTIVE', 'ERROR'].includes(machine.status.type)}
         >
             Start machine
         </DropdownItem>
         <DropdownItem
-            onSelect={machineActions.stop}
+            onClick={machineActions.stop}
             disabled={machine.status.type !== 'ACTIVE'}
         >
             Stop machine
         </DropdownItem>
         <DropdownItem
-            onSelect={machineActions.restart}
+            onClick={machineActions.restart}
             disabled={machine.status.type !== 'ACTIVE'}
         >
             Restart machine
@@ -199,7 +192,7 @@ const MachineRow = ({
         );
     return (
         <tr className={highlightClass || undefined}>
-            <td>{machine.name}</td>
+            <td className="text-wrap">{machine.name}</td>
             {/* Allow long image names to wrap */}
             <td className="text-wrap">{get(machine.image, 'name', '-')}</td>
             <td><MachineSizeLink sizes={sizes} sizeId={machine.size.id} /></td>
@@ -211,8 +204,15 @@ const MachineRow = ({
                     '-'
                 }
             </td>
-            <td>{machine.internal_ip || '-'}</td>
-            <td>{get(externalIp, 'external_ip', '-')}</td>
+            <td>
+                {machine.internal_ip || '-'}
+                {externalIp && (
+                    <>
+                        <br />
+                        {externalIp.external_ip}
+                    </>
+                )}
+            </td>
             <td>{moment(machine.created).fromNow()}</td>
             <td className="resource-actions">
                 <MachineActionsDropdown
@@ -277,8 +277,7 @@ export const MachinesTable = ({
                     <th>Status</th>
                     <th>Power State</th>
                     <th>Task</th>
-                    <th>Internal IP</th>
-                    <th>External IP</th>
+                    <th>IP Addresses</th>
                     <SortableColumnHeading field="created">Created</SortableColumnHeading>
                     <th></th>
                 </tr>

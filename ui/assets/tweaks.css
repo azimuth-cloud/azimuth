@@ -1,6 +1,9 @@
 /**
  * This file contains CSS tweaks required for the cloud portal.
  */
+:root {
+    --bs-gray-300-rgb: 237,237,237;
+}
 
 
 /* These rules make stacked modals sit nicely */
@@ -84,6 +87,129 @@
 
 
 /**
+ * Styles for the sidebar navs.
+ */
+.sidebar-container {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    width: calc(4.5em + 2px);
+    padding-left: 0;
+    padding-right: 0;
+}
+.sidebar {
+    position: relative;
+    z-index: 1000; /* Above selects, but below modals */
+    height: 100%;
+    width: calc(4.5em + 2px);
+    background-color: rgba(var(--bs-light-rgb), 0.9);
+    border-right: 1px solid var(--bs-gray-300);
+    border-width: 2px;
+    transition: width .3s ease-in-out .15s;
+    padding-left: calc(var(--bs-gutter-x) * .5);
+    padding-right: calc(var(--bs-gutter-x) * .5);
+    overflow: hidden;
+}
+.sidebar-container + * {
+    overflow: hidden; /* Required on Windows for some reason */
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    width: calc(100vw - 4.5em - 2px);
+}
+.sidebar-nav {
+    flex-direction: column;
+    padding: .75rem 0;
+}
+.sidebar-nav .nav-item {
+    margin-bottom: .25rem;
+    overflow: hidden;
+}
+.sidebar-nav .nav-item:last-child {
+    margin-bottom: 0;
+}
+.sidebar-nav .nav-link {
+    padding: .75rem;
+    white-space: nowrap;
+    overflow: hidden;
+}
+.sidebar-nav .nav-link:not(.active):hover {
+    background-color: rgba(var(--bs-gray-300-rgb), 0.7);
+}
+.sidebar-nav .nav-link-text {
+    margin-left: -9999999px;
+    transition: margin-left 0s step-end .15s;
+}
+.sidebar-nav .svg-inline--fa {
+    font-size: 1.2em;
+    vertical-align: -0.175em;
+    transition: margin-right 0s step-end .15s;
+}
+.sidebar-nav .nav-link.nav-toggle {
+    display: flex;
+    align-items: center;
+}
+.sidebar-nav .nav-link.nav-link.nav-toggle .nav-link-text {
+    flex-grow: 1;
+}
+.sidebar-nav .nav-link.nav-toggle::after {
+    opacity: 0;
+    content: "";
+    border-right: 0.3em solid transparent;
+    border-left: 0.3em solid transparent;
+    transition: opacity 0s step-end .15s;
+}
+.sidebar-nav .nav-link.nav-toggle.toggle-show::after {
+    border-top: 0.3em solid;
+    border-bottom: 0;
+}
+.sidebar-nav .nav-link.nav-toggle.toggle-hide::after {
+    border-top: 0;
+    border-bottom: 0.3em solid;
+}
+@media (max-width: 1799px) {
+    .sidebar:hover, .sidebar.expanded {
+        width: 280px;
+    }
+    .sidebar:hover .sidebar-nav .nav-link-text,
+    .sidebar.expanded .sidebar-nav .nav-link-text {
+        margin-left: 0;
+    }
+    .sidebar:hover .sidebar-nav .svg-inline--fa,
+    .sidebar.expanded .sidebar-nav .svg-inline--fa {
+        margin-right: 1rem;
+    }
+    .sidebar:hover .sidebar-nav .nav-link.nav-toggle::after,
+    .sidebar.expanded .sidebar-nav .nav-link.nav-toggle::after {
+        opacity: 1;
+    }
+    .sidebar:hover .sidebar-nav .nav-item-nested .nav-link-text,
+    .sidebar.expanded .sidebar-nav .nav-item-nested .nav-link-text {
+        margin-left: 1rem;
+    }
+}
+@media (min-width: 1800px) {
+    .sidebar-container, .sidebar {
+        width: 280px;
+    }
+    .sidebar-container + * {
+        width: calc(100vw - 280px);
+    }
+    .sidebar-nav .nav-link-text {
+        margin-left: 0;
+    }
+    .sidebar-nav .svg-inline--fa {
+        margin-right: 1rem;
+    }
+    .sidebar-nav .nav-link.nav-toggle::after {
+        opacity: 1;
+    }
+    .sidebar-nav .nav-item-nested .nav-link-text {
+        margin-left: 1rem;
+    }
+}
+
+
+/**
  * Styles for the notifications container.
  */
 .notifications-container {
@@ -148,6 +274,18 @@
 .platform-type-select-card {
     height: 100%;
 }
+.platform-card-wrapper, .platform-type-select-card-wrapper {
+    flex: 0 0 auto;
+    width: 100%;
+}
+@media (min-width: 576px) {
+    .platform-card-wrapper {
+        width: 350px;
+    }
+    .platform-type-select-card-wrapper {
+        width: 270px;
+    }
+}
 .platform-card > img, .platform-type-select-card > img {
     padding: 0.5rem 1rem;
     max-height: 120px;
@@ -175,6 +313,9 @@
 .platform-card .card-header, .platform-card .card-footer {
     text-align: right;
 }
+.create-platform-card {
+    max-width: 600px;
+}
 
 
 /**
@@ -197,6 +338,27 @@
 }
 .platform-type-card .card-title {
     border-bottom: 1px solid var(--bs-gray-300) !important;
+}
+
+
+/**
+ * Custom styles for quota cards.
+ */
+.quota-card-wrapper {
+    flex: 0 0 auto;
+    width: 100%;
+}
+@media (min-width: 576px) {
+    .quota-card-wrapper {
+        width: 250px;
+    }
+}
+.CircularProgressbar-text {
+    fill: var(--bs-body-color) !important;
+}
+.quota-no-limit .CircularProgressbar-text {
+    font-size: 14px !important;
+    opacity: 0.4;
 }
 
 
@@ -264,7 +426,6 @@
     flex: 1;
 }
 .sticky-footer {
-    margin-top: 1.5rem;
     background-color: rgba(var(--bs-light-rgb),var(--bs-bg-opacity));
     padding: 1rem 2rem;
     border-top: 2px solid var(--bs-gray-300);

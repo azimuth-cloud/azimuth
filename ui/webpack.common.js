@@ -1,3 +1,4 @@
+const webpack = require('webpack');
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const AddAssetHtmlPlugin = require('add-asset-html-webpack-plugin');
@@ -30,7 +31,7 @@ module.exports = {
             },
             {
                 test: /\.css$/i,
-                use: ["css-loader"]
+                use: ["style-loader", "css-loader"]
             },
             {
                 test: /\.(png|svg|jpg|jpeg|gif)$/i,
@@ -39,6 +40,12 @@ module.exports = {
         ]
     },
     plugins: [
+        // Work around for Buffer is undefined
+        // https://github.com/webpack/changelog-v5/issues/10
+        // Required for sshpk
+        new webpack.ProvidePlugin({
+            Buffer: ['buffer', 'Buffer'],
+        }),
         new HtmlWebpackPlugin({
             title: 'Cloud Portal',
             template: 'assets/index.template.html',
@@ -66,5 +73,14 @@ module.exports = {
                 includeSourcemap: false
             }
         ])
-    ]
+    ],
+    resolve: {
+        fallback: {
+            assert: require.resolve('assert'),
+            buffer: require.resolve('buffer'),
+            crypto: require.resolve('crypto-browserify'),
+            process: require.resolve('process/browser'),
+            stream: require.resolve('stream-browserify'),
+        }
+    }
 };

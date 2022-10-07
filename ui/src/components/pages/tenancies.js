@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import Alert from 'react-bootstrap/Alert';
 import Card from 'react-bootstrap/Card';
 import Col from 'react-bootstrap/Col';
+import Container from 'react-bootstrap/Container';
 import ListGroup from 'react-bootstrap/ListGroup';
 import Row from 'react-bootstrap/Row';
 
@@ -20,10 +21,10 @@ export const TenanciesPage = ({ tenancies: { fetching, data: tenancies }}) => {
     // Sort the tenancies by name before rendering
     const sortedTenancies = sortBy(Object.values(tenancies || {}), t => t.name);
     return (
-        <>
+        <Container fluid className="py-3">
             {showHint && (
                 <Row>
-                    <Col md={{ span: 8, offset: 2 }}>
+                    <Col xxl={{ span: 8, offset: 2 }} lg={{ span: 10, offset: 1 }}>
                         <Alert variant="primary" dismissible onClose={dismissHint}>
                             <Alert.Heading>Welcome!</Alert.Heading>
                             <p>Please pick the tenancy you want to work in.</p>
@@ -42,7 +43,7 @@ export const TenanciesPage = ({ tenancies: { fetching, data: tenancies }}) => {
                 </Row>
             )}
             <Row>
-                <Col md={{ span: 6, offset: 3 }}>
+                <Col xxl={{ span: 4, offset: 4 }} lg={{ span: 6, offset: 3 }} md={{ span: 8, offset: 2 }}>
                     <Card className="mb-3">
                         <Card.Header as="h5" className="py-3">Pick a tenancy</Card.Header>
                         {sortedTenancies.length > 0 ? (
@@ -70,6 +71,6 @@ export const TenanciesPage = ({ tenancies: { fetching, data: tenancies }}) => {
                     </Card>
                 </Col>
             </Row>
-        </>
+        </Container>
     );
 };

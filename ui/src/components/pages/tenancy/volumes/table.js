@@ -29,7 +29,7 @@ const ConfirmDeleteMenuItem = ({ name, disabled, onConfirm }) => {
             <DropdownItem
                 className={disabled ? undefined : "text-danger"}
                 disabled={disabled}
-                onSelect={open}
+                onClick={open}
             >
                 Delete volume
             </DropdownItem>
@@ -100,7 +100,7 @@ const VolumeActionsDropdown = ({
         />
         <DropdownItem
             disabled={!volume.machine}
-            onSelect={() => volumeActions.update({ machine_id: null })}
+            onClick={() => volumeActions.update({ machine_id: null })}
         >
             Detach volume from machine
         </DropdownItem>
@@ -129,10 +129,10 @@ const VolumeRow = ({ volume, volumeActions, machines, machineActions }) => {
     const attachedTo = get(machines, ['data', get(volume.machine, 'id')]);
     return (
         <tr className={highlightClass || undefined}>
-            <td>{volume.name}</td>
+            <td className="text-wrap">{volume.name}</td>
             <td><VolumeStatus status={volume.status} /></td>
             <td>{formatSize(volume.size, "GB")}</td>
-            <td>
+            <td className="text-wrap">
                 {attachedTo ? (
                     `Attached to ${get(attachedTo, 'name') || '-'} on ${volume.device}`
                 ) : (

@@ -33,7 +33,7 @@ export const AttachVolumeMenuItem = ({ volume, machines, machineActions, attach 
 
     return (
         <>
-            <DropdownItem onSelect={open} disabled={!!volume.machine}>
+            <DropdownItem onClick={open} disabled={!!volume.machine}>
                 Attach volume to machine
             </DropdownItem>
             <Modal

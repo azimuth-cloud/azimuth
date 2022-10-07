@@ -70,10 +70,10 @@ const PlatformTypeForm = ({ platformTypes, selected, onSelect, goNext }) => {
     return (
         <>
             <Modal.Body>
-                <Row xs={1} sm={2} lg={3} xl={4} className="justify-content-center g-3">
+                <Row className="justify-content-center g-3">
                     {sortedPlatformTypes.length > 0 ? (
                         sortedPlatformTypes.map(pt => (
-                            <Col key={pt.id}>
+                            <Col key={pt.id} className="platform-type-select-card-wrapper">
                                 <PlatformTypeSelectCard
                                     platformType={pt}
                                     selected={pt.id === selected}
@@ -390,8 +390,13 @@ const CreatePlatformModal = ({
 };
 
 
-export const CreatePlatformButton = ({ disabled, creating, ...props }) => {
-    const [visible, setVisible] = useState(false);
+export const CreatePlatformButton = ({
+    visible,
+    setVisible,
+    disabled,
+    creating,
+    ...props
+}) => {
     const open = () => setVisible(true);
     const close = () => setVisible(false);
     return (

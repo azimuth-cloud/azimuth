@@ -38,7 +38,7 @@ export const AttachExternalIpMenuItem = ({
         .filter(ip => !ip.updating && !ip.machine);
     return (
         <>
-            <DropdownItem onSelect={open} disabled={disabled}>
+            <DropdownItem onClick={open} disabled={disabled}>
                 Attach external IP
             </DropdownItem>
             <Modal

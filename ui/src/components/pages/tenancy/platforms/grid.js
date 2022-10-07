@@ -1,7 +1,14 @@
 import React from 'react';
 
+import Button from 'react-bootstrap/Button';
+import Card from 'react-bootstrap/Card';
 import Col from 'react-bootstrap/Col';
 import Row from 'react-bootstrap/Row';
+
+import { Link } from "react-router-dom";
+
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPlus } from '@fortawesome/free-solid-svg-icons';
 
 import { bindArgsToActions, sortBy, Error } from '../../../utils';
 
@@ -43,6 +50,8 @@ const PlatformCard = ({ platform, tenancy, tenancyActions, ...props }) => {
 
 
 export const PlatformsGrid = ({
+    showCreateModal,
+    creating,
     platforms,
     tenancy,
     tenancyActions
@@ -50,9 +59,9 @@ export const PlatformsGrid = ({
     const sortedPlatforms = sortBy(Object.values(platforms), p => p.name);
     if( sortedPlatforms.length > 0 ) {
         return (
-            <Row xs={1} md={2} lg={3} xl={4} className="g-3">
+            <Row className="g-3">
                 {sortedPlatforms.map(platform => (
-                    <Col key={platform.id}>
+                    <Col key={platform.id} className="platform-card-wrapper">
                         <PlatformCard
                             platform={platform}
                             tenancy={tenancy}
@@ -65,9 +74,35 @@ export const PlatformsGrid = ({
     }
     else {
         return (
-            <Row>
-                <Col className="text-center text-muted py-5">
-                    No platforms have been created yet.
+            <Row className="justify-content-center">
+                <Col xs="auto py-5">
+                    <Card className="create-platform-card">
+                        <Card.Header as="h5" className="py-3">
+                            Create a platform
+                        </Card.Header>
+                        <Card.Body>
+                            <p>Create the first platform in this tenancy!</p>
+                            <p className="mb-0">
+                                Platforms help you become productive faster by automating{" "}
+                                the deployment of complex software systems and making them{" "}
+                                easy to access.
+                            </p>
+                        </Card.Body>
+                        <Card.Footer className="text-center">
+                            <Button
+                                size="lg"
+                                variant="success"
+                                disabled={creating}
+                                onClick={showCreateModal}
+                            >
+                                <FontAwesomeIcon
+                                    icon={faPlus}
+                                    className="me-2"
+                                />
+                                Create a platform
+                            </Button>
+                        </Card.Footer>
+                    </Card>
                 </Col>
             </Row>
         );

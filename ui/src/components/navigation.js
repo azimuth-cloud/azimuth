@@ -2,7 +2,7 @@
  * This module provides the navigation component.
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 
 import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
@@ -17,35 +17,11 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faBook,
     faCloud,
+    faSignOutAlt,
     faTachometerAlt,
-    faUser
 } from '@fortawesome/free-solid-svg-icons';
 
 import { sortBy, Loading } from './utils';
-import { SSHKeyUpdateModal } from './ssh-key-update-modal';
-
-
-const SSHKeyUpdateMenuItem = ({ sshKey, sshKeyActions }) => {
-    const [visible, setVisible] = useState(false);
-    const open = () => setVisible(true);
-    const close = () => setVisible(false);
-    return (
-        <>
-            <NavDropdown.Item onSelect={open} disabled={!sshKey.initialised}>
-                SSH public key
-            </NavDropdown.Item>
-            <SSHKeyUpdateModal
-                show={visible}
-                // In this case, we just want to close the modal whether
-                // it is a cancel or a successful submission
-                onSuccess={close}
-                onCancel={close}
-                sshKey={sshKey}
-                sshKeyActions={sshKeyActions}
-            />
-        </>
-    );
-};
 
 
 export const Navigation = ({
@@ -55,8 +31,6 @@ export const Navigation = ({
     clouds,
     currentCloud: currentCloudName,
     tenancies,
-    sshKey,
-    sshKeyActions,
     links
 }) => {
     const currentCloud = get(clouds, currentCloudName);
@@ -71,8 +45,8 @@ export const Navigation = ({
         tenancy => tenancy.name
     );
     return (
-        <Navbar bg="dark" variant="dark" className="mb-3" expand="lg">
-            <Container>
+        <Navbar bg="dark" variant="dark" expand="lg">
+            <Container fluid>
                 <LinkContainer to="/">
                     <Navbar.Brand>
                         {currentCloud ?
@@ -116,22 +90,10 @@ export const Navigation = ({
                             </Nav.Link>
                         )}
                         {username ? (
-                            <NavDropdown
-                                title={(
-                                    <>
-                                        <FontAwesomeIcon icon={faUser} className="me-2" />
-                                        {username}
-                                    </>
-                                )}
-                            >
-                                <SSHKeyUpdateMenuItem
-                                    sshKey={sshKey}
-                                    sshKeyActions={sshKeyActions}
-                                />
-                                <NavDropdown.Item href={`/auth/logout/?next=/`}>
-                                    Sign out
-                                </NavDropdown.Item>
-                            </NavDropdown>
+                            <Nav.Link href={`/auth/logout/?next=/`} active={false}>
+                                <FontAwesomeIcon icon={faSignOutAlt} className="me-2" />
+                                Sign out ({username})
+                            </Nav.Link>
                         ) : (
                             initialising ? (
                                 <Navbar.Text><Loading message="Loading..." /></Navbar.Text>

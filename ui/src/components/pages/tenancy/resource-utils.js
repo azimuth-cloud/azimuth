@@ -50,7 +50,7 @@ export const ResourcePanel = ({
     const notFound = get(resource.fetchError, 'statusCode') === StatusCodes.NOT_FOUND;
     return (
         <>
-            <Row className="justify-content-end mb-2">
+            <Row className="justify-content-end mb-3">
                 <Col xs="auto">
                     <ButtonGroup>
                         {CreateButtonComponent && (
@@ -227,28 +227,8 @@ const ResourceSelectControl = ({
 };
 
 
-export const ImageSelectControl = ({
-    // Indicates whether the web console label should be shown for images
-    showWebConsoleLabel = true,
-    // Indicates whether images that don't support the web console should be disabled
-    disableWebConsoleNotSupported = false,
-    ...props
-}) => (
-    <ResourceSelectControl
-        resourceName="image"
-        // Show the web console badge if requested
-        formatOptionLabel={(opt) => (
-            <>
-                {opt.name}
-                {showWebConsoleLabel && opt.web_console_supported && (
-                    <Badge className="ms-3" bg="primary">web console</Badge>
-                )}
-            </>
-        )}
-        // Disable images where the web console is not supported, if requested
-        isOptionDisabled={(opt) => disableWebConsoleNotSupported && !opt.web_console_supported}
-        {...props}
-    />
+export const ImageSelectControl = (props) => (
+    <ResourceSelectControl resourceName="image" {...props} />
 );
 
 
