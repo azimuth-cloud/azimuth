@@ -41,8 +41,6 @@ class Zenith:
     #: Indicates whether SSL should be verified by clients when associating keys with the
     #: registrar using the external endpoint
     verify_ssl_clients: bool
-    #: The URL for the console script
-    console_script_url: str
 
     def service_is_ready(self, fqdn: str, readiness_path: str = "/") -> t.Optional[str]:
         """
@@ -73,13 +71,3 @@ class Zenith:
             response_data["fqdn"],
             response_data["token"]
         )
-
-    def web_console_userdata(self) -> str:
-        """
-        Returns a userdata string that installs the web console on a machine.
-        """
-        return "\n".join([
-            "#!/usr/bin/env bash",
-            "set -eo pipefail",
-            "curl -fsSL {} | bash -s console".format(self.console_script_url)
-        ])

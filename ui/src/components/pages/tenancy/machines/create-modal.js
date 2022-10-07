@@ -28,45 +28,21 @@ const CreateMachineModal = ({
     imageActions,
     sizes,
     sizeActions,
-    sshKey,
-    capabilities,
     ...props
 }) => {
     // Use state to store the values as set by the user
     const [name, setName] = useState('');
-    const [image, setImage_] = useState('');
+    const [image, setImage] = useState('');
     const [size, setSize] = useState('');
-    const [webConsoleSupported, setWebConsoleSupported_] = useState(false);
-    const [webConsoleEnabled, setWebConsoleEnabled_] = useState(false);
-    const [desktopEnabled, setDesktopEnabled] = useState(false);
-    const setImage = imageId => {
-        setImage_(imageId);
-        setWebConsoleSupported(get(images.data, [imageId, "web_console_supported"], false));
-    };
-    const setWebConsoleSupported = supported_ => {
-        const supported = capabilities.supports_apps && supported_;
-        setWebConsoleSupported_(supported);
-        setWebConsoleEnabled(supported && webConsoleEnabled);
-    };
-    const setWebConsoleEnabled = enabled_ => {
-        const enabled = enabled_ || !sshKey.ssh_public_key
-        setWebConsoleEnabled_(enabled);
-        setDesktopEnabled(enabled && desktopEnabled);
-    };
     const reset = () => {
         setName('');
-        setImage_('');
+        setImage('');
         setSize('');
-        setWebConsoleSupported_(false);
-        setWebConsoleEnabled_(false);
-        setDesktopEnabled(false);
     };
 
     // When the modal is closed, reset the data before calling the cancel handler
     const handleClose = () => { reset(); onCancel(); };
     const setNameFromEvent = (evt) => setName(evt.target.value);
-    const setWebConsoleEnabledFromEvent = evt => setWebConsoleEnabled(evt.target.checked);
-    const setDesktopEnabledFromEvent = evt => setDesktopEnabled(evt.target.checked);
 
     // On form submission, initiate the machine create before closing
     const handleSubmit = (evt) => {
@@ -75,8 +51,6 @@ const CreateMachineModal = ({
             name,
             image_id: image,
             size_id: size,
-            web_console_enabled: webConsoleEnabled,
-            desktop_enabled: desktopEnabled
         });
         reset();
         onSuccess();
@@ -114,10 +88,6 @@ const CreateMachineModal = ({
                             required
                             value={image}
                             onChange={setImage}
-                            showWebConsoleLabel={capabilities.supports_apps}
-                            // When the user doesn't have an SSH key, they can only select images
-                            // that support the web console
-                            disableWebConsoleNotSupported={!sshKey.ssh_public_key}
                         />
                     </Field>
                     <Field name="size" label="Size">
@@ -129,55 +99,6 @@ const CreateMachineModal = ({
                             onChange={setSize}
                         />
                     </Field>
-                    {capabilities.supports_apps && (<>
-                        <Field
-                            name="web_console_enabled"
-                            helpText={
-                                <>
-                                    {image && !webConsoleSupported && (
-                                        <p className="mb-1 text-warning">
-                                            <strong>
-                                                The selected image does not support the web console.
-                                            </strong>
-                                        </p>
-                                    )}
-                                    {webConsoleEnabled && !sshKey.ssh_public_key && (
-                                        <p className="mb-1 text-warning">
-                                            <strong>
-                                                This option has been automatically selected because
-                                                you do not have an SSH public key configured.
-                                            </strong>
-                                        </p>
-                                    )}
-                                    <p className="mb-0">
-                                        Installs{" "}
-                                        <a href="https://guacamole.apache.org/" target="_blank">
-                                            Apache Guacamole
-                                        </a>{" "}
-                                        to provide access to the machine via a web browser.
-                                    </p>
-                                </>
-                            }
-                        >
-                            <BSForm.Check
-                                disabled={!webConsoleSupported || !sshKey.ssh_public_key}
-                                label="Enable web console?"
-                                checked={webConsoleEnabled}
-                                onChange={setWebConsoleEnabledFromEvent}
-                            />
-                        </Field>
-                        <Field
-                            name="desktop_enabled"
-                            helpText="WARNING: The remote desktop can take a long time to install and configure."
-                        >
-                            <BSForm.Check
-                                label="Enable remote desktop for web console?"
-                                disabled={!webConsoleEnabled}
-                                checked={desktopEnabled}
-                                onChange={setDesktopEnabledFromEvent}
-                            />
-                        </Field>
-                    </>)}
                 </Modal.Body>
                 <Modal.Footer>
                     <Button variant="success" type="submit">
@@ -191,7 +112,7 @@ const CreateMachineModal = ({
 };
 
 
-export const CreateMachineButton = ({ sshKey, capabilities, disabled, creating, ...props }) => {
+export const CreateMachineButton = ({ sshKey, disabled, creating, ...props }) => {
     const [visible, setVisible] = useState(false);
     const open = () => setVisible(true);
     const close = () => setVisible(false);
@@ -210,31 +131,17 @@ export const CreateMachineButton = ({ sshKey, capabilities, disabled, creating, 
                 />
                 {creating ? 'Creating machine...' : 'New machine'}
             </Button>
-            {capabilities.supports_apps ? (
+            <ConnectedSSHKeyRequiredModal
+                show={visible}
+                onSuccess={close}
+                onCancel={close}
+                warningText="Before creating a machine, you must set an SSH public key."
+            >
                 <CreateMachineModal
-                    show={visible}
-                    onSuccess={close}
-                    onCancel={close}
                     creating={creating}
-                    sshKey={sshKey}
-                    capabilities={capabilities}
                     {...props}
                 />
-            ) : (
-                <ConnectedSSHKeyRequiredModal
-                    show={visible}
-                    onSuccess={close}
-                    onCancel={close}
-                    warningText="Before creating a machine, you must set an SSH public key."
-                >
-                    <CreateMachineModal
-                        creating={creating}
-                        sshKey={sshKey}
-                        capabilities={capabilities}
-                        {...props}
-                    />
-                </ConnectedSSHKeyRequiredModal>
-            )}
+            </ConnectedSSHKeyRequiredModal>
         </>
     );
 };

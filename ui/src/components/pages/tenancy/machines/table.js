@@ -114,13 +114,6 @@ const MachineActionsDropdown = ({
         disabled={disabled}
         className="float-end"
     >
-        <DropdownItem
-            href={machine.links.console}
-            target="_blank"
-            disabled={!machine.web_console_enabled}
-        >
-            Access web console
-        </DropdownItem>
         <AttachExternalIpMenuItem
             machine={machine}
             externalIps={externalIps}

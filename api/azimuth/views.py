@@ -574,71 +574,17 @@ def machines(request, tenant):
     if request.method == "POST":
         input_serializer = serializers.CreateMachineSerializer(data = request.data)
         input_serializer.is_valid(raise_exception = True)
-        # Start building the parameters for the machine
-        params = dict(
-            name = input_serializer.validated_data["name"],
-            image = input_serializer.validated_data["image_id"],
-            size = input_serializer.validated_data["size_id"]
-        )
-        # The web console is not permitted if there is no app proxy
-        web_console_enabled = input_serializer.validated_data["web_console_enabled"]
-        if web_console_enabled and not cloud_settings.APPS:
-            return response.Response(
-                {
-                    "detail": "Web console is not available.",
-                    "code": "invalid_operation"
-                },
-                status = status.HTTP_409_CONFLICT
-            )
-        # If an SSH key is available, add it to the params
-        try:
-            params.update(
+        with request.auth.scoped_session(tenant) as session:
+            machine = session.create_machine(
+                name = input_serializer.validated_data["name"],
+                image = input_serializer.validated_data["image_id"],
+                size = input_serializer.validated_data["size_id"],
                 ssh_key = cloud_settings.SSH_KEY_STORE.get_key(
                     request.user.username,
                     request = request,
                     unscoped_session = request.auth,
                 )
             )
-        except keystore_errors.KeyNotFound:
-            # An SSH key is required unless the web console is enabled
-            if not web_console_enabled:
-                raise
-        with request.auth.scoped_session(tenant) as session:
-            # If the web console is enabled, use the machine metadata and userdata to configure it
-            if web_console_enabled:
-                # Check if the selected image supports the web console
-                image = session.find_image(params["image"])
-                if image.metadata.get("web_console_supported", "0") != "1":
-                    return response.Response(
-                        {
-                            "detail": "Web console is not supported for selected image.",
-                            "code": "invalid_operation"
-                        },
-                        status = status.HTTP_409_CONFLICT
-                    )
-                # Reserve a subdomain with the Zenith registrar
-                reservation = cloud_settings.APPS.reserve_subdomain()
-                desktop_enabled = input_serializer.validated_data["desktop_enabled"]
-                params.update(
-                    metadata = dict(
-                        web_console_enabled = 1,
-                        desktop_enabled = 1 if desktop_enabled else 0,
-                        cloud_name = cloud_settings.CURRENT_CLOUD,
-                        apps_registrar_url = cloud_settings.APPS.registrar_external_url,
-                        # Pass the token from the registrar reservation
-                        apps_registrar_token = reservation.token,
-                        # Also indicate whether SSL should be verified for the registrar
-                        apps_registrar_verify_ssl = cloud_settings.APPS.verify_ssl_clients,
-                        apps_sshd_host = cloud_settings.APPS.sshd_host,
-                        apps_sshd_port = cloud_settings.APPS.sshd_port,
-                        # Store the subdomain and FQDN in the metadata so that we can retrieve
-                        # it later, even though the client does not need it
-                        apps_console_subdomain = reservation.subdomain,
-                        apps_console_fqdn = reservation.fqdn
-                    ),
-                    userdata = cloud_settings.APPS.web_console_userdata()
-                )
-            machine = session.create_machine(**params)
         output_serializer = serializers.MachineSerializer(
             machine,
             context = { "request": request, "tenant": tenant }
@@ -783,33 +729,6 @@ def machine_restart(request, tenant, machine):
             context = { "request": request, "tenant": tenant }
         )
     return response.Response(serializer.data)
-
-
-@redirect_to_signin
-@provider_api_view(["GET"])
-def machine_console(request, tenant, machine):
-    """
-    Redirects the user to the web console for the specified machine.
-    """
-    console_fqdn = None
-    try:
-        # Make sure that the user has permission to access the machine
-        with request.auth.scoped_session(tenant) as session:
-            machine = session.find_machine(machine)
-        # Check if the machine has the web console enabled
-        # If not, render an error page
-        if machine.metadata.get("web_console_enabled", "0") == "1":
-            # The subdomain is in the metadata of the machine
-            console_fqdn = machine.metadata["apps_console_fqdn"]
-    except provider_errors.ObjectNotFoundError:
-        pass
-    return redirect_to_zenith_service(
-        request,
-        "web-console",
-        "web-console",
-        console_fqdn,
-        readiness_path = "/_ready"
-    )
 
 
 @provider_api_view(["GET", "POST"])
