@@ -59,7 +59,7 @@ export const PlatformsGrid = ({
     const sortedPlatforms = sortBy(Object.values(platforms), p => p.name);
     if( sortedPlatforms.length > 0 ) {
         return (
-            <Row className="g-3 justify-content-center">
+            <Row className="g-3">
                 {sortedPlatforms.map(platform => (
                     <Col key={platform.id} className="platform-card-wrapper">
                         <PlatformCard

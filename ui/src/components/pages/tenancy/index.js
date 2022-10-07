@@ -84,21 +84,6 @@ const TenancyNav = ({
 
     return (
         <>
-            <Nav as="ul" className="sidebar-nav border-bottom">
-                <Nav.Item as="li">
-                    <LinkContainer to={`/tenancies`}>
-                        <Nav.Link title="Switch tenancy">
-                            <FontAwesomeIcon
-                                icon={faSignOutAlt}
-                                transform={{ rotate: 180 }}
-                                fixedWidth
-                            />
-                            <span className="nav-link-text">Switch tenancy</span>
-                        </Nav.Link>
-                    </LinkContainer>
-                </Nav.Item>
-                <SSHKeyUpdateNavLink sshKey={sshKey} sshKeyActions={sshKeyActions} />
-            </Nav>
             <Nav as="ul" variant="pills" className="sidebar-nav">
                 {supportsPlatforms && (
                     <Nav.Item as="li">
@@ -185,6 +170,21 @@ const TenancyNav = ({
                     </>
                 )}
             </Nav>
+            <Nav as="ul" className="sidebar-nav border-top border-2">
+                <Nav.Item as="li">
+                    <LinkContainer to={`/tenancies`}>
+                        <Nav.Link title="Switch tenancy">
+                            <FontAwesomeIcon
+                                icon={faSignOutAlt}
+                                transform={{ rotate: 180 }}
+                                fixedWidth
+                            />
+                            <span className="nav-link-text">Switch tenancy</span>
+                        </Nav.Link>
+                    </LinkContainer>
+                </Nav.Item>
+                <SSHKeyUpdateNavLink sshKey={sshKey} sshKeyActions={sshKeyActions} />
+            </Nav>
         </>
     );
 };
@@ -243,7 +243,7 @@ export const TenancyResourcePage = ({
                     </div>
                 </div>
                 <Col>
-                    <h1 className="border-bottom pb-1 mb-4">
+                    <h1 className="border-bottom border-2 pb-1 mb-4">
                         <code>{currentTenancy.name}</code>
                     </h1>
                     <PanelComponent

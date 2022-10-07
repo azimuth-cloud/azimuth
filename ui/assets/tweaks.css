@@ -1,6 +1,9 @@
 /**
  * This file contains CSS tweaks required for the cloud portal.
  */
+:root {
+    --bs-gray-300-rgb: 237,237,237;
+}
 
 
 /* These rules make stacked modals sit nicely */
@@ -99,7 +102,7 @@
     z-index: 1000; /* Above selects, but below modals */
     height: 100%;
     width: calc(4.5em + 2px);
-    background-color: rgba(var(--bs-light-rgb), 1);
+    background-color: rgba(var(--bs-light-rgb), 0.9);
     border-right: 1px solid var(--bs-gray-300);
     border-width: 2px;
     transition: width .3s ease-in-out .15s;
@@ -108,6 +111,7 @@
     overflow: hidden;
 }
 .sidebar-container + * {
+    overflow: hidden; /* Required on Windows for some reason */
     padding-top: 1rem;
     padding-bottom: 1rem;
     width: calc(100vw - 4.5em - 2px);
@@ -129,7 +133,7 @@
     overflow: hidden;
 }
 .sidebar-nav .nav-link:not(.active):hover {
-    background-color: var(--bs-gray-300);
+    background-color: rgba(var(--bs-gray-300-rgb), 0.7);
 }
 .sidebar-nav .nav-link-text {
     margin-left: -9999999px;
@@ -164,7 +168,7 @@
 }
 @media (max-width: 1799px) {
     .sidebar:hover {
-        width: 350px;
+        width: 280px;
     }
     .sidebar:hover .sidebar-nav .nav-link-text {
         margin-left: 0;
@@ -181,10 +185,10 @@
 }
 @media (min-width: 1800px) {
     .sidebar-container, .sidebar {
-        width: 350px;
+        width: 280px;
     }
     .sidebar-container + * {
-        width: calc(100vw - 350px);
+        width: calc(100vw - 280px);
     }
     .sidebar-nav .nav-link-text {
         margin-left: 0;

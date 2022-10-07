@@ -204,8 +204,15 @@ const MachineRow = ({
                     '-'
                 }
             </td>
-            <td>{machine.internal_ip || '-'}</td>
-            <td>{get(externalIp, 'external_ip', '-')}</td>
+            <td>
+                {machine.internal_ip || '-'}
+                {externalIp && (
+                    <>
+                        <br />
+                        {externalIp.external_ip}
+                    </>
+                )}
+            </td>
             <td>{moment(machine.created).fromNow()}</td>
             <td className="resource-actions">
                 <MachineActionsDropdown
@@ -270,8 +277,7 @@ export const MachinesTable = ({
                     <th>Status</th>
                     <th>Power State</th>
                     <th>Task</th>
-                    <th>Internal IP</th>
-                    <th>External IP</th>
+                    <th>IP Addresses</th>
                     <SortableColumnHeading field="created">Created</SortableColumnHeading>
                     <th></th>
                 </tr>
