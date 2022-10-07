@@ -139,7 +139,7 @@ export const TenancyPlatformsPanel = ({
     // If the resource failed to load because it was not found, disable the refresh button
     return (
         <>
-            <Row className="justify-content-end mb-2">
+            <Row className="justify-content-end mb-3">
                 <Col xs="auto">
                     <ButtonGroup>
                         <CreatePlatformButton

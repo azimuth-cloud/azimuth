@@ -50,7 +50,7 @@ export const ResourcePanel = ({
     const notFound = get(resource.fetchError, 'statusCode') === StatusCodes.NOT_FOUND;
     return (
         <>
-            <Row className="justify-content-end mb-2">
+            <Row className="justify-content-end mb-3">
                 <Col xs="auto">
                     <ButtonGroup>
                         {CreateButtonComponent && (
