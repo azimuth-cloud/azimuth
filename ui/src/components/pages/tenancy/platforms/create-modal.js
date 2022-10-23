@@ -182,6 +182,10 @@ const KubernetesAppConfigurationForm = ({
     kubernetesAppActions,
     kubernetesClusters,
     kubernetesClusterActions,
+    kubernetesClusterTemplates,
+    kubernetesClusterTemplateActions,
+    sizes,
+    sizeActions
 }) => {
     const [formState, _] = useKubernetesAppFormState(undefined);
     return (
@@ -199,6 +203,10 @@ const KubernetesAppConfigurationForm = ({
             }}
             kubernetesClusters={kubernetesClusters}
             kubernetesClusterActions={kubernetesClusterActions}
+            kubernetesClusterTemplates={kubernetesClusterTemplates}
+            kubernetesClusterTemplateActions={kubernetesClusterTemplateActions}
+            sizes={sizes}
+            sizeActions={sizeActions}
         />
     );
 };
@@ -250,6 +258,10 @@ const PlatformConfigurationForm = ({
                         kubernetesAppActions={tenancyActions.kubernetesApp}
                         kubernetesClusters={tenancy.kubernetesClusters}
                         kubernetesClusterActions={tenancyActions.kubernetesCluster}
+                        kubernetesClusterTemplates={tenancy.kubernetesClusterTemplates}
+                        kubernetesClusterTemplateActions={tenancyActions.kubernetesClusterTemplate}
+                        sizes={tenancy.sizes}
+                        sizeActions={tenancyActions.size}
                     />
                 )}
             </Modal.Body>

@@ -526,8 +526,8 @@ class Session:
                     .get("addons.stackhpc.com/last-handled-configuration", "{}")
             )
             last_handled_spec = last_handled_configuration.get("spec")
-            if helm_release.spec != last_handled_spec:
-                app_state = "Upgrading" if last_handled_spec else "Installing"
+            if last_handled_spec and helm_release.spec != last_handled_spec:
+                app_state = "Upgrading"
         services_annotation = (
             helm_release
                 .metadata

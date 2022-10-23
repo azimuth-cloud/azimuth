@@ -1,21 +1,90 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import Button from 'react-bootstrap/Button';
 import Col from 'react-bootstrap/Col';
 import BSForm from 'react-bootstrap/Form';
+import InputGroup from 'react-bootstrap/InputGroup';
 import Modal from 'react-bootstrap/Modal';
 import Row from 'react-bootstrap/Row';
 
 import get from 'lodash/get';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSave } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faSave, faSyncAlt } from '@fortawesome/free-solid-svg-icons';
 
 import { Field, Form } from '../../../../utils';
 
 import { KubernetesClusterSelectControl } from '../../resource-utils';
 
 import { PlatformTypeCard } from '../utils';
+
+import { KubernetesClusterModalForm } from '../kubernetes/form';
+
+
+const KubernetesClusterSelectControlWithCreate = ({
+    kubernetesClusterTemplates,
+    kubernetesClusterTemplateActions,
+    sizes,
+    sizeActions,
+    ...props
+}) => {
+    const [modalVisible, setModalVisible] = useState(false);
+    const showModal = () => setModalVisible(true);
+    const hideModal = () => setModalVisible(false);
+
+    const [createdClusterName, setCreatedClusterName] = useState("");
+    const createdCluster = createdClusterName ?
+        Object.values(props.resource.data).find(c => c.name == createdClusterName) :
+        null;
+
+    const handleSubmit = data => {
+        props.resourceActions.create(data);
+        setCreatedClusterName(data.name);
+        hideModal();
+    };
+
+    useEffect(
+        () => {
+            if( createdCluster ) {
+                props.onChange(createdCluster.id);
+                setCreatedClusterName("");
+            }
+        },
+        [createdCluster]
+    )
+
+    return (
+        <>
+            <InputGroup className={props.isInvalid ? "is-invalid" : undefined}>
+                <KubernetesClusterSelectControl
+                    {...props}
+                    disabled={props.disabled || props.resource.creating}
+                />
+                <Button
+                    variant="success"
+                    disabled={props.disabled || props.resource.creating}
+                    onClick={showModal}
+                    title="Create a Kubernetes cluster"
+                >
+                    <FontAwesomeIcon
+                        icon={props.resource.creating ? faSyncAlt : faPlus}
+                        fixedWidth
+                        spin={props.resource.creating}
+                    />
+                </Button>
+            </InputGroup>
+            <KubernetesClusterModalForm
+                show={modalVisible}
+                onSubmit={handleSubmit}
+                onCancel={hideModal}
+                kubernetesClusterTemplates={kubernetesClusterTemplates}
+                kubernetesClusterTemplateActions={kubernetesClusterTemplateActions}
+                sizes={sizes}
+                sizeActions={sizeActions}
+            />
+        </>
+    );
+}
 
 
 export const useKubernetesAppFormState = (kubernetesAppTemplate, kubernetesApp) => {
@@ -50,6 +119,10 @@ export const KubernetesAppForm = ({
     onSubmit,
     kubernetesClusters,
     kubernetesClusterActions,
+    kubernetesClusterTemplates,
+    kubernetesClusterTemplateActions,
+    sizes,
+    sizeActions,
     ...props
 }) => {
     const handleNameChange = evt => formState.setName(evt.target.value);
@@ -76,7 +149,7 @@ export const KubernetesAppForm = ({
     return (
         <Form
             {...props}
-            disabled={!kubernetesClusters.initialised}
+            disabled={!kubernetesClusters.initialised || kubernetesClusters.creating}
             onSubmit={handleSubmit}
         >
             <Field
@@ -100,13 +173,17 @@ export const KubernetesAppForm = ({
                 label="Kubernetes cluster"
                 helpText="The Kubernetes cluster to deploy the platform on."
             >
-                <KubernetesClusterSelectControl
+                <KubernetesClusterSelectControlWithCreate
                     resource={kubernetesClusters}
                     resourceActions={kubernetesClusterActions}
                     required
                     disabled={formState.isEdit}
                     value={formState.kubernetesCluster}
                     onChange={formState.setKubernetesCluster}
+                    kubernetesClusterTemplates={kubernetesClusterTemplates}
+                    kubernetesClusterTemplateActions={kubernetesClusterTemplateActions}
+                    sizes={sizes}
+                    sizeActions={sizeActions}
                 />
             </Field>
         </Form>

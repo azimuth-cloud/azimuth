@@ -241,15 +241,11 @@ export const Error = ({
  */
 export const Form = ({ children, disabled = false, onSubmit, ...props }) => {
     const handleSubmit = evt => {
+        evt.preventDefault();
+        evt.stopPropagation();
         // Force the form validations to run on submit
         // We only call the onSubmit function if the values are valid
-        if( evt.currentTarget.checkValidity() ) {
-            onSubmit(evt);
-        }
-        else {
-            evt.preventDefault();
-            evt.stopPropagation();
-        }
+        if( evt.currentTarget.checkValidity() ) onSubmit(evt);
     };
     return (
         <BSForm

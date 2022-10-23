@@ -163,7 +163,7 @@ export const TenancyPlatformsPanel = ({
     const refreshPlatforms = () => {
         if( !clustersNotFound ) tenancyActions.cluster.fetchList();
         if( !kubernetesClustersNotFound ) tenancyActions.kubernetesCluster.fetchList();
-        if( !kubernetesAppsNotFound ) tenancyActions.kubernetesApps.fetchList();
+        if( !kubernetesAppsNotFound ) tenancyActions.kubernetesApp.fetchList();
     };
 
     // If the resource failed to load because it was not found, disable the refresh button

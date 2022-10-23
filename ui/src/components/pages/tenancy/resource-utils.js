@@ -357,20 +357,25 @@ export const KubernetesClusterTemplateSelectControl = ({ resource, value, ...pro
 };
 
 
-export const KubernetesClusterSelectControl = (props) => (
-    <ResourceSelectControl
-        resourceName="Kubernetes cluster"
-        formatOptionLabel={(opt) => (
-            <>
-                {opt.name}
-                <small className="ms-2 text-muted">
-                    Kubernetes version: {opt.kubernetes_version}
-                </small>
-            </>
-        )}
-        {...props}
-    />
-);
+export const KubernetesClusterSelectControl = (props) => {
+    const [initialValue, _] = useState(props.value);
+    return (
+        <ResourceSelectControl
+            resourceName="Kubernetes cluster"
+            // Only allow the selection of a deleting cluster if it is the initial value
+            resourceFilter={c => c.id === initialValue || c.status !== "Deleting"}
+            formatOptionLabel={(opt) => (
+                <>
+                    {opt.name}
+                    <small className="ms-2 text-muted">
+                        Kubernetes version: {opt.kubernetes_version || "Unknown"}
+                    </small>
+                </>
+            )}
+            {...props}
+        />
+    );
+};
 
 
 export const ClusterSelectControl = (props) => (
