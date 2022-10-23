@@ -156,32 +156,41 @@ const statusStyles = {
         }
     },
     addon: {
+        "Unknown": {
+            icon: faQuestionCircle,
+            className: 'text-muted'
+        },
         "Pending": {
             icon: faClock,
             className: 'text-muted'
+        },
+        "Preparing": {
+            icon: faClock,
+            className: 'text-muted'
+        },
+        "Deployed": {
+            icon: faCheck,
+            className: 'text-success'
+        },
+        "Failed": {
+            icon: faTimesCircle,
+            className: 'text-danger'
         },
         "Installing": {
             icon: faSyncAlt,
             className: 'text-muted',
             spin: true
         },
-        "Ready": {
-            icon: faCheck,
-            className: 'text-success'
+        "Upgrading": {
+            icon: faSyncAlt,
+            className: 'text-muted',
+            spin: true
         },
         "Uninstalling": {
             icon: faSyncAlt,
             className: 'text-muted',
             spin: true
         },
-        "Failed": {
-            icon: faTimesCircle,
-            className: 'text-danger'
-        },
-        "Unknown": {
-            icon: faQuestionCircle,
-            className: 'text-muted'
-        }
     }
 };
 
@@ -328,7 +337,7 @@ const ControlPlaneCard = ({ kubernetesCluster, sizes }) => (
 );
 
 
-const ServiceCard = ({ kubernetesCluster }) => (
+const ServicesCard = ({ kubernetesCluster }) => (
     <Card className="mb-3">
         <Card.Header className="text-center">Services</Card.Header>
         {kubernetesCluster.services.length > 0 ? (
@@ -393,7 +402,7 @@ const ClusterOverviewPanel = ({ kubernetesCluster, kubernetesClusterTemplates, s
             <ControlPlaneCard kubernetesCluster={kubernetesCluster} sizes={sizes} />
         </Col>
         <Col>
-            <ServiceCard kubernetesCluster={kubernetesCluster} />
+            <ServicesCard kubernetesCluster={kubernetesCluster} />
             <AddonsCard kubernetesCluster={kubernetesCluster} />
         </Col>
     </Row>
@@ -519,7 +528,7 @@ const KubernetesClusterDetailsButton = ({
     const close = () => setVisible(false);
 
     const inFlight = !!kubernetesCluster.updating || !!kubernetesCluster.deleting;
-    const working = kubernetesCluster.status.endsWith("ing")
+    const working = kubernetesCluster.status.endsWith("ing");
 
     return (
         <>

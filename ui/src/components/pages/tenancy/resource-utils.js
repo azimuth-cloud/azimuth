@@ -4,7 +4,6 @@
 
 import React, { useEffect, useState } from 'react';
 
-import Badge from 'react-bootstrap/Badge';
 import Button from 'react-bootstrap/Button';
 import ButtonGroup from 'react-bootstrap/ButtonGroup';
 import Col from 'react-bootstrap/Col';
@@ -356,6 +355,22 @@ export const KubernetesClusterTemplateSelectControl = ({ resource, value, ...pro
         />
     );
 };
+
+
+export const KubernetesClusterSelectControl = (props) => (
+    <ResourceSelectControl
+        resourceName="Kubernetes cluster"
+        formatOptionLabel={(opt) => (
+            <>
+                {opt.name}
+                <small className="ms-2 text-muted">
+                    Kubernetes version: {opt.kubernetes_version}
+                </small>
+            </>
+        )}
+        {...props}
+    />
+);
 
 
 export const ClusterSelectControl = (props) => (

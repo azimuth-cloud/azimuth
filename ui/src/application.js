@@ -86,10 +86,12 @@ const ConnectedTenancyResourcePage = connect(
                 tenancyActions.kubernetesClusterTemplate,
                 dispatch
             ),
-            kubernetesCluster: bindActionCreators(
-                tenancyActions.kubernetesCluster,
+            kubernetesCluster: bindActionCreators(tenancyActions.kubernetesCluster, dispatch),
+            kubernetesAppTemplate: bindActionCreators(
+                tenancyActions.kubernetesAppTemplate,
                 dispatch
             ),
+            kubernetesApp: bindActionCreators(tenancyActions.kubernetesApp, dispatch),
             clusterType: bindActionCreators(tenancyActions.clusterType, dispatch),
             cluster: bindActionCreators(tenancyActions.cluster, dispatch)
         },

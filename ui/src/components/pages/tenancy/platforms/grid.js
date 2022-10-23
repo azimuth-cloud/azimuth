@@ -5,8 +5,6 @@ import Card from 'react-bootstrap/Card';
 import Col from 'react-bootstrap/Col';
 import Row from 'react-bootstrap/Row';
 
-import { Link } from "react-router-dom";
-
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus } from '@fortawesome/free-solid-svg-icons';
 
@@ -14,6 +12,7 @@ import { bindArgsToActions, sortBy, Error } from '../../../utils';
 
 import { ClusterCard } from './clusters';
 import { KubernetesCard } from './kubernetes';
+import { KubernetesAppCard } from './kubernetes_apps';
 
 
 const PlatformCard = ({ platform, tenancy, tenancyActions, ...props }) => {
@@ -39,6 +38,15 @@ const PlatformCard = ({ platform, tenancy, tenancyActions, ...props }) => {
                 )}
                 tenancy={tenancy}
                 tenancyActions={tenancyActions}
+            />
+        );
+    }
+    else if( platform.kind === "kubernetesApp" ) {
+        return (
+            <KubernetesAppCard
+                kubernetesApp={platform.object}
+                kubernetesAppTemplates={tenancy.kubernetesAppTemplates}
+                kubernetesAppActions={bindArgsToActions(tenancyActions.kubernetesApp, platform.object.id)}
             />
         );
     }

@@ -228,7 +228,6 @@ const initialState = kubernetesCluster => {
                 max_count: ng.max_count
             })),
             autohealing_enabled: kubernetesCluster.autohealing_enabled,
-            cert_manager_enabled: kubernetesCluster.cert_manager_enabled,
             dashboard_enabled: kubernetesCluster.dashboard_enabled,
             ingress_enabled: kubernetesCluster.ingress_enabled,
             monitoring_enabled: kubernetesCluster.monitoring_enabled,
@@ -243,7 +242,6 @@ const initialState = kubernetesCluster => {
             control_plane_size: '',
             node_groups: [],
             autohealing_enabled: true,
-            cert_manager_enabled: false,
             dashboard_enabled: true,
             ingress_enabled: false,
             monitoring_enabled: true,
@@ -556,22 +554,6 @@ export const KubernetesClusterForm = ({
                                 label="Enable Kubernetes Ingress?"
                                 checked={getStateKey('ingress_enabled')}
                                 onChange={setStateFromCheckboxEvent('ingress_enabled')}
-                            />
-                        </Field>
-                        <Field
-                            name="cert_manager_enabled"
-                            helpText={
-                                <>
-                                    Allows the use of{" "}
-                                    <a href="https://cert-manager.io" target="_blank">cert-manager</a>{" "}
-                                    to manage TLS certificates for cluster services.
-                                </>
-                            }
-                        >
-                            <BSForm.Check
-                                label="Enable cert-manager?"
-                                checked={getStateKey('cert_manager_enabled')}
-                                onChange={setStateFromCheckboxEvent('cert_manager_enabled')}
                             />
                         </Field>
                     </Card.Body>

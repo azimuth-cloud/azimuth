@@ -161,6 +161,16 @@ class TenancySerializer(make_dto_serializer(dto.Tenancy)):
                         "tenant": obj.id,
                     })
                 ),
+                "kubernetes_app_templates": request.build_absolute_uri(
+                    reverse("azimuth:kubernetes_app_templates", kwargs = {
+                        "tenant": obj.id,
+                    })
+                ),
+                "kubernetes_apps": request.build_absolute_uri(
+                    reverse("azimuth:kubernetes_apps", kwargs = {
+                        "tenant": obj.id,
+                    })
+                ),
                 "cluster_types": request.build_absolute_uri(
                     reverse("azimuth:cluster_types", kwargs = {
                         "tenant": obj.id,
@@ -576,7 +586,18 @@ class KubernetesClusterAddonSerializer(make_dto_serializer(capi_dto.Addon)):
     pass
 
 
+class KubernetesClusterRefSerializer(RefSerializer):
+    def get_self_link(self, request, tenant, id):
+        return request.build_absolute_uri(
+            reverse("azimuth:kubernetes_cluster_details", kwargs = {
+                "tenant": tenant,
+                "cluster": id,
+            })
+        )
+
+
 class KubernetesClusterSerializer(
+    KubernetesClusterRefSerializer,
     make_dto_serializer(
         capi_dto.Cluster,
         exclude = [
@@ -620,12 +641,6 @@ class KubernetesClusterSerializer(
         tenant = self.context.get("tenant")
         if request and tenant:
             result.setdefault("links", {}).update({
-                "self": request.build_absolute_uri(
-                    reverse("azimuth:kubernetes_cluster_details", kwargs = {
-                        "tenant": tenant,
-                        "cluster": obj.id,
-                    })
-                ),
                 "kubeconfig": request.build_absolute_uri(
                     reverse(
                         "azimuth:kubernetes_cluster_generate_kubeconfig",
@@ -680,7 +695,6 @@ class CreateKubernetesClusterSerializer(serializers.Serializer):
     control_plane_size = serializers.RegexField(ID_REGEX)
     node_groups = NodeGroupSpecSerializer(many = True)
     autohealing_enabled = serializers.BooleanField(default = True)
-    cert_manager_enabled = serializers.BooleanField(default = False)
     dashboard_enabled = serializers.BooleanField(default = False)
     ingress_enabled = serializers.BooleanField(default = False)
     monitoring_enabled = serializers.BooleanField(default = False)
@@ -715,7 +729,6 @@ class UpdateKubernetesClusterSerializer(serializers.Serializer):
     control_plane_size = serializers.RegexField(ID_REGEX, required = False)
     node_groups = NodeGroupSpecSerializer(many = True, required = False)
     autohealing_enabled = serializers.BooleanField(required = False)
-    cert_manager_enabled = serializers.BooleanField(required = False)
     dashboard_enabled = serializers.BooleanField(required = False)
     ingress_enabled = serializers.BooleanField(required = False)
     monitoring_enabled = serializers.BooleanField(required = False)
@@ -748,3 +761,107 @@ class UpdateKubernetesClusterSerializer(serializers.Serializer):
         if min_worker_count < 1:
             raise serializers.ValidationError("There must be at least one worker node.")
         return value
+
+
+class KubernetesAppTemplateRefSerializer(serializers.Serializer):
+    id = serializers.ReadOnlyField()
+
+    def to_representation(self, obj):
+        # If the object is falsey, the representation is None
+        if not obj:
+            return None
+        if not isinstance(obj, dict):
+            obj = { "id": obj }
+        result = super().to_representation(obj)
+        # If the info to build a link is in the context, add it
+        request = self.context.get("request")
+        tenant = self.context.get("tenant")
+        if request and tenant:
+            result.setdefault("links", {})["self"] = request.build_absolute_uri(
+                reverse("azimuth:kubernetes_app_template_details", kwargs = {
+                    "tenant": tenant,
+                    "template": obj["id"],
+                })
+            )
+        return result
+
+
+class KubernetesAppTemplateSerializer(KubernetesAppTemplateRefSerializer):
+    label = serializers.ReadOnlyField()
+    logo = serializers.ReadOnlyField()
+    description = serializers.ReadOnlyField()
+
+
+class KubernetesAppSerializer(
+    make_dto_serializer(
+        capi_dto.App,
+        exclude = [
+            "template_id",
+            "kubernetes_cluster_id",
+            "services",
+        ]
+    )
+):
+    template = KubernetesAppTemplateRefSerializer(source = "template_id", read_only = True)
+    kubernetes_cluster = KubernetesClusterRefSerializer(
+        source = "kubernetes_cluster_id",
+        read_only = True
+    )
+    services = serializers.SerializerMethodField()
+
+    def get_services(self, obj):
+        request = self.context.get("request")
+        tenant = self.context.get("tenant")
+        services = []
+        for service_dto in obj.services:
+            service_obj = dataclasses.asdict(service_dto)
+            service_obj.pop("fqdn", None)
+            service_obj["url"] = request.build_absolute_uri(
+                reverse("azimuth:kubernetes_app_service", kwargs = {
+                    "tenant": tenant,
+                    "app": obj.id,
+                    "service": service_dto.name,
+                })
+            )
+            services.append(service_obj)
+        return services
+
+    def to_representation(self, obj):
+        result = super().to_representation(obj)
+        # If the info to build a link is in the context, add it
+        request = self.context.get("request")
+        tenant = self.context.get("tenant")
+        if request and tenant:
+            result.setdefault("links", {}).update({
+                "self": request.build_absolute_uri(
+                    reverse("azimuth:kubernetes_app_details", kwargs = {
+                        "tenant": tenant,
+                        "app": obj.id,
+                    })
+                ),
+            })
+        return result
+
+
+class CreateKubernetesAppSerializer(serializers.Serializer):
+    name = serializers.RegexField("^[a-z][a-z0-9-]+[a-z0-9]$")
+    template = serializers.RegexField("^[a-z0-9-]+$")
+    kubernetes_cluster = serializers.RegexField("^[a-z0-9-]+$")
+
+    def validate_template(self, value):
+        # Check that the template exists in the template
+        try:
+            return next(
+                template
+                for template in cloud_settings.KUBERNETES_APP_TEMPLATES
+                if template["id"] == value
+            )
+        except StopIteration:
+            raise serializers.ValidationError(f"Template \"{value}\" was not found")
+
+    def validate_kubernetes_cluster(self, value):
+        capi_session = self.context["capi_session"]
+        try:
+            return capi_session.find_cluster(value)
+        except errors.ObjectNotFoundError as exc:
+            raise serializers.ValidationError(str(exc))

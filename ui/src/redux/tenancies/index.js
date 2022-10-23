@@ -60,6 +60,18 @@ import {
 } from './kubernetes-clusters';
 
 import {
+    actionCreators as kubernetesAppTemplateActionCreators,
+    reducer as kubernetesAppTemplateReducer,
+    epic as kubernetesAppTemplateEpic
+} from './kubernetes-app-templates';
+
+import {
+    actionCreators as kubernetesAppActionCreators,
+    reducer as kubernetesAppReducer,
+    epic as kubernetesAppEpic
+} from './kubernetes-apps';
+
+import {
     actionCreators as clusterTypeActionCreators,
     reducer as clusterTypeReducer,
     epic as clusterTypeEpic
@@ -109,6 +121,8 @@ export const actionCreators = {
     machine: machineActionCreators,
     kubernetesClusterTemplate: kubernetesClusterTemplateActionCreators,
     kubernetesCluster: kubernetesClusterActionCreators,
+    kubernetesAppTemplate: kubernetesAppTemplateActionCreators,
+    kubernetesApp: kubernetesAppActionCreators,
     clusterType: clusterTypeActionCreators,
     cluster: clusterActionCreators
 }
@@ -160,6 +174,8 @@ export function reducer(state = initialState, action) {
                     machines: machineReducer(undefined, action),
                     kubernetesClusterTemplates: kubernetesClusterTemplateReducer(undefined, action),
                     kubernetesClusters: kubernetesClusterReducer(undefined, action),
+                    kubernetesAppTemplates: kubernetesAppTemplateReducer(undefined, action),
+                    kubernetesApps: kubernetesAppReducer(undefined, action),
                     clusterTypes: clusterTypeReducer(undefined, action),
                     clusters: clusterReducer(undefined, action)
                 }
@@ -185,6 +201,14 @@ export function reducer(state = initialState, action) {
                     ),
                     kubernetesClusters: kubernetesClusterReducer(
                         state.current.kubernetesClusters,
+                        action
+                    ),
+                    kubernetesAppTemplates: kubernetesAppTemplateReducer(
+                        state.current.kubernetesAppTemplates,
+                        action
+                    ),
+                    kubernetesApps: kubernetesAppReducer(
+                        state.current.kubernetesApps,
                         action
                     ),
                     clusterTypes: clusterTypeReducer(state.current.clusterTypes, action),
@@ -242,6 +266,8 @@ export const epic = combineEpics(
     machineEpic,
     kubernetesClusterTemplateEpic,
     kubernetesClusterEpic,
+    kubernetesAppTemplateEpic,
+    kubernetesAppEpic,
     clusterTypeEpic,
     clusterEpic
 );

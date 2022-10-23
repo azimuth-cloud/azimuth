@@ -78,7 +78,7 @@ class Addon:
 @dataclasses.dataclass(frozen = True)
 class Service:
     """
-    Represents a service available on the cluster.
+    Represents a service available on a cluster or app.
     """
     #: The name of the service
     name: str
@@ -107,8 +107,6 @@ class Cluster:
     node_groups: t.List[NodeGroup]
     #: Indicates if autohealing is enabled
     autohealing_enabled: bool
-    #: Indicates if cert-manager is enabled
-    cert_manager_enabled: bool
     #: Indicates if the Kubernetes dashboard is enabled
     dashboard_enabled: bool
     #: Indicates if ingress is enabled
@@ -130,4 +128,27 @@ class Cluster:
     #: The services for the cluster
     services: t.List[Service]
     #: The time at which the cluster was created
+    created_at: datetime.datetime
+
+
+@dataclasses.dataclass(frozen = True)
+class App:
+    """
+    Represents an app on a Kubernetes cluster.
+    """
+    #: The id of the app
+    id: str
+    #: The human-readable name of the app
+    name: str
+    #: The id of the Kubernetes cluster that the app is deployed on
+    kubernetes_cluster_id: str
+    #: The id of the template for the app
+    template_id: str
+    #: The version of the template that the app is using
+    version: str
+    #: The deployment status of the app
+    status: str
+    #: The services for the app
+    services: t.List[Service]
+    #: The time at which the app was created
     created_at: datetime.datetime

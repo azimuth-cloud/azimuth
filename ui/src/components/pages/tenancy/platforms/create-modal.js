@@ -33,6 +33,8 @@ import { useClusterFormState, ClusterForm } from './clusters/form';
 import { useKubernetesClusterFormState, KubernetesClusterForm } from './kubernetes/form';
 import KubernetesIcon from './kubernetes/kubernetes-logo.png';
 
+import { useKubernetesAppFormState, KubernetesAppForm } from './kubernetes_apps/form';
+
 
 const PlatformTypeSelectCard = ({ platformType, selected, onSelect }) => (
     <Card className="platform-type-select-card">
@@ -173,6 +175,35 @@ const KubernetesConfigurationForm = ({
 };
 
 
+const KubernetesAppConfigurationForm = ({
+    formId,
+    kubernetesAppTemplate,
+    onSuccess,
+    kubernetesAppActions,
+    kubernetesClusters,
+    kubernetesClusterActions,
+}) => {
+    const [formState, _] = useKubernetesAppFormState(undefined);
+    return (
+        <KubernetesAppForm
+            id={formId}
+            formState={formState}
+            onSubmit={data => {
+                kubernetesAppActions.create({
+                    name: data.name,
+                    template: kubernetesAppTemplate.id,
+                    kubernetes_cluster: data.kubernetesCluster,
+                    parameter_values: data.parameterValues
+                });
+                onSuccess();
+            }}
+            kubernetesClusters={kubernetesClusters}
+            kubernetesClusterActions={kubernetesClusterActions}
+        />
+    );
+};
+
+
 const PlatformConfigurationForm = ({
     platformType,
     sshKey,
@@ -209,6 +240,16 @@ const PlatformConfigurationForm = ({
                         kubernetesClusterTemplateActions={tenancyActions.kubernetesClusterTemplate}
                         sizes={tenancy.sizes}
                         sizeActions={tenancyActions.size}
+                    />
+                )}
+                {platformType.kind === "kubernetesAppTemplate" && (
+                    <KubernetesAppConfigurationForm
+                        formId="platform-create"
+                        kubernetesAppTemplate={platformType.object}
+                        onSuccess={onSuccess}
+                        kubernetesAppActions={tenancyActions.kubernetesApp}
+                        kubernetesClusters={tenancy.kubernetesClusters}
+                        kubernetesClusterActions={tenancyActions.kubernetesCluster}
                     />
                 )}
             </Modal.Body>
@@ -248,18 +289,29 @@ const CreatePlatformModal = ({
     const kubernetesClusterTemplatesNotFound = (
         get(tenancy.kubernetesClusterTemplates.fetchError, "statusCode") === StatusCodes.NOT_FOUND
     );
-    const platformTypesNotFound = clusterTypesNotFound && kubernetesClusterTemplatesNotFound;
+    const kubernetesAppTemplatesNotFound = (
+        get(tenancy.kubernetesAppTemplates.fetchError, "statusCode") === StatusCodes.NOT_FOUND
+    );
+    const platformTypesNotFound = (
+        clusterTypesNotFound &&
+        kubernetesClusterTemplatesNotFound &&
+        kubernetesAppTemplatesNotFound
+    );
 
-    // Get the aggregate resource for available cluster types + Kubernetes
+    // Get the aggregate resource for available cluster types + Kubernetes + Kubernetes apps
     // Kubernetes is just a static resource that is available when Kubernetes templates are
     const resource = {
         initialised: (
-            // When both are not found, we don't want to become initialised
             !platformTypesNotFound &&
             (tenancy.clusterTypes.initialised || clusterTypesNotFound) &&
-            (tenancy.kubernetesClusterTemplates.initialised || kubernetesClusterTemplatesNotFound)
+            (tenancy.kubernetesClusterTemplates.initialised || kubernetesClusterTemplatesNotFound) &&
+            (tenancy.kubernetesAppTemplates.initialised || kubernetesAppTemplatesNotFound)
         ),
-        fetching: tenancy.clusterTypes.fetching || tenancy.kubernetesClusterTemplates.fetching,
+        fetching: (
+            tenancy.clusterTypes.fetching ||
+            tenancy.kubernetesClusterTemplates.fetching ||
+            tenancy.kubernetesAppTemplates.fetching
+        ),
         data: Object.assign(
             {},
             (
@@ -289,6 +341,18 @@ const CreatePlatformModal = ({
                         object: value
                     }
                 })
+            ),
+            ...Object.entries(tenancy.kubernetesAppTemplates.data || {}).map(
+                ([key, value]) => ({
+                    [`kubernetesAppTemplates/${key}`]: {
+                        id: `kubernetesAppTemplates/${key}`,
+                        kind: "kubernetesAppTemplate",
+                        name: value.label,
+                        logo: value.logo,
+                        description: value.description,
+                        object: value
+                    }
+                })
             )
         ),
         // Not found isn't really an error for platforms, so exclude them
@@ -296,7 +360,8 @@ const CreatePlatformModal = ({
             {},
             ...[
                 ["clusterTypes", tenancy.clusterTypes.fetchError],
-                ["kubernetesClusterTemplates", tenancy.kubernetesClusterTemplates.fetchError]
+                ["kubernetesClusterTemplates", tenancy.kubernetesClusterTemplates.fetchError],
+                ["kubernetesAppTemplates", tenancy.kubernetesAppTemplates.fetchError]
             ].filter(
                 ([_, e]) => !!e && e.statusCode !== StatusCodes.NOT_FOUND
             ).map(
