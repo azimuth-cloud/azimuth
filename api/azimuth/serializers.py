@@ -790,6 +790,28 @@ class KubernetesAppTemplateSerializer(KubernetesAppTemplateRefSerializer):
     label = serializers.ReadOnlyField()
     logo = serializers.ReadOnlyField()
     description = serializers.ReadOnlyField()
+    versions = serializers.SerializerMethodField()
+
+    def get_versions(self, obj):
+        return [
+            dict(
+                name = version["name"],
+                parameters = [
+                    {
+                        "name": param["name"],
+                        "label": param.get("label", param["name"]),
+                        "description": param.get("description"),
+                        "kind": param["kind"],
+                        "options": param.get("options", {}),
+                        "immutable": param.get("immutable", False),
+                        "required": param.get("required", True),
+                        "default": param.get("default", None)
+                    }
+                    for param in version["parameters"]
+                ]
+            )
+            for version in obj["versions"]
+        ]
 
 
 class KubernetesAppSerializer(
@@ -844,9 +866,10 @@ class KubernetesAppSerializer(
 
 
 class CreateKubernetesAppSerializer(serializers.Serializer):
-    name = serializers.RegexField("^[a-z][a-z0-9-]+[a-z0-9]$")
-    template = serializers.RegexField("^[a-z0-9-]+$")
-    kubernetes_cluster = serializers.RegexField("^[a-z0-9-]+$")
+    name = serializers.RegexField("^[a-z][a-z0-9-]+[a-z0-9]$", write_only = True)
+    template = serializers.RegexField("^[a-z0-9-]+$", write_only = True)
+    kubernetes_cluster = serializers.RegexField("^[a-z0-9-]+$", write_only = True)
+    parameter_values = serializers.JSONField(write_only = True)
 
     def validate_template(self, value):
         # Check that the template exists in the template

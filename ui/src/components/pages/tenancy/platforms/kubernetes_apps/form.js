@@ -20,6 +20,8 @@ import { PlatformTypeCard } from '../utils';
 
 import { KubernetesClusterModalForm } from '../kubernetes/form';
 
+import { ClusterParameterField } from '../clusters/parameter-field';
+
 
 const KubernetesClusterSelectControlWithCreate = ({
     kubernetesClusterTemplates,
@@ -84,7 +86,33 @@ const KubernetesClusterSelectControlWithCreate = ({
             />
         </>
     );
-}
+};
+
+
+const initialParameterValues = (kubernetesAppTemplate, kubernetesApp) => {
+    if( kubernetesApp ) {
+        const version = kubernetesAppTemplate.versions.find(v => v === kubernetesApp.version);
+        return Object.assign(
+            {},
+            ...version.parameters
+                .map(p => [
+                    p.name,
+                    get(kubernetesApp.parameter_values || {}, p.name, p.default || "")
+                ])
+                .filter(([_, value]) => value !== "")
+                .map(([name, value]) => ({ [name]: value }))
+        )
+    }
+    else {
+        const version = kubernetesAppTemplate.versions[0];
+        return Object.assign(
+            {},
+            ...version.parameters
+                .filter(p => p.required || p.default !== null)
+                .map(p => ({ [p.name]: p.default !== null ? p.default : "" }))
+        );
+    }
+};
 
 
 export const useKubernetesAppFormState = (kubernetesAppTemplate, kubernetesApp) => {
@@ -92,7 +120,9 @@ export const useKubernetesAppFormState = (kubernetesAppTemplate, kubernetesApp) 
     const [kubernetesCluster, setKubernetesCluster] = useState(
         kubernetesApp ? kubernetesApp.kubernetes_cluster.id : ""
     );
-    const [parameterValues, setParameterValues] = useState({});
+    const [parameterValues, setParameterValues] = useState(
+        initialParameterValues(kubernetesAppTemplate, kubernetesApp)
+    );
     return [
         {
             kubernetesAppTemplate,
@@ -107,7 +137,7 @@ export const useKubernetesAppFormState = (kubernetesAppTemplate, kubernetesApp) 
         () => {
             setName("");
             setKubernetesCluster("");
-            setParameterValues({});
+            setParameterValues(initialParameterValues(kubernetesAppTemplate, kubernetesApp));
         }
     ]
 };
@@ -117,12 +147,8 @@ export const useKubernetesAppFormState = (kubernetesAppTemplate, kubernetesApp) 
 export const KubernetesAppForm = ({
     formState,
     onSubmit,
-    kubernetesClusters,
-    kubernetesClusterActions,
-    kubernetesClusterTemplates,
-    kubernetesClusterTemplateActions,
-    sizes,
-    sizeActions,
+    tenancy,
+    tenancyActions,
     ...props
 }) => {
     const handleNameChange = evt => formState.setName(evt.target.value);
@@ -145,6 +171,20 @@ export const KubernetesAppForm = ({
             parameterValues: formState.parameterValues
         });
     };
+
+    // Use the first available version for now
+    const version = formState.kubernetesAppTemplate.versions[0];
+
+    const {
+        kubernetesClusters,
+        kubernetesClusterTemplates,
+        sizes
+    } = tenancy;
+    const {
+        kubernetesCluster: kubernetesClusterActions,
+        kubernetesClusterTemplate: kubernetesClusterTemplateActions,
+        size: sizeActions
+    } = tenancyActions;
 
     return (
         <Form
@@ -186,6 +226,17 @@ export const KubernetesAppForm = ({
                     sizeActions={sizeActions}
                 />
             </Field>
+            {version.parameters.map(p => (
+                <ClusterParameterField
+                    key={p.name}
+                    tenancy={tenancy}
+                    tenancyActions={tenancyActions}
+                    isCreate={!formState.isEdit}
+                    parameter={p}
+                    value={formState.parameterValues[p.name] || ''}
+                    onChange={handleParameterValueChange(p.name)}
+                />
+            ))}
         </Form>
     );
 };
