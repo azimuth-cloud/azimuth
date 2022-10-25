@@ -503,11 +503,9 @@ class ScopedSession(base.ScopedSession):
         """
         self._log("Fetching available images")
         # Fetch from the SDK using our custom image resource
-        # Exclude cluster images from the returned list
         images = list(self._connection.image.images.all(
             status = "active",
-            # Include community images in the returned list
-            visibility = "all",
+            # Only show shared images that have been accepted
             member_status = "accepted"
         ))
         self._log("Found %s images", len(images))
