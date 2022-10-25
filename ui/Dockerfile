@@ -7,7 +7,7 @@ FROM node:lts AS build
 # This allows better use of the build cache
 COPY package.json yarn.lock /application/
 RUN cd /application && \
-    yarn install --frozen-lockfile && \
+    yarn install --frozen-lockfile --network-timeout 3600000 && \
     cd /
 
 # Build the application
