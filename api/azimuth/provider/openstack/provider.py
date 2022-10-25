@@ -563,15 +563,14 @@ class ScopedSession(base.ScopedSession):
         Returns the first network with the given tag, or None if there is not one.
         """
         tag = "portal-{}".format(net_type)
-        network = next(
-            # Consider all the networks available to the project, but use ones
-            # owned by the project in preference
-            itertools.chain(
-                self._connection.network.networks.all(tags = tag),
-                self._connection.network.networks.all(tags = tag, project_id = None),
-            ),
-            None
-        )
+        # Only consider networks that belong to the project unless specifically told otherwise
+        networks = self._connection.network.networks.all(tags = tag)
+        if net_type == "external":
+            networks = itertools.chain(
+                networks,
+                self._connection.network.networks.all(tags = tag, project_id = None)
+            )
+        network = next(networks, None)
         if network:
             self._log("Using tagged %s network '%s'", net_type, network.name)
         else:
@@ -585,15 +584,14 @@ class ScopedSession(base.ScopedSession):
         If the network does not exist, that is a config error and an exception is raised.
         """
         net_name = template.format(tenant_name = self._tenancy.name)
-        network = next(
-            # Consider all the networks available to the project, but use ones
-            # owned by the project in preference
-            itertools.chain(
-                self._connection.network.networks.all(name = net_name),
-                self._connection.network.networks.all(name = net_name, project_id = None),
-            ),
-            None
-        )
+        # Only consider networks that belong to the project unless specifically told otherwise
+        networks = self._connection.network.networks.all(name = net_name)
+        if net_type == "external":
+            networks = itertools.chain(
+                networks,
+                self._connection.network.networks.all(name = net_name, project_id = None)
+            )
+        network = next(networks, None)
         if network:
             self._log("Found %s network '%s' using template.", net_type, network.name)
             return network
