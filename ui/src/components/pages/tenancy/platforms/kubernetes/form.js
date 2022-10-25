@@ -230,8 +230,7 @@ const initialState = kubernetesCluster => {
             autohealing_enabled: kubernetesCluster.autohealing_enabled,
             dashboard_enabled: kubernetesCluster.dashboard_enabled,
             ingress_enabled: kubernetesCluster.ingress_enabled,
-            monitoring_enabled: kubernetesCluster.monitoring_enabled,
-            apps_enabled: kubernetesCluster.apps_enabled
+            monitoring_enabled: kubernetesCluster.monitoring_enabled
         };
     }
     else {
@@ -244,8 +243,7 @@ const initialState = kubernetesCluster => {
             autohealing_enabled: true,
             dashboard_enabled: true,
             ingress_enabled: false,
-            monitoring_enabled: true,
-            apps_enabled: true
+            monitoring_enabled: true
         };
     }
 };
@@ -498,19 +496,6 @@ export const KubernetesClusterForm = ({
                                 label="Enable cluster monitoring?"
                                 checked={getStateKey('monitoring_enabled')}
                                 onChange={setStateFromCheckboxEvent('monitoring_enabled')}
-                            />
-                        </Field>
-                        <Field
-                            name="apps_enabled"
-                            helpText={
-                                "The applications dashboard allows you to easily deploy applications such as " +
-                                "JupyterHub onto your cluster."
-                            }
-                        >
-                            <BSForm.Check
-                                label="Enable applications dashboard?"
-                                checked={getStateKey('apps_enabled')}
-                                onChange={setStateFromCheckboxEvent('apps_enabled')}
                             />
                         </Field>
                     </Card.Body>

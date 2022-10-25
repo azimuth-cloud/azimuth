@@ -256,7 +256,6 @@ class Session:
             cluster.spec.get("addons", {}).get("dashboard", False),
             cluster.spec.get("addons", {}).get("ingress", False),
             cluster.spec.get("addons", {}).get("monitoring", False),
-            cluster.spec.get("addons", {}).get("apps", False),
             cluster.get("status", {}).get("kubernetesVersion"),
             cluster_state,
             cluster.get("status", {}).get("controlPlanePhase", "Unknown"),
@@ -357,8 +356,6 @@ class Session:
             spec.setdefault("addons", {})["ingress"] = options["ingress_enabled"]
         if "monitoring_enabled" in options:
             spec.setdefault("addons", {})["monitoring"] = options["monitoring_enabled"]
-        if "apps_enabled" in options:
-            spec.setdefault("addons", {})["apps"] = options["apps_enabled"]
         return spec
 
     @convert_exceptions
@@ -371,8 +368,7 @@ class Session:
         autohealing_enabled: bool = True,
         dashboard_enabled: bool = False,
         ingress_enabled: bool = False,
-        monitoring_enabled: bool = False,
-        apps_enabled: bool = False
+        monitoring_enabled: bool = False
     ) -> dto.Cluster:
         """
         Create a new cluster in the tenancy.
@@ -396,8 +392,7 @@ class Session:
             autohealing_enabled = autohealing_enabled,
             dashboard_enabled = dashboard_enabled,
             ingress_enabled = ingress_enabled,
-            monitoring_enabled = monitoring_enabled,
-            apps_enabled = apps_enabled
+            monitoring_enabled = monitoring_enabled
         )
         # Add the create-only pieces
         cluster_spec.update({
