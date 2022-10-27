@@ -12,7 +12,7 @@ import Tab from 'react-bootstrap/Tab';
 
 import get from 'lodash/get';
 
-import moment from 'moment';
+import { DateTime } from 'luxon';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -296,7 +296,7 @@ const ClusterOverviewCard = ({ kubernetesCluster, kubernetesClusterTemplates }) 
                 </tr>
                 <tr>
                     <th>Created</th>
-                    <td>{moment(kubernetesCluster.created_at).fromNow()}</td>
+                    <td>{kubernetesCluster.created_at.toRelative()}</td>
                 </tr>
             </tbody>
         </Table>
@@ -447,7 +447,7 @@ const NodesTable = ({ kubernetesCluster, sizes }) => {
                         </td>
                         <td>{node.kubelet_version || '-'}</td>
                         <td>{node.ip || '-'}</td>
-                        <td>{moment(node.created_at).fromNow(true)}</td>
+                        <td>{node.created_at.toRelative()}</td>
                     </tr>
                 ))}
             </tbody>
@@ -692,7 +692,7 @@ export const KubernetesCard = ({
                 />
             )}
             <Card.Body className="small text-muted">
-                Created {moment(kubernetesCluster.created_at).fromNow()}
+                Created {kubernetesCluster.created_at.toRelative()}
             </Card.Body>
             <Card.Footer>
                 <KubernetesClusterDetailsButton

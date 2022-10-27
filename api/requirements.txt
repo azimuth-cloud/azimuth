@@ -1,5 +1,6 @@
 anyio==3.5.0
 asgiref==3.5.1
+attrs==22.1.0
 certifi==2021.10.8
 cffi==1.15.0
 charset-normalizer==2.0.12
@@ -8,17 +9,19 @@ Django==4.0.4
 django-settings-object @ git+https://github.com/cedadev/django-settings-object.git@2b66c0fc5eae92972df5210b4bc43f7d95ad9ceb
 djangorestframework==3.13.1
 docutils==0.18.1
-easykube @ git+https://github.com/stackhpc/easykube.git@e9cb85fabb6466aa041788fdaebd05fe60ce9185
+easykube @ git+https://github.com/stackhpc/easykube.git@714c9d4ebbda99cb0aef88e4e9d40cb9495860d9
 h11==0.12.0
 httpcore==0.14.7
 httpx==0.22.0
 idna==3.3
 jasmin-ldap @ git+https://github.com/cedadev/jasmin-ldap.git@3e1d2659731e9e1a65e8723b4e72c776ae7f7b25
 Jinja2==3.1.2
+jsonschema==4.16.0
 ldap3==2.9.1
 MarkupSafe==2.1.1
 pyasn1==0.4.8
 pycparser==2.21
+pyrsistent==0.18.1
 python-dateutil==2.8.2
 pytz==2022.1
 PyYAML==6.0

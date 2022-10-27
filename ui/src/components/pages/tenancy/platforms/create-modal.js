@@ -193,7 +193,7 @@ const KubernetesAppConfigurationForm = ({
                     name: data.name,
                     template: kubernetesAppTemplate.id,
                     kubernetes_cluster: data.kubernetesCluster,
-                    parameter_values: data.parameterValues
+                    values: data.values
                 });
                 onSuccess();
             }}

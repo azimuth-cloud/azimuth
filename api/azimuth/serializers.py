@@ -13,6 +13,8 @@ from django.urls import reverse
 
 from rest_framework import serializers
 
+import jsonschema
+
 from .cluster_api import dto as capi_dto
 from .cluster_engine import dto as clusters_dto, errors as clusters_errors
 from .provider import dto, errors
@@ -788,28 +790,7 @@ class KubernetesAppTemplateSerializer(KubernetesAppTemplateRefSerializer):
     label = serializers.ReadOnlyField()
     logo = serializers.ReadOnlyField()
     description = serializers.ReadOnlyField()
-    versions = serializers.SerializerMethodField()
-
-    def get_versions(self, obj):
-        return [
-            dict(
-                name = version["name"],
-                parameters = [
-                    {
-                        "name": param["name"],
-                        "label": param.get("label", param["name"]),
-                        "description": param.get("description"),
-                        "kind": param["kind"],
-                        "options": param.get("options", {}),
-                        "immutable": param.get("immutable", False),
-                        "required": param.get("required", True),
-                        "default": param.get("default", None)
-                    }
-                    for param in version["parameters"]
-                ]
-            )
-            for version in obj["versions"]
-        ]
+    versions = serializers.ReadOnlyField()
 
 
 class KubernetesAppSerializer(
@@ -867,7 +848,7 @@ class CreateKubernetesAppSerializer(serializers.Serializer):
     name = serializers.RegexField("^[a-z][a-z0-9-]+[a-z0-9]$", write_only = True)
     template = serializers.RegexField("^[a-z0-9-]+$", write_only = True)
     kubernetes_cluster = serializers.RegexField("^[a-z0-9-]+$", write_only = True)
-    parameter_values = serializers.JSONField(write_only = True)
+    values = serializers.JSONField(write_only = True)
 
     def validate_template(self, value):
         # Check that the template exists in the template
@@ -886,3 +867,14 @@ class CreateKubernetesAppSerializer(serializers.Serializer):
             return capi_session.find_cluster(value)
         except errors.ObjectNotFoundError as exc:
             raise serializers.ValidationError(str(exc))
+
+    def validate(self, data):
+        # Use the JSON schema defined by the template to validate the values
+        # For create, we use the most recent version
+        schema = data["template"]["versions"][0].get("values_schema")
+        if schema:
+            try:
+                jsonschema.validate(data["values"], schema)
+            except jsonschema.ValidationError as exc:
+                raise serializers.ValidationError({ "values": exc.message })
+        return data

@@ -144,8 +144,12 @@ class App:
     template_id: str
     #: The version of the template that the app is using
     version: str
+    #: The values that were used for the app
+    values: t.Dict[str, t.Any]
     #: The deployment status of the app
     status: str
+    #: The failure message if present
+    failure_message: str
     #: The services for the app
     services: t.List[Service]
     #: The time at which the app was created

@@ -14,7 +14,7 @@ import Tooltip from 'react-bootstrap/Tooltip';
 import get from 'lodash/get';
 import truncate from 'lodash/truncate';
 
-import moment from 'moment';
+import { DateTime } from 'luxon';
 
 import ReactMarkdown from 'react-markdown';
 
@@ -125,10 +125,9 @@ const ClusterTask = ({ cluster: { task } }) => {
 
 
 const ClusterPatched = ({ cluster: { patched }}) => {
-    const threshold = moment().subtract(2, 'weeks');
-    const patchedMoment = moment(patched);
-    return patchedMoment.isAfter(threshold) ?
-        patchedMoment.fromNow() :
+    const threshold = DateTime.now().minus({ weeks: 2 });
+    return patched > threshold ?
+        patched.toRelative() :
         <OverlayTrigger
             placement="top"
             overlay={<Tooltip>This cluster has not been patched recently.</Tooltip>}
@@ -137,7 +136,7 @@ const ClusterPatched = ({ cluster: { patched }}) => {
         >
             <strong className="text-danger overlay-trigger">
                 <FontAwesomeIcon icon={faExclamationCircle} className="me-2" />
-                {patchedMoment.fromNow()}
+                {patched.toRelative()}
             </strong>
         </OverlayTrigger>;
 };
@@ -164,11 +163,11 @@ const ClusterStatusCard = ({ cluster }) => (
                 </tr>
                 <tr>
                     <th>Created</th>
-                    <td>{moment(cluster.created).fromNow()}</td>
+                    <td>{cluster.created.toRelative()}</td>
                 </tr>
                 <tr>
                     <th>Updated</th>
-                    <td>{cluster.updated ? moment(cluster.updated).fromNow() : '-'}</td>
+                    <td>{cluster.updated ? cluster.updated.toRelative() : '-'}</td>
                 </tr>
                 <tr>
                     <th>Patched</th>
@@ -424,7 +423,7 @@ export const ClusterCard = ({
                 </Card.Body>
             )}
             <Card.Body className="small text-muted">
-                Updated {moment(updatedAt).fromNow()}
+                Updated {updatedAt.toRelative()}
             </Card.Body>
             <Card.Footer>
                 <ClusterDetailsButton

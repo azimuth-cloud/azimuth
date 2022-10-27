@@ -8,6 +8,8 @@ import { combineEpics, ofType } from 'redux-observable';
 
 import { StatusCodes } from 'http-status-codes';
 
+import { DateTime } from 'luxon';
+
 import { createTenancyResource } from './resource';
 
 import { actions as kubernetesClusterActions } from './kubernetes-clusters';
@@ -26,7 +28,7 @@ const {
     // Just convert the string dates to Date objects
     transform: app => ({
         ...app,
-        created_at: new Date(app.created_at)
+        created_at: DateTime.fromISO(app.created_at)
     })
 });
 

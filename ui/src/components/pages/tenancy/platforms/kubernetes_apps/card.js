@@ -8,7 +8,7 @@ import Modal from 'react-bootstrap/Modal';
 import Row from 'react-bootstrap/Row';
 import Table from 'react-bootstrap/Table';
 
-import moment from 'moment';
+import { DateTime } from 'luxon';
 
 import get from 'lodash/get';
 
@@ -90,17 +90,57 @@ const statusStyles = {
 
 
 const StatusText = ({ kubernetesApp }) => {
+    const [errorVisible, setErrorVisible] = useState(false);
+    const openError = () => setErrorVisible(true);
+    const closeError = () => setErrorVisible(false);
+
     const styles = statusStyles[kubernetesApp.status];
-    return (
-        <span className={`fw-bold ${styles.className}`}>
-            <FontAwesomeIcon
-                icon={styles.icon}
-                spin={styles.spin}
-                className="me-2"
-            />
-            {kubernetesApp.status}
-        </span>
-    );
+
+    if( kubernetesApp.status === "Failed" && kubernetesApp.failure_message ) {
+        return (
+            <>
+                <Button
+                    variant="link"
+                    className={`fw-bold ${styles.className} text-decoration-none`}
+                    onClick={openError}
+                >
+                    <FontAwesomeIcon
+                        icon={styles.icon}
+                        spin={styles.spin}
+                        className="me-2"
+                    />
+                    {kubernetesApp.status}
+                </Button>
+                <Modal size="xl" show={errorVisible} backdrop="static" onHide={closeError}>
+                    <Modal.Header closeButton>
+                        <Modal.Title>Error message</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>
+                        <pre>
+                            {kubernetesApp.failure_message}
+                        </pre>
+                    </Modal.Body>
+                    <Modal.Footer>
+                        <Button variant="secondary" onClick={closeError}>
+                            Close
+                        </Button>
+                    </Modal.Footer>
+                </Modal>
+            </>
+        );
+    }
+    else {
+        return (
+            <span className={`fw-bold ${styles.className}`}>
+                <FontAwesomeIcon
+                    icon={styles.icon}
+                    spin={styles.spin}
+                    className="me-2"
+                />
+                {kubernetesApp.status}
+            </span>
+        );
+    }
 };
 
 
@@ -133,7 +173,7 @@ const StatusCard = ({ kubernetesApp, kubernetesAppTemplate }) => (
                 </tr>
                 <tr>
                     <th>Created</th>
-                    <td>{moment(kubernetesApp.created_at).fromNow()}</td>
+                    <td>{kubernetesApp.created_at.toRelative()}</td>
                 </tr>
             </tbody>
         </Table>
@@ -276,7 +316,7 @@ export const KubernetesAppCard = ({
                     />
                 )}
                 <Card.Body className="small text-muted">
-                    Created {moment(kubernetesApp.created_at).fromNow()}
+                    Created {kubernetesApp.created_at.toRelative()}
                 </Card.Body>
                 <Card.Footer>
                     <KubernetesAppDetailsButton

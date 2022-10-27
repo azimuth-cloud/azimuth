@@ -10,8 +10,6 @@ import dateutil.parser
 
 import httpx
 
-import jinja2
-
 import yaml
 
 from easykube import (
@@ -123,7 +121,6 @@ class Session:
     def __init__(self, client: SyncClient, cloud_session: cloud_base.ScopedSession):
         self._client = client
         self._cloud_session = cloud_session
-        self._jinja_env = jinja2.Environment()
 
     def _log(self, message, *args, level = logging.INFO, **kwargs):
         logger.log(
@@ -539,7 +536,17 @@ class Session:
             helm_release.spec["clusterName"],
             helm_release.metadata.labels["azimuth.stackhpc.com/app-template"],
             helm_release.spec.chart.version,
+            # Just pull the values out of the first template source
+            next(
+                (
+                    yaml.safe_load(source["template"])
+                    for source in helm_release.spec.get("valuesSources", [])
+                    if "template" in source
+                ),
+                {}
+            ),
             app_state,
+            helm_release.get("status", {}).get("failureMessage") or None,
             [
                 dto.Service(
                     name,
@@ -595,25 +602,11 @@ class Session:
         name: str,
         template: t.Dict[str, t.Any],
         kubernetes_cluster: dto.Cluster,
-        parameter_values: t.Dict[str, t.Any]
+        values: t.Dict[str, t.Any]
     ) -> dto.App:
         """
         Create a new app in the tenancy.
         """
-        # Use the first version when creating an app
-        version = template["versions"][0]
-        if "valuesTemplate" in version:
-            values_template = self._jinja_env.from_string(version["valuesTemplate"])
-            values_sources = [
-                {
-                    "template": values_template.render(
-                        kubernetes_cluster = kubernetes_cluster,
-                        parameter_values = parameter_values
-                    ),
-                },
-            ]
-        else:
-            values_sources = []
         # We know that the cluster exists, which means that the namespace exists
         ekapps = self._client.api(CAPI_ADDONS_API_VERSION).resource("helmreleases")
         app = ekapps.create({
@@ -630,9 +623,14 @@ class Session:
                 "releaseName": name,
                 "chart": dict(
                     template["chart"],
-                    version = version["name"]
+                    # Use the first version when creating an app
+                    version = template["versions"][0]["name"]
                 ),
-                "valuesSources": values_sources,
+                "valuesSources": [
+                    {
+                        "template": yaml.safe_dump(values),
+                    },
+                ],
             },
         })
         return self._from_helm_release(app)

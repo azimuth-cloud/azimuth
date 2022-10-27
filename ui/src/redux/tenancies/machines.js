@@ -6,6 +6,8 @@ import { merge, map } from 'rxjs/operators';
 
 import { combineEpics, ofType } from 'redux-observable';
 
+import { DateTime } from 'luxon';
+
 import { createTenancyResource, nextStateEntry } from './resource';
 
 import { actions as externalIpActions } from './external-ips';
@@ -21,7 +23,7 @@ const {
     // Just convert the string date to a Date object
     transform: machine =>
         machine.hasOwnProperty('created') ?
-            { ...machine, created: new Date(machine.created) } :
+            { ...machine, created: DateTime.fromISO(machine.created) } :
             machine
 });
 

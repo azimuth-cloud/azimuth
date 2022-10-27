@@ -14,14 +14,13 @@ import { faPlus, faSave, faSyncAlt } from '@fortawesome/free-solid-svg-icons';
 
 import { Field, Form } from '../../../../utils';
 
+import { SchemaField, getInitialValueFromSchema } from '../../../../json-schema-field';
+
 import { KubernetesClusterSelectControl } from '../../resource-utils';
 
 import { PlatformTypeCard } from '../utils';
 
 import { KubernetesClusterModalForm } from '../kubernetes/form';
-
-import { ClusterParameterField } from '../clusters/parameter-field';
-
 
 const KubernetesClusterSelectControlWithCreate = ({
     kubernetesClusterTemplates,
@@ -89,28 +88,18 @@ const KubernetesClusterSelectControlWithCreate = ({
 };
 
 
-const initialParameterValues = (kubernetesAppTemplate, kubernetesApp) => {
+const initialValues = (kubernetesAppTemplate, kubernetesApp) => {
     if( kubernetesApp ) {
         const version = kubernetesAppTemplate.versions.find(v => v === kubernetesApp.version);
-        return Object.assign(
-            {},
-            ...version.parameters
-                .map(p => [
-                    p.name,
-                    get(kubernetesApp.parameter_values || {}, p.name, p.default || "")
-                ])
-                .filter(([_, value]) => value !== "")
-                .map(([name, value]) => ({ [name]: value }))
-        )
+        return getInitialValueFromSchema(
+            version.values_schema,
+            version.ui_schema,
+            kubernetesApp.values
+        );
     }
     else {
         const version = kubernetesAppTemplate.versions[0];
-        return Object.assign(
-            {},
-            ...version.parameters
-                .filter(p => p.required || p.default !== null)
-                .map(p => ({ [p.name]: p.default !== null ? p.default : "" }))
-        );
+        return getInitialValueFromSchema(version.values_schema, version.ui_schema);
     }
 };
 
@@ -120,9 +109,7 @@ export const useKubernetesAppFormState = (kubernetesAppTemplate, kubernetesApp) 
     const [kubernetesCluster, setKubernetesCluster] = useState(
         kubernetesApp ? kubernetesApp.kubernetes_cluster.id : ""
     );
-    const [parameterValues, setParameterValues] = useState(
-        initialParameterValues(kubernetesAppTemplate, kubernetesApp)
-    );
+    const [values, setValues] = useState(initialValues(kubernetesAppTemplate, kubernetesApp));
     return [
         {
             kubernetesAppTemplate,
@@ -131,13 +118,13 @@ export const useKubernetesAppFormState = (kubernetesAppTemplate, kubernetesApp) 
             setName,
             kubernetesCluster,
             setKubernetesCluster,
-            parameterValues,
-            setParameterValues
+            values,
+            setValues
         },
         () => {
             setName("");
             setKubernetesCluster("");
-            setParameterValues(initialParameterValues(kubernetesAppTemplate, kubernetesApp));
+            setValues(initialValues(kubernetesAppTemplate, kubernetesApp));
         }
     ]
 };
@@ -152,23 +139,12 @@ export const KubernetesAppForm = ({
     ...props
 }) => {
     const handleNameChange = evt => formState.setName(evt.target.value);
-    const handleParameterValueChange = (name) => (value) => formState.setParameterValues(
-        prevState => {
-            if( value !== '' ) {
-                return { ...prevState, [name]: value };
-            }
-            else {
-                const { [name]: _, ...nextState } = prevState;
-                return nextState;
-            }
-        }
-    );
     const handleSubmit = (evt) => {
         evt.preventDefault();
         onSubmit({
             name: formState.name,
             kubernetesCluster: formState.kubernetesCluster,
-            parameterValues: formState.parameterValues
+            values: formState.values
         });
     };
 
@@ -226,17 +202,12 @@ export const KubernetesAppForm = ({
                     sizeActions={sizeActions}
                 />
             </Field>
-            {version.parameters.map(p => (
-                <ClusterParameterField
-                    key={p.name}
-                    tenancy={tenancy}
-                    tenancyActions={tenancyActions}
-                    isCreate={!formState.isEdit}
-                    parameter={p}
-                    value={formState.parameterValues[p.name] || ''}
-                    onChange={handleParameterValueChange(p.name)}
-                />
-            ))}
+            <SchemaField
+                value={formState.values}
+                onChange={formState.setValues}
+                schema={version.values_schema}
+                uiSchema={version.ui_schema}
+            />
         </Form>
     );
 };
