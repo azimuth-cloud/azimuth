@@ -876,5 +876,6 @@ class CreateKubernetesAppSerializer(serializers.Serializer):
             try:
                 jsonschema.validate(data["values"], schema)
             except jsonschema.ValidationError as exc:
-                raise serializers.ValidationError({ "values": exc.message })
+                path = "/" + "/".join(exc.absolute_path)
+                raise serializers.ValidationError({ "values": { path: exc.message }})
         return data

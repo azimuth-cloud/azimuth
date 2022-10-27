@@ -52,6 +52,7 @@ export const PropertyField = ({
 
     return (
         <Field
+            className={uiSchemaControlProps.visuallyHidden ? "d-none" : undefined}
             name={path}
             label={schema.title || path}
             helpText={
