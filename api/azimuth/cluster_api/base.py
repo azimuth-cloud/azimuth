@@ -605,6 +605,7 @@ class Session:
                 {}
             ),
             app_state,
+            helm_release.get("status", {}).get("notes") or None,
             helm_release.get("status", {}).get("failureMessage") or None,
             [
                 dto.Service(
@@ -659,7 +660,7 @@ class Session:
     def create_app(
         self,
         name: str,
-        template: t.Dict[str, t.Any],
+        template: dto.AppTemplate,
         kubernetes_cluster: dto.Cluster,
         values: t.Dict[str, t.Any]
     ) -> dto.App:
@@ -673,18 +674,19 @@ class Session:
                 "name": name,
                 "labels": {
                     "app.kubernetes.io/managed-by": "azimuth",
-                    "azimuth.stackhpc.com/app-template": template["id"]
+                    "azimuth.stackhpc.com/app-template": template.id
                 },
             },
             "spec": {
                 "clusterName": kubernetes_cluster.id,
                 "targetNamespace": name,
                 "releaseName": name,
-                "chart": dict(
-                    template["chart"],
+                "chart": {
+                    "repo": template.chart.repo,
+                    "name": template.chart.name,
                     # Use the first version when creating an app
-                    version = template["versions"][0]["name"]
-                ),
+                    "version": template.versions[0].name,
+                },
                 "valuesSources": [
                     {
                         "template": yaml.safe_dump(values),

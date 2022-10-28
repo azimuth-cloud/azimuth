@@ -192,6 +192,8 @@ class App:
     values: t.Dict[str, t.Any]
     #: The deployment status of the app
     status: str
+    #: The usage text produced by the chart
+    usage: str
     #: The failure message if present
     failure_message: str
     #: The services for the app

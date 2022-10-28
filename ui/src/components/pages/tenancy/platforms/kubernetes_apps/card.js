@@ -35,22 +35,30 @@ import { KubernetesAppModalForm } from './form';
 
 const Usage = ({ kubernetesApp }) => {
     return (
-        <ReactMarkdown
-            components={{
-                // Limit the headings to levels 5 and 6
-                h1: 'h5',
-                h2: 'h6',
-                h3: 'h6',
-                h4: 'h6',
-                h5: 'h6',
-                h6: 'h6',
-                // Links should open in a new tab
-                a: ({ node, children, ...props }) => (
-                    <a target="_blank" {...props}>{children}</a>
-                )
-            }}
-            children={kubernetesApp.usage || "No usage available."}
-        />
+        kubernetesApp.usage ? (
+            <ReactMarkdown
+                components={{
+                    // Limit the headings to levels 5 and 6
+                    h1: 'h5',
+                    h2: 'h6',
+                    h3: 'h6',
+                    h4: 'h6',
+                    h5: 'h6',
+                    h6: 'h6',
+                    // Links should open in a new tab
+                    a: ({ node, children, ...props }) => (
+                        <a target="_blank" {...props}>{children}</a>
+                    )
+                }}
+                children={kubernetesApp.usage}
+            />
+        ) : (
+            <Row className="justify-content-center text-muted">
+                <Col xs="auto py-5">
+                    App did not provide any details.
+                </Col>
+            </Row>
+        )
     );
 };
 

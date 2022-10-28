@@ -325,11 +325,11 @@
     margin-bottom: 1rem;
 }
 .platform-type-card .row {
-    align-items: stretch;
+    align-items: center;
 }
 .platform-type-card img {
     min-width: 70px;
-    max-width: 100%;
+    max-width: 180px;
     height: auto;
     max-height: 80px;
 }
