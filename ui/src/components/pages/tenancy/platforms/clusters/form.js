@@ -57,7 +57,7 @@ export const useClusterFormState = (clusterType, cluster) => {
             setParameterValues
         },
         () => {
-            setName("");
+            setName(cluster ? cluster.name : "");
             setParameterValues(initialParameterValues(clusterType, cluster));
         }
     ]
@@ -141,12 +141,13 @@ export const ClusterModalForm = ({
             `cluster-update-${cluster.id}` :
             "cluster-create"
     );
-    const [formState, clearForm] = useClusterFormState(clusterType, cluster);
+    const [formState, resetForm] = useClusterFormState(clusterType, cluster);
     return (
         <Modal
             backdrop="static"
             onHide={onCancel}
-            onExited={clearForm}
+            onEnter={resetForm}
+            onExited={resetForm}
             size="lg"
             show={show}
             {...props}

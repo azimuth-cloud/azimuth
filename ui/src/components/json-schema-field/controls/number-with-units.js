@@ -42,7 +42,7 @@ export const NumberWithUnitsControl = ({
     );
 
     return (
-        <InputGroup>
+        <InputGroup className={props.isInvalid ? "is-invalid" : undefined}>
             <FormControl
                 as={InputWithCustomValidity}
                 type="number"

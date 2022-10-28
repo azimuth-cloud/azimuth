@@ -46,7 +46,12 @@ const PlatformCard = ({ platform, tenancy, tenancyActions, ...props }) => {
             <KubernetesAppCard
                 kubernetesApp={platform.object}
                 kubernetesAppTemplates={tenancy.kubernetesAppTemplates}
-                kubernetesAppActions={bindArgsToActions(tenancyActions.kubernetesApp, platform.object.id)}
+                kubernetesAppActions={bindArgsToActions(
+                    tenancyActions.kubernetesApp,
+                    platform.object.id
+                )}
+                tenancy={tenancy}
+                tenancyActions={tenancyActions}
             />
         );
     }

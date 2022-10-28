@@ -430,10 +430,12 @@ export const Select = React.forwardRef(
         // We allow the reference to the hidden field to be forwarded as it gives
         // control over the validation state
         const hiddenInputRef = useForwardedRef(forwardedRef);
+        // Only allow values that correspond to a valid option
+        const constrainedValue = options.map(opt => getOptionValue(opt)).find(v => v === value);
         // Store the current value as internal state
-        const [state, setState] = useState(value || '');
+        const [state, setState] = useState(constrainedValue || "");
         // When the value changes, use it to set the state
-        useEffect(() => { setState(value); }, [value]);
+        useEffect(() => { setState(constrainedValue || ""); }, [constrainedValue]);
         // Maintain a reference to the select that we will use to correctly maintain focus
         const selectRef = useRef(null);
         // When the select is changed, update the internal state and call the handler

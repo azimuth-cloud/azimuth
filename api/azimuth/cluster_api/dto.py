@@ -130,6 +130,50 @@ class Cluster:
 
 
 @dataclasses.dataclass(frozen = True)
+class Chart:
+    """
+    Represents a Helm chart to use for an app.
+    """
+    #: The repository for the chart for the app
+    repo: str
+    #: The name of the chart for the app
+    name: str
+
+
+@dataclasses.dataclass(frozen = True)
+class Version:
+    """
+    Represents a version of an app.
+    """
+    #: The name of the version
+    name: str
+    #: The JSON schema to use to validate the values
+    values_schema: t.Dict[str, t.Any]
+    #: The UI schema to use when rendering the form for the values
+    ui_schema: t.Dict[str, t.Any]
+
+
+@dataclasses.dataclass(frozen = True)
+class AppTemplate:
+    """
+    Represents a template for an app on a Kubernetes cluster.
+    """
+    #: The id of the app template
+    id: str
+    #: A human-readable label for the app template
+    label: str
+    #: The URL of the logo to use for the app template
+    logo: str
+    #: A brief description of the app template
+    description: str
+    #: The Helm chart to use for the app template
+    chart: Chart
+    #: The available versions for the app template
+    #: These should always be sorted from latest to oldest
+    versions: t.List[Version]
+
+
+@dataclasses.dataclass(frozen = True)
 class App:
     """
     Represents an app on a Kubernetes cluster.

@@ -442,11 +442,14 @@ class Session:
             template = self.find_cluster_template(template)
         # Apply a patch to the specified cluster to update the template
         ekclusters = self._client.api(AZIMUTH_API_VERSION).resource("clusters")
-        cluster = ekclusters.patch(cluster, {
-            "spec": {
-                "templateName": template.id,
-            },
-        })
+        cluster = ekclusters.patch(
+            cluster,
+            {
+                "spec": {
+                    "templateName": template.id,
+                },
+            }
+        )
         sizes = list(self._cloud_session.sizes())
         return self._from_api_cluster(cluster, sizes)
 
@@ -498,6 +501,63 @@ class Session:
                 return base64.b64decode(secret.data.value)
         raise errors.ObjectNotFoundError(f"Kubeconfig not available for cluster '{cluster.metadata.name}'")
 
+    def _from_api_app_template(self, at):
+        """
+        Converts an app template from the Kubernetes API to a DTO.
+
+        NOTE: Currently, these come from settings.
+        """
+        return dto.AppTemplate(
+            at["id"],
+            at["label"],
+            at["logo"],
+            at["description"],
+            dto.Chart(
+                at["chart"]["repo"],
+                at["chart"]["name"]
+            ),
+            [
+                dto.Version(
+                    version["name"],
+                    version["values_schema"],
+                    version["ui_schema"]
+                )
+                for version in at["versions"]
+            ]
+        )
+
+    @convert_exceptions
+    def app_templates(self) -> t.Iterable[dto.AppTemplate]:
+        """
+        Lists the app templates currently available to the tenancy.
+
+        NOTE: Currently, these come from settings.
+        """
+        from ..settings import cloud_settings
+        self._log("Fetching available app templates")
+        templates = cloud_settings.KUBERNETES_APP_TEMPLATES
+        self._log("Found %s app templates", len(templates))
+        return tuple(self._from_api_app_template(at) for at in templates)
+
+    @convert_exceptions
+    def find_app_template(self, id: str) -> dto.AppTemplate:
+        """
+        Finds an app template by id.
+
+        NOTE: Currently, these come from settings.
+        """
+        from ..settings import cloud_settings
+        self._log("Fetching app template with id '%s'", id)
+        try:
+            template = next(
+                t
+                for t in cloud_settings.KUBERNETES_APP_TEMPLATES
+                if t["id"] == id
+            )
+        except StopIteration:
+            raise errors.ObjectNotFoundError(f"Kubernetes app template '{id}' not found")
+        return self._from_api_app_template(template)
+
     def _from_helm_release(self, helm_release):
         """
         Converts a Helm release to an app DTO.
@@ -514,7 +574,6 @@ class Session:
             app_state = "Pending"
         else:
             # Otherwise, we can compare the spec to the last handled configuration
-            # If the spec has changed, we have an install or an upgrade
             last_handled_configuration = json.loads(
                 helm_release.metadata
                     .get("annotations", {})
@@ -636,10 +695,41 @@ class Session:
         return self._from_helm_release(app)
 
     @convert_exceptions
-    def delete_app(
+    def update_app(
         self,
-        app: t.Union[dto.App, str]
-    ) -> t.Optional[dto.App]:
+        app: t.Union[dto.App, str],
+        version: dto.Version,
+        values: t.Dict[str, t.Any]
+    ) -> dto.App:
+        """
+        Update the specified cluster with the given parameters.
+        """
+        # First, fetch the app to verify that it is actually an app, not a cluster addon
+        if not isinstance(app, dto.App):
+            app = self.find_app(app)
+        return self._from_helm_release(
+            self._client
+                .api(CAPI_ADDONS_API_VERSION)
+                .resource("helmreleases")
+                .patch(
+                    app.id,
+                    {
+                        "spec": {
+                            "chart": {
+                                "version": version.name,
+                            },
+                            "valuesSources": [
+                                {
+                                    "template": yaml.safe_dump(values),
+                                },
+                            ],
+                        },
+                    },
+                )
+        )
+
+    @convert_exceptions
+    def delete_app(self, app: t.Union[dto.App, str]) -> t.Optional[dto.App]:
         """
         Delete the specified app.
         """

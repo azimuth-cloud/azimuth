@@ -5,10 +5,10 @@ import Button from 'react-bootstrap/Button';
 import Card from 'react-bootstrap/Card';
 import Col from 'react-bootstrap/Col';
 import Modal from 'react-bootstrap/Modal';
+import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Row from 'react-bootstrap/Row';
 import Table from 'react-bootstrap/Table';
-
-import { DateTime } from 'luxon';
+import Tooltip from 'react-bootstrap/Tooltip';
 
 import get from 'lodash/get';
 
@@ -18,6 +18,9 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faCheck,
     faClock,
+    faExclamationCircle,
+    faExclamationTriangle,
+    faPen,
     faQuestionCircle,
     faSyncAlt,
     faTimesCircle
@@ -26,6 +29,8 @@ import {
 import { sortBy } from '../../../../utils';
 
 import { PlatformTypeCard, PlatformServicesListGroup, PlatformDeleteButton } from '../utils';
+
+import { KubernetesAppModalForm } from './form';
 
 
 const Usage = ({ kubernetesApp }) => {
@@ -89,6 +94,43 @@ const statusStyles = {
 };
 
 
+const VersionText = ({ kubernetesAppTemplate, kubernetesApp }) => {
+    // Indicate if the deployed version is unsupported or updates are available
+    const version = kubernetesAppTemplate.versions.find(v => v.name === kubernetesApp.version);
+    const versionIsLatest = (
+        version &&
+        version.name === kubernetesAppTemplate.versions[0].name
+    );
+    return versionIsLatest ?
+        kubernetesApp.version :
+        <OverlayTrigger
+            placement="top"
+            overlay={
+                <Tooltip>
+                    {
+                        version ?
+                            "An upgrade is available." :
+                            "This version is no longer supported."
+                    }
+                </Tooltip>
+            }
+            trigger="click"
+            rootClose
+        >
+            <Button
+                variant="link"
+                className={`fw-bold text-decoration-none text-${version ? "warning" : "danger"}`}
+            >
+                <FontAwesomeIcon
+                    icon={version ? faExclamationTriangle : faExclamationCircle}
+                    className="me-2"
+                />
+                {kubernetesApp.version}
+            </Button>
+        </OverlayTrigger>;
+};
+
+
 const StatusText = ({ kubernetesApp }) => {
     const [errorVisible, setErrorVisible] = useState(false);
     const openError = () => setErrorVisible(true);
@@ -144,7 +186,7 @@ const StatusText = ({ kubernetesApp }) => {
 };
 
 
-const StatusCard = ({ kubernetesApp, kubernetesAppTemplate }) => (
+const StatusCard = ({ kubernetesAppTemplate, kubernetesApp }) => (
     <Card className="mb-3">
         <Card.Header className="text-center">App status</Card.Header>
         <Table borderless className="details-table">
@@ -163,7 +205,12 @@ const StatusCard = ({ kubernetesApp, kubernetesAppTemplate }) => (
                 </tr>
                 <tr>
                     <th>Version</th>
-                    <td>{kubernetesApp.version}</td>
+                    <td>
+                        <VersionText
+                            kubernetesAppTemplate={kubernetesAppTemplate}
+                            kubernetesApp={kubernetesApp}
+                        />
+                    </td>
                 </tr>
                 <tr>
                     <th>Status</th>
@@ -201,10 +248,65 @@ const ServicesCard = ({ kubernetesApp }) => (
 );
 
 
+const KubernetesAppUpdateButton = ({
+    kubernetesApp,
+    tenancy,
+    tenancyActions,
+    disabled,
+    onSubmit,
+    ...props
+}) => {
+    const [visible, setVisible] = useState(false);
+    const open = () => setVisible(true);
+    const close = () => setVisible(false);
+
+    const kubernetesAppTemplate = get(
+        tenancy.kubernetesAppTemplates.data,
+        kubernetesApp.template.id
+    );
+
+    const handleSubmit = data => {
+        onSubmit({ version: data.version, values: data.values });
+        close();
+    };
+
+    return (
+        <>
+            <Button
+                {...props}
+                variant="secondary"
+                onClick={open}
+                disabled={disabled || !kubernetesAppTemplate}
+            >
+                <FontAwesomeIcon
+                    icon={!!kubernetesApp.updating ? faSyncAlt : faPen}
+                    spin={!!kubernetesApp.updating}
+                    className="me-2"
+                />
+                {!!kubernetesApp.updating ? 'Updating...' : 'Update'}
+            </Button>
+            {kubernetesAppTemplate && (
+                <KubernetesAppModalForm
+                    show={visible}
+                    kubernetesAppTemplate={kubernetesAppTemplate}
+                    kubernetesApp={kubernetesApp}
+                    onSubmit={handleSubmit}
+                    onCancel={close}
+                    tenancy={tenancy}
+                    tenancyActions={tenancyActions}
+                />
+            )}
+        </>
+    );
+};
+
+
 const KubernetesAppDetailsButton = ({
     kubernetesApp,
     kubernetesAppTemplate,
     kubernetesAppActions,
+    tenancy,
+    tenancyActions,
     ...props
 }) => {
     const [visible, setVisible] = useState(false);
@@ -240,6 +342,14 @@ const KubernetesAppDetailsButton = ({
                                 />
                                 Refresh
                             </Button>
+                            <KubernetesAppUpdateButton
+                                kubernetesApp={kubernetesApp}
+                                tenancy={tenancy}
+                                tenancyActions={tenancyActions}
+                                disabled={inFlight || working}
+                                onSubmit={data => kubernetesAppActions.update(data, true)}
+                                className="me-2"
+                            />
                             <PlatformDeleteButton
                                 name={kubernetesApp.name}
                                 inFlight={!!kubernetesApp.deleting}
@@ -291,19 +401,44 @@ const statusBadgeBg = {
 };
 
 
+const StatusBadge = ({ kubernetesAppTemplate, kubernetesApp }) => {
+    // Indicate if the deployed version is unsupported or updates are available
+    const version = kubernetesAppTemplate.versions.find(v => v.name === kubernetesApp.version);
+    const versionIsLatest = (
+        version &&
+        version.name === kubernetesAppTemplate.versions[0].name
+    );
+    let statusText = kubernetesApp.status, statusBg = statusBadgeBg[kubernetesApp.status];
+    if( kubernetesApp.status === "Deployed" ) {
+        if( !version ) {
+            statusText = "Unsupported";
+            statusBg = "danger";
+        }
+        else if( !versionIsLatest ) {
+            statusText = "Upgrade available";
+            statusBg = "warning";
+        }
+    }
+    return <Badge bg={statusBg}>{statusText.toUpperCase()}</Badge>;
+};
+
+
 export const KubernetesAppCard = ({
     kubernetesApp,
     kubernetesAppTemplates,
-    kubernetesAppActions
+    kubernetesAppActions,
+    tenancy,
+    tenancyActions
 }) => {
     const kubernetesAppTemplate = get(kubernetesAppTemplates.data, kubernetesApp.template.id);
     if( kubernetesAppTemplate ) {
         return (
             <Card className="platform-card">
                 <Card.Header>
-                    <Badge bg={statusBadgeBg[kubernetesApp.status]}>
-                        {kubernetesApp.status.toUpperCase()}
-                    </Badge>
+                    <StatusBadge
+                        kubernetesAppTemplate={kubernetesAppTemplate}
+                        kubernetesApp={kubernetesApp}
+                    />
                 </Card.Header>
                 <Card.Img src={kubernetesAppTemplate.logo} />
                 <Card.Body>
@@ -323,6 +458,8 @@ export const KubernetesAppCard = ({
                         kubernetesApp={kubernetesApp}
                         kubernetesAppTemplate={kubernetesAppTemplate}
                         kubernetesAppActions={kubernetesAppActions}
+                        tenancy={tenancy}
+                        tenancyActions={tenancyActions}
                     />
                 </Card.Footer>
             </Card>

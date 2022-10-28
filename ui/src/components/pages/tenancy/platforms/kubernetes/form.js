@@ -596,12 +596,13 @@ export const KubernetesClusterModalForm = ({
             `kubernetes-update-${kubernetesCluster.id}` :
             "kubernetes-create"
     );
-    const [formState, clearForm] = useKubernetesClusterFormState(kubernetesCluster);
+    const [formState, resetForm] = useKubernetesClusterFormState(kubernetesCluster);
     return (
         <Modal
             backdrop="static"
             onHide={onCancel}
-            onExited={clearForm}
+            onEnter={resetForm}
+            onExited={resetForm}
             size="lg"
             show={show}
             {...props}

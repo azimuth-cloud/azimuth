@@ -742,9 +742,10 @@ class UpdateKubernetesClusterSerializer(serializers.Serializer):
     def validate_template(self, value):
         capi_session = self.context["capi_session"]
         try:
-            return capi_session.find_cluster_template(value)
+            template = capi_session.find_cluster_template(value)
         except errors.ObjectNotFoundError as exc:
             raise serializers.ValidationError(str(exc))
+        return template
 
     def validate_control_plane_size(self, value):
         session = self.context["session"]
@@ -763,34 +764,28 @@ class UpdateKubernetesClusterSerializer(serializers.Serializer):
         return value
 
 
-class KubernetesAppTemplateRefSerializer(serializers.Serializer):
-    id = serializers.ReadOnlyField()
-
-    def to_representation(self, obj):
-        # If the object is falsey, the representation is None
-        if not obj:
-            return None
-        if not isinstance(obj, dict):
-            obj = { "id": obj }
-        result = super().to_representation(obj)
-        # If the info to build a link is in the context, add it
-        request = self.context.get("request")
-        tenant = self.context.get("tenant")
-        if request and tenant:
-            result.setdefault("links", {})["self"] = request.build_absolute_uri(
-                reverse("azimuth:kubernetes_app_template_details", kwargs = {
-                    "tenant": tenant,
-                    "template": obj["id"],
-                })
-            )
-        return result
+class KubernetesAppTemplateRefSerializer(RefSerializer):
+    def get_self_link(self, request, tenant, id):
+        return request.build_absolute_uri(
+            reverse("azimuth:kubernetes_app_template_details", kwargs = {
+                "tenant": tenant,
+                "template": id,
+            })
+        )
 
 
-class KubernetesAppTemplateSerializer(KubernetesAppTemplateRefSerializer):
-    label = serializers.ReadOnlyField()
-    logo = serializers.ReadOnlyField()
-    description = serializers.ReadOnlyField()
-    versions = serializers.ReadOnlyField()
+KubernetesAppTemplateVersionSerializer = type(
+    "KubernetesAppTemplateVersionSerializer",
+    (make_dto_serializer(capi_dto.Version), ),
+    {}
+)
+
+
+class KubernetesAppTemplateSerializer(
+    KubernetesAppTemplateRefSerializer,
+    make_dto_serializer(capi_dto.AppTemplate, exclude = ["chart"])
+):
+    versions = KubernetesAppTemplateVersionSerializer(many = True)
 
 
 class KubernetesAppSerializer(
@@ -851,15 +846,11 @@ class CreateKubernetesAppSerializer(serializers.Serializer):
     values = serializers.JSONField(write_only = True)
 
     def validate_template(self, value):
-        # Check that the template exists in the template
+        capi_session = self.context["capi_session"]
         try:
-            return next(
-                template
-                for template in cloud_settings.KUBERNETES_APP_TEMPLATES
-                if template["id"] == value
-            )
-        except StopIteration:
-            raise serializers.ValidationError(f"Template \"{value}\" was not found")
+            return capi_session.find_app_template(value)
+        except errors.ObjectNotFoundError as exc:
+            raise serializers.ValidationError(str(exc))
 
     def validate_kubernetes_cluster(self, value):
         capi_session = self.context["capi_session"]
@@ -871,10 +862,55 @@ class CreateKubernetesAppSerializer(serializers.Serializer):
     def validate(self, data):
         # Use the JSON schema defined by the template to validate the values
         # For create, we use the most recent version
-        schema = data["template"]["versions"][0].get("values_schema")
-        if schema:
+        if "template" in data and "values" in data:
+            schema = data["template"].versions[0].values_schema
             try:
                 jsonschema.validate(data["values"], schema)
+            except jsonschema.ValidationError as exc:
+                path = "/" + "/".join(exc.absolute_path)
+                raise serializers.ValidationError({ "values": { path: exc.message }})
+        return data
+
+
+class UpdateKubernetesAppSerializer(serializers.Serializer):
+    version = serializers.RegexField("^[a-zA-Z0-9+.-]+$", write_only = True)
+    values = serializers.JSONField(write_only = True)
+
+    def validate_version(self, value):
+        app_template = self.context["app_template"]
+        # Get the index of the new version in the versions
+        try:
+            new_version_idx = next(
+                idx
+                for idx, version in enumerate(app_template.versions)
+                if version.name == value
+            )
+        except StopIteration:
+            raise serializers.ValidationError(f"Version \"{value}\" is not valid")
+        # We want to make sure that the new version is at least as new as the current
+        app = self.context["app"]
+        try:
+            current_version_idx = next(
+                idx
+                for idx, version in enumerate(app_template.versions)
+                if version.name == app.version
+            )
+        except StopIteration:
+            # If the current version is not in the list, any version is good
+            pass
+        else:
+            # Versions are ordered from the latest to the oldest
+            # So the new version must be closer to the front of the list than current
+            if new_version_idx > current_version_idx:
+                raise serializers.ValidationError("Downgrading an app is not supported")
+        # Return the new version
+        return app_template.versions[new_version_idx]
+
+    def validate(self, data):
+        # Use the JSON schema defined by the version to validate the values
+        if "version" in data:
+            try:
+                jsonschema.validate(data["values"], data["version"].values_schema)
             except jsonschema.ValidationError as exc:
                 path = "/" + "/".join(exc.absolute_path)
                 raise serializers.ValidationError({ "values": { path: exc.message }})

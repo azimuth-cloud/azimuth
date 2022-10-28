@@ -181,7 +181,7 @@ class AzimuthSettings(SettingsObject):
 
     #: The list of available Kubernetes app templates
     #: May be replaced by a CRD in the future
-    KUBERNETES_APP_TEMPLATES = Setting(default = dict)
+    KUBERNETES_APP_TEMPLATES = Setting(default = list)
 
     #: Configuration for curated sizes
     #: If given, should be a list of dictionaries

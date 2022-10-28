@@ -39,7 +39,7 @@ export const getInitialValueFromSchema = (schema, uiSchema, existingValue) => {
         }
     };
 
-    return getInitialValueForPath(undefined, schema, uiSchema, existingValue);
+    return getInitialValueForPath(undefined, schema, existingValue);
 };
 
 

@@ -23,6 +23,12 @@ const {
     // Just convert the string dates to Date objects
     transform: cluster => ({
         ...cluster,
+        nodes: cluster.nodes.map(
+            node => ({
+                ...node,
+                created_at: DateTime.fromISO(node.created_at),
+            })
+        ),
         created_at: DateTime.fromISO(cluster.created_at),
         updated_at: !!cluster.updated_at ? DateTime.fromISO(cluster.updated_at) : undefined
     })

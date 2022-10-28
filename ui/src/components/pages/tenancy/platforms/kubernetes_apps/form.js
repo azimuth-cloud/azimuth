@@ -7,12 +7,16 @@ import InputGroup from 'react-bootstrap/InputGroup';
 import Modal from 'react-bootstrap/Modal';
 import Row from 'react-bootstrap/Row';
 
-import get from 'lodash/get';
-
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faSave, faSyncAlt } from '@fortawesome/free-solid-svg-icons';
+import {
+    faExclamationCircle,
+    faExclamationTriangle,
+    faPlus,
+    faSave,
+    faSyncAlt
+} from '@fortawesome/free-solid-svg-icons';
 
-import { Field, Form } from '../../../../utils';
+import { Field, Form, Select } from '../../../../utils';
 
 import { SchemaField, getInitialValueFromSchema } from '../../../../json-schema-field';
 
@@ -21,6 +25,7 @@ import { KubernetesClusterSelectControl } from '../../resource-utils';
 import { PlatformTypeCard } from '../utils';
 
 import { KubernetesClusterModalForm } from '../kubernetes/form';
+
 
 const KubernetesClusterSelectControlWithCreate = ({
     kubernetesClusterTemplates,
@@ -90,11 +95,16 @@ const KubernetesClusterSelectControlWithCreate = ({
 
 const initialValues = (kubernetesAppTemplate, kubernetesApp) => {
     if( kubernetesApp ) {
-        const version = kubernetesAppTemplate.versions.find(v => v === kubernetesApp.version);
-        return getInitialValueFromSchema(
-            version.values_schema,
-            version.ui_schema,
-            kubernetesApp.values
+        const version = kubernetesAppTemplate.versions.find(v => v.name === kubernetesApp.version);
+        // If the version is no longer supported, there is no schema to populate defaults
+        return (
+            version ?
+                getInitialValueFromSchema(
+                    version.values_schema,
+                    version.ui_schema,
+                    kubernetesApp.values
+                ) :
+                kubernetesApp.values
         );
     }
     else {
@@ -104,28 +114,46 @@ const initialValues = (kubernetesAppTemplate, kubernetesApp) => {
 };
 
 
+const initialState = (kubernetesAppTemplate, kubernetesApp) => ({
+    name: kubernetesApp ? kubernetesApp.name : "",
+    kubernetesCluster: kubernetesApp ? kubernetesApp.kubernetes_cluster.id : "",
+    // Use the latest version by default
+    version: kubernetesApp ? kubernetesApp.version : kubernetesAppTemplate.versions[0].name,
+    values: initialValues(kubernetesAppTemplate, kubernetesApp),
+});
+
+
 export const useKubernetesAppFormState = (kubernetesAppTemplate, kubernetesApp) => {
-    const [name, setName] = useState(kubernetesApp ? kubernetesApp.name : "");
-    const [kubernetesCluster, setKubernetesCluster] = useState(
-        kubernetesApp ? kubernetesApp.kubernetes_cluster.id : ""
-    );
-    const [values, setValues] = useState(initialValues(kubernetesAppTemplate, kubernetesApp));
+    const [state, setState] = useState(initialState(kubernetesAppTemplate, kubernetesApp));
+    const setName = name => setState(state => ({ ...state, name }));
+    const setKubernetesCluster = kubernetesCluster => setState(state => ({ ...state, kubernetesCluster }));
+    // When the version changes, we also want to recompute the values to fill in any new defaults
+    const setVersion = version => setState(state => {
+        const templateVersion = kubernetesAppTemplate.versions.find(v => v.name === version);
+        return {
+            ...state,
+            version,
+            values: getInitialValueFromSchema(
+                templateVersion.values_schema,
+                templateVersion.ui_schema,
+                state.values
+            )
+        };
+    });
+    const setValues = values => setState(state => ({ ...state, values }));
+
     return [
         {
+            ...state,
             kubernetesAppTemplate,
+            kubernetesApp,
             isEdit: !!kubernetesApp,
-            name,
             setName,
-            kubernetesCluster,
             setKubernetesCluster,
-            values,
+            setVersion,
             setValues
         },
-        () => {
-            setName("");
-            setKubernetesCluster("");
-            setValues(initialValues(kubernetesAppTemplate, kubernetesApp));
-        }
+        () => setState(initialState(kubernetesAppTemplate, kubernetesApp))
     ]
 };
 
@@ -139,17 +167,15 @@ export const KubernetesAppForm = ({
     ...props
 }) => {
     const handleNameChange = evt => formState.setName(evt.target.value);
-    const handleSubmit = (evt) => {
+    const handleSubmit = evt => {
         evt.preventDefault();
         onSubmit({
             name: formState.name,
             kubernetesCluster: formState.kubernetesCluster,
+            version: formState.version,
             values: formState.values
         });
     };
-
-    // Use the first available version for now
-    const version = formState.kubernetesAppTemplate.versions[0];
 
     const {
         kubernetesClusters,
@@ -161,6 +187,14 @@ export const KubernetesAppForm = ({
         kubernetesClusterTemplate: kubernetesClusterTemplateActions,
         size: sizeActions
     } = tenancyActions;
+
+    const selectedVersion = formState.kubernetesAppTemplate.versions.find(
+        version => version.name === formState.version
+    );
+    const selectedVersionIsLatest = (
+        selectedVersion &&
+        selectedVersion.name === formState.kubernetesAppTemplate.versions[0].name
+    );
 
     return (
         <Form
@@ -202,87 +236,138 @@ export const KubernetesAppForm = ({
                     sizeActions={sizeActions}
                 />
             </Field>
-            <SchemaField
-                value={formState.values}
-                onChange={formState.setValues}
-                schema={version.values_schema}
-                uiSchema={version.ui_schema}
-            />
+            <Field
+                name="version"
+                label="App version"
+                helpText={
+                    <>
+                        The version of the application to use.<br />
+                        {selectedVersion ? (
+                            !selectedVersionIsLatest && (
+                                <strong className="text-warning">
+                                    <FontAwesomeIcon icon={faExclamationTriangle} className="me-2" />
+                                    The selected version is not the most recent version.
+                                </strong>
+                            )
+                        ) : (
+                            <strong className="text-danger">
+                                <FontAwesomeIcon icon={faExclamationCircle} className="me-2" />
+                                The deployed version is no longer supported.
+                            </strong>
+                        )}
+                    </>
+                }
+            >
+                <BSForm.Control
+                    as={Select}
+                    required
+                    options={formState.kubernetesAppTemplate.versions}
+                    getOptionLabel={version => version.name}
+                    getOptionValue={version => version.name}
+                    sortOptions={versions => versions}
+                    value={formState.version}
+                    onChange={formState.setVersion}
+                    // Prevent the user changing the version on create
+                    disabled={!formState.isEdit}
+                    // Disable versions that are older than the current version
+                    isOptionDisabled={version => {
+                        if( formState.kubernetesApp ) {
+                            const versions = formState.kubernetesAppTemplate.versions;
+                            const currentIdx = versions.findIndex(v => v.name === formState.kubernetesApp.version);
+                            const versionIdx = versions.findIndex(v => v.name === version.name);
+                            return currentIdx >= 0 && currentIdx < versionIdx;
+                        }
+                        else {
+                            // If there is no initial version, only the latest version is available
+                            return false;
+                        }
+                    }}
+                />
+            </Field>
+            {selectedVersion && (
+                <SchemaField
+                    value={formState.values}
+                    onChange={formState.setValues}
+                    schema={selectedVersion.values_schema}
+                    uiSchema={selectedVersion.ui_schema}
+                />
+            )}
         </Form>
     );
 };
 
 
-// export const ClusterModalForm = ({
-//     show,
-//     clusterType,
-//     cluster,
-//     onSubmit,
-//     onCancel,
-//     tenancy,
-//     tenancyActions,
-//     ...props
-// }) => {
-//     const formId = (
-//         cluster ?
-//             `cluster-update-${cluster.id}` :
-//             "cluster-create"
-//     );
-//     const [formState, clearForm] = useClusterFormState(clusterType, cluster);
-//     return (
-//         <Modal
-//             backdrop="static"
-//             onHide={onCancel}
-//             onExited={clearForm}
-//             size="lg"
-//             show={show}
-//             {...props}
-//         >
-//             <Modal.Header closeButton>
-//                 <Modal.Title>
-//                     {cluster ?
-//                         `Update platform ${cluster.name}` :
-//                         'Create a new platform'
-//                     }
-//                 </Modal.Title>
-//             </Modal.Header>
-//             <Modal.Body>
-//                 {clusterType && (
-//                     <Row className="justify-content-center">
-//                         <Col xs="auto">
-//                             <PlatformTypeCard
-//                                 platformType={{
-//                                     name: clusterType.label,
-//                                     logo: clusterType.logo,
-//                                     description: clusterType.description
-//                                 }}
-//                             />
-//                         </Col>
-//                     </Row>
-//                 )}
-//                 <ClusterForm
-//                     id={formId}
-//                     formState={formState}
-//                     onSubmit={onSubmit}
-//                     tenancy={tenancy}
-//                     tenancyActions={tenancyActions}
-//                 />
-//             </Modal.Body>
-//             <Modal.Footer>
-//                 <Button variant="success" type="submit" form={formId}>
-//                     {cluster ? (
-//                         <>
-//                             <FontAwesomeIcon icon={faSave} className="me-2" />
-//                             Update platform
-//                         </>
-//                     ) : (
-//                         <>
-//                             <FontAwesomeIcon icon={faPlus} className="me-2" />
-//                             Create platform
-//                         </>
-//                     )}
-//                 </Button>
-//             </Modal.Footer>
-//         </Modal>
-//     );
-// };
+export const KubernetesAppModalForm = ({
+    show,
+    kubernetesAppTemplate,
+    kubernetesApp,
+    onSubmit,
+    onCancel,
+    tenancy,
+    tenancyActions,
+    ...props
+}) => {
+    const formId = (
+        kubernetesApp ?
+            `kubernetes-app-update-${kubernetesApp.id}` :
+            "kubernetes-app-create"
+    );
+    const [formState, resetForm] = useKubernetesAppFormState(kubernetesAppTemplate, kubernetesApp);
+    return (
+        <Modal
+            backdrop="static"
+            onHide={onCancel}
+            onEnter={resetForm}
+            onExited={resetForm}
+            size="lg"
+            show={show}
+            {...props}
+        >
+            <Modal.Header closeButton>
+                <Modal.Title>
+                    {kubernetesApp ?
+                        `Update platform ${kubernetesApp.name}` :
+                        'Create a new platform'
+                    }
+                </Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
+                {kubernetesAppTemplate && (
+                    <Row className="justify-content-center">
+                        <Col xs="auto">
+                            <PlatformTypeCard
+                                platformType={{
+                                    name: kubernetesAppTemplate.label,
+                                    logo: kubernetesAppTemplate.logo,
+                                    description: kubernetesAppTemplate.description
+                                }}
+                            />
+                        </Col>
+                    </Row>
+                )}
+                <KubernetesAppForm
+                    id={formId}
+                    formState={formState}
+                    onSubmit={onSubmit}
+                    tenancy={tenancy}
+                    tenancyActions={tenancyActions}
+                />
+            </Modal.Body>
+            <Modal.Footer>
+                <Button variant="success" type="submit" form={formId}>
+                    {kubernetesApp ? (
+                        <>
+                            <FontAwesomeIcon icon={faSave} className="me-2" />
+                            Update platform
+                        </>
+                    ) : (
+                        <>
+                            <FontAwesomeIcon icon={faPlus} className="me-2" />
+                            Create platform
+                        </>
+                    )}
+                </Button>
+            </Modal.Footer>
+        </Modal>
+    );
+};

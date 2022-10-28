@@ -1302,16 +1302,18 @@ def kubernetes_app_templates(request, tenant):
     if not cloud_settings.CLUSTER_API_PROVIDER:
         return response.Response(
             {
-                "detail": "Kubernetes clusters are not supported.",
+                "detail": "Kubernetes apps are not supported.",
                 "code": "unsupported_operation"
             },
             status = status.HTTP_404_NOT_FOUND
         )
-    serializer = serializers.KubernetesAppTemplateSerializer(
-        cloud_settings.KUBERNETES_APP_TEMPLATES,
-        many = True,
-        context = { "request": request, "tenant": tenant }
-    )
+    with request.auth.scoped_session(tenant) as session:
+        with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
+            serializer = serializers.KubernetesAppTemplateSerializer(
+                capi_session.app_templates(),
+                many = True,
+                context = { "request": request, "tenant": tenant }
+            )
     return response.Response(serializer.data)
 
 
@@ -1323,23 +1325,17 @@ def kubernetes_app_template_details(request, tenant, template):
     if not cloud_settings.CLUSTER_API_PROVIDER:
         return response.Response(
             {
-                "detail": "Kubernetes clusters are not supported.",
+                "detail": "Kubernetes apps are not supported.",
                 "code": "unsupported_operation"
             },
             status = status.HTTP_404_NOT_FOUND
         )
-    try:
-        template = next(
-            t
-            for t in cloud_settings.KUBERNETES_APP_TEMPLATES
-            if t["id"] == template
-        )
-    except StopIteration:
-        raise drf_exceptions.NotFound(f"Kubernetes app template '{template}' not found")
-    serializer = serializers.KubernetesAppTemplateSerializer(
-        template,
-        context = { "request": request, "tenant": tenant }
-    )
+    with request.auth.scoped_session(tenant) as session:
+        with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
+            serializer = serializers.KubernetesAppTemplateSerializer(
+                capi_session.find_app_template(template),
+                context = { "request": request, "tenant": tenant }
+            )
     return response.Response(serializer.data)
 
 
@@ -1381,7 +1377,7 @@ def kubernetes_apps(request, tenant):
                 return response.Response(serializer.data)
 
 
-@provider_api_view(["GET", "DELETE"])
+@provider_api_view(["GET", "PATCH", "DELETE"])
 def kubernetes_app_details(request, tenant, app):
     """
     On ``GET`` requests, return the specified Kubernetes app.
@@ -1401,7 +1397,28 @@ def kubernetes_app_details(request, tenant, app):
         )
     with request.auth.scoped_session(tenant) as session:
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
-            if request.method == "DELETE":
+            if request.method == "PATCH":
+                app = capi_session.find_app(app)
+                app_template = capi_session.find_app_template(app.template_id)
+                input_serializer = serializers.UpdateKubernetesAppSerializer(
+                    data = request.data,
+                    context = dict(
+                        session = session,
+                        capi_session = capi_session,
+                        app_template = app_template,
+                        app = app
+                    )
+                )
+                input_serializer.is_valid(raise_exception = True)
+                output_serializer = serializers.KubernetesAppSerializer(
+                    capi_session.update_app(
+                        app,
+                        **input_serializer.validated_data
+                    ),
+                    context = { "request": request, "tenant": tenant }
+                )
+                return response.Response(output_serializer.data)
+            elif request.method == "DELETE":
                 deleted = capi_session.delete_app(app)
                 if deleted:
                     serializer = serializers.KubernetesAppSerializer(
