@@ -783,7 +783,7 @@ KubernetesAppTemplateVersionSerializer = type(
 
 class KubernetesAppTemplateSerializer(
     KubernetesAppTemplateRefSerializer,
-    make_dto_serializer(capi_dto.AppTemplate, exclude = ["chart"])
+    make_dto_serializer(capi_dto.AppTemplate, exclude = ["chart", "default_values"])
 ):
     versions = KubernetesAppTemplateVersionSerializer(many = True)
 
@@ -839,6 +839,29 @@ class KubernetesAppSerializer(
         return result
 
 
+def get_full_values(app_template, user_values):
+    """
+    Given the app template and user values, return the values to be validated once
+    any default values in the app template have been merged.
+    """
+    def mergeconcat2(defaults, overrides):
+        if isinstance(defaults, dict) and isinstance(overrides, dict):
+            merged = dict(defaults)
+            for key, value in overrides.items():
+                if key in defaults:
+                    merged[key] = mergeconcat2(defaults[key], value)
+                else:
+                    merged[key] = value
+            return merged
+        elif isinstance(defaults, (list, tuple)) and isinstance(overrides, (list, tuple)):
+            merged = list(defaults)
+            merged.extend(overrides)
+            return merged
+        else:
+            return overrides if overrides is not None else defaults
+    return mergeconcat2(app_template.default_values, user_values)
+
+
 class CreateKubernetesAppSerializer(serializers.Serializer):
     name = serializers.RegexField("^[a-z][a-z0-9-]+[a-z0-9]$", write_only = True)
     template = serializers.RegexField("^[a-z0-9-]+$", write_only = True)
@@ -863,12 +886,15 @@ class CreateKubernetesAppSerializer(serializers.Serializer):
         # Use the JSON schema defined by the template to validate the values
         # For create, we use the most recent version
         if "template" in data and "values" in data:
+            values = get_full_values(data["template"], data["values"] or {})
             schema = data["template"].versions[0].values_schema
             try:
-                jsonschema.validate(data["values"], schema)
+                jsonschema.validate(values, schema)
             except jsonschema.ValidationError as exc:
                 path = "/" + "/".join(exc.absolute_path)
                 raise serializers.ValidationError({ "values": { path: exc.message }})
+            else:
+                data["values"] = values
         return data
 
 
@@ -908,10 +934,14 @@ class UpdateKubernetesAppSerializer(serializers.Serializer):
 
     def validate(self, data):
         # Use the JSON schema defined by the version to validate the values
-        if "version" in data:
+        if "version" in data and "values" in data:
+            values = get_full_values(self.context["app_template"], data["values"] or {})
+            schema = data["version"].values_schema
             try:
-                jsonschema.validate(data["values"], data["version"].values_schema)
+                jsonschema.validate(values, schema)
             except jsonschema.ValidationError as exc:
                 path = "/" + "/".join(exc.absolute_path)
                 raise serializers.ValidationError({ "values": { path: exc.message }})
+            else:
+                data["values"] = values
         return data

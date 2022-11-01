@@ -504,25 +504,25 @@ class Session:
     def _from_api_app_template(self, at):
         """
         Converts an app template from the Kubernetes API to a DTO.
-
-        NOTE: Currently, these come from settings.
         """
+        status = at.get("status", {})
         return dto.AppTemplate(
-            at["id"],
-            at["label"],
-            at["logo"],
-            at["description"],
+            at.metadata.name,
+            status.get("label", at.metadata.name),
+            status.get("logo"),
+            status.get("description"),
             dto.Chart(
-                at["chart"]["repo"],
-                at["chart"]["name"]
+                at.spec.chart.repo,
+                at.spec.chart.name
             ),
+            at.spec.get("defaultValues", {}),
             [
                 dto.Version(
                     version["name"],
-                    version["values_schema"],
-                    version["ui_schema"]
+                    version.get("valuesSchema", {}),
+                    version.get("uiSchema", {})
                 )
-                for version in at["versions"]
+                for version in status.get("versions", [])
             ]
         )
 
@@ -530,33 +530,39 @@ class Session:
     def app_templates(self) -> t.Iterable[dto.AppTemplate]:
         """
         Lists the app templates currently available to the tenancy.
-
-        NOTE: Currently, these come from settings.
         """
-        from ..settings import cloud_settings
         self._log("Fetching available app templates")
-        templates = cloud_settings.KUBERNETES_APP_TEMPLATES
+        templates = list(
+            self._client
+                .api(AZIMUTH_API_VERSION)
+                .resource("apptemplates")
+                .list()
+        )
         self._log("Found %s app templates", len(templates))
-        return tuple(self._from_api_app_template(at) for at in templates)
+        # Don't return app templates with no versions
+        return tuple(
+            self._from_api_app_template(at)
+            for at in templates
+            if at.get("status", {}).get("versions")
+        )
 
     @convert_exceptions
     def find_app_template(self, id: str) -> dto.AppTemplate:
         """
         Finds an app template by id.
-
-        NOTE: Currently, these come from settings.
         """
-        from ..settings import cloud_settings
         self._log("Fetching app template with id '%s'", id)
-        try:
-            template = next(
-                t
-                for t in cloud_settings.KUBERNETES_APP_TEMPLATES
-                if t["id"] == id
-            )
-        except StopIteration:
+        template = (
+            self._client
+                .api(AZIMUTH_API_VERSION)
+                .resource("apptemplates")
+                .fetch(id)
+        )
+        # Don't return app templates with no versions
+        if template.get("status", {}).get("versions"):
+            return self._from_api_app_template(template)
+        else:
             raise errors.ObjectNotFoundError(f"Kubernetes app template '{id}' not found")
-        return self._from_api_app_template(template)
 
     def _from_helm_release(self, helm_release):
         """

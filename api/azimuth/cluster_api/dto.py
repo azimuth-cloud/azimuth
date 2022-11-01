@@ -168,6 +168,8 @@ class AppTemplate:
     description: str
     #: The Helm chart to use for the app template
     chart: Chart
+    #: The default values for the app template
+    default_values: t.Dict[str, t.Any]
     #: The available versions for the app template
     #: These should always be sorted from latest to oldest
     versions: t.List[Version]
