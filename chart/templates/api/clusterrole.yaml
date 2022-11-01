@@ -24,7 +24,7 @@ rules:
       - patch
       - delete
   - apiGroups:
-      - "addons.stackhpc.com"
+      - addons.stackhpc.com
     resources:
       - helmreleases
     verbs:
