@@ -8,6 +8,7 @@ rules:
       - azimuth.stackhpc.com
     resources:
       - clustertemplates
+      - apptemplates
     verbs:
       - list
       - get
@@ -15,6 +16,17 @@ rules:
       - azimuth.stackhpc.com
     resources:
       - clusters
+    verbs:
+      - list
+      - get
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - "addons.stackhpc.com"
+    resources:
+      - helmreleases
     verbs:
       - list
       - get
