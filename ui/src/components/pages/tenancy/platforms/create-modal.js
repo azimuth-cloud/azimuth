@@ -324,7 +324,7 @@ const CreatePlatformModal = ({
                             logo: KubernetesIcon,
                             description: (
                                 "Kubernetes cluster with optional addons including Kubernetes dashboard, " +
-                                "monitoring, ingress and application dashboard."
+                                "monitoring and ingress."
                             )
                         }
                     } :
