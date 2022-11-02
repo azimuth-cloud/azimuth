@@ -89,6 +89,29 @@ urlpatterns = [
                 ),
             ])),
         ])),
+        path("kubernetes_app_templates/", include([
+            path("", views.kubernetes_app_templates, name = "kubernetes_app_templates"),
+            path(
+                "<id:template>/",
+                views.kubernetes_app_template_details,
+                name = "kubernetes_app_template_details"
+            ),
+        ])),
+        path("kubernetes_apps/", include([
+            path("", views.kubernetes_apps, name = "kubernetes_apps"),
+            path("<id:app>/", include([
+                path(
+                    "",
+                    views.kubernetes_app_details,
+                    name = "kubernetes_app_details"
+                ),
+                path(
+                    "services/<id:service>/",
+                    views.kubernetes_app_service,
+                    name = "kubernetes_app_service"
+                ),
+            ])),
+        ])),
         path("cluster_types/", include([
             path("", views.cluster_types, name = "cluster_types"),
             path(

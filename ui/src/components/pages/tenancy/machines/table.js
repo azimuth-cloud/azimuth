@@ -13,7 +13,7 @@ import Popover from 'react-bootstrap/Popover';
 import ProgressBar from 'react-bootstrap/ProgressBar';
 import Table from 'react-bootstrap/Table';
 
-import moment from 'moment';
+import { DateTime } from 'luxon';
 
 import get from 'lodash/get';
 
@@ -213,7 +213,7 @@ const MachineRow = ({
                     </>
                 )}
             </td>
-            <td>{moment(machine.created).fromNow()}</td>
+            <td>{machine.created.toRelative()}</td>
             <td className="resource-actions">
                 <MachineActionsDropdown
                     disabled={!!highlightClass}

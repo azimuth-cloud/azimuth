@@ -12,7 +12,7 @@ import Tab from 'react-bootstrap/Tab';
 
 import get from 'lodash/get';
 
-import moment from 'moment';
+import { DateTime } from 'luxon';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -156,32 +156,41 @@ const statusStyles = {
         }
     },
     addon: {
+        "Unknown": {
+            icon: faQuestionCircle,
+            className: 'text-muted'
+        },
         "Pending": {
             icon: faClock,
             className: 'text-muted'
+        },
+        "Preparing": {
+            icon: faClock,
+            className: 'text-muted'
+        },
+        "Deployed": {
+            icon: faCheck,
+            className: 'text-success'
+        },
+        "Failed": {
+            icon: faTimesCircle,
+            className: 'text-danger'
         },
         "Installing": {
             icon: faSyncAlt,
             className: 'text-muted',
             spin: true
         },
-        "Ready": {
-            icon: faCheck,
-            className: 'text-success'
+        "Upgrading": {
+            icon: faSyncAlt,
+            className: 'text-muted',
+            spin: true
         },
         "Uninstalling": {
             icon: faSyncAlt,
             className: 'text-muted',
             spin: true
         },
-        "Failed": {
-            icon: faTimesCircle,
-            className: 'text-danger'
-        },
-        "Unknown": {
-            icon: faQuestionCircle,
-            className: 'text-muted'
-        }
     }
 };
 
@@ -287,7 +296,7 @@ const ClusterOverviewCard = ({ kubernetesCluster, kubernetesClusterTemplates }) 
                 </tr>
                 <tr>
                     <th>Created</th>
-                    <td>{moment(kubernetesCluster.created_at).fromNow()}</td>
+                    <td>{kubernetesCluster.created_at.toRelative()}</td>
                 </tr>
             </tbody>
         </Table>
@@ -328,7 +337,7 @@ const ControlPlaneCard = ({ kubernetesCluster, sizes }) => (
 );
 
 
-const ServiceCard = ({ kubernetesCluster }) => (
+const ServicesCard = ({ kubernetesCluster }) => (
     <Card className="mb-3">
         <Card.Header className="text-center">Services</Card.Header>
         {kubernetesCluster.services.length > 0 ? (
@@ -393,7 +402,7 @@ const ClusterOverviewPanel = ({ kubernetesCluster, kubernetesClusterTemplates, s
             <ControlPlaneCard kubernetesCluster={kubernetesCluster} sizes={sizes} />
         </Col>
         <Col>
-            <ServiceCard kubernetesCluster={kubernetesCluster} />
+            <ServicesCard kubernetesCluster={kubernetesCluster} />
             <AddonsCard kubernetesCluster={kubernetesCluster} />
         </Col>
     </Row>
@@ -438,7 +447,7 @@ const NodesTable = ({ kubernetesCluster, sizes }) => {
                         </td>
                         <td>{node.kubelet_version || '-'}</td>
                         <td>{node.ip || '-'}</td>
-                        <td>{moment(node.created_at).fromNow(true)}</td>
+                        <td>{node.created_at.toRelative()}</td>
                     </tr>
                 ))}
             </tbody>
@@ -519,7 +528,7 @@ const KubernetesClusterDetailsButton = ({
     const close = () => setVisible(false);
 
     const inFlight = !!kubernetesCluster.updating || !!kubernetesCluster.deleting;
-    const working = kubernetesCluster.status.endsWith("ing")
+    const working = kubernetesCluster.status.endsWith("ing");
 
     return (
         <>
@@ -682,7 +691,7 @@ export const KubernetesCard = ({
                 />
             )}
             <Card.Body className="small text-muted">
-                Created {moment(kubernetesCluster.created_at).fromNow()}
+                Created {kubernetesCluster.created_at.toRelative()}
             </Card.Body>
             <Card.Footer>
                 <KubernetesClusterDetailsButton

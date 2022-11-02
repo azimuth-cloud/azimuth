@@ -4,7 +4,6 @@
 
 import React, { useEffect, useState } from 'react';
 
-import Badge from 'react-bootstrap/Badge';
 import Button from 'react-bootstrap/Button';
 import ButtonGroup from 'react-bootstrap/ButtonGroup';
 import Col from 'react-bootstrap/Col';
@@ -353,6 +352,27 @@ export const KubernetesClusterTemplateSelectControl = ({ resource, value, ...pro
             )}
             value={value}
             {...props} 
+        />
+    );
+};
+
+
+export const KubernetesClusterSelectControl = (props) => {
+    const [initialValue, _] = useState(props.value);
+    return (
+        <ResourceSelectControl
+            resourceName="Kubernetes cluster"
+            // Only allow the selection of a deleting cluster if it is the initial value
+            resourceFilter={c => c.id === initialValue || c.status !== "Deleting"}
+            formatOptionLabel={(opt) => (
+                <>
+                    {opt.name}
+                    <small className="ms-2 text-muted">
+                        Kubernetes version: {opt.kubernetes_version || "Unknown"}
+                    </small>
+                </>
+            )}
+            {...props}
         />
     );
 };

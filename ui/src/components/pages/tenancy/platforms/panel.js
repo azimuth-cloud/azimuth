@@ -75,6 +75,8 @@ export const TenancyPlatformsPanel = ({
         tenancyActions.kubernetesClusterTemplate.fetchList
     );
     useResourceInitialised(tenancy.kubernetesClusters, tenancyActions.kubernetesCluster.fetchList);
+    useResourceInitialised(tenancy.kubernetesAppTemplates, tenancyActions.kubernetesAppTemplate.fetchList);
+    useResourceInitialised(tenancy.kubernetesApps, tenancyActions.kubernetesApp.fetchList);
 
     const clustersNotFound = (
         get(tenancy.clusters.fetchError, "statusCode") === StatusCodes.NOT_FOUND
@@ -82,17 +84,29 @@ export const TenancyPlatformsPanel = ({
     const kubernetesClustersNotFound = (
         get(tenancy.kubernetesClusters.fetchError, "statusCode") === StatusCodes.NOT_FOUND
     );
-    const platformsNotFound = clustersNotFound && kubernetesClustersNotFound;
+    const kubernetesAppsNotFound = (
+        get(tenancy.kubernetesApps.fetchError, "statusCode") === StatusCodes.NOT_FOUND
+    );
+    const platformsNotFound = (
+        clustersNotFound &&
+        kubernetesClustersNotFound &&
+        kubernetesAppsNotFound
+    );
 
-    // Get the aggregate resource for clusters + Kubernetes clusters
+    // Get the aggregate resource for clusters + Kubernetes clusters + Kubernetes apps
     const resource = {
         initialised: (
-            // When both are not found, we don't want to become initialised
+            // When all are not found, we don't want to become initialised
             !platformsNotFound &&
             (tenancy.clusters.initialised || clustersNotFound) &&
-            (tenancy.kubernetesClusters.initialised || kubernetesClustersNotFound)
+            (tenancy.kubernetesClusters.initialised || kubernetesClustersNotFound) &&
+            (tenancy.kubernetesApps.initialised || kubernetesAppsNotFound)
         ),
-        fetching: tenancy.clusters.fetching || tenancy.kubernetesClusters.fetching,
+        fetching: (
+            tenancy.clusters.fetching ||
+            tenancy.kubernetesClusters.fetching ||
+            tenancy.kubernetesApps.fetching
+        ),
         data: Object.assign(
             {},
             ...Object.entries(clustersWithLinks(tenancy)).map(
@@ -114,6 +128,16 @@ export const TenancyPlatformsPanel = ({
                         object: value
                     }
                 })
+            ),
+            ...Object.entries(tenancy.kubernetesApps.data || {}).map(
+                ([key, value]) => ({
+                    [`kubernetesApps/${key}`]: {
+                        id: `kubernetesApps/${key}`,
+                        kind: "kubernetesApp",
+                        name: value.name,
+                        object: value
+                    }
+                })
             )
         ),
         // Not found isn't really an error for platforms, so exclude them
@@ -121,19 +145,25 @@ export const TenancyPlatformsPanel = ({
             {},
             ...[
                 ["clusters", tenancy.clusters.fetchError],
-                ["kubernetesClusters", tenancy.kubernetesClusters.fetchError]
+                ["kubernetesClusters", tenancy.kubernetesClusters.fetchError],
+                ["kubernetesApps", tenancy.kubernetesApps.fetchError]
             ].filter(
                 ([_, e]) => !!e && e.statusCode !== StatusCodes.NOT_FOUND
             ).map(
                 ([k, e]) => ({ [k]: e })
             )
         ),
-        creating: tenancy.clusters.creating || tenancy.kubernetesClusters.creating
+        creating: (
+            tenancy.clusters.creating ||
+            tenancy.kubernetesClusters.creating ||
+            tenancy.kubernetesApps.creating
+        )
     };
 
     const refreshPlatforms = () => {
         if( !clustersNotFound ) tenancyActions.cluster.fetchList();
         if( !kubernetesClustersNotFound ) tenancyActions.kubernetesCluster.fetchList();
+        if( !kubernetesAppsNotFound ) tenancyActions.kubernetesApp.fetchList();
     };
 
     // If the resource failed to load because it was not found, disable the refresh button

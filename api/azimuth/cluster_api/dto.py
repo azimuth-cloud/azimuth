@@ -78,7 +78,7 @@ class Addon:
 @dataclasses.dataclass(frozen = True)
 class Service:
     """
-    Represents a service available on the cluster.
+    Represents a service available on a cluster or app.
     """
     #: The name of the service
     name: str
@@ -107,16 +107,12 @@ class Cluster:
     node_groups: t.List[NodeGroup]
     #: Indicates if autohealing is enabled
     autohealing_enabled: bool
-    #: Indicates if cert-manager is enabled
-    cert_manager_enabled: bool
     #: Indicates if the Kubernetes dashboard is enabled
     dashboard_enabled: bool
     #: Indicates if ingress is enabled
     ingress_enabled: bool
     #: Indicates if monitoring is enabled
     monitoring_enabled: bool
-    #: Indicates if the applications dashboard is enabled
-    apps_enabled: bool
     #: The Kubernetes version of the cluster
     kubernetes_version: t.Optional[str]
     #: The overall status of the cluster
@@ -130,4 +126,79 @@ class Cluster:
     #: The services for the cluster
     services: t.List[Service]
     #: The time at which the cluster was created
+    created_at: datetime.datetime
+
+
+@dataclasses.dataclass(frozen = True)
+class Chart:
+    """
+    Represents a Helm chart to use for an app.
+    """
+    #: The repository for the chart for the app
+    repo: str
+    #: The name of the chart for the app
+    name: str
+
+
+@dataclasses.dataclass(frozen = True)
+class Version:
+    """
+    Represents a version of an app.
+    """
+    #: The name of the version
+    name: str
+    #: The JSON schema to use to validate the values
+    values_schema: t.Dict[str, t.Any]
+    #: The UI schema to use when rendering the form for the values
+    ui_schema: t.Dict[str, t.Any]
+
+
+@dataclasses.dataclass(frozen = True)
+class AppTemplate:
+    """
+    Represents a template for an app on a Kubernetes cluster.
+    """
+    #: The id of the app template
+    id: str
+    #: A human-readable label for the app template
+    label: str
+    #: The URL of the logo to use for the app template
+    logo: str
+    #: A brief description of the app template
+    description: str
+    #: The Helm chart to use for the app template
+    chart: Chart
+    #: The default values for the app template
+    default_values: t.Dict[str, t.Any]
+    #: The available versions for the app template
+    #: These should always be sorted from latest to oldest
+    versions: t.List[Version]
+
+
+@dataclasses.dataclass(frozen = True)
+class App:
+    """
+    Represents an app on a Kubernetes cluster.
+    """
+    #: The id of the app
+    id: str
+    #: The human-readable name of the app
+    name: str
+    #: The id of the Kubernetes cluster that the app is deployed on
+    kubernetes_cluster_id: str
+    #: The id of the template for the app
+    template_id: str
+    #: The version of the template that the app is using
+    version: str
+    #: The values that were used for the app
+    values: t.Dict[str, t.Any]
+    #: The deployment status of the app
+    status: str
+    #: The usage text produced by the chart
+    usage: str
+    #: The failure message if present
+    failure_message: str
+    #: The services for the app
+    services: t.List[Service]
+    #: The time at which the app was created
     created_at: datetime.datetime

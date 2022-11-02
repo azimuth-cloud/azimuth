@@ -6,6 +6,8 @@ import { map } from 'rxjs/operators';
 
 import { combineEpics, ofType } from 'redux-observable';
 
+import { DateTime } from 'luxon';
+
 import { createTenancyResource, nextStateEntry } from './resource';
 
 
@@ -19,9 +21,9 @@ const {
     // Just convert the string dates to Date objects
     transform: cluster => ({
         ...cluster,
-        created: !!cluster.created ? new Date(cluster.created) : undefined,
-        updated: !!cluster.updated ? new Date(cluster.updated) : undefined,
-        patched: !!cluster.patched ? new Date(cluster.patched) : undefined
+        created: !!cluster.created ? DateTime.fromISO(cluster.created) : undefined,
+        updated: !!cluster.updated ? DateTime.fromISO(cluster.updated) : undefined,
+        patched: !!cluster.patched ? DateTime.fromISO(cluster.patched) : undefined
     })
 });
 

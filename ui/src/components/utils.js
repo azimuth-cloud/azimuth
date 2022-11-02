@@ -5,7 +5,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import Alert from 'react-bootstrap/Alert';
+import Col from 'react-bootstrap/Col';
 import BSForm from 'react-bootstrap/Form';
+import Row from 'react-bootstrap/Row';
 
 import { useSelector } from 'react-redux';
 import { createSelector } from 'reselect';
@@ -227,11 +229,17 @@ export const Error = ({
     iconSize = "lg",
     ...props
 }) => (
-    <Alert variant="danger" {...props}>
-        <FontAwesomeIcon icon={faExclamationCircle} size={iconSize} className="me-2" />
-        {message}
+    <Alert variant="danger" className="d-flex" {...props}>
+        <Row>
+            <Col xs="auto">
+                <FontAwesomeIcon icon={faExclamationCircle} size={iconSize} />
+            </Col>
+            <Col>
+                {message}
+            </Col>
+        </Row>
     </Alert>
-)
+);
 
 
 /**
@@ -241,15 +249,11 @@ export const Error = ({
  */
 export const Form = ({ children, disabled = false, onSubmit, ...props }) => {
     const handleSubmit = evt => {
+        evt.preventDefault();
+        evt.stopPropagation();
         // Force the form validations to run on submit
         // We only call the onSubmit function if the values are valid
-        if( evt.currentTarget.checkValidity() ) {
-            onSubmit(evt);
-        }
-        else {
-            evt.preventDefault();
-            evt.stopPropagation();
-        }
+        if( evt.currentTarget.checkValidity() ) onSubmit(evt);
     };
     return (
         <BSForm
@@ -273,19 +277,21 @@ export const Form = ({ children, disabled = false, onSubmit, ...props }) => {
 export const ControlWithValidationMessage = ({
     children,
     validationMessage: customValidationMessage,
-    wrapperComponent: WrapperComponent = "div",
-    ...props
+    wrapperComponent: WrapperComponent = "div"
 }) => {
     // Maintain the validation message from the last invalid event as internal state
     const [validationMessage, setValidationMessage] = useState('');
     // The control is invalid if the message is non-empty
     const isInvalid = validationMessage !== '';
     // When the invalid event is raised, set the validation message
-    const onInvalid = evt => setValidationMessage(
-        evt.target.value ?
-            customValidationMessage || evt.target.validationMessage :
-            evt.target.validationMessage
-    );
+    const onInvalid = evt => {
+        setValidationMessage(
+            evt.target.value ?
+                customValidationMessage || evt.target.validationMessage :
+                evt.target.validationMessage
+        );
+        if( children.props.onInvalid ) children.props.onInvalid(evt);
+    };
     // When the value is changed, clear the validation message until the next
     // validation is requested
     const onChange = (...args) => {
@@ -367,10 +373,30 @@ const useForwardedRef = (forwardedRef) => {
 export const withCustomValidity = Component => React.forwardRef(
     ({ validationMessage, ...props }, forwardedRef) => {
         const inputRef = useForwardedRef(forwardedRef);
-        // When the validation message changes, update the custom validity for the input
+        // We only want to use our custom validation message if none of the browser validations apply
+        // So check if the field would be valid without the custom validity
+        const validityState = get(inputRef.current, "validity", {});
+        const isValidWithoutCustomValidity = (
+            !validityState ||
+            !(
+                validityState.badInput ||
+                validityState.patternMismatch ||
+                validityState.rangeOverflow ||
+                validityState.rangeUnderflow ||
+                validityState.stepMismatch ||
+                validityState.tooLong ||
+                validityState.tooShort ||
+                validityState.typeMismatch ||
+                validityState.valueMissing
+            )
+        );
         useEffect(
-            () => { inputRef.current.setCustomValidity(validationMessage); },
-            [validationMessage]
+            () => {
+                let customValidity;
+                if( isValidWithoutCustomValidity ) customValidity = validationMessage;
+                inputRef.current.setCustomValidity(customValidity || '');
+            },
+            [isValidWithoutCustomValidity, validationMessage]
         );
         return <Component ref={inputRef} {...props} />;
     }
@@ -404,10 +430,12 @@ export const Select = React.forwardRef(
         // We allow the reference to the hidden field to be forwarded as it gives
         // control over the validation state
         const hiddenInputRef = useForwardedRef(forwardedRef);
+        // Only allow values that correspond to a valid option
+        const constrainedValue = options.map(opt => getOptionValue(opt)).find(v => v === value);
         // Store the current value as internal state
-        const [state, setState] = useState(value || '');
+        const [state, setState] = useState(constrainedValue || "");
         // When the value changes, use it to set the state
-        useEffect(() => { setState(value); }, [value]);
+        useEffect(() => { setState(constrainedValue || ""); }, [constrainedValue]);
         // Maintain a reference to the select that we will use to correctly maintain focus
         const selectRef = useRef(null);
         // When the select is changed, update the internal state and call the handler

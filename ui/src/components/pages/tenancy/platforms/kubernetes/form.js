@@ -128,6 +128,8 @@ const NodeGroupModalForm = ({
                         <SizeSelectControl
                             resource={sizes}
                             resourceActions={sizeActions}
+                            // Kubernetes can only use sizes with at least 2 CPUs and 20GB disk
+                            resourceFilter={size => size.cpus >= 2 && size.disk >= 20}
                             required
                             value={getStateKey('machine_size')}
                             onChange={setStateKey('machine_size')}
@@ -228,11 +230,9 @@ const initialState = kubernetesCluster => {
                 max_count: ng.max_count
             })),
             autohealing_enabled: kubernetesCluster.autohealing_enabled,
-            cert_manager_enabled: kubernetesCluster.cert_manager_enabled,
             dashboard_enabled: kubernetesCluster.dashboard_enabled,
             ingress_enabled: kubernetesCluster.ingress_enabled,
-            monitoring_enabled: kubernetesCluster.monitoring_enabled,
-            apps_enabled: kubernetesCluster.apps_enabled
+            monitoring_enabled: kubernetesCluster.monitoring_enabled
         };
     }
     else {
@@ -243,11 +243,9 @@ const initialState = kubernetesCluster => {
             control_plane_size: '',
             node_groups: [],
             autohealing_enabled: true,
-            cert_manager_enabled: false,
             dashboard_enabled: true,
             ingress_enabled: false,
-            monitoring_enabled: true,
-            apps_enabled: true
+            monitoring_enabled: true
         };
     }
 };
@@ -384,6 +382,8 @@ export const KubernetesClusterForm = ({
                     <SizeSelectControl
                         resource={sizes}
                         resourceActions={sizeActions}
+                        // Kubernetes can only use sizes with at least 2 CPUs and 20GB disk
+                        resourceFilter={size => size.cpus >= 2 && size.disk >= 20}
                         required
                         value={getStateKey('control_plane_size')}
                         onChange={setStateKey('control_plane_size')}
@@ -502,19 +502,6 @@ export const KubernetesClusterForm = ({
                                 onChange={setStateFromCheckboxEvent('monitoring_enabled')}
                             />
                         </Field>
-                        <Field
-                            name="apps_enabled"
-                            helpText={
-                                "The applications dashboard allows you to easily deploy applications such as " +
-                                "JupyterHub onto your cluster."
-                            }
-                        >
-                            <BSForm.Check
-                                label="Enable applications dashboard?"
-                                checked={getStateKey('apps_enabled')}
-                                onChange={setStateFromCheckboxEvent('apps_enabled')}
-                            />
-                        </Field>
                     </Card.Body>
                 </CollapsibleCard>
                 <CollapsibleCard
@@ -556,22 +543,6 @@ export const KubernetesClusterForm = ({
                                 label="Enable Kubernetes Ingress?"
                                 checked={getStateKey('ingress_enabled')}
                                 onChange={setStateFromCheckboxEvent('ingress_enabled')}
-                            />
-                        </Field>
-                        <Field
-                            name="cert_manager_enabled"
-                            helpText={
-                                <>
-                                    Allows the use of{" "}
-                                    <a href="https://cert-manager.io" target="_blank">cert-manager</a>{" "}
-                                    to manage TLS certificates for cluster services.
-                                </>
-                            }
-                        >
-                            <BSForm.Check
-                                label="Enable cert-manager?"
-                                checked={getStateKey('cert_manager_enabled')}
-                                onChange={setStateFromCheckboxEvent('cert_manager_enabled')}
                             />
                         </Field>
                     </Card.Body>
@@ -629,12 +600,13 @@ export const KubernetesClusterModalForm = ({
             `kubernetes-update-${kubernetesCluster.id}` :
             "kubernetes-create"
     );
-    const [formState, clearForm] = useKubernetesClusterFormState(kubernetesCluster);
+    const [formState, resetForm] = useKubernetesClusterFormState(kubernetesCluster);
     return (
         <Modal
             backdrop="static"
             onHide={onCancel}
-            onExited={clearForm}
+            onEnter={resetForm}
+            onExited={resetForm}
             size="lg"
             show={show}
             {...props}

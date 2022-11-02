@@ -277,6 +277,14 @@ export const TenancyResourcePage = ({
                                 tenancyActions.kubernetesCluster,
                                 currentTenancy.id
                             ),
+                            kubernetesAppTemplate: bindArgsToActions(
+                                tenancyActions.kubernetesAppTemplate,
+                                currentTenancy.id
+                            ),
+                            kubernetesApp: bindArgsToActions(
+                                tenancyActions.kubernetesApp,
+                                currentTenancy.id
+                            ),
                             clusterType: bindArgsToActions(tenancyActions.clusterType, currentTenancy.id),
                             cluster: bindArgsToActions(tenancyActions.cluster, currentTenancy.id)
                         }}
