@@ -18,9 +18,15 @@ import { CreateVolumeButton } from './create-modal';
 import { VolumesTable } from './table';
 
 
-const Volumes = ({ resourceData, resourceActions, capabilities, machines, machineActions }) => (
+const Volumes = ({
+    resourceData,
+    resourceActions,
+    platformsAvailable,
+    machines,
+    machineActions
+}) => (
     <>
-        {(capabilities.supports_clusters || capabilities.supports_kubernetes) && (
+        {platformsAvailable && (
             <Row className="justify-content-center">
                 <Col xs="auto">
                     <Alert variant="warning" className="d-flex align-items-center">
@@ -48,7 +54,7 @@ const Volumes = ({ resourceData, resourceActions, capabilities, machines, machin
 );
 
 
-export const TenancyVolumesPanel = ({ capabilities, tenancy, tenancyActions }) => {
+export const TenancyVolumesPanel = ({ tenancy, tenancyActions }) => {
     usePageTitle('Volumes');
     // To render the volumes, we need the machines
     useResourceInitialised(tenancy.machines, tenancyActions.machine.fetchList);
@@ -60,7 +66,7 @@ export const TenancyVolumesPanel = ({ capabilities, tenancy, tenancyActions }) =
             createButtonComponent={CreateVolumeButton}
         >
             <Volumes
-                capabilities={capabilities}
+                platformsAvailable={tenancy.platforms_available}
                 machines={tenancy.machines}
                 machineActions={tenancyActions.machine}
             />

@@ -313,7 +313,6 @@ def session(request):
             supports_clusters = bool(cloud_settings.CLUSTER_ENGINE),
             # Kubernetes is supported if a Cluster API provider is configured
             supports_kubernetes = bool(cloud_settings.CLUSTER_API_PROVIDER),
-            supports_apps = bool(cloud_settings.APPS),
         ),
         "links": {
             "ssh_public_key": request.build_absolute_uri(reverse("azimuth:ssh_public_key")),
@@ -902,6 +901,14 @@ def cluster_types(request, tenant):
             status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
+        if not cloud_settings.platforms_permitted_for_tenancy(session.tenancy()):
+            return response.Response(
+                {
+                    "detail": "Platforms are not available for this tenancy.",
+                    "code": "unsupported_operation"
+                },
+                status = status.HTTP_404_NOT_FOUND
+            )
         with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
             serializer = serializers.ClusterTypeSerializer(
                 cluster_manager.cluster_types(),
@@ -925,6 +932,14 @@ def cluster_type_details(request, tenant, cluster_type):
             status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
+        if not cloud_settings.platforms_permitted_for_tenancy(session.tenancy()):
+            return response.Response(
+                {
+                    "detail": "Platforms are not available for this tenancy.",
+                    "code": "unsupported_operation"
+                },
+                status = status.HTTP_404_NOT_FOUND
+            )
         with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
             serializer = serializers.ClusterTypeSerializer(
                 cluster_manager.find_cluster_type(cluster_type),
@@ -949,6 +964,14 @@ def clusters(request, tenant):
             status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
+        if not cloud_settings.platforms_permitted_for_tenancy(session.tenancy()):
+            return response.Response(
+                {
+                    "detail": "Platforms are not available for this tenancy.",
+                    "code": "unsupported_operation"
+                },
+                status = status.HTTP_404_NOT_FOUND
+            )
         with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
             if request.method == "POST":
                 input_serializer = serializers.CreateClusterSerializer(
@@ -1006,6 +1029,14 @@ def cluster_details(request, tenant, cluster):
             status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
+        if not cloud_settings.platforms_permitted_for_tenancy(session.tenancy()):
+            return response.Response(
+                {
+                    "detail": "Platforms are not available for this tenancy.",
+                    "code": "unsupported_operation"
+                },
+                status = status.HTTP_404_NOT_FOUND
+            )
         with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
             if request.method == "PUT":
                 cluster = cluster_manager.find_cluster(cluster)
@@ -1059,6 +1090,14 @@ def cluster_patch(request, tenant, cluster):
             status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
+        if not cloud_settings.platforms_permitted_for_tenancy(session.tenancy()):
+            return response.Response(
+                {
+                    "detail": "Platforms are not available for this tenancy.",
+                    "code": "unsupported_operation"
+                },
+                status = status.HTTP_404_NOT_FOUND
+            )
         with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
             serializer = serializers.ClusterSerializer(
                 cluster_manager.patch_cluster(cluster),
@@ -1073,13 +1112,28 @@ def cluster_service(request, tenant, cluster, service):
     """
     Redirects the user to the specified service on the specified cluster.
     """
+    if not cloud_settings.CLUSTER_ENGINE:
+        return response.Response(
+            {
+                "detail": "Clusters are not supported.",
+                "code": "unsupported_operation"
+            },
+            status = status.HTTP_404_NOT_FOUND
+        )
     service_fqdn = None
     service_label = None
     try:
-        if cloud_settings.CLUSTER_ENGINE:
-            with request.auth.scoped_session(tenant) as session:
-                with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
-                    cluster = cluster_manager.find_cluster(cluster)
+        with request.auth.scoped_session(tenant) as session:
+            if not cloud_settings.platforms_permitted_for_tenancy(session.tenancy()):
+                return response.Response(
+                    {
+                        "detail": "Platforms are not available for this tenancy.",
+                        "code": "unsupported_operation"
+                    },
+                    status = status.HTTP_404_NOT_FOUND
+                )
+            with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
+                cluster = cluster_manager.find_cluster(cluster)
         service_obj = next(s for s in cluster.services if s.name == service)
         service_fqdn = service_obj.fqdn
         service_label = service_obj.label
@@ -1108,6 +1162,14 @@ def kubernetes_cluster_templates(request, tenant):
             status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
+        if not cloud_settings.platforms_permitted_for_tenancy(session.tenancy()):
+            return response.Response(
+                {
+                    "detail": "Platforms are not available for this tenancy.",
+                    "code": "unsupported_operation"
+                },
+                status = status.HTTP_404_NOT_FOUND
+            )
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             serializer = serializers.KubernetesClusterTemplateSerializer(
                 capi_session.cluster_templates(),
@@ -1131,6 +1193,14 @@ def kubernetes_cluster_template_details(request, tenant, template):
             status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
+        if not cloud_settings.platforms_permitted_for_tenancy(session.tenancy()):
+            return response.Response(
+                {
+                    "detail": "Platforms are not available for this tenancy.",
+                    "code": "unsupported_operation"
+                },
+                status = status.HTTP_404_NOT_FOUND
+            )
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             serializer = serializers.KubernetesClusterTemplateSerializer(
                 capi_session.find_cluster_template(template),
@@ -1155,6 +1225,14 @@ def kubernetes_clusters(request, tenant):
             status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
+        if not cloud_settings.platforms_permitted_for_tenancy(session.tenancy()):
+            return response.Response(
+                {
+                    "detail": "Platforms are not available for this tenancy.",
+                    "code": "unsupported_operation"
+                },
+                status = status.HTTP_404_NOT_FOUND
+            )
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             if request.method == "POST":
                 input_serializer = serializers.CreateKubernetesClusterSerializer(
@@ -1198,6 +1276,14 @@ def kubernetes_cluster_details(request, tenant, cluster):
             status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
+        if not cloud_settings.platforms_permitted_for_tenancy(session.tenancy()):
+            return response.Response(
+                {
+                    "detail": "Platforms are not available for this tenancy.",
+                    "code": "unsupported_operation"
+                },
+                status = status.HTTP_404_NOT_FOUND
+            )
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             if request.method == "PATCH":
                 input_serializer = serializers.UpdateKubernetesClusterSerializer(
@@ -1254,6 +1340,14 @@ def kubernetes_cluster_generate_kubeconfig(request, tenant, cluster):
             status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
+        if not cloud_settings.platforms_permitted_for_tenancy(session.tenancy()):
+            return response.Response(
+                {
+                    "detail": "Platforms are not available for this tenancy.",
+                    "code": "unsupported_operation"
+                },
+                status = status.HTTP_404_NOT_FOUND
+            )
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             kubeconfig = capi_session.generate_kubeconfig(cluster)
     return response.Response({ "kubeconfig": kubeconfig })
@@ -1276,10 +1370,17 @@ def kubernetes_cluster_service(request, tenant, cluster, service):
     service_fqdn = None
     service_label = None
     try:
-        if cloud_settings.CLUSTER_API_PROVIDER:
-            with request.auth.scoped_session(tenant) as session:
-                with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
-                    cluster = capi_session.find_cluster(cluster)
+        with request.auth.scoped_session(tenant) as session:
+            if not cloud_settings.platforms_permitted_for_tenancy(session.tenancy()):
+                return response.Response(
+                    {
+                        "detail": "Platforms are not available for this tenancy.",
+                        "code": "unsupported_operation"
+                    },
+                    status = status.HTTP_404_NOT_FOUND
+                )
+            with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
+                cluster = capi_session.find_cluster(cluster)
         service_obj = next(s for s in cluster.services if s.name == service)
         service_fqdn = service_obj.fqdn
         service_label = service_obj.label
@@ -1308,6 +1409,14 @@ def kubernetes_app_templates(request, tenant):
             status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
+        if not cloud_settings.platforms_permitted_for_tenancy(session.tenancy()):
+            return response.Response(
+                {
+                    "detail": "Platforms are not available for this tenancy.",
+                    "code": "unsupported_operation"
+                },
+                status = status.HTTP_404_NOT_FOUND
+            )
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             serializer = serializers.KubernetesAppTemplateSerializer(
                 capi_session.app_templates(),
@@ -1331,6 +1440,14 @@ def kubernetes_app_template_details(request, tenant, template):
             status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
+        if not cloud_settings.platforms_permitted_for_tenancy(session.tenancy()):
+            return response.Response(
+                {
+                    "detail": "Platforms are not available for this tenancy.",
+                    "code": "unsupported_operation"
+                },
+                status = status.HTTP_404_NOT_FOUND
+            )
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             serializer = serializers.KubernetesAppTemplateSerializer(
                 capi_session.find_app_template(template),
@@ -1355,6 +1472,14 @@ def kubernetes_apps(request, tenant):
             status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
+        if not cloud_settings.platforms_permitted_for_tenancy(session.tenancy()):
+            return response.Response(
+                {
+                    "detail": "Platforms are not available for this tenancy.",
+                    "code": "unsupported_operation"
+                },
+                status = status.HTTP_404_NOT_FOUND
+            )
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             if request.method == "POST":
                 input_serializer = serializers.CreateKubernetesAppSerializer(
@@ -1396,6 +1521,14 @@ def kubernetes_app_details(request, tenant, app):
             status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
+        if not cloud_settings.platforms_permitted_for_tenancy(session.tenancy()):
+            return response.Response(
+                {
+                    "detail": "Platforms are not available for this tenancy.",
+                    "code": "unsupported_operation"
+                },
+                status = status.HTTP_404_NOT_FOUND
+            )
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             if request.method == "PATCH":
                 app = capi_session.find_app(app)
@@ -1453,10 +1586,17 @@ def kubernetes_app_service(request, tenant, app, service):
     service_fqdn = None
     service_label = None
     try:
-        if cloud_settings.CLUSTER_API_PROVIDER:
-            with request.auth.scoped_session(tenant) as session:
-                with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
-                    app = capi_session.find_app(app)
+        with request.auth.scoped_session(tenant) as session:
+            if not cloud_settings.platforms_permitted_for_tenancy(session.tenancy()):
+                return response.Response(
+                    {
+                        "detail": "Platforms are not available for this tenancy.",
+                        "code": "unsupported_operation"
+                    },
+                    status = status.HTTP_404_NOT_FOUND
+                )
+            with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
+                app = capi_session.find_app(app)
         service_obj = next(s for s in app.services if s.name == service)
         service_fqdn = service_obj.fqdn
         service_label = service_obj.label

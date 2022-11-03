@@ -18,9 +18,15 @@ import { CreateMachineButton } from './create-modal';
 import { MachinesTable } from './table';
 
 
-const Machines = ({ resourceData, resourceActions, capabilities, ...props }) => (
-        <>
-        {(capabilities.supports_clusters || capabilities.supports_kubernetes) && (
+const Machines = ({
+    resourceData,
+    resourceActions,
+    platformsAvailable,
+    capabilities,
+    ...props
+}) => (
+    <>
+        {platformsAvailable && (
             <Row className="justify-content-center">
                 <Col xs="auto">
                     <Alert variant="warning" className="d-flex align-items-center">
@@ -52,6 +58,7 @@ export const TenancyMachinesPanel = ({
     sshKey,
     capabilities,
     tenancy: {
+        platforms_available: platformsAvailable,
         machines,
         images,
         sizes,
@@ -86,6 +93,7 @@ export const TenancyMachinesPanel = ({
         >
             <Machines
                 capabilities={capabilities}
+                platformsAvailable={platformsAvailable}
                 images={images}
                 sizes={sizes}
                 externalIps={externalIps}

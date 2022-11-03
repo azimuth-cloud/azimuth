@@ -204,15 +204,12 @@ const EnsureTenancy = connect(
 
 
 const RedirectToDefaultResource = connect(
-    (state) => ({
-        capabilities: state.session.capabilities,
-        tenancies: state.tenancies
-    }),
-)(({ capabilities, tenancies: { current: currentTenancy } }) => {
+    (state) => ({ tenancies: state.tenancies }),
+)(({ tenancies: { current: currentTenancy } }) => {
     const defaultResource = (
-        capabilities.supports_clusters || capabilities.supports_kubernetes ?
+        currentTenancy.platforms_available ?
             'platforms' :
-            'quotas'
+            'machines'
     );
     return <Navigate to={`/tenancies/${currentTenancy.id}/${defaultResource}`} />;
 });

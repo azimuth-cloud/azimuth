@@ -117,6 +117,14 @@ class SSHKeyUpdateSerializer(serializers.Serializer):
 
 
 class TenancySerializer(make_dto_serializer(dto.Tenancy)):
+    platforms_available = serializers.SerializerMethodField()
+
+    def get_platforms_available(self, obj):
+        return (
+            (cloud_settings.CLUSTER_ENGINE or cloud_settings.CLUSTER_API_PROVIDER) and
+            cloud_settings.platforms_permitted_for_tenancy(obj)
+        )
+
     def to_representation(self, obj):
         result = super().to_representation(obj)
         # If the info to build a link is in the context, add it

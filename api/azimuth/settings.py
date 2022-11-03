@@ -2,6 +2,8 @@
 Settings helpers for the ``azimuth`` Django app.
 """
 
+import re
+
 from settings_object import (
     SettingsObject,
     Setting,
@@ -172,6 +174,37 @@ class AzimuthSettings(SettingsObject):
 
     #: Cloud provider configuration
     PROVIDER = ObjectFactorySetting()
+
+    #: A regex matching tenant names that are permitted to use platforms
+    #: The ID blacklist and whitelist take precedence over this, if given
+    PLATFORMS_TENANT_NAME_REGEX = Setting(default = None)
+    #: A list of tenant IDs that are permitted to use platforms
+    #: If None is given, then all tenants are permitted
+    #: If an empty list is given, no tenants are permitted
+    PLATFORMS_TENANT_ID_WHITELIST = Setting(default = None)
+    #: A list of tenant IDs that are not permitted to use platforms
+    #: The blacklist takes precedence over the whitelist if the same tenant is in both
+    PLATFORMS_TENANT_ID_BLACKLIST = Setting(default = list)
+
+    def platforms_permitted_for_tenancy(self, tenancy):
+        """
+        Indicates if platforms are permitted for the given tenancy.
+        """
+        if (
+            self.PLATFORMS_TENANT_ID_BLACKLIST and
+            tenancy.id in self.PLATFORMS_TENANT_ID_BLACKLIST
+        ):
+            return False
+        elif (
+            self.PLATFORMS_TENANT_ID_WHITELIST is not None and
+            tenancy.id in self.PLATFORMS_TENANT_ID_WHITELIST
+        ):
+            return True
+        elif self.PLATFORMS_TENANT_NAME_REGEX:
+            match = re.search(self.PLATFORMS_TENANT_NAME_REGEX, tenancy.name)
+            return match is not None
+        else:
+            return self.PLATFORMS_TENANT_ID_WHITELIST is None
 
     #: Cluster engine configuration
     CLUSTER_ENGINE = ClusterEngineSetting()

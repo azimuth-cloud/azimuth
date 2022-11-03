@@ -76,7 +76,7 @@ const TenancyNav = ({
 }) => {
     const [userExpanded, setUserExpanded] = useState(false);
     const toggleUserExpanded = () => setUserExpanded(expanded => !expanded);
-    const supportsPlatforms = capabilities.supports_clusters || capabilities.supports_kubernetes;
+    const supportsPlatforms = currentTenancy.platforms_available;
     const selectedResourceIsAdvanced = ['machines', 'volumes'].includes(selectedResource);
     // If the cloud doesn't support platforms, always show the advanced resources
     // If the user is on an advanced tab, show the items even if they are not expanded
