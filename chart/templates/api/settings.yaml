@@ -112,8 +112,19 @@ stringData:
         {{- else }}
         {{- fail (printf "Unrecognised cloud provider '%s'" $provider.type) }}
         {{- end }}
+{{- if or .Values.tags.clusters .Values.tags.kubernetes }}
+  05-platform-permissions.yaml: |
+    AZIMUTH:
+      {{- with .Values.platformPermissions.tenantNameRegex }}
+      PLATFORMS_TENANT_NAME_REGEX: {{ quote . }}
+      {{- end }}
+      {{- if ne .Values.platformPermissions.tenantIDWhitelist nil }}
+      PLATFORMS_TENANT_ID_WHITELIST: {{ toYaml .Values.platformPermissions.tenantIDWhitelist | nindent 8 }}
+      {{- end }}
+      PLATFORMS_TENANT_ID_BLACKLIST: {{ toYaml .Values.platformPermissions.tenantIDBlacklist | nindent 8 }}
+{{- end }}
 {{- if .Values.tags.apps }}
-  05-apps.yaml: |
+  06-apps.yaml: |
     # In order for the app authentication to work, the session cookie needs to apply to that domain
     # However we only do this if the portal host is within the apps domain
     # If not, we assume the Zenith installation is completely standalone with no auth
@@ -138,7 +149,7 @@ stringData:
         POST_DEPLOY_SCRIPT_URL: {{ . | quote }}
         {{- end }}
 {{- end }}
-  06-ssh-key-store.yaml: |
+  07-ssh-key-store.yaml: |
     AZIMUTH:
       SSH_KEY_STORE:
         {{- if (eq $keyStore.type "provider") }}
@@ -157,13 +168,13 @@ stringData:
         {{- fail (printf "Unrecognised key store '%s'" $keyStore.type) }}
         {{- end }}
 {{- if not .Values.tags.kubernetes }}
-  07-disable-kubernetes.yaml: |
+  08-disable-kubernetes.yaml: |
     AZIMUTH:
       CLUSTER_API_PROVIDER: null
 {{- end }}
 {{- if .Values.tags.clusters }}
 {{- if (eq $clusterEngine.type "awx") }}
-  08-awx.yaml: |
+  09-awx.yaml: |
     AZIMUTH:
       AWX:
         ENABLED: true
@@ -217,7 +228,7 @@ stringData:
             {{- end }}
           {{- end }}
         {{- end }}
-  09-awx-passwords.py: |
+  10-awx-passwords.py: |
     import os
     # Read the AWX password from an environment variable that is populated from the specified secret
     AZIMUTH['AWX']['PASSWORD'] = os.environ['AWX_PASSWORD']

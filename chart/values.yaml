@@ -205,6 +205,19 @@ provider:
     # Defaults to 192.168.3.0/24 if not given, which should be OK for most circumstances
     internalNetCidr:
 
+# Permissions for platforms
+platformPermissions:
+  # A regex matching tenant names that are permitted to use platforms
+  # The ID blacklist and whitelist take precedence over this, if given
+  tenantNameRegex:
+  # A list of tenant IDs that are permitted to use platforms
+  # If nil is given, then all tenants are permitted
+  # If an empty list is given, no tenants are permitted
+  tenantIDWhitelist:
+  # A list of tenant IDs that are not permitted to use platforms
+  # The blacklist takes precedence over the whitelist if the same tenant is in both
+  tenantIDBlacklist: []
+
 # Settings for apps
 apps:
   # The base domain for apps
