@@ -5,11 +5,9 @@ Module containing authenticators for OpenStack clouds.
 from urllib.parse import urlencode
 
 from django import forms
-from django.shortcuts import redirect
 
 import requests
 
-from .base import BaseAuthenticator
 from .form import FormAuthenticator
 from .redirect import RedirectAuthenticator
 
@@ -102,10 +100,20 @@ class FederatedAuthenticator(RedirectAuthenticator):
     an auto-submitting form that sends the token back to us using a cross-domain
     POST request.
     """
+    PROVIDER_PROTOCOL_TPL = (
+        "{auth_url}/auth/OS-FEDERATION/identity_providers/{provider}/protocols/{protocol}/websso"
+    )
+    PROTOCOL_ONLY_TPL = "{auth_url}/auth/OS-FEDERATION/websso/{protocol}"
+
     uses_crossdomain_post_requests = True
 
-    def __init__(self, auth_url, provider):
-        self.federation_url = "{}/auth/OS-FEDERATION/websso/{}".format(auth_url, provider)
+    def __init__(self, auth_url, protocol, provider = None):
+        template = self.PROVIDER_PROTOCOL_TPL if provider else self.PROTOCOL_ONLY_TPL
+        self.federation_url = template.format(
+            auth_url = auth_url,
+            provider = provider,
+            protocol = protocol
+        )
 
     def get_redirect_to(self, request, auth_complete_url):
         return "{}?{}".format(self.federation_url, urlencode({ 'origin': auth_complete_url }))

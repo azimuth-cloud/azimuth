@@ -82,7 +82,10 @@ stringData:
             FACTORY: azimuth_auth.authenticator.openstack.FederatedAuthenticator
             PARAMS:
               AUTH_URL: {{ default $provider.openstack.authUrl .openstackFederation.authUrl }}
-              PROVIDER: {{ required "provider is required for openstack-federation" .openstackFederation.provider }}
+              {{- with .openstackFederation.provider }}
+              PROVIDER: {{ . }}
+              {{- end }}
+              PROTOCOL: {{ required "protocol is required for openstack-federation" .openstackFederation.protocol }}
             {{- else }}
             {{- fail (printf "Unrecognised authenticator '%s'" .type) }}
             {{- end }}
