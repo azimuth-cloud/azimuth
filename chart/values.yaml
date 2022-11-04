@@ -235,8 +235,6 @@ apps:
   registrarExternalUrl:
   # The admin URL for the Zenith registrar
   registrarAdminUrl:
-  # The URL of the post-deploy script to execute for web consoles
-  postDeployScriptUrl:
 
 # The cluster engine to use for Cluster-as-a-Service support
 clusterEngine:
