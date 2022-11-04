@@ -118,9 +118,7 @@ stringData:
       {{- with .Values.platformPermissions.tenantNameRegex }}
       PLATFORMS_TENANT_NAME_REGEX: {{ quote . }}
       {{- end }}
-      {{- if ne .Values.platformPermissions.tenantIDWhitelist nil }}
       PLATFORMS_TENANT_ID_WHITELIST: {{ toYaml .Values.platformPermissions.tenantIDWhitelist | nindent 8 }}
-      {{- end }}
       PLATFORMS_TENANT_ID_BLACKLIST: {{ toYaml .Values.platformPermissions.tenantIDBlacklist | nindent 8 }}
 {{- end }}
 {{- if .Values.tags.apps }}
