@@ -156,7 +156,7 @@ class Session:
             ct.spec.label,
             ct.spec.get("description"),
             ct.spec["values"]["kubernetesVersion"],
-            ct.spec.deprecated,
+            ct.spec.get("deprecated", False),
             dateutil.parser.parse(ct.metadata["creationTimestamp"]),
         )
 
