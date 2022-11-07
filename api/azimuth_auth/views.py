@@ -167,7 +167,20 @@ def login(request):
             if form.is_valid():
                 authenticator = form.cleaned_data["authenticator"]
                 remember = form.cleaned_data.get("remember", False)
-                response = redirect("azimuth_auth:start", authenticator = authenticator)
+                # The authenticator returned by the form may be a combination of <name>/<option>
+                if "/" in authenticator:
+                    authenticator, option = authenticator.split("/", maxsplit = 1)
+                else:
+                    option = None
+                redirect_url = reverse(
+                    "azimuth_auth:start",
+                    kwargs = { "authenticator": authenticator }
+                )
+                # If there is an option, include it as a parameter in the redirect
+                if option:
+                    qs = urlencode({ auth_settings.SELECTED_OPTION_PARAM: option })
+                    redirect_url = f"{redirect_url}?{qs}"
+                response = redirect(redirect_url)
                 if remember:
                     response.set_signed_cookie(
                         auth_settings.AUTHENTICATOR_COOKIE_NAME,
@@ -193,6 +206,7 @@ def start(request, authenticator):
     """
     Start the authentication flow for the selected authenticator.
     """
+    # First, verify that the requested authenticator exists
     try:
         authenticator_obj = next(
             a["AUTHENTICATOR"]
@@ -201,16 +215,28 @@ def start(request, authenticator):
         )
     except StopIteration:
         return redirect_to_login("invalid_authentication_method")
+    # If the authenticator provides options, require that one is present
+    valid_options = set(opt for opt, _ in authenticator_obj.get_options())
+    if valid_options:
+        try:
+            # Then see if there is an option and validate that
+            option = request.GET[auth_settings.SELECTED_OPTION_PARAM]
+        except KeyError:
+            return redirect_to_login("invalid_authentication_method")
+        if option not in valid_options:
+            return redirect_to_login("invalid_authentication_method")
     else:
-        return authenticator_obj.auth_start(
-            request,
-            request.build_absolute_uri(
-                reverse(
-                    "azimuth_auth:complete",
-                    kwargs = { "authenticator": authenticator }
-                )
+        option = None
+    return authenticator_obj.auth_start(
+        request,
+        request.build_absolute_uri(
+            reverse(
+                "azimuth_auth:complete",
+                kwargs = { "authenticator": authenticator }
             )
-        )
+        ),
+        option
+    )
 
 
 @require_http_methods(["GET", "POST"])

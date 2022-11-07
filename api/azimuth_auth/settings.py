@@ -34,6 +34,9 @@ class AzimuthAuthSettings(SettingsObject):
     #: The default next URL if the user-supplied URL is not given or not permitted
     NEXT_URL_DEFAULT_URL = Setting(default = "/tenancies")
 
+    #: The HTTP parameter to pass the selected option in
+    SELECTED_OPTION_PARAM = Setting(default = "option")
+
     #: The HTTP parameter to get the message code from
     MESSAGE_CODE_PARAM = Setting(default = "code")
     #: The default message level

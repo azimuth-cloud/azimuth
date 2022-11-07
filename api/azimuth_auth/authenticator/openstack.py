@@ -107,15 +107,28 @@ class FederatedAuthenticator(RedirectAuthenticator):
 
     uses_crossdomain_post_requests = True
 
-    def __init__(self, auth_url, protocol, provider = None):
+    def __init__(self, auth_url, identity_providers):
+        self.auth_url = auth_url
+        self.identity_providers = identity_providers
+
+    def get_options(self):
+        return [
+            (provider["name"], provider.get("label", provider["name"]))
+            for provider in self.identity_providers
+        ]
+
+    def get_redirect_to(self, request, auth_complete_url, selected_option = None):
+        provider_cfg = next(p for p in self.identity_providers if p["name"] == selected_option)
+        # Provider is optional, protocol is not
+        provider = provider_cfg.get("provider")
+        protocol = provider_cfg["protocol"]
+        # Template out the federation URL
         template = self.PROVIDER_PROTOCOL_TPL if provider else self.PROTOCOL_ONLY_TPL
         self.federation_url = template.format(
-            auth_url = auth_url,
+            auth_url = self.auth_url,
             provider = provider,
             protocol = protocol
         )
-
-    def get_redirect_to(self, request, auth_complete_url):
         return "{}?{}".format(self.federation_url, urlencode({ 'origin': auth_complete_url }))
 
     def auth_complete(self, request):

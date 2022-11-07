@@ -40,7 +40,7 @@ class FormAuthenticator(BaseAuthenticator):
         """
         raise NotImplementedError
 
-    def auth_start(self, request, auth_complete_url):
+    def auth_start(self, request, auth_complete_url, selected_option = None):
         # Just render an empty form
         return render(
             request,
