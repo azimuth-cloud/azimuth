@@ -168,9 +168,21 @@ authenticators: []
   #     # The Keystone auth URL
   #     # By default, the auth URL from the provider will be used
   #     authUrl:
-  #     # The name of the provider that should be used, where the URL is
-  #     # <auth url>/auth/OS-FEDERATION/websso/<provider>
-  #     provider:
+  #     # A list of identity providers to make available
+  #     identityProviders:
+  #       - # The name of the IDP that identifies the IDP in code
+  #         name: azuread
+  #         # The human-readble name for the IDP in the selection form
+  #         label: Azure AD
+  #         # The Keystone identity provider and protocol to use
+  #         # The provider is optional, and if it IS NOT given, URLs will be of the form:
+  #         #   <auth url>/auth/OS-FEDERATION/websso/<protocol>
+  #         # If a provider IS given, URLs will be of the following form:
+  #         #   <auth_url>/auth/OS-FEDERATION/identity_providers/<provider>/protocols/<protocol>/websso
+  #         # It is recommended to specify a provider if known, as it redirects straight to the IdP
+  #         # instead of via the ugly Keystone splash page
+  #         provider: azure
+  #         protocol: oidc
 
 # The cloud provider to use
 provider:
