@@ -11,6 +11,15 @@ import { DateTime } from 'luxon';
 import { createTenancyResource, nextStateEntry } from './resource';
 
 
+// Just convert the string dates to Date objects
+const transform = cluster => ({
+    ...cluster,
+    created: !!cluster.created ? DateTime.fromISO(cluster.created) : undefined,
+    updated: !!cluster.updated ? DateTime.fromISO(cluster.updated) : undefined,
+    patched: !!cluster.patched ? DateTime.fromISO(cluster.patched) : undefined
+});
+
+
 const {
     actions: resourceActions,
     actionCreators: resourceActionCreators,
@@ -18,13 +27,7 @@ const {
     epic: resourceEpic
 } = createTenancyResource('cluster', {
     isActive: cluster => ['CONFIGURING', 'DELETING'].includes(cluster.status),
-    // Just convert the string dates to Date objects
-    transform: cluster => ({
-        ...cluster,
-        created: !!cluster.created ? DateTime.fromISO(cluster.created) : undefined,
-        updated: !!cluster.updated ? DateTime.fromISO(cluster.updated) : undefined,
-        patched: !!cluster.patched ? DateTime.fromISO(cluster.patched) : undefined
-    })
+    transform
 });
 
 
@@ -84,7 +87,7 @@ export function reducer(state, action) {
                     nextStateEntry(
                         state,
                         action.payload.id,
-                        { ...action.payload, patching: false }
+                        { ...transform(action.payload), patching: false }
                     )
                 ),
             };
