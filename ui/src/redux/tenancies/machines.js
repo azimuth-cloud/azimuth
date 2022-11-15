@@ -13,6 +13,12 @@ import { createTenancyResource, nextStateEntry } from './resource';
 import { actions as externalIpActions } from './external-ips';
 
 
+const transform = machine => ({
+    ...machine,
+    created: !!machine.created ? DateTime.fromISO(machine.created) : undefined
+});
+
+
 const {
     actions: resourceActions,
     actionCreators: resourceActionCreators,
@@ -20,11 +26,7 @@ const {
     epic: resourceEpic
 } = createTenancyResource('machine', {
     isActive: machine => (['BUILD', 'DELETED'].includes(machine.status.type) || !!machine.task),
-    // Just convert the string date to a Date object
-    transform: machine =>
-        machine.hasOwnProperty('created') ?
-            { ...machine, created: DateTime.fromISO(machine.created) } :
-            machine
+    transform
 });
 
 
@@ -411,7 +413,7 @@ export function reducer(state, action) {
                     nextStateEntry(
                         state,
                         action.payload.id,
-                        { ...action.payload, updating: false }
+                        { ...transform(action.payload), updating: false }
                     )
                 ),
             };
