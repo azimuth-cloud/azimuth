@@ -13,6 +13,17 @@ rules:
       - list
       - get
   - apiGroups:
+      - identity.stackhpc.com
+    resources:
+      - realms
+    verbs:
+      - list
+      - get
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
       - azimuth.stackhpc.com
     resources:
       - clusters
