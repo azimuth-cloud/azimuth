@@ -10,6 +10,7 @@ It is currently capable of targeting [OpenStack](https://www.openstack.org/) clo
 ## Contents  <!-- omit in toc -->
 
 - [Introduction](#introduction)
+- [Try Azimuth](#try-azimuth)
 - [Timeline](#timeline)
 - [Architecture](#architecture)
 - [Deploying Azimuth](#deploying-azimuth)
@@ -84,7 +85,7 @@ Key features of Azimuth include:
     * Allocate, attach and detach floating IPs.
     * Configure instance-specific security group rules.
 
-## Try Azimuth
+## Try Azimuth
 
 If you have access to a project on an OpenStack cloud, you can try Azimuth!
 
