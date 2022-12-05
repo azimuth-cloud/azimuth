@@ -20,7 +20,7 @@ from rest_framework.utils import formatting
 
 from azimuth_auth.settings import auth_settings
 
-from . import serializers
+from . import identity, serializers
 from .cluster_api import errors as cluster_api_errors
 from .cluster_engine import errors as cluster_engine_errors
 from .keystore import errors as keystore_errors
@@ -1162,7 +1162,11 @@ def kubernetes_clusters(request, tenant):
                     context = { "session": session, "capi_session": capi_session }
                 )
                 input_serializer.is_valid(raise_exception = True)
-                cluster = capi_session.create_cluster(**input_serializer.validated_data)
+                params = dict(input_serializer.validated_data)
+                if cloud_settings.APPS:
+                    # Make sure that the identity realm exists
+                    params["zenith_identity_realm_name"] = identity.ensure_realm(session.tenancy())
+                cluster = capi_session.create_cluster(**params)
                 output_serializer = serializers.KubernetesClusterSerializer(
                     cluster,
                     context = { "request": request, "tenant": tenant }

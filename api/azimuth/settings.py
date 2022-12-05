@@ -93,6 +93,9 @@ class ClusterApiProviderSetting(ObjectFactorySetting):
         if instance.PROVIDER.provider_name == "openstack":
             return {
                 "FACTORY": "azimuth.cluster_api.openstack.Provider",
+                "PARAMS": {
+                    "NAMESPACE_TEMPLATE": instance.KUBERNETES_NAMESPACE_TEMPLATE,
+                },
             }
         else:
             return None
@@ -178,6 +181,12 @@ class AzimuthSettings(SettingsObject):
 
     #: Cluster API configuration
     CLUSTER_API_PROVIDER = ClusterApiProviderSetting()
+
+    #: The namespace template to use when creating tenancy resources
+    KUBERNETES_NAMESPACE_TEMPLATE = Setting(default = "az-{tenancy_name}")
+
+    #: The realm name template to use for identity realms
+    IDENTITY_REALM_NAME_TEMPLATE = Setting(default = "az-{tenancy_name}")
 
     #: Configuration for curated sizes
     #: If given, should be a list of dictionaries
