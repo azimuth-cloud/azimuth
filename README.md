@@ -30,6 +30,12 @@ as [JupyterHub](https://jupyter.org/hub) that run on [Kubernetes](https://kubern
 Services are exposed to users without consuming floating IPs or requiring SSH keys using the
 [Zenith](https://github.com/stackhpc/zenith) application proxy.
 
+Here, you can see Stig Telfer (CEO) and Matt Pryor (Senior Tech Lead and Azimuth project lead) from
+[StackHPC](https://www.stackhpc.com/) presenting on Azimuth at the
+[OpenInfra Summit in Berlin in 2022](https://openinfra.dev/summit/berlin-2022):
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/FRbpI7ZsvMw" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
 Key features of Azimuth include:
 
   * Supports multiple Keystone authentication methods simultaneously:
