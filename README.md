@@ -31,7 +31,7 @@ Services are exposed to users without consuming floating IPs or requiring SSH ke
 [Zenith](https://github.com/stackhpc/zenith) application proxy.
 
 Here, you can see Stig Telfer (CTO) and Matt Pryor (Senior Tech Lead and Azimuth project lead) from
-[StackHPC](https://www.stackhpc.com/) presenting on Azimuth at the
+[StackHPC](https://www.stackhpc.com/) presenting Azimuth at the
 [OpenInfra Summit in Berlin in 2022](https://openinfra.dev/summit/berlin-2022):
 
 [![Azimuth - self service cloud platforms for reducing time to science](https://img.youtube.com/vi/FRbpI7ZsvMw/0.jpg)](https://www.youtube.com/watch?v=FRbpI7ZsvMw)
