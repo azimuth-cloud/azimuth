@@ -88,8 +88,8 @@ Key features of Azimuth include:
 
 If you have access to a project on an OpenStack cloud, you can try Azimuth!
 
-A demo instance of Azimuth can be deployed onto an OpenStack by following
-[these instructions](https://stackhpc.github.io/azimuth-config/try/). All that is required is an
+A demo instance of Azimuth can be deployed on an OpenStack cloud by following
+[these simple instructions](https://stackhpc.github.io/azimuth-config/try/). All that is required is an
 account on an OpenStack cloud and a host that is capable of running [Ansible](https://www.ansible.com/).
 Admin privileges on the target cloud are not normally required.
       
