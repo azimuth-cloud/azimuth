@@ -27,10 +27,6 @@ from . import dto, errors
 logger = logging.getLogger(__name__)
 
 
-# Get the easykube configuration from the environment
-ekconfig = Configuration.from_environment()
-
-
 CAPI_ADDONS_API_VERSION = "addons.stackhpc.com/v1alpha1"
 AZIMUTH_API_VERSION = "azimuth.stackhpc.com/v1alpha1"
 
@@ -71,8 +67,10 @@ class Provider:
     """
     Base class for Cluster API providers.
     """
-    def __init__(self, namespace_template: str = "az-{tenancy_name}"):
+    def __init__(self, namespace_template: str):
         self._namespace_template = namespace_template
+        # Get the easykube configuration from the environment
+        self._ekconfig = Configuration.from_environment()
 
     def get_session_class(self) -> t.Type['Session']:
         """
@@ -92,7 +90,7 @@ class Provider:
         tenancy_name = re.sub("[^a-z0-9]+", "-", cloud_session.tenancy().name.lower()).strip("-")
         namespace = self._namespace_template.format(tenancy_name = tenancy_name)
         # Create an easykube client targetting our namespace
-        client = ekconfig.sync_client(default_namespace = namespace)
+        client = self._ekconfig.sync_client(default_namespace = namespace)
         return session_class(client, cloud_session)
 
 
@@ -365,7 +363,8 @@ class Session:
         autohealing_enabled: bool = True,
         dashboard_enabled: bool = False,
         ingress_enabled: bool = False,
-        monitoring_enabled: bool = False
+        monitoring_enabled: bool = False,
+        zenith_identity_realm_name: t.Optional[str] = None
     ) -> dto.Cluster:
         """
         Create a new cluster in the tenancy.
@@ -397,6 +396,8 @@ class Session:
             "templateName": template.id,
             "cloudCredentialsSecretName": secret.metadata.name,
         })
+        if zenith_identity_realm_name:
+            cluster_spec["zenithIdentityRealmName"] = zenith_identity_realm_name
         # Create the cluster
         ekclusters = self._client.api(AZIMUTH_API_VERSION).resource("clusters")
         cluster = ekclusters.create({
