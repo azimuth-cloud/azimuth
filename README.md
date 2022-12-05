@@ -48,6 +48,7 @@ Key features of Azimuth include:
       to allowing the distribution of easily-revokable credentials, e.g. for training, or for integrating
       with clouds that use federation but implementing the required trust is not possible.
   * On-demand Platforms
+    * Unified interface for managing Kubernetes and CaaS platforms.
     * Kubernetes-as-a-Service and Kubernetes-based platforms
       * Operators provide a curated set of templates defining available Kubernetes versions,
         networking configurations, custom addons etc.
@@ -57,7 +58,7 @@ Key features of Azimuth include:
       * Supports multiple node groups, including auto-scaling node groups.
       * Supports clusters that can utilise GPUs and accelerated networking (e.g. SR-IOV).
       * Installs and configures addons for monitoring + logging, system dashboards and ingress.
-      * Provides an application dashboard for deploying Kubernetes-based platforms.
+      * Kubernetes-based platforms, such as JupyterHub, as first-class citizens in the platform catalog.
     * Cluster-as-a-Service (CaaS)
       * Operators provide a curated catalog of appliances.
       * Appliances are Ansible playbooks that provision and configure infrastructure.
@@ -82,6 +83,15 @@ Key features of Azimuth include:
     * Create, delete and attach volumes.
     * Allocate, attach and detach floating IPs.
     * Configure instance-specific security group rules.
+
+## Try Azimuth
+
+If you have access to a project on an OpenStack cloud, you can try Azimuth!
+
+A demo instance of Azimuth can be deployed onto an OpenStack by following
+[these instructions](https://stackhpc.github.io/azimuth-config/try/). All that is required is an
+account on an OpenStack cloud and a host that is capable of running [Ansible](https://www.ansible.com/).
+Admin privileges on the target cloud are not normally required.
       
 ## Timeline
 
@@ -107,6 +117,7 @@ This section shows a timeline of the significant events in the development of Az
   * **February 2022**: Support for exposing services in Kubernetes using Zenith.
   * **March 2022**: Support for exposing services in CaaS appliances using Zenith.
   * **June 2022**: Unified platforms interface for Kubernetes and CaaS.
+  * **October 2022**: Support for Kubernetes platforms in the unified platforms interface.
 
 ## Architecture
 
