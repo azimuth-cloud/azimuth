@@ -23,7 +23,19 @@ def ensure_realm(tenancy: dto.Tenancy):
         tenancy_id = tenancy.id,
         tenancy_name = tenancy.name
     )
-    with ekconfig.sync_client(default_namespace = namespace) as client:
+    with ekconfig.sync_client() as client:
+        # Create the namespace if required
+        try:
+            client.api("v1").resource("namespaces").create({
+                "metadata": {
+                    "name": namespace,
+                },
+            })
+        except ApiError as exc:
+            # Swallow the conflict that occurs when the namespace already exists
+            if exc.status_code != 409 or exc.reason.lower() != "alreadyexists":
+                raise
+        # Then create the realm
         _ = client.api(AZIMUTH_IDENTITY_API_VERSION).resource("realms").create_or_patch(
             realm_name,
             {
@@ -36,6 +48,7 @@ def ensure_realm(tenancy: dto.Tenancy):
                 "spec": {
                     "tenancyId": tenancy.id,
                 },
-            }
+            },
+            namespace = namespace
         )
     return realm_name

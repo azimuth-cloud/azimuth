@@ -325,31 +325,35 @@ def session(request):
 @provider_api_view(["GET"])
 def session_verify(request):
     """
-    Verify the current session.
+    Verify the current session and return information about the authenticated user.
 
     This endpoint can be used to check for the presence of an authenticated session
     and optionally for tenancy-level authorization by specifying the configured header
     (defaults to ``X-Auth-Tenancy-Id``).
 
-    In particular, this is used by Zenith to impose authentication and authorization for
-    exposed apps.
+    It returns the authenticated username in the X-Remote-User header and the user's
+    tenancy IDs in the X-Remote-Group header.
+
+    It is used as an auth callout for the Dex provider. The Dex provider is used to
+    sign Azimuth users into Keycloak realms that are used for Zenith OIDC.
     """
     # If we get to here, the user is already authenticated
     # If they are not, a 401 will have been returned
     content = { "authenticated": True }
+    tenancies = list(request.auth.tenancies())
     # If the tenancy ID header is present, verify that the user belongs to the tenancy
     tenancy_id = request.META.get(cloud_settings.VERIFY_TENANCY_ID_HEADER)
     if tenancy_id:
-        if any(t.id == tenancy_id for t in request.auth.tenancies()):
+        if any(t.id == tenancy_id for t in tenancies):
             content["authorized"] = True
         else:
             raise drf_exceptions.PermissionDenied()
     return response.Response(
         content,
-        # Return the authenticated username in the X-Remote-User header
-        # The Zenith proxy is configured to forward this header to upstream services, which
-        # they can consume in order to provide a bespoke service per authenticated user
-        headers = { "X-Remote-User": request.user.username }
+        headers = {
+            "X-Remote-User": request.user.username,
+            "X-Remote-Group": ",".join(t.id for t in tenancies),
+        }
     )
 
 
