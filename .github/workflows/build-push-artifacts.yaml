@@ -37,7 +37,8 @@ jobs:
         with:
           cache-key: ${{ matrix.component }}
           context: ./${{ matrix.component }}
-          platforms: linux/amd64,linux/arm64
+          # Disable ARM builds for now as they are crazy-slow
+          platforms: linux/amd64  #,linux/arm64
           push: true
           tags: ${{ steps.image-meta.outputs.tags }}
           labels: ${{ steps.image-meta.outputs.labels }}
