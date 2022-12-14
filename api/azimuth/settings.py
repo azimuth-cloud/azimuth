@@ -126,6 +126,10 @@ class AppsSettings(SettingsObject):
     #: Indicates whether SSL should be verified by clients when associating keys with the
     #: registrar using the external endpoint
     VERIFY_SSL_CLIENTS = Setting(default = True)
+    #: Query parameters that should be added to the Zenith URL before redirecting
+    #: For example, this can be used to indicate to Keycloak that a specific IdP should be
+    #: used by specifying kc_idp_hint
+    QUERY_PARAMS = Setting(default = dict)
 
 
 class ZenithSetting(Setting):
@@ -147,6 +151,7 @@ class ZenithSetting(Setting):
                 apps_settings.SSHD_PORT,
                 apps_settings.VERIFY_SSL,
                 apps_settings.VERIFY_SSL_CLIENTS,
+                apps_settings.QUERY_PARAMS
             )
         else:
             return None
