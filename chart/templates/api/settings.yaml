@@ -147,8 +147,8 @@ stringData:
         SSHD_PORT: {{ $apps.sshdPort }}
         REGISTRAR_EXTERNAL_URL: {{ required "apps.registrarExternalUrl is required" $apps.registrarExternalUrl | quote }}
         REGISTRAR_ADMIN_URL: {{ required "apps.registrarAdminUrl is required" $apps.registrarAdminUrl | quote }}
-        {{- with $apps.postDeployScriptUrl }}
-        POST_DEPLOY_SCRIPT_URL: {{ . | quote }}
+        {{- with $apps.queryParams }}
+        QUERY_PARAMS: {{ toYaml . | nindent 10 }}
         {{- end }}
 {{- end }}
   06-ssh-key-store.yaml: |
