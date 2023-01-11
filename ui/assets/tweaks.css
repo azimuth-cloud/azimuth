@@ -269,6 +269,14 @@
 
 
 /**
+ * Custom styles for the IDP panel.
+ */
+.idp-card {
+    max-width: 1200px;
+}
+
+
+/**
  * Custom styles for platform and platform type selection cards.
  */
 .platform-type-select-card {

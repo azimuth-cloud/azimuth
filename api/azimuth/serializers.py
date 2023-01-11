@@ -128,6 +128,11 @@ class TenancySerializer(make_dto_serializer(dto.Tenancy)):
                         "tenant": obj.id,
                     })
                 ),
+                "identity_provider": request.build_absolute_uri(
+                    reverse("azimuth:identity_provider", kwargs = {
+                        "tenant": obj.id,
+                    })
+                ),
                 "images": request.build_absolute_uri(
                     reverse("azimuth:images", kwargs = {
                         "tenant": obj.id,

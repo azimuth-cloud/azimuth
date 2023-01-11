@@ -1,5 +1,5 @@
 /**
- * This module contains components for the tenancy machines page.
+ * This module contains components for the tenancy quotas page.
  */
 
 import React from 'react';
