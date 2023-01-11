@@ -3,12 +3,15 @@
  */
 
 import { of } from 'rxjs';
-import { filter, merge, mergeMap, delay, takeUntil } from 'rxjs/operators';
+import { filter, map, merge, mergeMap, delay, takeUntil } from 'rxjs/operators';
 
 import { combineEpics, ofType } from 'redux-observable';
 
 import { actions as sessionActions } from '../session';
 import { actions as tenancyActions } from './index';
+import { actions as clusterActions } from './clusters';
+import { actions as kubernetesAppActions } from './kubernetes-apps';
+import { actions as kubernetesClusterActions } from './kubernetes-clusters';
 
 
 export const actions = {
@@ -144,5 +147,13 @@ export const epic = combineEpics(
                 )
             );
         })
+    ),
+    // When a platform creation succeeds, that might trigger the identity provider
+    // to be enabled, so refresh
+    action$ => action$.pipe(
+        ofType(clusterActions.CREATE_SUCCEEDED),
+        merge(action$.pipe(ofType(kubernetesAppActions.CREATE_SUCCEEDED))),
+        merge(action$.pipe(ofType(kubernetesClusterActions.CREATE_SUCCEEDED))),
+        map(action => actionCreators.fetch(action.request.tenancyId))
     ),
 );
