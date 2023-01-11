@@ -432,6 +432,30 @@ def quotas(request, tenant):
     return response.Response(serializer.data)
 
 
+@provider_api_view(["GET", "POST"])
+def identity_provider(request, tenant):
+    """
+    On ``GET`` requests, return information about the identity provider for the tenancy.
+
+    On ``POST`` requests, enable the identity provider for the tenancy.
+    """
+    with request.auth.scoped_session(tenant) as session:
+        if request.method == "POST":
+            realm = identity.ensure_realm(session.tenancy())
+        else:
+            realm = identity.get_realm(session.tenancy())
+    if realm:
+        response_data = dict(
+            enabled = True,
+            status = realm.status,
+            admin_url = realm.admin_url
+        )
+    else:
+        response_data = dict(enabled = False)
+    response_data["links"] = { "self": request.build_absolute_uri() }
+    return response.Response(response_data)
+
+
 @provider_api_view(["GET"])
 def images(request, tenant):
     """
@@ -1169,7 +1193,8 @@ def kubernetes_clusters(request, tenant):
                 params = dict(input_serializer.validated_data)
                 if cloud_settings.APPS:
                     # Make sure that the identity realm exists
-                    params["zenith_identity_realm_name"] = identity.ensure_realm(session.tenancy())
+                    realm = identity.ensure_realm(session.tenancy())
+                    params["zenith_identity_realm_name"] = realm.name
                 cluster = capi_session.create_cluster(**params)
                 output_serializer = serializers.KubernetesClusterSerializer(
                     cluster,

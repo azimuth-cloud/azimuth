@@ -12,8 +12,6 @@ import Row from 'react-bootstrap/Row';
 import { LinkContainer } from 'react-router-bootstrap';
 import { Navigate } from 'react-router-dom';
 
-import get from 'lodash/get';
-
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faDatabase,
@@ -23,11 +21,13 @@ import {
     faSitemap,
     faSlidersH,
     faTachometerAlt,
-    faTools
+    faTools,
+    faUsers
 } from '@fortawesome/free-solid-svg-icons';
 
 import { bindArgsToActions } from '../../utils';
 
+import { TenancyIdpPanel } from './idp';
 import { TenancyQuotasPanel } from './quotas';
 import { TenancyMachinesPanel } from './machines';
 import { TenancyVolumesPanel } from './volumes';
@@ -86,17 +86,30 @@ const TenancyNav = ({
         <>
             <Nav as="ul" variant="pills" className="sidebar-nav">
                 {supportsPlatforms && (
-                    <Nav.Item as="li">
-                        <LinkContainer to={`/tenancies/${currentTenancy.id}/platforms`}>
-                            <Nav.Link title="Platforms">
-                                <FontAwesomeIcon
-                                    icon={faSitemap}
-                                    fixedWidth
-                                />
-                                <span className="nav-link-text">Platforms</span>
-                            </Nav.Link>
-                        </LinkContainer>
-                    </Nav.Item>
+                    <>
+                        <Nav.Item as="li">
+                            <LinkContainer to={`/tenancies/${currentTenancy.id}/platforms`}>
+                                <Nav.Link title="Platforms">
+                                    <FontAwesomeIcon
+                                        icon={faSitemap}
+                                        fixedWidth
+                                    />
+                                    <span className="nav-link-text">Platforms</span>
+                                </Nav.Link>
+                            </LinkContainer>
+                        </Nav.Item>
+                        <Nav.Item as="li">
+                            <LinkContainer to={`/tenancies/${currentTenancy.id}/idp`}>
+                                <Nav.Link title="Identity Provider">
+                                    <FontAwesomeIcon
+                                        icon={faUsers}
+                                        fixedWidth
+                                    />
+                                    <span className="nav-link-text">Identity Provider</span>
+                                </Nav.Link>
+                            </LinkContainer>
+                        </Nav.Item>
+                    </>
                 )}
                 <Nav.Item as="li">
                     <LinkContainer to={`/tenancies/${currentTenancy.id}/quotas`}>
@@ -190,6 +203,16 @@ const TenancyNav = ({
 };
 
 
+// A map of platform names to the panel components
+const PlatformPanelComponents = {
+    "idp": TenancyIdpPanel,
+    "platforms": TenancyPlatformsPanel,
+    "quotas": TenancyQuotasPanel,
+    "machines": TenancyMachinesPanel,
+    "volumes": TenancyVolumesPanel,
+};
+
+
 export const TenancyResourcePage = ({
     resource,
     capabilities,
@@ -213,7 +236,7 @@ export const TenancyResourcePage = ({
     // If a resource has been selected that we don't support, emit a notification
     useEffect(
         () => {
-            if( !["platforms", "quotas", "machines", "volumes"].includes(resource) ) {
+            if( !PlatformPanelComponents.hasOwnProperty(resource) ) {
                 notificationActions.error({
                     title: 'Not Found',
                     message: `Resource '${resource}' does not exist.`
@@ -224,17 +247,8 @@ export const TenancyResourcePage = ({
     );
 
     let PanelComponent;
-    if( resource === "platforms" ) {
-        PanelComponent = TenancyPlatformsPanel;
-    }
-    else if( resource === "quotas" ) {
-        PanelComponent = TenancyQuotasPanel;
-    }
-    else if( resource === "machines" ) {
-        PanelComponent = TenancyMachinesPanel;
-    }
-    else if( resource === "volumes" ) {
-        PanelComponent = TenancyVolumesPanel;
+    if( PlatformPanelComponents.hasOwnProperty(resource) ) {
+        PanelComponent = PlatformPanelComponents[resource];
     }
     else {
         return <Navigate to={`/tenancies/${currentTenancy.id}`} />;
@@ -263,6 +277,7 @@ export const TenancyResourcePage = ({
                         tenancy={currentTenancy}
                         // Bind all the actions to the current tenancy
                         tenancyActions={{
+                            idp: bindArgsToActions(tenancyActions.idp, currentTenancy.id),
                             quota: bindArgsToActions(tenancyActions.quota, currentTenancy.id),
                             image: bindArgsToActions(tenancyActions.image, currentTenancy.id),
                             size: bindArgsToActions(tenancyActions.size, currentTenancy.id),
