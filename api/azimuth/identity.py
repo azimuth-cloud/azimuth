@@ -1,4 +1,5 @@
 import dataclasses
+import re
 import typing as t
 
 from easykube import Configuration, ApiError, SyncClient
@@ -12,6 +13,11 @@ AZIMUTH_IDENTITY_API_VERSION = "identity.azimuth.stackhpc.com/v1alpha1"
 
 # Configure the Kubernetes client from the environment
 ekconfig = Configuration.from_environment()
+
+
+def format(template, tenancy):
+    tenancy_name = re.sub("[^a-z0-9]+", "-", tenancy.name.lower()).strip("-")
+    return template.format(tenancy_name = tenancy_name)
 
 
 @dataclasses.dataclass(frozen = True)
@@ -46,17 +52,13 @@ def get_realm(tenancy: dto.Tenancy) -> t.Optional[Realm]:
     """
     Returns the identity realm for the tenancy.
     """
+    realm_name = format(cloud_settings.IDENTITY_REALM_NAME_TEMPLATE, tenancy)
+    namespace = format(cloud_settings.KUBERNETES_NAMESPACE_TEMPLATE, tenancy)
     with ekconfig.sync_client() as client:
         try:
             realm = client.api(AZIMUTH_IDENTITY_API_VERSION).resource("realms").fetch(
-                cloud_settings.IDENTITY_REALM_NAME_TEMPLATE.format(
-                    tenancy_id = tenancy.id,
-                    tenancy_name = tenancy.name
-                ),
-                namespace = cloud_settings.KUBERNETES_NAMESPACE_TEMPLATE.format(
-                    tenancy_id = tenancy.id,
-                    tenancy_name = tenancy.name
-                )
+                realm_name,
+                namespace = namespace
             )
         except ApiError as exc:
             if exc.status_code == 404:
@@ -71,14 +73,8 @@ def ensure_realm(tenancy: dto.Tenancy) -> Realm:
     """
     Ensures that an identity realm exists for the given tenancy.
     """
-    realm_name = cloud_settings.IDENTITY_REALM_NAME_TEMPLATE.format(
-        tenancy_id = tenancy.id,
-        tenancy_name = tenancy.name
-    )
-    namespace = cloud_settings.KUBERNETES_NAMESPACE_TEMPLATE.format(
-        tenancy_id = tenancy.id,
-        tenancy_name = tenancy.name
-    )
+    realm_name = format(cloud_settings.IDENTITY_REALM_NAME_TEMPLATE, tenancy)
+    namespace = format(cloud_settings.KUBERNETES_NAMESPACE_TEMPLATE, tenancy)
     with ekconfig.sync_client() as client:
         # Create the namespace if required
         try:
