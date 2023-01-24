@@ -54,7 +54,18 @@ def get_cluster_types(client) -> t.Iterable[dto.ClusterType]:
                 description="fake description",
                 logo="https://github.com/stackhpc/azimuth/raw/master/branding/azimuth-logo-blue-text.png",
                 requires_ssh_key=False,
-                parameters=[],
+                parameters=[
+                    dto.ClusterParameter(
+                        name="cluster_flavor",
+                        label="Size",
+                        kind="cloud.size",
+                        immutable=True,
+                        required=True,
+                        options=dict(mind_ram=4096, min_disk=10),
+                        default=None,
+                        description="TODO: this is just a placeholder!",
+                    )
+                ],
                 services=[],
                 usage_template=None,
             )
@@ -95,7 +106,7 @@ def get_clusters(client) -> t.Iterable[dto.Cluster]:
     return clusters
 
 
-def create_cluster(client, name: str, cluster_type_name: str):
+def create_cluster(client, name: str, cluster_type_name: str, params: dict):
     safe_name = _escape_name(name)
     secret_name = f"openstack-{safe_name}"
     secret_resource = client.api("v1").resource("secrets")
@@ -109,6 +120,10 @@ def create_cluster(client, name: str, cluster_type_name: str):
         "clusterTypeName": cluster_type_name,
         "cloudCredentialsSecretName": secret_name,
     }
+    if params:
+        cluster_spec["extraVars"] = {}
+        for key, value in params.items():
+            cluster_spec["extraVars"][key] = str(value)
     cluster_resource = client.api(CAAS_API_VERSION).resource("clusters")
     cluster = cluster_resource.create(
         {
@@ -138,7 +153,7 @@ if __name__ == "__main__":
     clusters = get_clusters(client)
     print(clusters)
     if not clusters:
-        create_cluster(client, "jg-test", "quick-test")
+        create_cluster(client, "jg-test", "quick-test", {})
     clusters = get_clusters(client)
     print(clusters)
     if clusters:
@@ -202,7 +217,7 @@ class Driver(base.Driver):
         Create a new cluster with the given name, type and parameters.
         """
         client = get_k8s_client(ctx.tenancy.id)
-        return create_cluster(client, name, cluster_type.name)
+        return create_cluster(client, name, cluster_type.name, params)
 
     def update_cluster(
         self, cluster: dto.Cluster, params: t.Mapping[str, t.Any], ctx: dto.Context
