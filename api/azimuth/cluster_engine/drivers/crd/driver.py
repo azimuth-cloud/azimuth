@@ -1,6 +1,7 @@
 """
 This module contains the cluster engine implementation for azimuth-caas-crd.
 """
+import dateutil.parser
 import re
 import typing as t
 
@@ -13,8 +14,12 @@ from azimuth.cluster_engine import errors
 CAAS_API_VERSION = "caas.azimuth.stackhpc.com/v1alpha1"
 
 
+def _escape_name(name):
+    return re.sub("[^a-z0-9]+", "-", name).strip("-")
+
+
 def _get_namespace(project_id):
-    safe_project_id = re.sub("[^a-z0-9]+", "-", project_id).strip("-")
+    safe_project_id = _escape_name(project_id)
     return f"caas-{safe_project_id}"
 
 
@@ -30,11 +35,6 @@ def _ensure_namespace(client, namespace):
             raise
 
 
-def get_cluster_types(client):
-    raw_templates = list(client.api(CAAS_API_VERSION).resource("clustertypes").list())
-    return raw_templates
-
-
 def get_k8s_client(project_id):
     namespace = _get_namespace(project_id)
     ekconfig = easykube.Configuration.from_environment()
@@ -43,10 +43,99 @@ def get_k8s_client(project_id):
     return client
 
 
+def get_cluster_types(client) -> t.Iterable[dto.ClusterType]:
+    raw_types = list(client.api(CAAS_API_VERSION).resource("clustertypes").list())
+    cluster_types = []
+    for raw in raw_types:
+        cluster_types.append(
+            dto.ClusterType(
+                name=raw.metadata.name,
+                label="todo",
+                description="todo",
+                logo="https://github.com/stackhpc/azimuth/blob/master/branding/azimuth-logo-blue-text.png",
+                requires_ssh_key=False,
+                parameters=[],
+                services=[],
+                usage_template=[],
+            )
+        )
+    return cluster_types
+
+
+def get_clusters(client) -> t.Iterable[dto.Cluster]:
+    raw_clusters = list(client.api(CAAS_API_VERSION).resource("clusters").list())
+    clusters = []
+    for raw_cluster in raw_clusters:
+        cluster = dto.Cluster(
+            id=raw_cluster.metadata.uid,
+            name=raw_cluster.metadata.name,
+            cluster_type=raw_cluster.spec.clusterTypeName,
+            status=dto.ClusterStatus.CONFIGURING,
+            task=None,
+            error_message=None,
+            parameter_values=dict(),
+            tags=[],
+            outputs=dict(),
+            created=dateutil.parser.parse(raw_cluster.metadata.creationTimestamp),
+            updated=dateutil.parser.parse(raw_cluster.metadata.creationTimestamp),
+            patched=dateutil.parser.parse(raw_cluster.metadata.creationTimestamp),
+            services=[],
+        )
+        status = raw_cluster.get("status")
+        if status and status.get("phase") == "Ready":
+            cluster.status = dto.ClusterStatus.READY
+        clusters.append(cluster)
+    return clusters
+
+
+def create_cluster(client, name: str, cluster_type_name: str):
+    safe_name = _escape_name(name)
+    secret_name = f"openstack-{safe_name}"
+    secret_resource = client.api("v1").resource("secrets")
+    # TODO(johngarbutt) how do we get these deleted?
+    secret_resource.create_or_replace(
+        secret_name,
+        {"metadata": {"name": secret_name}, "stringData": {"clouds.yaml": "TODO!"}}
+    )
+
+    cluster_spec = {
+        "clusterTypeName": cluster_type_name,
+        "cloudCredentialsSecretName": secret_name,
+    }
+    cluster_resource = client.api(CAAS_API_VERSION).resource("clusters")
+    cluster = cluster_resource.create(
+        {
+            "metadata": {
+                "name": safe_name,
+                "labels": {"app.kubernetes.io/managed-by": "azimuth"},
+            },
+            "spec": cluster_spec,
+        }
+    )
+    return cluster.metadata.uid
+
+
+def delete_cluster(client, name: str):
+    safe_name = _escape_name(name)
+    cluster_resource = client.api(CAAS_API_VERSION).resource("clusters")
+    cluster_resource.delete(safe_name)
+
+
 # TODO(johngarbutt) horrible testing hack!
 if __name__ == "__main__":
-    client = get_k8s_client("123")
+    fake_project_id = "123"
+    client = get_k8s_client(fake_project_id)
     print(get_cluster_types(client))
+    clusters = get_clusters(client)
+    print(clusters)
+    if not clusters:
+        create_cluster(client, "jg-test", "quick-test")
+    clusters = get_clusters(client)
+    print(clusters)
+    if clusters:
+        delete_cluster(client, "jg-test")
+    clusters = get_clusters(client)
+    print(clusters)
 
 
 class Driver(base.Driver):
