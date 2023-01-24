@@ -12,6 +12,17 @@ from settings_object import (
 from .zenith import Zenith
 
 
+class CaaSCrdSettings(SettingsObject):
+    """
+    Settings object for the CaaS CRD sttings.
+    """
+    ####
+    # General settings
+    ####
+    #: Indicates if CaaS CRD is enabled
+    ENABLED = Setting(default = False)
+
+
 class AwxSettings(SettingsObject):
     """
     Settings object for the AWX settings.
@@ -66,6 +77,11 @@ class ClusterEngineSetting(Setting):
     """
     def _get_default(self, instance):
         # The driver for the default cluster engine comes from the AWX setting
+        if instance.CAAS_CRD.ENABLED:
+            from .cluster_engine.drivers import crd
+            from .cluster_engine import Engine
+            driver = crd.Driver()
+            return Engine(driver, instance.APPS)
         if instance.AWX.ENABLED:
             from .cluster_engine.drivers import awx
             driver = awx.Driver(
@@ -213,6 +229,8 @@ class AzimuthSettings(SettingsObject):
 
     #: AWX configuration
     AWX = NestedSetting(AwxSettings)
+
+    CAAS_CRD = NestedSetting(CaaSCrdSettings)
 
     #: Configuration for the Zenith instance for apps
     APPS = ZenithSetting()
