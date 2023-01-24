@@ -56,7 +56,7 @@ def get_cluster_types(client) -> t.Iterable[dto.ClusterType]:
                 requires_ssh_key=False,
                 parameters=[],
                 services=[],
-                usage_template=[],
+                usage_template=None,
             )
         )
     return cluster_types
@@ -66,24 +66,29 @@ def get_clusters(client) -> t.Iterable[dto.Cluster]:
     raw_clusters = list(client.api(CAAS_API_VERSION).resource("clusters").list())
     clusters = []
     for raw_cluster in raw_clusters:
+        raw_status = raw_cluster.get("status", {})
+        status = dto.ClusterStatus.CONFIGURING
+        if raw_status and raw_status.get("phase") == "Ready":
+            status = dto.ClusterStatus.READY
+        if raw_status and raw_status.get("phase") == "Deleting":
+            status = dto.ClusterStatus.DELETING
+
         cluster = dto.Cluster(
             id=raw_cluster.metadata.uid,
             name=raw_cluster.metadata.name,
             cluster_type=raw_cluster.spec.clusterTypeName,
-            status=dto.ClusterStatus.CONFIGURING,
+            status=status,
             task=None,
             error_message=None,
-            parameter_values=dict(),
-            tags=[],
+            parameter_values=dict(asdf="asdf"),
+            tags=["asdf"],
             outputs=dict(),
             created=dateutil.parser.parse(raw_cluster.metadata.creationTimestamp),
             updated=dateutil.parser.parse(raw_cluster.metadata.creationTimestamp),
             patched=dateutil.parser.parse(raw_cluster.metadata.creationTimestamp),
             services=[],
         )
-        status = raw_cluster.get("status")
-        if status and status.get("phase") == "Ready":
-            cluster.status = dto.ClusterStatus.READY
+
         clusters.append(cluster)
     return clusters
 
@@ -175,7 +180,10 @@ class Driver(base.Driver):
         """
         Find a cluster by id.
         """
-        raise NotImplementedError
+        all_clusters = self.clusters(ctx)
+        for cluster in all_clusters:
+            if cluster.id == id:
+                return cluster
 
     def create_cluster(
         self,
