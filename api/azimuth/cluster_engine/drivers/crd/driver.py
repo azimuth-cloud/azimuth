@@ -50,9 +50,9 @@ def get_cluster_types(client) -> t.Iterable[dto.ClusterType]:
         cluster_types.append(
             dto.ClusterType(
                 name=raw.metadata.name,
-                label="todo",
-                description="todo",
-                logo="https://github.com/stackhpc/azimuth/blob/master/branding/azimuth-logo-blue-text.png",
+                label=raw.metadata.name,
+                description="fake description",
+                logo="https://github.com/stackhpc/azimuth/raw/master/branding/azimuth-logo-blue-text.png",
                 requires_ssh_key=False,
                 parameters=[],
                 services=[],
@@ -158,7 +158,10 @@ class Driver(base.Driver):
         """
         See :py:meth:`.base.Driver.find_cluster_type`.
         """
-        self._log("Fetching job template '%s'", name, ctx=ctx)
+        all_types = self.cluster_types(ctx)
+        for ctype in all_types:
+            if ctype.name == name:
+                return ctype
         raise errors.ObjectNotFoundError(name)
 
     def clusters(self, ctx: dto.Context) -> t.Iterable[dto.Cluster]:
