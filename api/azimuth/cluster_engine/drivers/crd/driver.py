@@ -95,7 +95,7 @@ def create_cluster(client, name: str, cluster_type_name: str):
     # TODO(johngarbutt) how do we get these deleted?
     secret_resource.create_or_replace(
         secret_name,
-        {"metadata": {"name": secret_name}, "stringData": {"clouds.yaml": "TODO!"}}
+        {"metadata": {"name": secret_name}, "stringData": {"clouds.yaml": "TODO!"}},
     )
 
     cluster_spec = {
@@ -151,7 +151,8 @@ class Driver(base.Driver):
         pass
 
     def cluster_types(self, ctx: dto.Context) -> t.Iterable[dto.ClusterType]:
-        raise NotImplementedError
+        client = get_k8s_client(ctx.tenancy.id)
+        return get_cluster_types(client)
 
     def find_cluster_type(self, name: str, ctx: dto.Context) -> dto.ClusterType:
         """
@@ -164,8 +165,8 @@ class Driver(base.Driver):
         """
         List the clusters that are deployed.
         """
-        namespace = ctx.tenancy.id
-        raise NotImplementedError
+        client = get_k8s_client(ctx.tenancy.id)
+        return get_clusters(client)
 
     def find_cluster(self, id: str, ctx: dto.Context) -> dto.Cluster:
         """
@@ -184,7 +185,8 @@ class Driver(base.Driver):
         """
         Create a new cluster with the given name, type and parameters.
         """
-        raise NotImplementedError
+        client = get_k8s_client(ctx.tenancy.id)
+        uid = create_cluster(client, name, cluster_type.name)
 
     def update_cluster(
         self, cluster: dto.Cluster, params: t.Mapping[str, t.Any], ctx: dto.Context
@@ -206,28 +208,5 @@ class Driver(base.Driver):
         """
         Deletes an existing cluster.
         """
-        raise NotImplementedError
-
-    def close(self):
-        """
-        Release any resources held by this driver.
-        """
-        self._client.close()
-
-    def __enter__(self):
-        """
-        Called when entering a context manager block.
-        """
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        """
-        Called when exiting a context manager block. Ensures that close is called.
-        """
-        self._client.__exit__(exc_type, exc_value, traceback)
-
-    def __del__(self):
-        """
-        Ensures that close is called when the session is garbage collected.
-        """
-        self.close()
+        client = get_k8s_client(ctx.tenancy.id)
+        delete_cluster(client, cluster.name)
