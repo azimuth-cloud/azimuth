@@ -62,33 +62,35 @@ def get_cluster_types(client) -> t.Iterable[dto.ClusterType]:
     return cluster_types
 
 
+def get_cluster_dto(raw_cluster):
+    raw_status = raw_cluster.get("status", {})
+    status = dto.ClusterStatus.CONFIGURING
+    if raw_status and raw_status.get("phase") == "Ready":
+        status = dto.ClusterStatus.READY
+    if raw_status and raw_status.get("phase") == "Deleting":
+        status = dto.ClusterStatus.DELETING
+    return dto.Cluster(
+        id=raw_cluster.metadata.uid,
+        name=raw_cluster.metadata.name,
+        cluster_type=raw_cluster.spec.clusterTypeName,
+        status=status,
+        task=None,
+        error_message=None,
+        parameter_values=dict(asdf="asdf"),
+        tags=["asdf"],
+        outputs=dict(),
+        created=dateutil.parser.parse(raw_cluster.metadata.creationTimestamp),
+        updated=dateutil.parser.parse(raw_cluster.metadata.creationTimestamp),
+        patched=dateutil.parser.parse(raw_cluster.metadata.creationTimestamp),
+        services=[],
+    )
+
+
 def get_clusters(client) -> t.Iterable[dto.Cluster]:
     raw_clusters = list(client.api(CAAS_API_VERSION).resource("clusters").list())
     clusters = []
     for raw_cluster in raw_clusters:
-        raw_status = raw_cluster.get("status", {})
-        status = dto.ClusterStatus.CONFIGURING
-        if raw_status and raw_status.get("phase") == "Ready":
-            status = dto.ClusterStatus.READY
-        if raw_status and raw_status.get("phase") == "Deleting":
-            status = dto.ClusterStatus.DELETING
-
-        cluster = dto.Cluster(
-            id=raw_cluster.metadata.uid,
-            name=raw_cluster.metadata.name,
-            cluster_type=raw_cluster.spec.clusterTypeName,
-            status=status,
-            task=None,
-            error_message=None,
-            parameter_values=dict(asdf="asdf"),
-            tags=["asdf"],
-            outputs=dict(),
-            created=dateutil.parser.parse(raw_cluster.metadata.creationTimestamp),
-            updated=dateutil.parser.parse(raw_cluster.metadata.creationTimestamp),
-            patched=dateutil.parser.parse(raw_cluster.metadata.creationTimestamp),
-            services=[],
-        )
-
+        cluster = get_cluster_dto(raw_cluster)
         clusters.append(cluster)
     return clusters
 
@@ -117,13 +119,15 @@ def create_cluster(client, name: str, cluster_type_name: str):
             "spec": cluster_spec,
         }
     )
-    return cluster.metadata.uid
+    return get_cluster_dto(cluster)
 
 
 def delete_cluster(client, name: str):
     safe_name = _escape_name(name)
     cluster_resource = client.api(CAAS_API_VERSION).resource("clusters")
     cluster_resource.delete(safe_name)
+    raw_cluster = cluster_resource.fetch(safe_name)
+    return get_cluster_dto(raw_cluster)
 
 
 # TODO(johngarbutt) horrible testing hack!
@@ -184,6 +188,7 @@ class Driver(base.Driver):
         for cluster in all_clusters:
             if cluster.id == id:
                 return cluster
+        raise errors.ObjectNotFoundError(id)
 
     def create_cluster(
         self,
@@ -192,12 +197,12 @@ class Driver(base.Driver):
         params: t.Mapping[str, t.Any],
         ssh_key: str,
         ctx: dto.Context,
-    ):
+    ) -> dto.Cluster:
         """
         Create a new cluster with the given name, type and parameters.
         """
         client = get_k8s_client(ctx.tenancy.id)
-        uid = create_cluster(client, name, cluster_type.name)
+        return create_cluster(client, name, cluster_type.name)
 
     def update_cluster(
         self, cluster: dto.Cluster, params: t.Mapping[str, t.Any], ctx: dto.Context
@@ -220,4 +225,4 @@ class Driver(base.Driver):
         Deletes an existing cluster.
         """
         client = get_k8s_client(ctx.tenancy.id)
-        delete_cluster(client, cluster.name)
+        return delete_cluster(client, cluster.name)
