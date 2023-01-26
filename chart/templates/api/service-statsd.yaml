@@ -1,0 +1,17 @@
+{{- $component := "api" -}}
+{{- $values := get .Values $component -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: azimuth-api-statsd-exporter
+  labels: {{ include "azimuth.componentLabels" (list . $component) | nindent 4 }}
+    api.kubernetes.io/component: azimuth-api-statsd-exporter
+spec:
+  type: {{ $values.statsd.service.type }}
+  ports:
+    - port: {{ $values.statsd.service.port }}
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
+  selector: {{ include "azimuth.componentSelectorLabels" (list . $component) | nindent 4 }}
+

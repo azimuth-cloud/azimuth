@@ -56,4 +56,4 @@ COPY ./bin /usr/local/bin
 EXPOSE 8080
 USER $APP_UID
 ENTRYPOINT ["tini", "-g", "--", "azimuth-entrypoint"]
-CMD ["gunicorn", "--config", "/etc/gunicorn/conf.py", "azimuth_site.wsgi:application"]
+CMD ["gunicorn", "--config", "/etc/gunicorn/conf.py", "azimuth_site.wsgi:application", "--statsd-host", "localhost:9125"]

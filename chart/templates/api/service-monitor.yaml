@@ -1,0 +1,17 @@
+{{- $component := "api" -}}
+{{- $values := get .Values $component -}}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: azimuth-api
+  labels:
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels: {{ include "azimuth.componentLabels" (list . $component) | nindent 6 }}
+      api.kubernetes.io/component: azimuth-api-statsd-exporter
+  endpoints:
+  - port: metrics
+  namespaceSelector:
+    matchNames: 
+    - azimuth
