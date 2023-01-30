@@ -1,0 +1,15 @@
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: statsd-metric-mapping
+  namespace: azimuth
+data:
+  statsd.conf: |
+    mappings:
+      - match: app.gunicorn.request.status.*
+        help: "http response code"
+        name: "http_response_code"
+        labels:
+          status: "$1"
+          job: "azimuth_api_gunicorn_response_code"

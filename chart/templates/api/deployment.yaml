@@ -27,14 +27,20 @@ spec:
       {{- end }}
       securityContext: {{ toYaml $values.podSecurityContext | nindent 8 }}
       containers:
+        {{- if $values.monitoring.enabled }}
         - name: statsd-exporter
           image: prom/statsd-exporter:v0.23.0
           ports:
             - name: metrics
               containerPort: 9102
               protocol: TCP
-          # args:
-          #   - log.level=info
+          args:
+            - "--statsd.mapping-config=/statsd/statsd.conf"
+          volumeMounts:
+            - name: statsd-config
+              mountPath: /statsd/
+              # subPath: statsd.conf
+        {{ end }}
         - name: {{ $component }}
           securityContext: {{ toYaml $values.securityContext | nindent 12 }}
           image: {{ printf "%s:%s" $values.image.repository (default .Chart.AppVersion $values.image.tag) }}
@@ -105,3 +111,8 @@ spec:
         {{- end }}
         - name: tmp
           emptyDir: {}
+        {{- if $values.monitoring.enabled }}
+        - name: statsd-config
+          configMap:
+            name: statsd-metric-mapping
+        {{ end }}

@@ -1,17 +1,21 @@
 {{- $component := "api" -}}
 {{- $values := get .Values $component -}}
+{{- if $values.monitoring.enabled }}
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: azimuth-api
+  name: {{ include "azimuth.componentname" (list . $component) }}
   labels:
+    {{- /* This label must match .podMonitorSelector.matchLabels of the Prometheus cluster resource */}}
     release: kube-prometheus-stack
 spec:
   selector:
     matchLabels: {{ include "azimuth.componentLabels" (list . $component) | nindent 6 }}
-      api.kubernetes.io/component: azimuth-api-statsd-exporter
+      api.kubernetes.io/sub-component: {{ include "azimuth.componentname" (list . $component) }}-statsd-exporter
   endpoints:
   - port: metrics
   namespaceSelector:
     matchNames: 
-    - azimuth
+    # Restrict the ServiceMonitor to the relevant namespace
+    - {{ .Release.Namespace }}
+{{ end }}
