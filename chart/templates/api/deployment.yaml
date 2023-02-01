@@ -29,8 +29,7 @@ spec:
       containers:
         {{- if $values.monitoring.enabled }}
         - name: statsd-exporter
-          # image: {{ printf "%s:%s" $values.monitoring.statsd.image.repository $values.monitoring.statsd.image.tag }}
-          image: prom/statsd-exporter:v0.23.0
+          image: {{ printf "%s:%s" $values.monitoring.statsd.image.repository $values.monitoring.statsd.image.tag }}
           ports:
             - name: metrics
               containerPort: 9102
@@ -40,7 +39,7 @@ spec:
           volumeMounts:
             - name: statsd-config
               mountPath: /statsd/
-        {{ end }}
+        {{- end }}
         - name: {{ $component }}
           securityContext: {{ toYaml $values.securityContext | nindent 12 }}
           image: {{ printf "%s:%s" $values.image.repository (default .Chart.AppVersion $values.image.tag) }}
