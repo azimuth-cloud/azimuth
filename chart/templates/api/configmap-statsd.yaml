@@ -1,4 +1,4 @@
-
+{{- if $values.monitoring.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -7,9 +7,22 @@ metadata:
 data:
   statsd.conf: |
     mappings:
-      - match: app.gunicorn.request.status.*
-        help: "http response code"
-        name: "http_response_code"
-        labels:
-          status: "$1"
-          job: "azimuth_api_gunicorn_response_code"
+    - match: "*.gunicorn.request.status.*"
+      help: "gunicorn response code"
+      name: "gunicorn_response_code"
+      labels:
+        app: "$1"
+        status: "$2"
+    - match: "*.gunicorn.workers"
+      name: "gunicorn_workers"
+      labels:
+        app: "$1"
+    - match: "*.gunicorn.requests"
+      name: "gunicorn_requests"
+      labels:
+        app: "$1"
+    - match: "*.gunicorn.request.duration"
+      name: "gunicorn_request_duration"
+      labels:
+        app: "$1"
+{{- end }}
