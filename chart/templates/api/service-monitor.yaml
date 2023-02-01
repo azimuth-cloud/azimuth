@@ -1,6 +1,6 @@
 {{- $component := "api" -}}
 {{- $values := get .Values $component -}}
-{{- if $values.monitoring.enabled }}
+{{- if $values.monitoring.enabled -}}
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
