@@ -5,7 +5,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: {{ include "azimuth.componentname" (list . $component) }}
-  # Labels must match .podMonitorSelector.matchLabels of the Prometheus cluster resource
+  # Labels must match .serviceMonitorSelector.matchLabels of the Prometheus cluster resource
   # in order for kube-prometheus-stack to scrape the endpoints defined here
   labels: {{ toYaml $values.monitoring.serviceMonitorLabels | nindent 4 }}
 spec:
