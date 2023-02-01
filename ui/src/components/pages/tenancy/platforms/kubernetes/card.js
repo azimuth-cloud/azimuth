@@ -19,6 +19,7 @@ import {
     faCheck,
     faClock,
     faExclamationTriangle,
+    faPauseCircle,
     faPen,
     faQuestionCircle,
     faSyncAlt,
@@ -164,32 +165,31 @@ const statusStyles = {
             icon: faClock,
             className: 'text-muted'
         },
-        "Preparing": {
-            icon: faClock,
-            className: 'text-muted'
+        "Reconciling": {
+            icon: faSyncAlt,
+            className: 'text-muted',
+            spin: true
         },
-        "Deployed": {
+        "Ready": {
             icon: faCheck,
             className: 'text-success'
         },
-        "Failed": {
-            icon: faTimesCircle,
-            className: 'text-danger'
-        },
-        "Installing": {
-            icon: faSyncAlt,
+        "Suspended": {
+            icon: faPauseCircle,
             className: 'text-muted',
-            spin: true
-        },
-        "Upgrading": {
-            icon: faSyncAlt,
-            className: 'text-muted',
-            spin: true
         },
         "Uninstalling": {
             icon: faSyncAlt,
             className: 'text-muted',
             spin: true
+        },
+        "Unhealthy": {
+            icon: faExclamationTriangle,
+            className: 'text-warning'
+        },
+        "Failed": {
+            icon: faTimesCircle,
+            className: 'text-danger'
         },
     }
 };

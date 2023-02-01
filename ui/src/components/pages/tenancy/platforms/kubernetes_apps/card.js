@@ -20,6 +20,7 @@ import {
     faClock,
     faExclamationCircle,
     faExclamationTriangle,
+    faPauseCircle,
     faPen,
     faQuestionCircle,
     faSyncAlt,
@@ -72,32 +73,31 @@ const statusStyles = {
         icon: faClock,
         className: 'text-muted'
     },
-    "Preparing": {
-        icon: faClock,
-        className: 'text-muted'
+    "Reconciling": {
+        icon: faSyncAlt,
+        className: 'text-muted',
+        spin: true
     },
-    "Deployed": {
+    "Ready": {
         icon: faCheck,
         className: 'text-success'
     },
-    "Failed": {
-        icon: faTimesCircle,
-        className: 'text-danger'
-    },
-    "Installing": {
-        icon: faSyncAlt,
+    "Suspended": {
+        icon: faPauseCircle,
         className: 'text-muted',
-        spin: true
-    },
-    "Upgrading": {
-        icon: faSyncAlt,
-        className: 'text-muted',
-        spin: true
     },
     "Uninstalling": {
         icon: faSyncAlt,
         className: 'text-muted',
         spin: true
+    },
+    "Unhealthy": {
+        icon: faExclamationTriangle,
+        className: 'text-warning'
+    },
+    "Failed": {
+        icon: faTimesCircle,
+        className: 'text-danger'
     },
 };
 
@@ -400,12 +400,12 @@ const KubernetesAppDetailsButton = ({
 const statusBadgeBg = {
     "Unknown": "secondary",
     "Pending": "secondary",
-    "Preparing": "secondary",
-    "Deployed": "success",
-    "Failed": "danger",
-    "Installing": "primary",
-    "Upgrading": "primary",
+    "Reconciling": "primary",
+    "Ready": "success",
+    "Suspended": "secondary",
     "Uninstalling": "primary",
+    "Unhealthy": "warning",
+    "Failed": "danger",
 };
 
 
@@ -417,7 +417,7 @@ const StatusBadge = ({ kubernetesAppTemplate, kubernetesApp }) => {
         version.name === kubernetesAppTemplate.versions[0].name
     );
     let statusText = kubernetesApp.status, statusBg = statusBadgeBg[kubernetesApp.status];
-    if( kubernetesApp.status === "Deployed" ) {
+    if( kubernetesApp.status === "Ready" ) {
         if( !version ) {
             statusText = "Unsupported";
             statusBg = "danger";
