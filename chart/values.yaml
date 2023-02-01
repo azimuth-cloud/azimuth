@@ -42,7 +42,7 @@ api:
     enabled: true
     service:
       port: 9102
-    # Labels added to ServiceMonitor resource # dashboard ConfigMap
+    # Labels added to ServiceMonitor resource & dashboard ConfigMap
     # which must match .podMonitorSelector.matchLabels of cluster's Prometheus resource
     serviceMonitorLabels:
       release: kube-prometheus-stack
