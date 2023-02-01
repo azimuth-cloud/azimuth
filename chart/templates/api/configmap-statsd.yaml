@@ -1,11 +1,14 @@
 {{- $component := "api" -}}
 {{- $values := get .Values $component -}}
 {{- if $values.monitoring.enabled }}
+# Creates a config file to be mounted into the statsd-exporter container
+# which instructs the exporter to modify some metrics when converting
+# to Prometheus format
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: statsd-metric-mapping
-  namespace: azimuth
+  name: {{ include "azimuth.componentname" (list . $component) }}-statsd-metric-mapping
+  labels: {{ include "azimuth.componentLabels" (list . $component) | nindent 4 }}
 data:
   statsd.conf: |
     mappings:
