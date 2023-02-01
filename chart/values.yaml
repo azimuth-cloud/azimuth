@@ -37,18 +37,25 @@ api:
   tolerations: []
   # Affinity rules for api pods
   affinity: {}
+  # Monitoring settings
   monitoring:
     enabled: true
     service:
       port: 9102
+    # Labels added to ServiceMonitor resource # dashboard ConfigMap
+    # which must match .podMonitorSelector.matchLabels of cluster's Prometheus resource
+    serviceMonitorLabels:
+      release: kube-prometheus-stack
+    # Statsd exporter config
     statsd:
       image:
         repository: prom/statsd-exporter
         tag: v0.23.0
+    # Custom grafana dashboard settings
     dashboard:
       labels:
+        # Required for Grafana to pick up the dashboard
         grafana_dashboard: "1"
-        release: kube-prometheus-stack
 
 ui:
   # The image to use for the ui component
