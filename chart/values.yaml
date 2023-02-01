@@ -41,6 +41,14 @@ api:
     enabled: true
     service:
       port: 9102
+    statsd:
+      image:
+        repository: prom/statsd-exporter
+        tag: v0.23.0
+    dashboard:
+      labels:
+        grafana_dashboard: 1
+        release: kube-prometheus-stack
 
 ui:
   # The image to use for the ui component

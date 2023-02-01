@@ -1,3 +1,5 @@
+{{- $component := "api" -}}
+{{- $values := get .Values $component -}}
 {{- if $values.monitoring.enabled -}}
 # Installs a modified version of the Grafana dashboard from 
 # https://grafana.com/grafana/dashboards/16163-gunicorn-monitoring/
@@ -7,9 +9,7 @@ kind: ConfigMap
 metadata:
   name: azimuth-api-dashboard
   namespace: azimuth
-  labels:
-    grafana_dashboard: "1"
-    release: kube-prometheus-stack
+  labels: {{ toYaml $values.monitoring.dashboard.labels | nindent 4 }}
 data:
   dashboard.json: |
     {
@@ -158,7 +158,7 @@ data:
               "exemplar": true,
               "expr": "sum(gunicorn_response_code{app=\"$app_name\"}) by (status)",
               "interval": "",
-              "legendFormat": "{{status}}",
+              "legendFormat": "{{"{{"}}status{{"}}"}}",
               "refId": "A"
             }
           ],
@@ -724,7 +724,7 @@ data:
               "exemplar": true,
               "expr": "gunicorn_request_duration_sum{app=\"$app_name\"} / gunicorn_request_duration_count{app=\"$app_name\"}",
               "interval": "",
-              "legendFormat": "{{app}}",
+              "legendFormat": "{{"{{"}}app{{"}}"}}",
               "refId": "A"
             }
           ],
