@@ -47,7 +47,7 @@ api:
         tag: v0.23.0
     dashboard:
       labels:
-        grafana_dashboard: 1
+        grafana_dashboard: "1"
         release: kube-prometheus-stack
 
 ui:
