@@ -35,10 +35,10 @@ spec:
               containerPort: 9102
               protocol: TCP
           args:
-            - "--statsd.mapping-config=/statsd/statsd.conf"
+            - "--statsd.mapping-config=/etc/statsd/statsd.conf"
           volumeMounts:
             - name: statsd-config
-              mountPath: /statsd/
+              mountPath: /etc/statsd/
         {{- end }}
         - name: {{ $component }}
           securityContext: {{ toYaml $values.securityContext | nindent 12 }}
@@ -113,5 +113,5 @@ spec:
         {{- if $values.monitoring.enabled }}
         - name: statsd-config
           configMap:
-            name: statsd-metric-mapping
+            name: {{ include "azimuth.componentname" (list . $component) }}-statsd-metric-mapping
         {{ end }}

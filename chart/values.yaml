@@ -39,7 +39,7 @@ api:
   affinity: {}
   # Monitoring settings
   monitoring:
-    enabled: true
+    enabled: false
     service:
       port: 9102
     # Labels added to ServiceMonitor resource & dashboard ConfigMap
