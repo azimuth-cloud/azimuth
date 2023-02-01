@@ -1,14 +1,18 @@
 {{- $component := "api" -}}
 {{- $values := get .Values $component -}}
 {{- if $values.monitoring.enabled -}}
-# Installs a modified version of the Grafana dashboard from 
+# Configures a modified version of the Grafana dashboard from 
 # https://grafana.com/grafana/dashboards/16163-gunicorn-monitoring/
 # so that it can be incorporated into the host cluster's monitoring
+# The cluster's Grafana installation must be configured to check for
+# dashboard configmaps in the correct namespaces setting
+# .Values.sidecar.dashboards.searchNamespace appropriately
+# (or .Values.grafana.sidecar.dashboards.searchNamespace for a
+# kube-prometheus-stack installation of Grafana)
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: azimuth-api-dashboard
-  namespace: azimuth
+  name: {{ include "azimuth.componentname" (list . $component) }}-grafana-dashboard
   labels: {{ toYaml $values.monitoring.dashboard.labels | nindent 4 }}
 data:
   dashboard.json: |
@@ -35,7 +39,7 @@ data:
           }
         ]
       },
-      "description": "Monitor Gunicorn application (e.g. Flask) through build-in instrumentation feature using the statsD protocol over UDP with Prometheus and Grafana.",
+      "description": "Monitor the Azimuth backend API application.",
       "editable": true,
       "fiscalYearStartMonth": 0,
       "gnetId": 16163,
