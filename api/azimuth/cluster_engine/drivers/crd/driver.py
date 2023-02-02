@@ -63,6 +63,8 @@ def get_cluster_dto(raw_cluster):
         status = dto.ClusterStatus.READY
     if raw_status and raw_status.get("phase") == "Deleting":
         status = dto.ClusterStatus.DELETING
+    if raw_status and raw_status.get("phase") == "Failed":
+        status = dto.ClusterStatus.ERROR
     return dto.Cluster(
         id=raw_cluster.metadata.uid,
         name=raw_cluster.metadata.name,
