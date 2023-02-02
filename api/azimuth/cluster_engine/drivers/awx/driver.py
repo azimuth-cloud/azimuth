@@ -528,7 +528,8 @@ class Driver(base.Driver):
         cluster_type: dto.ClusterType,
         params: t.Mapping[str, t.Any],
         ssh_key: t.Optional[str],
-        ctx: dto.Context
+        ctx: dto.Context,
+        cloud_session
     ):
         """
         See :py:meth:`.base.Driver.create_cluster`.

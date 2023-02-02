@@ -282,7 +282,8 @@ class ClusterManager:
             cluster_type,
             params,
             ssh_key,
-            self._ctx
+            self._ctx,
+            self._cloud_session,
         )
         return self._cluster_modify(cluster)
 

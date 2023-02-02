@@ -44,7 +44,8 @@ class Driver:
         cluster_type: dto.ClusterType,
         params: t.Mapping[str, t.Any],
         ssh_key: str,
-        ctx: dto.Context
+        ctx: dto.Context,
+        cloud_session
     ):
         """
         Create a new cluster with the given name, type and parameters.
