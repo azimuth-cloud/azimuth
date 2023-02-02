@@ -46,29 +46,10 @@ def get_k8s_client(project_id):
 def get_cluster_types(client) -> t.Iterable[dto.ClusterType]:
     raw_types = list(client.api(CAAS_API_VERSION).resource("clustertypes").list())
     cluster_types = []
+    cluster_types2 = []
     for raw in raw_types:
         cluster_types.append(
-            dto.ClusterType(
-                name=raw.metadata.name,
-                label=raw.metadata.name,
-                description="fake description",
-                logo="https://github.com/stackhpc/azimuth/raw/master/branding/azimuth-logo-blue-text.png",
-                requires_ssh_key=False,
-                parameters=[
-                    dto.ClusterParameter(
-                        name="cluster_flavor",
-                        label="Size",
-                        kind="cloud.size",
-                        immutable=True,
-                        required=True,
-                        options=dict(mind_ram=4096, min_disk=10),
-                        default=None,
-                        description="TODO: this is just a placeholder!",
-                    )
-                ],
-                services=[],
-                usage_template=None,
-            )
+            dto.ClusterType.from_dict(raw.metadata.name, raw.status.uiMeta)
         )
     return cluster_types
 
@@ -141,6 +122,7 @@ def delete_cluster(client, name: str):
     safe_name = _escape_name(name)
     cluster_resource = client.api(CAAS_API_VERSION).resource("clusters")
     cluster_resource.delete(safe_name)
+    # TODO(johngarbutt): is this racing the operator?
     raw_cluster = cluster_resource.fetch(safe_name)
     return get_cluster_dto(raw_cluster)
 
@@ -217,6 +199,7 @@ class Driver(base.Driver):
         Create a new cluster with the given name, type and parameters.
         """
         client = get_k8s_client(ctx.tenancy.id)
+        # TODO(johngarbutt): pass in the ssh key, or add to params?
         return create_cluster(client, name, cluster_type.name, params)
 
     def update_cluster(
