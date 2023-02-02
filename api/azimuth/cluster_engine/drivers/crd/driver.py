@@ -6,6 +6,7 @@ import re
 import typing as t
 
 import easykube
+import yaml
 
 from azimuth.cluster_engine.drivers import base
 from azimuth.cluster_engine import dto
@@ -88,14 +89,16 @@ def get_clusters(client) -> t.Iterable[dto.Cluster]:
     return clusters
 
 
-def create_cluster(client, name: str, cluster_type_name: str, params: dict):
+def create_cluster(
+    client, name: str, cluster_type_name: str, params: dict, cloud_session
+):
     safe_name = _escape_name(name)
     secret_name = f"openstack-{safe_name}"
     secret_resource = client.api("v1").resource("secrets")
     # TODO(johngarbutt) how do we get these deleted?
+    string_data = _create_credential(cloud_session, name)
     secret_resource.create_or_replace(
-        secret_name,
-        {"metadata": {"name": secret_name}, "stringData": {"clouds.yaml": "TODO!"}},
+        secret_name, {"metadata": {"name": secret_name}, "stringData": string_data}
     )
 
     cluster_spec = {
@@ -143,6 +146,42 @@ if __name__ == "__main__":
         delete_cluster(client, "jg-test")
     clusters = get_clusters(client)
     print(clusters)
+
+# TODO(johngarbutt) - share with k8s
+def _create_credential(cloud_session, cluster_name):
+    # Use the OpenStack connection to create a new app cred for the cluster
+    # If an app cred already exists with the same name, delete it
+    user = cloud_session._connection.identity.current_user
+    app_cred_name = f"azimuth-caas-{cluster_name}"
+    existing = user.application_credentials.find_by_name(app_cred_name)
+    if existing:
+        existing._delete()
+    app_cred = user.application_credentials.create(
+        name=app_cred_name,
+        description=f"Used by Azimuth to manage CaaS cluster '{cluster_name}'.",
+    )
+    # Make a clouds.yaml for the app cred and return it in stringData
+    return {
+        "clouds.yaml": yaml.safe_dump(
+            {
+                "clouds": {
+                    "openstack": {
+                        "identity_api_version": 3,
+                        "interface": "public",
+                        "auth_type": "v3applicationcredential",
+                        "auth": {
+                            "auth_url": cloud_session._connection.endpoints["identity"],
+                            "application_credential_id": app_cred.id,
+                            "application_credential_secret": app_cred.secret,
+                            "project_id": app_cred.project_id,
+                        },
+                        # Disable SSL verification for now
+                        "verify": False,
+                    }
+                }
+            }
+        )
+    }
 
 
 class Driver(base.Driver):
@@ -202,7 +241,7 @@ class Driver(base.Driver):
         """
         client = get_k8s_client(ctx.tenancy.id)
         # TODO(johngarbutt): pass in the ssh key, or add to params?
-        return create_cluster(client, name, cluster_type.name, params)
+        return create_cluster(client, name, cluster_type.name, params, cloud_session)
 
     def update_cluster(
         self, cluster: dto.Cluster, params: t.Mapping[str, t.Any], ctx: dto.Context
