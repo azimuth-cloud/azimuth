@@ -138,12 +138,12 @@ class ClusterType:
                 ClusterServiceSpec(
                     service['name'],
                     service.get('label', service['name']),
-                    service.get('icon_url'),
+                    service.get('icon_url', service.get('iconUrl')),
                     service.get('when')
                 )
                 for service in spec.get('services', [])
             ),
-            spec.get('usage_template', None)
+            spec.get('usage_template', spec.get('usageTemplate', None))
         )
 
     @classmethod

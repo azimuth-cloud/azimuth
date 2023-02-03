@@ -172,9 +172,9 @@ def number_constraints(options):
     """
     constraints = []
     if 'min' in options:
-        constraints.append(v.Range(min = options['min']))
+        constraints.append(v.Range(min = float(options['min'])))
     if 'max' in options:
-        constraints.append(v.Range(max = options['max']))
+        constraints.append(v.Range(max = float(options['max'])))
     return constraints
 
 
@@ -238,21 +238,21 @@ def convert_not_found(func, msg):
 @register_constraint("cloud.size")
 def cloud_size_constraint(cloud_session, options, **kwargs):
     def min_cpus(size):
-        if 'min_cpus' in options and size.cpus < options['min_cpus']:
+        if 'min_cpus' in options and size.cpus < int(options['min_cpus']):
             raise v.Invalid('Size does not have enough CPUs.')
         return size
     def min_ram(size):
-        if 'min_ram' in options and size.ram < options['min_ram']:
+        if 'min_ram' in options and size.ram < int(options['min_ram']):
             raise v.Invalid('Size does not have enough RAM.')
         return size
     def min_disk(size):
-        if 'min_disk' in options and size.disk < options['min_disk']:
+        if 'min_disk' in options and size.disk < int(options['min_disk']):
             raise v.Invalid('Size does not have enough disk.')
         return size
     def min_ephemeral_disk(size):
         if (
             'min_ephemeral_disk' in options and
-            size.ephemeral_disk < options['min_ephemeral_disk']
+            size.ephemeral_disk < int(options['min_ephemeral_disk'])
         ):
             raise v.Invalid('Size does not have enough ephemeral disk.')
         return size
@@ -305,7 +305,8 @@ def cloud_ip_constraint(cloud_session, prev_value, **kwargs):
 @register_constraint("cloud.volume")
 def cloud_volume_constraint(cloud_session, options, **kwargs):
     def min_size(vol):
-        if 'min_size' in options and v.size < options['min_size']:
+        return vol
+        if 'min_size' in options and int(v.size) < int(options['min_size']):
             raise v.Invalid('Volume is too small.')
         return vol
     return v.All(
