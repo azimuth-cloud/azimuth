@@ -72,7 +72,7 @@ def get_cluster_dto(raw_cluster):
         status=status,
         task=None,
         error_message=None,
-        parameter_values=dict(asdf="asdf"),
+        parameter_values=raw_cluster.spec.extraVars,
         tags=["asdf"],
         outputs=dict(),
         created=dateutil.parser.parse(raw_cluster.metadata.creationTimestamp),
