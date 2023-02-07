@@ -10,6 +10,7 @@ It is currently capable of targeting [OpenStack](https://www.openstack.org/) clo
 ## Contents  <!-- omit in toc -->
 
 - [Introduction](#introduction)
+- [Try Azimuth](#try-azimuth)
 - [Timeline](#timeline)
 - [Architecture](#architecture)
 - [Deploying Azimuth](#deploying-azimuth)
@@ -30,6 +31,12 @@ as [JupyterHub](https://jupyter.org/hub) that run on [Kubernetes](https://kubern
 Services are exposed to users without consuming floating IPs or requiring SSH keys using the
 [Zenith](https://github.com/stackhpc/zenith) application proxy.
 
+Here, you can see Stig Telfer (CTO) and Matt Pryor (Senior Tech Lead and Azimuth project lead) from
+[StackHPC](https://www.stackhpc.com/) presenting Azimuth at the
+[OpenInfra Summit in Berlin in 2022](https://openinfra.dev/summit/berlin-2022):
+
+[![Azimuth - self service cloud platforms for reducing time to science](https://img.youtube.com/vi/FRbpI7ZsvMw/0.jpg)](https://www.youtube.com/watch?v=FRbpI7ZsvMw)
+
 Key features of Azimuth include:
 
   * Supports multiple Keystone authentication methods simultaneously:
@@ -42,6 +49,7 @@ Key features of Azimuth include:
       to allowing the distribution of easily-revokable credentials, e.g. for training, or for integrating
       with clouds that use federation but implementing the required trust is not possible.
   * On-demand Platforms
+    * Unified interface for managing Kubernetes and CaaS platforms.
     * Kubernetes-as-a-Service and Kubernetes-based platforms
       * Operators provide a curated set of templates defining available Kubernetes versions,
         networking configurations, custom addons etc.
@@ -51,7 +59,7 @@ Key features of Azimuth include:
       * Supports multiple node groups, including auto-scaling node groups.
       * Supports clusters that can utilise GPUs and accelerated networking (e.g. SR-IOV).
       * Installs and configures addons for monitoring + logging, system dashboards and ingress.
-      * Provides an application dashboard for deploying Kubernetes-based platforms.
+      * Kubernetes-based platforms, such as JupyterHub, as first-class citizens in the platform catalog.
     * Cluster-as-a-Service (CaaS)
       * Operators provide a curated catalog of appliances.
       * Appliances are Ansible playbooks that provision and configure infrastructure.
@@ -76,6 +84,15 @@ Key features of Azimuth include:
     * Create, delete and attach volumes.
     * Allocate, attach and detach floating IPs.
     * Configure instance-specific security group rules.
+
+## Try Azimuth
+
+If you have access to a project on an OpenStack cloud, you can try Azimuth!
+
+A demo instance of Azimuth can be deployed on an OpenStack cloud by following
+[these simple instructions](https://stackhpc.github.io/azimuth-config/try/). All that is required is an
+account on an OpenStack cloud and a host that is capable of running [Ansible](https://www.ansible.com/).
+Admin privileges on the target cloud are not normally required.
       
 ## Timeline
 
@@ -101,6 +118,7 @@ This section shows a timeline of the significant events in the development of Az
   * **February 2022**: Support for exposing services in Kubernetes using Zenith.
   * **March 2022**: Support for exposing services in CaaS appliances using Zenith.
   * **June 2022**: Unified platforms interface for Kubernetes and CaaS.
+  * **October 2022**: Support for Kubernetes platforms in the unified platforms interface.
 
 ## Architecture
 
