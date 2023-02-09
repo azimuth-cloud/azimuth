@@ -17,7 +17,7 @@ metadata:
     {{- toYaml $values.monitoring.dashboard.labels | nindent 4 }}
     {{- toYaml $values.monitoring.serviceMonitorLabels | nindent 4 }}
 data:
-  dashboard.json: |
+  azimuth_api_dashboard.json: |
     {
       "annotations": {
         "list": [
