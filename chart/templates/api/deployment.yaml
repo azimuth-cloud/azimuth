@@ -27,6 +27,19 @@ spec:
       {{- end }}
       securityContext: {{ toYaml $values.podSecurityContext | nindent 8 }}
       containers:
+        {{- if $values.monitoring.enabled }}
+        - name: statsd-exporter
+          image: {{ printf "%s:%s" $values.monitoring.statsd.image.repository $values.monitoring.statsd.image.tag }}
+          ports:
+            - name: metrics
+              containerPort: 9102
+              protocol: TCP
+          args:
+            - "--statsd.mapping-config=/etc/statsd/statsd.conf"
+          volumeMounts:
+            - name: statsd-config
+              mountPath: /etc/statsd/
+        {{- end }}
         - name: {{ $component }}
           securityContext: {{ toYaml $values.securityContext | nindent 12 }}
           image: {{ printf "%s:%s" $values.image.repository (default .Chart.AppVersion $values.image.tag) }}
@@ -97,3 +110,8 @@ spec:
         {{- end }}
         - name: tmp
           emptyDir: {}
+        {{- if $values.monitoring.enabled }}
+        - name: statsd-config
+          configMap:
+            name: {{ include "azimuth.componentname" (list . $component) }}-statsd-metric-mapping
+        {{ end }}
