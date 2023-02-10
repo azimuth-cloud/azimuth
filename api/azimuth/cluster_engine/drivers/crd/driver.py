@@ -48,7 +48,7 @@ def get_cluster_types(client) -> t.Iterable[dto.ClusterType]:
     raw_types = list(client.api(CAAS_API_VERSION).resource("clustertypes").list())
     cluster_types = []
     for raw in raw_types:
-        if not raw["status"] or raw["status"]["phase"] != "Available":
+        if not raw.get("status") or raw.get("status", {}).get("phase") != "Available":
             continue
         cluster_types.append(
             dto.ClusterType.from_dict(raw.metadata.name, raw.status.uiMeta)
