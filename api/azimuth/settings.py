@@ -187,11 +187,12 @@ class AzimuthSettings(SettingsObject):
     #: Cluster API configuration
     CLUSTER_API_PROVIDER = ClusterApiProviderSetting()
 
-    #: The namespace template to use when creating tenancy resources
+    #: The template to use when creating namespaces for tenancy resources
     KUBERNETES_NAMESPACE_TEMPLATE = Setting(default = "az-{tenancy_name}")
-
-    #: The realm name template to use for identity realms
+    #: The template to use when creating identity realms for tenancies
     IDENTITY_REALM_NAME_TEMPLATE = Setting(default = "az-{tenancy_name}")
+    #: The template to use when creating identity platforms for CaaS clusters
+    CLUSTER_PLATFORM_NAME_TEMPLATE = Setting(default = "caas-{cluster_name}")
 
     #: Configuration for curated sizes
     #: If given, should be a list of dictionaries

@@ -127,13 +127,7 @@ stringData:
         {{- end }}
 {{- if .Values.tags.apps }}
   05-apps.yaml: |
-    # In order for the app authentication to work, the session cookie needs to apply to that domain
-    # However we only do this if the portal host is within the apps domain
-    # If not, we assume the Zenith installation is completely standalone with no auth
-    {{- if hasSuffix $apps.baseDomain $ingress.host }}
-    SESSION_COOKIE_DOMAIN: ".{{ $apps.baseDomain }}"
-    {{- end }}
-    # We also need to allow redirects to the apps
+    # Allow redirects to the apps
     AZIMUTH_AUTH:
       NEXT_URL_ALLOWED_DOMAINS:
         - {{ quote $apps.baseDomain }}
