@@ -138,6 +138,9 @@ class Session:
             self._client.api("v1").resource("namespaces").create({
                 "metadata": {
                     "name": self._client.default_namespace,
+                    "labels": {
+                        "app.kubernetes.io/managed-by": "azimuth",
+                    },
                 },
             })
         except ApiError as exc:

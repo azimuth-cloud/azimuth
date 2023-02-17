@@ -1002,6 +1002,10 @@ def clusters(request, tenant):
                     input_serializer.validated_data["parameter_values"],
                     ssh_key
                 )
+                # Set up the identity for the cluster services
+                if cloud_settings.APPS:
+                    realm = identity.ensure_realm(session.tenancy())
+                    identity.ensure_platform_for_cluster(session.tenancy(), realm, cluster)
                 output_serializer = serializers.ClusterSerializer(
                     cluster,
                     context = { "request": request, "tenant": tenant }
@@ -1035,8 +1039,8 @@ def cluster_details(request, tenant, cluster):
         )
     with request.auth.scoped_session(tenant) as session:
         with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
+            cluster = cluster_manager.find_cluster(cluster)
             if request.method == "PUT":
-                cluster = cluster_manager.find_cluster(cluster)
                 input_serializer = serializers.UpdateClusterSerializer(
                     data = request.data,
                     context = dict(
@@ -1046,16 +1050,22 @@ def cluster_details(request, tenant, cluster):
                     )
                 )
                 input_serializer.is_valid(raise_exception = True)
-                updated = cluster_manager.update_cluster(
+                cluster = cluster_manager.update_cluster(
                     cluster,
                     input_serializer.validated_data["parameter_values"]
                 )
+                # Ensure that the identity resources are up-to-date for the cluster
+                if cloud_settings.APPS:
+                    realm = identity.ensure_realm(session.tenancy())
+                    identity.ensure_platform_for_cluster(session.tenancy(), realm, cluster)
                 output_serializer = serializers.ClusterSerializer(
-                    updated,
+                    cluster,
                     context = { "request": request, "tenant": tenant }
                 )
                 return response.Response(output_serializer.data)
             elif request.method == "DELETE":
+                if cloud_settings.APPS:
+                    identity.remove_platform_for_cluster(session.tenancy(), cluster)
                 deleted = cluster_manager.delete_cluster(cluster)
                 if deleted:
                     serializer = serializers.ClusterSerializer(
@@ -1067,7 +1077,7 @@ def cluster_details(request, tenant, cluster):
                     return response.Response()
             else:
                 serializer = serializers.ClusterSerializer(
-                    cluster_manager.find_cluster(cluster),
+                    cluster,
                     context = { "request": request, "tenant": tenant }
                 )
                 return response.Response(serializer.data)
@@ -1088,8 +1098,13 @@ def cluster_patch(request, tenant, cluster):
         )
     with request.auth.scoped_session(tenant) as session:
         with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
+            cluster = cluster_manager.patch_cluster(cluster)
+            # Ensure that the identity resources are up-to-date for the cluster
+            if cloud_settings.APPS:
+                realm = identity.ensure_realm(session.tenancy())
+                identity.ensure_platform_for_cluster(session.tenancy(), realm, cluster)
             serializer = serializers.ClusterSerializer(
-                cluster_manager.patch_cluster(cluster),
+                cluster,
                 context = { "request": request, "tenant": tenant }
             )
     return response.Response(serializer.data)
