@@ -8,6 +8,7 @@ rules:
       - identity.azimuth.stackhpc.com
     resources:
       - realms
+      - platforms
     verbs:
       - list
       - get
