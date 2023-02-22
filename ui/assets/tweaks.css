@@ -391,6 +391,13 @@
     color: var(--bs-primary);
     float: right;
 }
+.service-popover {
+    box-shadow: 0 1rem 3rem rgba(0,0,0,.175);
+    max-width: 600px;
+}
+.service-popover > .popover-body {
+    width: 600px;
+}
 
 
 /**
