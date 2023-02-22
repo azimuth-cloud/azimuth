@@ -475,7 +475,6 @@ class ClusterSerializer(make_dto_serializer(clusters_dto.Cluster, exclude = ["se
         services = []
         for service_dto in obj.services:
             service_obj = dataclasses.asdict(service_dto)
-            service_obj.pop("fqdn", None)
             service_obj["url"] = request.build_absolute_uri(
                 reverse("azimuth:cluster_service", kwargs = {
                     "tenant": tenant,
@@ -630,7 +629,6 @@ class KubernetesClusterSerializer(
         services = []
         for service_dto in obj.services:
             service_obj = dataclasses.asdict(service_dto)
-            service_obj.pop("fqdn", None)
             service_obj["url"] = request.build_absolute_uri(
                 reverse("azimuth:kubernetes_cluster_service", kwargs = {
                     "tenant": tenant,
@@ -816,7 +814,6 @@ class KubernetesAppSerializer(
         services = []
         for service_dto in obj.services:
             service_obj = dataclasses.asdict(service_dto)
-            service_obj.pop("fqdn", None)
             service_obj["url"] = request.build_absolute_uri(
                 reverse("azimuth:kubernetes_app_service", kwargs = {
                     "tenant": tenant,

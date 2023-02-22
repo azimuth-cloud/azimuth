@@ -1,12 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 
+import Alert from 'react-bootstrap/Alert';
 import Button from 'react-bootstrap/Button';
 import Card from 'react-bootstrap/Card';
 import Col from 'react-bootstrap/Col';
 import Row from 'react-bootstrap/Row';
 
+import { LinkContainer } from 'react-router-bootstrap';
+
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus } from '@fortawesome/free-solid-svg-icons';
+import { faInfoCircle, faPlus } from '@fortawesome/free-solid-svg-icons';
 
 import { bindArgsToActions, sortBy, Error } from '../../../utils';
 
@@ -69,55 +72,90 @@ export const PlatformsGrid = ({
     tenancy,
     tenancyActions
 }) => {
+    // We record in local storage when the info alert is dismissed so that it is persistent
+    const [infoDismissed, setInfoDismissed_] = useState(
+        window.localStorage.getItem("azimuth.platforms.infoDismissed")
+    );
+    const handleInfoDismissed = () => {
+        setInfoDismissed_(true);
+        window.localStorage.setItem("azimuth.platforms.infoDismissed", true);
+    };
+
     const sortedPlatforms = sortBy(Object.values(platforms), p => p.name);
-    if( sortedPlatforms.length > 0 ) {
-        return (
-            <Row className="g-3">
-                {sortedPlatforms.map(platform => (
-                    <Col key={platform.id} className="platform-card-wrapper">
-                        <PlatformCard
-                            platform={platform}
-                            tenancy={tenancy}
-                            tenancyActions={tenancyActions}
-                        />
-                    </Col>
-                ))}
-            </Row>
-        );
-    }
-    else {
-        return (
-            <Row className="justify-content-center">
-                <Col xs="auto py-5">
-                    <Card className="create-platform-card">
-                        <Card.Header as="h5" className="py-3">
-                            Create a platform
-                        </Card.Header>
-                        <Card.Body>
-                            <p>Create the first platform in this tenancy!</p>
-                            <p className="mb-0">
-                                Platforms help you become productive faster by automating{" "}
-                                the deployment of complex software systems and making them{" "}
-                                easy to access.
-                            </p>
-                        </Card.Body>
-                        <Card.Footer className="text-center">
-                            <Button
-                                size="lg"
-                                variant="success"
-                                disabled={creating}
-                                onClick={showCreateModal}
-                            >
+
+    return (
+        <>
+            {!infoDismissed && (
+                <Row className="justify-content-center">
+                    <Col xs="auto">
+                        <Alert
+                            variant="info"
+                            className="d-flex align-items-center"
+                            dismissible
+                            onClose={handleInfoDismissed}
+                        >
+                            <div className="me-3">
                                 <FontAwesomeIcon
-                                    icon={faPlus}
-                                    className="me-2"
+                                    icon={faInfoCircle}
+                                    size="lg"
                                 />
+                            </div>
+                            <div>
+                                Access to platforms is managed using the{" "}
+                                <LinkContainer to={`/tenancies/${tenancy.id}/idp`}>
+                                    <a>identity provider</a>
+                                </LinkContainer>
+                                {" "}for the tenancy.
+                            </div>
+                        </Alert>
+                    </Col>
+                </Row>
+            )}
+            {sortedPlatforms.length > 0 ? (
+                <Row className="g-3">
+                    {sortedPlatforms.map(platform => (
+                        <Col key={platform.id} className="platform-card-wrapper">
+                            <PlatformCard
+                                platform={platform}
+                                tenancy={tenancy}
+                                tenancyActions={tenancyActions}
+                            />
+                        </Col>
+                    ))}
+                </Row>
+            ) : (
+                <Row className="justify-content-center">
+                    <Col xs="auto py-5">
+                        <Card className="create-platform-card">
+                            <Card.Header as="h5" className="py-3">
                                 Create a platform
-                            </Button>
-                        </Card.Footer>
-                    </Card>
-                </Col>
-            </Row>
-        );
-    }
+                            </Card.Header>
+                            <Card.Body>
+                                <p>Create the first platform in this tenancy!</p>
+                                <p className="mb-0">
+                                    Platforms help you become productive faster by automating{" "}
+                                    the deployment of complex software systems and making them{" "}
+                                    easy to access.
+                                </p>
+                            </Card.Body>
+                            <Card.Footer className="text-center">
+                                <Button
+                                    size="lg"
+                                    variant="success"
+                                    disabled={creating}
+                                    onClick={showCreateModal}
+                                >
+                                    <FontAwesomeIcon
+                                        icon={faPlus}
+                                        className="me-2"
+                                    />
+                                    Create a platform
+                                </Button>
+                            </Card.Footer>
+                        </Card>
+                    </Col>
+                </Row>
+            )}
+        </>
+    );
 };

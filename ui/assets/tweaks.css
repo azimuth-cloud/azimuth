@@ -371,25 +371,47 @@
 /**
  * Custom styles for service list group items.
  */
-.service-list-group-item span {
-    display: inline-block;
-    height: 1.75rem;
-    line-height: 1.75rem;
-    vertical-align: middle;
+.service-list-group-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 0;
+    cursor: pointer;
 }
-.service-list-group-item span:first-child {
-    width: 1.75rem;
-    text-align: center;
-    margin-right: 0.75rem;
+.service-list-group-item:hover {
+    background-color: var(--bs-gray-300);
 }
-.service-list-group-item span:first-child > img {
+.service-list-group-item-icon {
+    padding-left: 1rem;
+    padding-right: 0.375rem;
+}
+.service-list-group-item-label {
+    padding-left: 0.375rem;
+    padding-right: 1rem;
+}
+.service-list-group-item-icon > img {
     height: 1.75rem;
     width: auto;
-    vertical-align: top;
 }
-.service-list-group-item span:last-child {
-    color: var(--bs-primary);
-    float: right;
+.service-list-group-item-label {
+    flex-grow: 1;
+    white-space: nowrap;
+    overflow: hidden;
+}
+.service-list-group-item .btn-group {
+    width: 0;
+    overflow: hidden;
+    transition: width .3s ease-in-out .2s;
+}
+.service-list-group-item:hover .btn-group,
+.service-list-group-item:focus .btn-group {
+    /* This is the width of two buttons, minus the squashed border */
+    width: calc(2 * (1.25em + 2 * 0.75rem + 1px) - 1px);
+}
+.service-list-group-item .btn {
+    padding: 0.625rem 0.75rem;
+    border-top: 0;
+    border-bottom: 0;
 }
 
 
