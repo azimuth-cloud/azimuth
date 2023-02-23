@@ -175,14 +175,22 @@ def _create_credential(cloud_session, cluster_name):
                             "auth_url": cloud_session._connection.endpoints["identity"],
                             "application_credential_id": app_cred.id,
                             "application_credential_secret": app_cred.secret,
-                            "project_id": app_cred.project_id,
+                            # NOTE(johngarbutt): skip project_id so cli works
                         },
                         # Disable SSL verification for now
                         "verify": False,
                     }
                 }
             }
-        )
+        ),
+        "user_info.yaml": yaml.safe_dump(
+            {
+                "project_id": cloud_session._connection.project_id,
+                "project_name": cloud_session._connection.project_name,
+                "username": cloud_session._connection.username,
+                "user_id": cloud_session._connection.user_id,
+            }
+        ),
     }
 
 
