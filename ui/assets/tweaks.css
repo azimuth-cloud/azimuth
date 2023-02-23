@@ -406,7 +406,7 @@
 .service-list-group-item:hover .btn-group,
 .service-list-group-item:focus .btn-group {
     /* This is the width of two buttons, minus the squashed border */
-    width: calc(2 * (1.25em + 2 * 0.75rem + 1px) - 1px);
+    width: calc(2 * (1.25em + 2 * 0.75rem + 2px) - 1px);
 }
 .service-list-group-item .btn {
     padding: 0.625rem 0.75rem;
