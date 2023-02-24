@@ -287,6 +287,9 @@ def cloud_ip_constraint(cloud_session, prev_value, **kwargs):
     # If the given IP matches the previous value, that is OK
     # Otherwise, require that the IP be available for attaching
     def ip_available(ip):
+        # TODO: why are we called when optional value is missing?
+        if ip is None:
+            return ""
         if prev_value == ip.id or ip.machine_id is None:
             return ip
         else:
@@ -294,11 +297,11 @@ def cloud_ip_constraint(cloud_session, prev_value, **kwargs):
     return v.All(
         v.Coerce(str),
         convert_not_found(
-            lambda v: cloud_session.find_external_ip(v),
+            lambda v: cloud_session.find_external_ip(v) if v else None,
             "Not a valid external ip."
         ),
         ip_available,
-        lambda ip: ip.id
+        lambda ip: ip.id if ip else ""
     )
 
 
