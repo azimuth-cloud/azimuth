@@ -1,6 +1,7 @@
 {{- $component := "api" -}}
 {{- $values := get .Values $component -}}
 {{- if $values.monitoring.enabled -}}
+---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
@@ -11,11 +12,10 @@ metadata:
 spec:
   selector:
     matchLabels: {{ include "azimuth.componentLabels" (list . $component) | nindent 6 }}
-      api.kubernetes.io/sub-component: {{ include "azimuth.componentname" (list . $component) }}-statsd-exporter
   endpoints:
-  - port: metrics
+    - port: metrics
   namespaceSelector:
     matchNames: 
-    # Restrict the ServiceMonitor to the relevant namespace
-    - {{ .Release.Namespace }}
-{{ end }}
+      # Restrict the ServiceMonitor to the relevant namespace
+      - {{ .Release.Namespace }}
+{{- end }}

@@ -1,6 +1,7 @@
 {{- $component := "api" -}}
 {{- $values := get .Values $component -}}
 {{- if $values.monitoring.enabled -}}
+---
 # Configures a modified version of the Grafana dashboard from 
 # https://grafana.com/grafana/dashboards/16163-gunicorn-monitoring/
 # so that it can be incorporated into the host cluster's monitoring
@@ -901,4 +902,4 @@ data:
       "version": 1,
       "weekStart": ""
     }
-{{ end }}
+{{- end }}
