@@ -10,7 +10,7 @@ from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.views.decorators.http import require_http_methods, require_safe
 
-from .forms import AuthenticatorSelectForm
+from .forms import AuthenticatorSelectForm, authenticator_choices
 from .settings import auth_settings
 
 
@@ -110,39 +110,41 @@ def set_next_url_cookie(response, next_url, secure):
     return response
 
 
-def redirect_with_code(redirect_to, code = None):
+def redirect_to_login(code = None, force_change_method = False):
     """
-    Redirect to the given URL with an optional code.
+    Redirect to the login endpoint, with an optional code and/or forcing a change of method.
     """
+    redirect_to = reverse("azimuth_auth:login")
+    params = {}
     if code:
-        redirect_to = "{}?{}".format(
-            redirect_to,
-            urlencode({ auth_settings.MESSAGE_CODE_PARAM: code })
-        )
+        params[auth_settings.MESSAGE_CODE_PARAM] = code
+    if force_change_method:
+        params[auth_settings.CHANGE_METHOD_PARAM] = "1"
+    if params:
+        redirect_to = "{}?{}".format(redirect_to, urlencode(params))
     return redirect(redirect_to)
 
 
-def redirect_to_login(code = None):
+def redirect_to_start(authenticator_choice, code = None):
     """
-    Redirect to the login endpoint with an optional code.
+    Redirect to the specified authenticator choice with an optional code.
     """
-    return redirect_with_code(reverse("azimuth_auth:login"), code)
-
-
-def redirect_to_start(authenticator, code = None):
-    """
-    Redirect to the specified authenticator with an optional code.
-    """
-    if any(a["NAME"] == authenticator for a in auth_settings.AUTHENTICATORS):
-        return redirect_with_code(
-            reverse(
-                "azimuth_auth:start",
-                kwargs = { "authenticator": authenticator }
-            ),
-            code
-        )
+    # If the choice is of the form <name>/<option>, then we need to include the option
+    # as a GET parameter in the URL that we redirect to
+    if "/" in authenticator_choice:
+        authenticator, option = authenticator_choice.split("/", maxsplit = 1)
     else:
-        return redirect_to_login(code)
+        authenticator = authenticator_choice
+        option = None
+    redirect_to = reverse("azimuth_auth:start", kwargs = { "authenticator": authenticator })
+    params = {}
+    if option:
+        params[auth_settings.SELECTED_OPTION_PARAM] = option
+    if code:
+        params[auth_settings.MESSAGE_CODE_PARAM] = code
+    if params:
+        redirect_to = "{}?{}".format(redirect_to, urlencode(params))
+    return redirect(redirect_to)
 
 
 @require_http_methods(["GET", "POST"])
@@ -150,37 +152,27 @@ def login(request):
     """
     Begin the authentication flow by selecting an authenticator.
     """
-    response = None
-    # If a remembered authenticator is set and is valid, use it unless we are
-    # explicitly changing methods
-    authenticator = request.get_signed_cookie(auth_settings.AUTHENTICATOR_COOKIE_NAME, None)
+    # Get the list of valid authenticator choices
+    valid_authenticator_choices = [choice for choice, _ in authenticator_choices()]
+    # Get the remembered authenticator choice from the cookie
+    authenticator_choice = request.get_signed_cookie(
+        auth_settings.AUTHENTICATOR_COOKIE_NAME,
+        None
+    )
     if (
-        authenticator and
-        any(a["NAME"] == authenticator for a in auth_settings.AUTHENTICATORS) and
-        request.GET.get("change_method", "0") != "1"
+        authenticator_choice and
+        authenticator_choice in valid_authenticator_choices and
+        request.GET.get(auth_settings.CHANGE_METHOD_PARAM, "0") == "0"
     ):
-        response = redirect("azimuth_auth:start", authenticator = authenticator)
-    elif len(auth_settings.AUTHENTICATORS) > 1:
-        # If there are multiple authenticators, render the selection form
+        response = redirect_to_start(authenticator_choice)
+    elif len(valid_authenticator_choices) > 1:
+        # If there are multiple authenticator choices, render the selection form
         if request.method == "POST":
             form = AuthenticatorSelectForm(request.POST)
             if form.is_valid():
                 authenticator = form.cleaned_data["authenticator"]
                 remember = form.cleaned_data.get("remember", False)
-                # The authenticator returned by the form may be a combination of <name>/<option>
-                if "/" in authenticator:
-                    authenticator, option = authenticator.split("/", maxsplit = 1)
-                else:
-                    option = None
-                redirect_url = reverse(
-                    "azimuth_auth:start",
-                    kwargs = { "authenticator": authenticator }
-                )
-                # If there is an option, include it as a parameter in the redirect
-                if option:
-                    qs = urlencode({ auth_settings.SELECTED_OPTION_PARAM: option })
-                    redirect_url = f"{redirect_url}?{qs}"
-                response = redirect(redirect_url)
+                response = redirect_to_start(authenticator)
                 if remember:
                     response.set_signed_cookie(
                         auth_settings.AUTHENTICATOR_COOKIE_NAME,
@@ -196,8 +188,7 @@ def login(request):
         response = render(request, "azimuth_auth/select.html", { "form": form })
     else:
         # If there is only one authenticator, redirect straight to it
-        authenticator = auth_settings.AUTHENTICATORS[0]["NAME"]
-        response = redirect("azimuth_auth:start", authenticator = authenticator)
+        response = redirect_to_start(valid_authenticator_choices[0])
     return set_next_url_cookie(response, get_next_url(request), request.is_secure())
 
 
@@ -214,7 +205,7 @@ def start(request, authenticator):
             if a["NAME"] == authenticator
         )
     except StopIteration:
-        return redirect_to_login("invalid_authentication_method")
+        return redirect_to_login("invalid_authentication_method", True)
     # If the authenticator provides options, require that one is present
     valid_options = set(opt for opt, _ in authenticator_obj.get_options())
     if valid_options:
@@ -222,9 +213,9 @@ def start(request, authenticator):
             # Then see if there is an option and validate that
             option = request.GET[auth_settings.SELECTED_OPTION_PARAM]
         except KeyError:
-            return redirect_to_login("invalid_authentication_method")
+            return redirect_to_login("invalid_authentication_method", True)
         if option not in valid_options:
-            return redirect_to_login("invalid_authentication_method")
+            return redirect_to_login("invalid_authentication_method", True)
     else:
         option = None
     return authenticator_obj.auth_start(
@@ -252,7 +243,7 @@ def complete(request, authenticator):
             if a["NAME"] == authenticator
         )
     except StopIteration:
-        return redirect_to_login("invalid_authentication_method")
+        return redirect_to_login("invalid_authentication_method", True)
     def handle_request(request):
         # The auth_complete method of the authenticator should return a token or null
         # depending on whether authentication was successful
