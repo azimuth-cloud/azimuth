@@ -1,6 +1,7 @@
 {{- $component := "api" -}}
 {{- $values := get .Values $component -}}
 {{- if $values.monitoring.enabled -}}
+---
 # Configures a modified version of the Grafana dashboard from 
 # https://grafana.com/grafana/dashboards/16163-gunicorn-monitoring/
 # so that it can be incorporated into the host cluster's monitoring
@@ -13,9 +14,14 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ include "azimuth.componentname" (list . $component) }}-grafana-dashboard
-  labels: 
-    {{- toYaml $values.monitoring.dashboard.labels | nindent 4 }}
-    {{- toYaml $values.monitoring.serviceMonitorLabels | nindent 4 }}
+  labels:
+    {{-
+      include "azimuth.componentLabels" (list . $component) |
+        fromYaml |
+        merge $values.monitoring.dashboard.labels |
+        toYaml |
+        nindent 4
+    }}
 data:
   azimuth_api_dashboard.json: |
     {
@@ -901,4 +907,4 @@ data:
       "version": 1,
       "weekStart": ""
     }
-{{ end }}
+{{- end }}

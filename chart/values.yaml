@@ -25,11 +25,21 @@ api:
     capabilities:
       drop: [ALL]
     readOnlyRootFilesystem: true
+  # The liveness probe for the api container
+  livenessProbe:
+    httpGet:
+      path: /_status/
+      port: http
+  # The readiness probe for the ui container
+  readinessProbe:
+    httpGet:
+      path: /_status/
+      port: http
   # Service details for the api component
   service:
     type: ClusterIP
     port: 80
-  # Resource requests and limits for the api containers
+  # Resource requests and limits for the api container
   resources: {}
   # Node selector for api pods
   nodeSelector: {}
@@ -44,13 +54,22 @@ api:
       port: 9102
     # Labels added to ServiceMonitor resource & dashboard ConfigMap
     # which must match .serviceMonitorSelector.matchLabels of cluster's Prometheus resource
-    serviceMonitorLabels:
-      release: kube-prometheus-stack
+    serviceMonitorLabels: {}
     # Statsd exporter config
     statsd:
+      # The image for the statsd exporter
       image:
         repository: prom/statsd-exporter
         tag: v0.23.0
+        pullPolicy: IfNotPresent
+      # Container-level security context for the statsd container
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: [ALL]
+        readOnlyRootFilesystem: true
+      # Resource requests and limits for the statsd container
+      resources: {}
     # Custom grafana dashboard settings
     dashboard:
       labels:
@@ -75,6 +94,16 @@ ui:
     capabilities:
       drop: [ALL]
     readOnlyRootFilesystem: true
+  # The liveness probe for the ui container
+  livenessProbe:
+    httpGet:
+      path: /
+      port: http
+  # The readiness probe for the ui container
+  readinessProbe:
+    httpGet:
+      path: /
+      port: http
   # Service details for the ui component
   service:
     type: ClusterIP
