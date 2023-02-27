@@ -17,7 +17,7 @@ cores = multiprocessing.cpu_count()
 # This is because if we don't and the only worker _is_ doing CPU work then no other requests get served
 # So if we have only 1 core available, we must use 2 workers with 2 threads per worker
 workers = int(os.environ.get("GUNICORN_WORKERS", str(max(cores, 2))))
-threads = int(os.environ.get("GUNICORN_THREADS", str((4 * cores) / workers)))
+threads = int(os.environ.get("GUNICORN_THREADS", str(int((4 * cores) / workers))))
 worker_class = os.environ.get("GUNICORN_WORKER_CLASS", "gthread")
 
 # Configure logging
