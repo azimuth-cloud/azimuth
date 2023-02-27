@@ -14,9 +14,14 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ include "azimuth.componentname" (list . $component) }}-grafana-dashboard
-  labels: 
-    {{- toYaml $values.monitoring.dashboard.labels | nindent 4 }}
-    {{- toYaml $values.monitoring.serviceMonitorLabels | nindent 4 }}
+  labels:
+    {{-
+      include "azimuth.componentLabels" (list . $component) |
+        fromYaml |
+        merge $values.monitoring.dashboard.labels |
+        toYaml |
+        nindent 4
+    }}
 data:
   azimuth_api_dashboard.json: |
     {

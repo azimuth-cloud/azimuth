@@ -18,7 +18,7 @@ spec:
         azimuth.stackhpc.com/settings-checksum: {{ include (print $.Template.BasePath "/api/settings.yaml") . | sha256sum }}
         azimuth.stackhpc.com/theme-checksum: {{ include (print $.Template.BasePath "/configmap-theme.yaml") . | sha256sum }}
         {{- if $values.monitoring.enabled }}
-        azimuth.stackhpc.com/statsd-config-checksum: {{ include (print $.Template.BasePath "/configmap-statsd.yaml") . | sha256sum }}
+        azimuth.stackhpc.com/statsd-config-checksum: {{ include (print $.Template.BasePath "/api/configmap-statsd.yaml") . | sha256sum }}
         {{- end }}
         {{- with $values.podAnnotations }}
         {{ toYaml . | indent 8 | trim }}

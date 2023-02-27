@@ -8,7 +8,14 @@ metadata:
   name: {{ include "azimuth.componentname" (list . $component) }}
   # Labels must match .serviceMonitorSelector.matchLabels of the Prometheus cluster resource
   # in order for kube-prometheus-stack to scrape the endpoints defined here
-  labels: {{ toYaml $values.monitoring.serviceMonitorLabels | nindent 4 }}
+  labels:
+    {{-
+      include "azimuth.componentLabels" (list . $component) |
+        fromYaml |
+        merge $values.monitoring.serviceMonitorLabels |
+        toYaml |
+        nindent 4
+    }}
 spec:
   selector:
     matchLabels: {{ include "azimuth.componentLabels" (list . $component) | nindent 6 }}

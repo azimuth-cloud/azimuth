@@ -54,8 +54,7 @@ api:
       port: 9102
     # Labels added to ServiceMonitor resource & dashboard ConfigMap
     # which must match .serviceMonitorSelector.matchLabels of cluster's Prometheus resource
-    serviceMonitorLabels:
-      release: kube-prometheus-stack
+    serviceMonitorLabels: {}
     # Statsd exporter config
     statsd:
       # The image for the statsd exporter
