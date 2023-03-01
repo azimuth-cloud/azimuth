@@ -50,8 +50,9 @@ spec:
           securityContext: {{ toYaml $values.securityContext | nindent 12 }}
           image: {{ printf "%s:%s" $values.image.repository (default .Chart.AppVersion $values.image.tag) }}
           imagePullPolicy: {{ $values.image.pullPolicy }}
-          {{- if (and .Values.tags.clusters (eq $clusterEngine.type "awx")) }}
+          {{- if or $values.monitoring.enabled (and .Values.tags.clusters (eq $clusterEngine.type "awx")) }}
           env:
+            {{- if and .Values.tags.clusters (eq $clusterEngine.type "awx") }}
             - name: AWX_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -63,6 +64,11 @@ spec:
                 secretKeyRef:
                   name: {{ quote . }}
                   key: password
+            {{- end }}
+            {{- end }}
+            {{- if $values.monitoring.enabled }}
+            - name: GUNICORN_STATSD_HOST
+              value: "localhost:9125"
             {{- end }}
           {{- end }}
           ports:

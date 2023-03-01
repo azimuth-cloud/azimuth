@@ -20,7 +20,7 @@ source ./venv/bin/activate
 pip install git+https://github.com/cedadev/django-settings-object.git
 pip install git+https://github.com/stackhpc/easykube.git
 pip install git+https://github.com/cedadev/jasmin-ldap.git
-pip install git+https://github.com/cedadev/rackit.git
+pip install git+https://github.com/stackhpc/rackit.git
 pip install -e ./api
 ```
 
