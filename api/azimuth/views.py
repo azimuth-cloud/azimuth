@@ -331,8 +331,9 @@ def session_verify(request):
     and optionally for tenancy-level authorization by specifying the configured header
     (defaults to ``X-Auth-Tenancy-Id``).
 
-    It returns the authenticated username in the X-Remote-User header and the user's
-    tenancy IDs in the X-Remote-Group header.
+    It returns the ID, username, email (if known) and the IDs of the tenancies that the
+    authenticated user belongs to in the ``X-Remote-User-Id``, ``X-Remote-User``,
+    ``X-Remote-User-Email`` and ``X-Remote-Group`` headers respectively.
 
     It is used as an auth callout for the Dex provider. The Dex provider is used to
     sign Azimuth users into Keycloak realms that are used for Zenith OIDC.
@@ -348,13 +349,15 @@ def session_verify(request):
             content["authorized"] = True
         else:
             raise drf_exceptions.PermissionDenied()
-    return response.Response(
-        content,
-        headers = {
-            "X-Remote-User": request.user.username,
-            "X-Remote-Group": ",".join(t.id for t in tenancies),
-        }
-    )
+    headers = {
+        "X-Remote-User-Id": request.auth.user_id(),
+        "X-Remote-User": request.auth.username(),
+        "X-Remote-Group": ",".join(t.id for t in tenancies),
+    }
+    email = request.auth.user_email()
+    if email:
+        headers["X-Remote-User-Email"] = email
+    return response.Response(content, headers = headers)
 
 
 @provider_api_view(["GET", "PUT"])

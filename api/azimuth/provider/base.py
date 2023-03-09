@@ -35,9 +35,21 @@ class UnscopedSession:
         """
         raise NotImplementedError
 
+    def user_id(self) -> str:
+        """
+        Returns the user ID for this session.
+        """
+        raise NotImplementedError
+
     def username(self) -> str:
         """
         Returns the username for this session.
+        """
+        raise NotImplementedError
+
+    def user_email(self) -> Optional[str]:
+        """
+        Returns the email for the user who started the session.
         """
         raise NotImplementedError
 
