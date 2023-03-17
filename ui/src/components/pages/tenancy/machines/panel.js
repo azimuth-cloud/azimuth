@@ -19,7 +19,7 @@ import { MachinesTable } from './table';
 
 
 const Machines = ({ resourceData, resourceActions, capabilities, ...props }) => (
-        <>
+    <>
         {(capabilities.supports_clusters || capabilities.supports_kubernetes) && (
             <Row className="justify-content-center">
                 <Col xs="auto">

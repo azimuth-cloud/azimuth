@@ -27,6 +27,7 @@ urlpatterns = [
     path("tenancies/", views.tenancies, name = "tenancies"),
     path("tenancies/<id:tenant>/", include([
         path("quotas/", views.quotas, name = "quotas"),
+        path("identity_provider/", views.identity_provider, name = "identity_provider"),
         path("images/", include([
             path("", views.images, name = "images"),
             path("<id:image>/", views.image_details, name = "image_details"),

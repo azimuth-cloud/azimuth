@@ -232,11 +232,24 @@ class UnscopedSession(base.UnscopedSession):
         """
         return self._connection.token
 
+    def user_id(self) -> str:
+        """
+        See :py:meth:`.base.UnscopedSession.user_id`.
+        """
+        return self._connection.user_id
+
     def username(self):
         """
         See :py:meth:`.base.UnscopedSession.username`.
         """
         return self._connection.username
+
+    def user_email(self):
+        """
+        See :py:meth:`.base.UnscopedSession.user_email`.
+        """
+        # Return a fake email address consisting of the username and domain
+        return f"{self._connection.username}@{self._connection.domain_id}"
 
     def _log(self, message, *args, level = logging.INFO, **kwargs):
         logger.log(level, "[%s] " + message, self.username(), *args, **kwargs)

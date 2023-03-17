@@ -18,6 +18,12 @@ import {
 } from './quotas';
 
 import {
+    actionCreators as idpActionCreators,
+    reducer as idpReducer,
+    epic as idpEpic
+} from './idp';
+
+import {
     actionCreators as imageActionCreators,
     reducer as imageReducer,
     epic as imageEpic
@@ -114,6 +120,7 @@ const tenancyActionCreators = {
 export const actionCreators = {
     ...tenancyActionCreators,
     quota: quotaActionCreators,
+    idp: idpActionCreators,
     image: imageActionCreators,
     size: sizeActionCreators,
     externalIp: externalIpActionCreators,
@@ -167,6 +174,7 @@ export function reducer(state = initialState, action) {
                 current: {
                     ...state.data[switchTo],
                     quotas: quotaReducer(undefined, action),
+                    idp: idpReducer(undefined, action),
                     images: imageReducer(undefined, action),
                     sizes: sizeReducer(undefined, action),
                     externalIps: externalIpReducer(undefined, action),
@@ -190,6 +198,7 @@ export function reducer(state = initialState, action) {
                 current: {
                     ...state.current,
                     quotas: quotaReducer(state.current.quotas, action),
+                    idp: idpReducer(state.current.idp, action),
                     images: imageReducer(state.current.images, action),
                     sizes: sizeReducer(state.current.sizes, action),
                     externalIps: externalIpReducer(state.current.externalIps, action),
@@ -259,6 +268,7 @@ export const epic = combineEpics(
         map(_ => tenancyActionCreators.switchTo(null))
     ),
     quotaEpic,
+    idpEpic,
     imageEpic,
     sizeEpic,
     externalIpEpic,

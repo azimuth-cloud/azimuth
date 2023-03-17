@@ -20,7 +20,7 @@ from rest_framework.utils import formatting
 
 from azimuth_auth.settings import auth_settings
 
-from . import serializers
+from . import identity, serializers
 from .cluster_api import errors as cluster_api_errors
 from .cluster_engine import errors as cluster_engine_errors
 from .keystore import errors as keystore_errors
@@ -325,32 +325,39 @@ def session(request):
 @provider_api_view(["GET"])
 def session_verify(request):
     """
-    Verify the current session.
+    Verify the current session and return information about the authenticated user.
 
     This endpoint can be used to check for the presence of an authenticated session
     and optionally for tenancy-level authorization by specifying the configured header
     (defaults to ``X-Auth-Tenancy-Id``).
 
-    In particular, this is used by Zenith to impose authentication and authorization for
-    exposed apps.
+    It returns the ID, username, email (if known) and the IDs of the tenancies that the
+    authenticated user belongs to in the ``X-Remote-User-Id``, ``X-Remote-User``,
+    ``X-Remote-User-Email`` and ``X-Remote-Group`` headers respectively.
+
+    It is used as an auth callout for the Dex provider. The Dex provider is used to
+    sign Azimuth users into Keycloak realms that are used for Zenith OIDC.
     """
     # If we get to here, the user is already authenticated
     # If they are not, a 401 will have been returned
     content = { "authenticated": True }
+    tenancies = list(request.auth.tenancies())
     # If the tenancy ID header is present, verify that the user belongs to the tenancy
     tenancy_id = request.META.get(cloud_settings.VERIFY_TENANCY_ID_HEADER)
     if tenancy_id:
-        if any(t.id == tenancy_id for t in request.auth.tenancies()):
+        if any(t.id == tenancy_id for t in tenancies):
             content["authorized"] = True
         else:
             raise drf_exceptions.PermissionDenied()
-    return response.Response(
-        content,
-        # Return the authenticated username in the X-Remote-User header
-        # The Zenith proxy is configured to forward this header to upstream services, which
-        # they can consume in order to provide a bespoke service per authenticated user
-        headers = { "X-Remote-User": request.user.username }
-    )
+    headers = {
+        "X-Remote-User-Id": request.auth.user_id(),
+        "X-Remote-User": request.auth.username(),
+        "X-Remote-Group": ",".join(t.id for t in tenancies),
+    }
+    email = request.auth.user_email()
+    if email:
+        headers["X-Remote-User-Email"] = email
+    return response.Response(content, headers = headers)
 
 
 @provider_api_view(["GET", "PUT"])
@@ -426,6 +433,30 @@ def quotas(request, tenant):
             context = { "request": request, "tenant": tenant }
         )
     return response.Response(serializer.data)
+
+
+@provider_api_view(["GET", "POST"])
+def identity_provider(request, tenant):
+    """
+    On ``GET`` requests, return information about the identity provider for the tenancy.
+
+    On ``POST`` requests, enable the identity provider for the tenancy.
+    """
+    with request.auth.scoped_session(tenant) as session:
+        if request.method == "POST":
+            realm = identity.ensure_realm(session.tenancy())
+        else:
+            realm = identity.get_realm(session.tenancy())
+    if realm:
+        response_data = dict(
+            enabled = True,
+            status = realm.status,
+            admin_url = realm.admin_url
+        )
+    else:
+        response_data = dict(enabled = False)
+    response_data["links"] = { "self": request.build_absolute_uri() }
+    return response.Response(response_data)
 
 
 @provider_api_view(["GET"])
@@ -974,6 +1005,10 @@ def clusters(request, tenant):
                     input_serializer.validated_data["parameter_values"],
                     ssh_key
                 )
+                # Set up the identity for the cluster services
+                if cloud_settings.APPS:
+                    realm = identity.ensure_realm(session.tenancy())
+                    identity.ensure_platform_for_cluster(session.tenancy(), realm, cluster)
                 output_serializer = serializers.ClusterSerializer(
                     cluster,
                     context = { "request": request, "tenant": tenant }
@@ -1007,8 +1042,8 @@ def cluster_details(request, tenant, cluster):
         )
     with request.auth.scoped_session(tenant) as session:
         with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
+            cluster = cluster_manager.find_cluster(cluster)
             if request.method == "PUT":
-                cluster = cluster_manager.find_cluster(cluster)
                 input_serializer = serializers.UpdateClusterSerializer(
                     data = request.data,
                     context = dict(
@@ -1018,16 +1053,22 @@ def cluster_details(request, tenant, cluster):
                     )
                 )
                 input_serializer.is_valid(raise_exception = True)
-                updated = cluster_manager.update_cluster(
+                cluster = cluster_manager.update_cluster(
                     cluster,
                     input_serializer.validated_data["parameter_values"]
                 )
+                # Ensure that the identity resources are up-to-date for the cluster
+                if cloud_settings.APPS:
+                    realm = identity.ensure_realm(session.tenancy())
+                    identity.ensure_platform_for_cluster(session.tenancy(), realm, cluster)
                 output_serializer = serializers.ClusterSerializer(
-                    updated,
+                    cluster,
                     context = { "request": request, "tenant": tenant }
                 )
                 return response.Response(output_serializer.data)
             elif request.method == "DELETE":
+                if cloud_settings.APPS:
+                    identity.remove_platform_for_cluster(session.tenancy(), cluster)
                 deleted = cluster_manager.delete_cluster(cluster)
                 if deleted:
                     serializer = serializers.ClusterSerializer(
@@ -1039,7 +1080,7 @@ def cluster_details(request, tenant, cluster):
                     return response.Response()
             else:
                 serializer = serializers.ClusterSerializer(
-                    cluster_manager.find_cluster(cluster),
+                    cluster,
                     context = { "request": request, "tenant": tenant }
                 )
                 return response.Response(serializer.data)
@@ -1060,8 +1101,13 @@ def cluster_patch(request, tenant, cluster):
         )
     with request.auth.scoped_session(tenant) as session:
         with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
+            cluster = cluster_manager.patch_cluster(cluster)
+            # Ensure that the identity resources are up-to-date for the cluster
+            if cloud_settings.APPS:
+                realm = identity.ensure_realm(session.tenancy())
+                identity.ensure_platform_for_cluster(session.tenancy(), realm, cluster)
             serializer = serializers.ClusterSerializer(
-                cluster_manager.patch_cluster(cluster),
+                cluster,
                 context = { "request": request, "tenant": tenant }
             )
     return response.Response(serializer.data)
@@ -1162,7 +1208,12 @@ def kubernetes_clusters(request, tenant):
                     context = { "session": session, "capi_session": capi_session }
                 )
                 input_serializer.is_valid(raise_exception = True)
-                cluster = capi_session.create_cluster(**input_serializer.validated_data)
+                params = dict(input_serializer.validated_data)
+                if cloud_settings.APPS:
+                    # Make sure that the identity realm exists
+                    realm = identity.ensure_realm(session.tenancy())
+                    params["zenith_identity_realm_name"] = realm.name
+                cluster = capi_session.create_cluster(**params)
                 output_serializer = serializers.KubernetesClusterSerializer(
                     cluster,
                     context = { "request": request, "tenant": tenant }
