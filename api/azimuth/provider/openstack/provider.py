@@ -249,7 +249,7 @@ class UnscopedSession(base.UnscopedSession):
         See :py:meth:`.base.UnscopedSession.user_email`.
         """
         # Return a fake email address consisting of the username and domain
-        return f"{self._connection.username}@{self._connection.domain_id}"
+        return f"{self._connection.username}@{self._connection.domain_name.lower()}"
 
     def _log(self, message, *args, level = logging.INFO, **kwargs):
         logger.log(level, "[%s] " + message, self.username(), *args, **kwargs)

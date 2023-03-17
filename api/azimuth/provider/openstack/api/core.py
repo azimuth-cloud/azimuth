@@ -221,6 +221,7 @@ class Connection(rackit.Connection):
         self.user_id = user['id']
         self.username = user['name']
         self.domain_id = user['domain']['id']
+        self.domain_name = user['domain']['name']
         project = json['token'].get('project', {})
         self.project_id = project.get('id')
         self.project_name = project.get('name')
