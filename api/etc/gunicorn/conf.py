@@ -4,19 +4,33 @@
 import multiprocessing
 import os
 
+from azimuth_site.gunicorn import Logger, StatsdLogger
+
+
 # Configure the bind address
 _host = os.environ.get("GUNICORN_HOST", "0.0.0.0")
 _port = os.environ.get("GUNICORN_PORT", "8080")
 bind = os.environ.get("GUNICORN_BIND", "{}:{}".format(_host, _port))
 
-# Configure the workers
-# Default to a worker per core with two threads per worker
+# Configure the workers and threads
 cores = multiprocessing.cpu_count()
-workers = int(os.environ.get("GUNICORN_WORKERS", str(cores)))
-threads = int(os.environ.get("GUNICORN_THREADS", "2"))
+# Because we are an I/O bound application, we use more threads per worker than usual
+# The total number of threads is 4 * number of cores
+# We aim for one worker per core, however we must have a minimum of 2 workers
+# This is because if we don't and the only worker _is_ doing CPU work then no other requests get served
+# So if we have only 1 core available, we must use 2 workers with 2 threads per worker
+workers = int(os.environ.get("GUNICORN_WORKERS", str(max(cores, 2))))
+threads = int(os.environ.get("GUNICORN_THREADS", str(int((4 * cores) / workers))))
 worker_class = os.environ.get("GUNICORN_WORKER_CLASS", "gthread")
 
+# Configure statsd
+statsd_host = os.environ.get("GUNICORN_STATSD_HOST")
+statsd_prefix = os.environ.get("GUNICORN_STATSD_PREFIX", "azimuth-api")
+
 # Configure logging
+# We use a custom logging class that filters out the health checks for stats and access logs
+_logger_class = StatsdLogger if statsd_host else Logger
+logger_class = ".".join([_logger_class.__module__, _logger_class.__qualname__])
 loglevel = os.environ.get("GUNICORN_LOGLEVEL", "info")
 errorlog = "-"
 # Access logging on by default

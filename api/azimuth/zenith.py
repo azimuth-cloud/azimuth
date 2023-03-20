@@ -6,6 +6,7 @@ import dataclasses
 import typing as t
 
 import requests
+from requests.models import PreparedRequest
 
 
 @dataclasses.dataclass
@@ -41,6 +42,8 @@ class Zenith:
     #: Indicates whether SSL should be verified by clients when associating keys with the
     #: registrar using the external endpoint
     verify_ssl_clients: bool
+    #: Query parameters that should be added to the URL before redirecting
+    query_params: t.Dict[str, str] = dataclasses.field(default_factory = dict)
 
     def service_is_ready(self, fqdn: str, readiness_path: str = "/") -> t.Optional[str]:
         """
@@ -57,7 +60,9 @@ class Zenith:
         except requests.exceptions.SSLError:
             return None
         else:
-            return url if resp.status_code not in {404, 503} else None
+            req = PreparedRequest()
+            req.prepare_url(url, self.query_params)
+            return req.url if resp.status_code not in {404, 503} else None
 
     def reserve_subdomain(self) -> ZenithReservation:
         """

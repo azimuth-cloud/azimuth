@@ -15,8 +15,11 @@ spec:
       labels: {{ include "azimuth.componentSelectorLabels" (list . $component) | nindent 8 }}
       annotations:
         kubectl.kubernetes.io/default-container: {{ $component }}
-        azimuth.stackhpc.com/settings-hash: {{ include (print $.Template.BasePath "/api/settings.yaml") . | sha256sum }}
-        azimuth.stackhpc.com/theme-hash: {{ include (print $.Template.BasePath "/configmap-theme.yaml") . | sha256sum }}
+        azimuth.stackhpc.com/settings-checksum: {{ include (print $.Template.BasePath "/api/settings.yaml") . | sha256sum }}
+        azimuth.stackhpc.com/theme-checksum: {{ include (print $.Template.BasePath "/configmap-theme.yaml") . | sha256sum }}
+        {{- if $values.monitoring.enabled }}
+        azimuth.stackhpc.com/statsd-config-checksum: {{ include (print $.Template.BasePath "/api/configmap-statsd.yaml") . | sha256sum }}
+        {{- end }}
         {{- with $values.podAnnotations }}
         {{ toYaml . | indent 8 | trim }}
         {{- end }}
@@ -27,12 +30,29 @@ spec:
       {{- end }}
       securityContext: {{ toYaml $values.podSecurityContext | nindent 8 }}
       containers:
+        {{- if $values.monitoring.enabled }}
+        - name: statsd-exporter
+          securityContext: {{ toYaml $values.monitoring.statsd.securityContext | nindent 12 }}
+          image: {{ printf "%s:%s" $values.monitoring.statsd.image.repository $values.monitoring.statsd.image.tag }}
+          imagePullPolicy: {{ $values.monitoring.statsd.image.pullPolicy }}
+          ports:
+            - name: metrics
+              containerPort: 9102
+              protocol: TCP
+          args:
+            - "--statsd.mapping-config=/etc/statsd/statsd.conf"
+          resources: {{ toYaml $values.monitoring.statsd.resources | nindent 12 }}
+          volumeMounts:
+            - name: statsd-config
+              mountPath: /etc/statsd/
+        {{- end }}
         - name: {{ $component }}
           securityContext: {{ toYaml $values.securityContext | nindent 12 }}
           image: {{ printf "%s:%s" $values.image.repository (default .Chart.AppVersion $values.image.tag) }}
           imagePullPolicy: {{ $values.image.pullPolicy }}
-          {{- if (and .Values.tags.clusters (eq $clusterEngine.type "awx")) }}
+          {{- if or $values.monitoring.enabled (and .Values.tags.clusters (eq $clusterEngine.type "awx")) }}
           env:
+            {{- if and .Values.tags.clusters (eq $clusterEngine.type "awx") }}
             - name: AWX_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -45,19 +65,22 @@ spec:
                   name: {{ quote . }}
                   key: password
             {{- end }}
+            {{- end }}
+            {{- if $values.monitoring.enabled }}
+            - name: GUNICORN_STATSD_HOST
+              value: "localhost:9125"
+            {{- end }}
           {{- end }}
           ports:
             - name: http
               containerPort: 8080
               protocol: TCP
-          livenessProbe:
-            httpGet:
-              path: /_status/
-              port: http
-          readinessProbe:
-            httpGet:
-              path: /_status/
-              port: http
+          {{- with $values.livenessProbe }}
+          livenessProbe: {{ toYaml $values.livenessProbe | nindent 12 }}
+          {{- end }}
+          {{- with $values.readinessProbe }}
+          readinessProbe: {{ toYaml $values.readinessProbe | nindent 12 }}
+          {{- end }}
           resources: {{ toYaml $values.resources | nindent 12 }}
           volumeMounts:
             - name: runtime-settings
@@ -97,3 +120,8 @@ spec:
         {{- end }}
         - name: tmp
           emptyDir: {}
+        {{- if $values.monitoring.enabled }}
+        - name: statsd-config
+          configMap:
+            name: {{ include "azimuth.componentname" (list . $component) }}-statsd-metric-mapping
+        {{ end }}

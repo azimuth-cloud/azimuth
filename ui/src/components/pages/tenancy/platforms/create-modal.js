@@ -67,7 +67,7 @@ const PlatformTypeSelectCard = ({ platformType, selected, onSelect }) => (
 );
 
 
-const PlatformTypeForm = ({ platformTypes, selected, onSelect, goNext }) => {
+const PlatformTypeForm = ({ platformTypes, selected, onSelect, onCancel }) => {
     const sortedPlatformTypes = sortBy(Object.values(platformTypes), pt => pt.name);
     return (
         <>
@@ -91,13 +91,8 @@ const PlatformTypeForm = ({ platformTypes, selected, onSelect, goNext }) => {
                 </Row>
             </Modal.Body>
             <Modal.Footer>
-                <Button
-                    variant="primary"
-                    onClick={goNext}
-                    disabled={!selected}
-                >
-                    <FontAwesomeIcon icon={faArrowCircleRight} className="me-2" />
-                    Next
+                <Button variant="secondary" onClick={onCancel}>
+                    Cancel
                 </Button>
             </Modal.Footer>
         </>
@@ -210,7 +205,8 @@ const PlatformConfigurationForm = ({
     tenancy,
     tenancyActions,
     goBack,
-    onSuccess
+    onSuccess,
+    onCancel
 }) => {
     return (
         <>
@@ -254,6 +250,9 @@ const PlatformConfigurationForm = ({
                 )}
             </Modal.Body>
             <Modal.Footer>
+                <Button variant="secondary" onClick={onCancel}>
+                    Cancel
+                </Button>
                 <Button variant="primary" onClick={goBack}>
                     <FontAwesomeIcon icon={faArrowCircleLeft} className="me-2" />
                     Back
@@ -278,9 +277,14 @@ const CreatePlatformModal = ({
 }) => {
     const [activeTab, setActiveTab] = useState("platformType");
     const [platformTypeId, setPlatformTypeId] = useState("");
+
     const reset = () => {
         setActiveTab("platformType");
         setPlatformTypeId("");
+    };
+    const setSelectedPlatformTypeId = platformId => {
+        setPlatformTypeId(platformId);
+        setActiveTab("platformConfiguration");
     };
 
     const clusterTypesNotFound = (
@@ -410,8 +414,8 @@ const CreatePlatformModal = ({
                     <PlatformTypeForm
                         platformTypes={resource.data}
                         selected={platformTypeId}
-                        onSelect={setPlatformTypeId}
-                        goNext={() => setActiveTab("platformConfiguration")}
+                        onSelect={setSelectedPlatformTypeId}
+                        onCancel={onCancel}
                     />
                 ) : (
                     <PlatformConfigurationForm
@@ -419,8 +423,9 @@ const CreatePlatformModal = ({
                         sshKey={sshKey}
                         tenancy={tenancy}
                         tenancyActions={tenancyActions}
-                        goBack={() => setActiveTab("platformType")}
+                        goBack={reset}
                         onSuccess={onSuccess}
+                        onCancel={onCancel}
                     />
                 )
             ) : (

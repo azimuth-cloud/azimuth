@@ -36,6 +36,8 @@ class AzimuthAuthSettings(SettingsObject):
 
     #: The HTTP parameter to pass the selected option in
     SELECTED_OPTION_PARAM = Setting(default = "option")
+    #: The HTTP parameter used to specify that the method should be changed
+    CHANGE_METHOD_PARAM = Setting(default = "change_method")
 
     #: The HTTP parameter to get the message code from
     MESSAGE_CODE_PARAM = Setting(default = "code")

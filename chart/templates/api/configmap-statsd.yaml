@@ -1,0 +1,33 @@
+{{- $component := "api" -}}
+{{- $values := get .Values $component -}}
+{{- if $values.monitoring.enabled }}
+# Creates a config file to be mounted into the statsd-exporter container
+# which instructs the exporter to modify some metrics when converting
+# to Prometheus format
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "azimuth.componentname" (list . $component) }}-statsd-metric-mapping
+  labels: {{ include "azimuth.componentLabels" (list . $component) | nindent 4 }}
+data:
+  statsd.conf: |
+    mappings:
+    - match: "*.gunicorn.request.status.*"
+      help: "gunicorn response code"
+      name: "gunicorn_response_code"
+      labels:
+        app: "$1"
+        status: "$2"
+    - match: "*.gunicorn.workers"
+      name: "gunicorn_workers"
+      labels:
+        app: "$1"
+    - match: "*.gunicorn.requests"
+      name: "gunicorn_requests"
+      labels:
+        app: "$1"
+    - match: "*.gunicorn.request.duration"
+      name: "gunicorn_request_duration"
+      labels:
+        app: "$1"
+{{- end }}

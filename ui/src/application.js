@@ -76,6 +76,7 @@ const ConnectedTenancyResourcePage = connect(
     }),
     (dispatch) => ({
         tenancyActions: {
+            idp: bindActionCreators(tenancyActions.idp, dispatch),
             quota: bindActionCreators(tenancyActions.quota, dispatch),
             image: bindActionCreators(tenancyActions.image, dispatch),
             size: bindActionCreators(tenancyActions.size, dispatch),

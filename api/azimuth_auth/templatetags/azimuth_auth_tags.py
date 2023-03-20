@@ -25,7 +25,10 @@ def change_auth_button(context):
     Renders the change auth button, but only if there are multiple authenticators.
     """
     return {
-        'link_url': "{}?change_method=1".format(reverse('azimuth_auth:login')),
+        'link_url': "{}?{}=1".format(
+            reverse('azimuth_auth:login'),
+            auth_settings.CHANGE_METHOD_PARAM
+        ),
         'render_button': len(auth_settings.AUTHENTICATORS) > 1,
     }
 

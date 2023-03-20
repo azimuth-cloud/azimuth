@@ -3,7 +3,6 @@ This module defines the base class for cluster managers.
 """
 
 import dataclasses
-from re import S
 import typing as t
 
 import jinja2

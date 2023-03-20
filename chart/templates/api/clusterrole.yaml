@@ -5,6 +5,18 @@ metadata:
   labels: {{ include "azimuth.componentLabels" (list . "api") | nindent 4 }}
 rules:
   - apiGroups:
+      - identity.azimuth.stackhpc.com
+    resources:
+      - realms
+      - platforms
+    verbs:
+      - list
+      - get
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
       - azimuth.stackhpc.com
     resources:
       - clustertemplates

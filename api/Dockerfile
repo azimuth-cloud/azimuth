@@ -28,9 +28,6 @@ RUN pip install --no-cache-dir \
       'whitenoise==5.3.0' \
       'git+https://github.com/stackhpc/django-flexi-settings.git@079359cc1e2d380a15ae6149ebffbcdae8094276#egg=django_flexi_settings'
 
-# Install Gunicorn config
-COPY ./etc/gunicorn /etc/gunicorn
-
 # Install dependencies
 # Doing this separately by copying only the requirements file enables better use of the build cache
 COPY ./requirements.txt /application/
@@ -39,6 +36,9 @@ RUN pip install --no-deps --requirement /application/requirements.txt
 # Install the application itself
 COPY . /application
 RUN pip install --no-deps -e /application
+
+# Install Gunicorn config
+COPY ./etc/gunicorn /etc/gunicorn
 
 # Install application configuration using flexi-settings
 ENV DJANGO_SETTINGS_MODULE flexi_settings.settings

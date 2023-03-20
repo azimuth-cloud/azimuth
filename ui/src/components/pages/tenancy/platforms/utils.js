@@ -1,17 +1,22 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 
 import Button from 'react-bootstrap/Button';
+import ButtonGroup from 'react-bootstrap/ButtonGroup';
 import Card from 'react-bootstrap/Card';
 import Col from 'react-bootstrap/Col';
 import Image from 'react-bootstrap/Image';
 import ListGroup from 'react-bootstrap/ListGroup';
 import Modal from 'react-bootstrap/Modal';
+import Overlay from 'react-bootstrap/Overlay';
 import Row from 'react-bootstrap/Row';
+import Tooltip from 'react-bootstrap/Tooltip';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faBookmark,
+    faCheck,
     faExternalLinkAlt,
+    faPaste,
     faSyncAlt,
     faTrash
 } from '@fortawesome/free-solid-svg-icons';
@@ -43,28 +48,89 @@ export const PlatformTypeCard = ({ platformType }) => (
     </Card>
 );
 
+const PlatformServiceCopyButton = ({ service }) => {
+    const [showCopied, setShowCopied] = useState(false);
+    const target = useRef(null);
+
+    const handleCopy = evt => {
+        evt.preventDefault();
+        evt.stopPropagation();
+        navigator.clipboard.writeText(service.fqdn);
+        setShowCopied(true);
+        setTimeout(() => setShowCopied(false), 1000);
+        target.current.blur();
+    };
+
+    return (
+        <>
+            <Button
+                ref={target}
+                title="Copy service URL to clipboard"
+                variant="secondary"
+                onClick={handleCopy}
+            >
+                <FontAwesomeIcon icon={showCopied ? faCheck : faPaste} fixedWidth />
+            </Button>
+            <Overlay
+                target={target.current}
+                show={showCopied}
+                placement="top"
+            >
+                <Tooltip>Copied!</Tooltip>
+            </Overlay>
+        </>
+    );
+};
+
+
+const PlatformServiceListItem = ({ service, disabled }) => {
+    const buttonRef = useRef(null);
+
+    const openLinkInNewTab = evt => {
+        evt.preventDefault();
+        evt.stopPropagation();
+        window.open(service.url, "_blank").focus();
+        buttonRef.current.blur();
+    };
+
+    return (
+        <ListGroup.Item
+            disabled={disabled}
+            onClick={openLinkInNewTab}
+            className="service-list-group-item"
+        >
+            <div className="service-list-group-item-icon">
+                {service.icon_url ? (
+                    <img src={service.icon_url} alt={`${service.label} icon`} />
+                ) : (
+                    <FontAwesomeIcon icon={faBookmark} />
+                )}
+            </div>
+            <div className="service-list-group-item-label">{service.label}</div>
+            <ButtonGroup>
+                <PlatformServiceCopyButton service={service} />
+                <Button
+                    ref={buttonRef}
+                    title="Go to service"
+                    href={service.url}
+                    onClick={openLinkInNewTab}
+                >
+                    <FontAwesomeIcon icon={faExternalLinkAlt} fixedWidth />
+                </Button>
+            </ButtonGroup>
+        </ListGroup.Item>
+    );
+};
+
 
 export const PlatformServicesListGroup = ({ services, disabled }) => (
     <ListGroup variant="flush" activeKey={null}>
         {services.map(service => (
-            <ListGroup.Item
+            <PlatformServiceListItem
                 key={service.name}
-                action
-                href={service.url}
+                service={service}
                 disabled={disabled}
-                target="_blank"
-                className="service-list-group-item"
-            >
-                <span>
-                    {service.icon_url ? (
-                        <img src={service.icon_url} alt={`${service.label} icon`} />
-                    ) : (
-                        <FontAwesomeIcon icon={faBookmark} />
-                    )}
-                </span>
-                <span>{service.label}</span>
-                <span><FontAwesomeIcon icon={faExternalLinkAlt} /></span>
-            </ListGroup.Item>
+            />
         ))}
     </ListGroup>
 );
