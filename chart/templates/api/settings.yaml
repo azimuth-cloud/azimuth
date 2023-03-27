@@ -172,8 +172,11 @@ stringData:
 {{- if (eq $clusterEngine.type "awx") }}
   08-awx.yaml: |
     AZIMUTH:
-      AWX:
+      CAAS_CRD:
+        # TODO: configurable!
         ENABLED: true
+      AWX:
+        ENABLED: false
         URL: {{ required "clusterEngine.awx.url is required" $clusterEngine.awx.url | quote }}
         VERIFY_SSL: {{ $clusterEngine.awx.verifySsl }}
         USERNAME: {{ $clusterEngine.awx.username }}
