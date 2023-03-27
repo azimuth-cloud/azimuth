@@ -61,3 +61,15 @@ rules:
       - create
       - update
       - delete
+  - apiGroups:
+      - caas.azimuth.stackhpc.com
+    resources:
+      - clusters
+      - clustertypes
+    verbs:
+      - list
+      - get
+      - create
+      - update
+      - patch
+      - delete
