@@ -110,7 +110,7 @@ def create_cluster(
     if params:
         cluster_spec["extraVars"] = {}
         for key, value in params.items():
-            cluster_spec["extraVars"][key] = str(value)
+            cluster_spec["extraVars"][key] = value
     cluster_resource = client.api(CAAS_API_VERSION).resource("clusters")
     cluster = cluster_resource.create(
         {
