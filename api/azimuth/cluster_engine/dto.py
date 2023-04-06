@@ -115,18 +115,6 @@ class ClusterType:
         Returns:
             A :py:class:`ClusterType`.
         """
-        # load complex options like choices list
-        params = spec.get('parameters', [])
-        for param in params:
-            opts = param.get('options', {})
-            for key, value in opts.items():
-                if key == "choices" and value:
-                    value = str(value)
-                    # yaml parsing broke this, so fix it
-                    value = value.replace("'", '"')
-                    parsed = json.loads(str(value))
-                    opts[key] = parsed
-
         return cls(
             name,
             spec.get('label', name),

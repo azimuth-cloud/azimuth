@@ -172,9 +172,9 @@ def number_constraints(options):
     """
     constraints = []
     if 'min' in options:
-        constraints.append(v.Range(min = float(options['min'])))
+        constraints.append(v.Range(min = options['min']))
     if 'max' in options:
-        constraints.append(v.Range(max = float(options['max'])))
+        constraints.append(v.Range(max = options['max']))
     return constraints
 
 
@@ -193,7 +193,7 @@ def float_constraint(options, **kwargs):
 @register_constraint("boolean")
 def boolean_constraint(options, prev_value, **kwargs):
     # Booleans support a "permanent" option indicating that once a parameter
-    # has become true, it cannot become false again
+    # has become true, it cannot become false again
     def permanent(value):
         if options.get("permanent") and prev_value and not value:
             raise v.Invalid("This value cannot be unset.")
@@ -238,21 +238,21 @@ def convert_not_found(func, msg):
 @register_constraint("cloud.size")
 def cloud_size_constraint(cloud_session, options, **kwargs):
     def min_cpus(size):
-        if 'min_cpus' in options and size.cpus < int(options['min_cpus']):
+        if 'min_cpus' in options and size.cpus < options['min_cpus']:
             raise v.Invalid('Size does not have enough CPUs.')
         return size
     def min_ram(size):
-        if 'min_ram' in options and size.ram < int(options['min_ram']):
+        if 'min_ram' in options and size.ram < options['min_ram']:
             raise v.Invalid('Size does not have enough RAM.')
         return size
     def min_disk(size):
-        if 'min_disk' in options and size.disk < int(options['min_disk']):
+        if 'min_disk' in options and size.disk < options['min_disk']:
             raise v.Invalid('Size does not have enough disk.')
         return size
     def min_ephemeral_disk(size):
         if (
             'min_ephemeral_disk' in options and
-            size.ephemeral_disk < int(options['min_ephemeral_disk'])
+            size.ephemeral_disk < options['min_ephemeral_disk']
         ):
             raise v.Invalid('Size does not have enough ephemeral disk.')
         return size
@@ -287,9 +287,6 @@ def cloud_ip_constraint(cloud_session, prev_value, **kwargs):
     # If the given IP matches the previous value, that is OK
     # Otherwise, require that the IP be available for attaching
     def ip_available(ip):
-        # TODO: why are we called when optional value is missing?
-        if ip is None:
-            return ""
         if prev_value == ip.id or ip.machine_id is None:
             return ip
         else:
@@ -297,19 +294,18 @@ def cloud_ip_constraint(cloud_session, prev_value, **kwargs):
     return v.All(
         v.Coerce(str),
         convert_not_found(
-            lambda v: cloud_session.find_external_ip(v) if v else None,
+            lambda v: cloud_session.find_external_ip(v),
             "Not a valid external ip."
         ),
         ip_available,
-        lambda ip: ip.id if ip else ""
+        lambda ip: ip.id
     )
 
 
 @register_constraint("cloud.volume")
 def cloud_volume_constraint(cloud_session, options, **kwargs):
     def min_size(vol):
-        return vol
-        if 'min_size' in options and int(v.size) < int(options['min_size']):
+        if 'min_size' in options and v.size < options['min_size']:
             raise v.Invalid('Volume is too small.')
         return vol
     return v.All(
