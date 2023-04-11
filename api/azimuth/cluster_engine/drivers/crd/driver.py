@@ -62,6 +62,8 @@ def get_cluster_dto(raw_cluster):
     task = None
     outputs = dict()
     error_message = None
+    created_at = dateutil.parser.parse(raw_cluster.metadata.creationTimestamp)
+    updated_at = created_at
 
     if raw_status:
         phase = raw_status.get("phase")
@@ -69,16 +71,20 @@ def get_cluster_dto(raw_cluster):
             status = dto.ClusterStatus.READY
         elif phase == "Deleting":
             status = dto.ClusterStatus.DELETING
-            task = "Deleting"
+            task = "Deleting platform"
         elif phase == "Failed":
             status = dto.ClusterStatus.ERROR
             error_message = "General Error"
         elif phase == "Creating":
             status = dto.ClusterStatus.CONFIGURING
-            task = "Creating"
+            task = "Creating platform"
 
         if "outputs" in raw_status:
             outputs = raw_status["outputs"]
+
+        if raw_status.get("updatedTimestamp"):
+            updated_at = dateutil.parser.parse(raw_status["updatedTimestamp"])
+
 
     return dto.Cluster(
         id=raw_cluster.metadata.uid,
@@ -90,9 +96,9 @@ def get_cluster_dto(raw_cluster):
         parameter_values=raw_cluster.spec.extraVars,
         tags=[],
         outputs=dict(),
-        created=dateutil.parser.parse(raw_cluster.metadata.creationTimestamp),
-        updated=dateutil.parser.parse(raw_cluster.metadata.creationTimestamp),
-        patched=dateutil.parser.parse(raw_cluster.metadata.creationTimestamp),
+        created=created_at,
+        updated=updated_at,
+        patched=None,
         services=[],
     )
 
