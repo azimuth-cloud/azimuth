@@ -59,21 +59,36 @@ def get_cluster_types(client) -> t.Iterable[dto.ClusterType]:
 def get_cluster_dto(raw_cluster):
     raw_status = raw_cluster.get("status", {})
     status = dto.ClusterStatus.CONFIGURING
-    if raw_status and raw_status.get("phase") == "Ready":
-        status = dto.ClusterStatus.READY
-    if raw_status and raw_status.get("phase") == "Deleting":
-        status = dto.ClusterStatus.DELETING
-    if raw_status and raw_status.get("phase") == "Failed":
-        status = dto.ClusterStatus.ERROR
+    task = None
+    outputs = dict()
+    error_message = None
+
+    if raw_status:
+        phase = raw_status.get("phase")
+        if phase == "Ready":
+            status = dto.ClusterStatus.READY
+        elif phase == "Deleting":
+            status = dto.ClusterStatus.DELETING
+            task = "Deleting"
+        elif phase == "Failed":
+            status = dto.ClusterStatus.ERROR
+            error_message = "General Error"
+        elif phase == "Creating":
+            status = dto.ClusterStatus.CONFIGURING
+            task = "Creating"
+
+        if "outputs" in raw_status:
+            outputs = raw_status["outputs"]
+
     return dto.Cluster(
         id=raw_cluster.metadata.uid,
         name=raw_cluster.metadata.name,
         cluster_type=raw_cluster.spec.clusterTypeName,
         status=status,
-        task=None,
-        error_message=None,
+        task=task,
+        error_message=error_message,
         parameter_values=raw_cluster.spec.extraVars,
-        tags=["asdf"],
+        tags=[],
         outputs=dict(),
         created=dateutil.parser.parse(raw_cluster.metadata.creationTimestamp),
         updated=dateutil.parser.parse(raw_cluster.metadata.creationTimestamp),
