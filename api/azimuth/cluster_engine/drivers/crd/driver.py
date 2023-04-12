@@ -153,6 +153,17 @@ def delete_cluster(client, name: str):
     raw_cluster = cluster_resource.fetch(safe_name)
     return get_cluster_dto(raw_cluster)
 
+def patch_cluster(client, name: str):
+    safe_name = _escape_name(name)
+    cluster_resource = client.api(CAAS_API_VERSION).resource("clusters")
+    cluster_resource.patch(
+        safe_name,
+        dict(spec=dict(clusterTypeVersion=None))
+    )
+    # TODO(johngarbutt): is this racing the operator?
+    raw_cluster = cluster_resource.fetch(safe_name)
+    return get_cluster_dto(raw_cluster)
+
 
 # TODO(johngarbutt) horrible testing hack!
 if __name__ == "__main__":
@@ -286,7 +297,8 @@ class Driver(base.Driver):
         """
         Patches the given existing cluster.
         """
-        raise NotImplementedError
+        client = get_k8s_client(ctx.tenancy.id)
+        return patch_cluster(client, cluster.name)
 
     def delete_cluster(
         self, cluster: dto.Cluster, ctx: dto.Context
