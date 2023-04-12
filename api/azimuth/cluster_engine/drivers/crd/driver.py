@@ -82,6 +82,9 @@ def get_cluster_dto(raw_cluster):
         if "outputs" in raw_status:
             outputs = raw_status["outputs"]
 
+        if raw_status.get("error"):
+            error_message = raw_status["error"]
+
         if raw_status.get("updatedTimestamp"):
             updated_at = dateutil.parser.parse(raw_status["updatedTimestamp"])
 
@@ -94,7 +97,7 @@ def get_cluster_dto(raw_cluster):
         error_message=error_message,
         parameter_values=raw_cluster.spec.extraVars,
         tags=[],
-        outputs=dict(),
+        outputs=outputs,
         created=created_at,
         updated=updated_at,
         patched=None,
