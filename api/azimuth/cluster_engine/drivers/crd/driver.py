@@ -1,9 +1,11 @@
 """
 This module contains the cluster engine implementation for azimuth-caas-crd.
 """
+import datetime
 import dateutil.parser
 import re
 import typing as t
+import uuid
 
 import easykube
 import yaml
@@ -172,6 +174,10 @@ def patch_cluster(client, name: str):
 def update_cluster(client, name: str, params: t.Mapping[str, t.Any]):
     safe_name = _escape_name(name)
     cluster_resource = client.api(CAAS_API_VERSION).resource("clusters")
+    now = datetime.datetime.utcnow()
+    now_string = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+    # trigger updates even when params are same as create or last update
+    params["azimuth_requested_update_at"] = now_string
     cluster_resource.patch(safe_name, dict(spec=dict(extraVars=params)))
     # TODO(johngarbutt): is this racing the operator?
     raw_cluster = cluster_resource.fetch(safe_name)
