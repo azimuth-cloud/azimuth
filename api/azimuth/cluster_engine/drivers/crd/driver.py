@@ -85,7 +85,6 @@ def get_cluster_dto(raw_cluster):
         if raw_status.get("updatedTimestamp"):
             updated_at = dateutil.parser.parse(raw_status["updatedTimestamp"])
 
-
     return dto.Cluster(
         id=raw_cluster.metadata.uid,
         name=raw_cluster.metadata.name,
@@ -153,13 +152,24 @@ def delete_cluster(client, name: str):
     raw_cluster = cluster_resource.fetch(safe_name)
     return get_cluster_dto(raw_cluster)
 
+
 def patch_cluster(client, name: str):
     safe_name = _escape_name(name)
     cluster_resource = client.api(CAAS_API_VERSION).resource("clusters")
     cluster_resource.patch(
         safe_name,
-        dict(spec=dict(clusterTypeVersion=None))
+        # trigger update to latest cluster type version by reset version
+        dict(spec=dict(clusterTypeVersion=None)),
     )
+    # TODO(johngarbutt): is this racing the operator?
+    raw_cluster = cluster_resource.fetch(safe_name)
+    return get_cluster_dto(raw_cluster)
+
+
+def update_cluster(client, name: str, params: t.Mapping[str, t.Any]):
+    safe_name = _escape_name(name)
+    cluster_resource = client.api(CAAS_API_VERSION).resource("clusters")
+    cluster_resource.patch(safe_name, dict(spec=dict(extraVars=params)))
     # TODO(johngarbutt): is this racing the operator?
     raw_cluster = cluster_resource.fetch(safe_name)
     return get_cluster_dto(raw_cluster)
@@ -180,6 +190,7 @@ if __name__ == "__main__":
         delete_cluster(client, "jg-test")
     clusters = get_clusters(client)
     print(clusters)
+
 
 # TODO(johngarbutt) - share with k8s
 def _create_credential(cloud_session, cluster_name):
@@ -291,7 +302,8 @@ class Driver(base.Driver):
         """
         Updates an existing cluster with the given parameters.
         """
-        raise NotImplementedError
+        client = get_k8s_client(ctx.tenancy.id)
+        return update_cluster(client, cluster.name, params)
 
     def patch_cluster(self, cluster: dto.Cluster, ctx: dto.Context) -> dto.Cluster:
         """
