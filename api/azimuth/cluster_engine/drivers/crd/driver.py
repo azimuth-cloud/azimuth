@@ -80,6 +80,9 @@ def get_cluster_dto(raw_cluster):
         elif phase == "Creating":
             status = dto.ClusterStatus.CONFIGURING
             task = "Creating platform"
+        elif phase == "Configuring":
+            status = dto.ClusterStatus.CONFIGURING
+            task = "Re-configuring platform"
 
         if "outputs" in raw_status:
             outputs = raw_status["outputs"]
@@ -151,6 +154,7 @@ def create_cluster(
 
 def delete_cluster(client, name: str):
     safe_name = _escape_name(name)
+    # TODO(johngarbutt) should we be refreshing the application cred here?
     cluster_resource = client.api(CAAS_API_VERSION).resource("clusters")
     cluster_resource.delete(safe_name)
     # TODO(johngarbutt): is this racing the operator?
@@ -160,6 +164,7 @@ def delete_cluster(client, name: str):
 
 def patch_cluster(client, name: str):
     safe_name = _escape_name(name)
+    # TODO(johngarbutt) should we be refreshing the application cred here?
     cluster_resource = client.api(CAAS_API_VERSION).resource("clusters")
     cluster_resource.patch(
         safe_name,
@@ -173,6 +178,7 @@ def patch_cluster(client, name: str):
 
 def update_cluster(client, name: str, params: t.Mapping[str, t.Any]):
     safe_name = _escape_name(name)
+    # TODO(johngarbutt) should we be refreshing the application cred here?
     cluster_resource = client.api(CAAS_API_VERSION).resource("clusters")
     now = datetime.datetime.utcnow()
     now_string = now.strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -213,6 +219,8 @@ def _create_credential(cloud_session, cluster_name):
     app_cred = user.application_credentials.create(
         name=app_cred_name,
         description=f"Used by Azimuth to manage CaaS cluster '{cluster_name}'.",
+        # TODO(johngarbutt): only used to delete ourselves
+        unrestricted=True,
     )
     # Make a clouds.yaml for the app cred and return it in stringData
     return {
