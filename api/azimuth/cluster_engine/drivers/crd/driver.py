@@ -5,7 +5,7 @@ import datetime
 import dateutil.parser
 import re
 import typing as t
-import uuid
+import logging
 
 import easykube
 import yaml
@@ -15,6 +15,7 @@ from azimuth.cluster_engine import dto
 from azimuth.cluster_engine import errors
 
 CAAS_API_VERSION = "caas.azimuth.stackhpc.com/v1alpha1"
+LOG = logging.getLogger(__name__)
 
 
 def _escape_name(name):
@@ -46,15 +47,22 @@ def get_k8s_client(project_id):
     return client
 
 
+def _get_cluster_type_dto(raw):
+    if raw.get("status") and raw.get("status", {}).get("phase") == "Available":
+        return dto.ClusterType.from_dict(
+            raw.metadata.name,
+            raw.status.uiMeta,
+            raw.metadata.resourceVersion,
+        )
+
+
 def get_cluster_types(client) -> t.Iterable[dto.ClusterType]:
     raw_types = list(client.api(CAAS_API_VERSION).resource("clustertypes").list())
     cluster_types = []
     for raw in raw_types:
-        if not raw.get("status") or raw.get("status", {}).get("phase") != "Available":
-            continue
-        cluster_types.append(
-            dto.ClusterType.from_dict(raw.metadata.name, raw.status.uiMeta)
-        )
+        cluster_type = _get_cluster_type_dto(raw)
+        if cluster_type:
+            cluster_types.append(cluster_type)
     return cluster_types
 
 
@@ -119,6 +127,16 @@ def get_clusters(client) -> t.Iterable[dto.Cluster]:
     return clusters
 
 
+def _get_cluster_type(client, cluster_type_name: str):
+    clustertypes_resource = client.api(CAAS_API_VERSION).resource("clustertypes")
+    raw = clustertypes_resource.fetch(cluster_type_name)
+    cluster_type = _get_cluster_type_dto(raw)
+    if cluster_type:
+        return cluster_type
+    else:
+        raise Exception(f"Unable to find cluster type {cluster_type_name}")
+
+
 def create_cluster(
     client, name: str, cluster_type_name: str, params: dict, cloud_session
 ):
@@ -131,8 +149,10 @@ def create_cluster(
         secret_name, {"metadata": {"name": secret_name}, "stringData": string_data}
     )
 
+    cluster_type = _get_cluster_type(client, cluster_type_name)
     cluster_spec = {
         "clusterTypeName": cluster_type_name,
+        "clusterTypeVersion": cluster_type.version,
         "cloudCredentialsSecretName": secret_name,
     }
     if params:
@@ -154,38 +174,49 @@ def create_cluster(
 
 def delete_cluster(client, name: str):
     safe_name = _escape_name(name)
+
     # TODO(johngarbutt) should we be refreshing the application cred here?
     cluster_resource = client.api(CAAS_API_VERSION).resource("clusters")
     cluster_resource.delete(safe_name)
-    # TODO(johngarbutt): is this racing the operator?
+
     raw_cluster = cluster_resource.fetch(safe_name)
     return get_cluster_dto(raw_cluster)
 
 
 def patch_cluster(client, name: str):
     safe_name = _escape_name(name)
-    # TODO(johngarbutt) should we be refreshing the application cred here?
+
+    # get current version for requested cluster type
     cluster_resource = client.api(CAAS_API_VERSION).resource("clusters")
-    cluster_resource.patch(
-        safe_name,
-        # trigger update to latest cluster type version by reset version
-        dict(spec=dict(clusterTypeVersion=None)),
-    )
-    # TODO(johngarbutt): is this racing the operator?
-    raw_cluster = cluster_resource.fetch(safe_name)
-    return get_cluster_dto(raw_cluster)
+    inital_raw_cluster = cluster_resource.fetch(safe_name)
+
+    cluster_type_name = inital_raw_cluster["spec"]["clusterTypeName"]
+    cluster_type = _get_cluster_type(client, cluster_type_name)
+    if not cluster_type:
+        raise Exception(f"Can not update as type {cluster_type_name} not found")
+
+    # Trigger an update, even if no change in version requested
+    # TODO(johngarbutt): cluster_upgrade_system_packages=true needed?
+    return update_cluster(client, name, {}, cluster_type.version)
 
 
-def update_cluster(client, name: str, params: t.Mapping[str, t.Any]):
+def update_cluster(client, name: str, params: t.Mapping[str, t.Any], version=None):
     safe_name = _escape_name(name)
-    # TODO(johngarbutt) should we be refreshing the application cred here?
-    cluster_resource = client.api(CAAS_API_VERSION).resource("clusters")
+
+    # trigger updates even when params are same as create or last update
     now = datetime.datetime.utcnow()
     now_string = now.strftime("%Y-%m-%dT%H:%M:%SZ")
-    # trigger updates even when params are same as create or last update
     params["azimuth_requested_update_at"] = now_string
-    cluster_resource.patch(safe_name, dict(spec=dict(extraVars=params)))
-    # TODO(johngarbutt): is this racing the operator?
+
+    # NOTE(johngarbutt): we assume no parameters are being removed here
+    spec = dict(extraVars=params)
+    if version:
+        spec["clusterTypeVersion"] = version
+
+    # TODO(johngarbutt) should we be refreshing the application creds first?
+    cluster_resource = client.api(CAAS_API_VERSION).resource("clusters")
+    cluster_resource.patch(safe_name, dict(spec=spec))
+
     raw_cluster = cluster_resource.fetch(safe_name)
     return get_cluster_dto(raw_cluster)
 

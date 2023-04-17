@@ -103,9 +103,11 @@ class ClusterType:
     #: Can use Jinja2 syntax and should produce valid Markdown
     #: Receives the cluster parameters, as defined in `parameters`, as template args
     usage_template: Optional[str]
+    #: Used by the Azimuth CRD to support patching
+    version: Optional[str]
 
     @classmethod
-    def from_dict(cls, name, spec):
+    def from_dict(cls, name, spec, version=None):
         """
         Returns a new cluster type from the given dictionary specification.
 
@@ -143,7 +145,8 @@ class ClusterType:
                 )
                 for service in spec.get('services', [])
             ),
-            spec.get('usage_template', spec.get('usageTemplate', None))
+            spec.get('usage_template', spec.get('usageTemplate', None)),
+            version,
         )
 
     @classmethod
