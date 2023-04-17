@@ -330,6 +330,14 @@ class Session:
         """
         raise NotImplementedError
 
+    def _ensure_shared_resources(self):
+        """
+        This method can be overridden by subclasses to ensure that any shared resources,
+        such as networks, exist before a cluster is created.
+
+        By default, it is a no-op.
+        """
+
     def _build_cluster_spec(self, **options):
         spec = {}
         if "control_plane_size" in options:
@@ -374,6 +382,8 @@ class Session:
         """
         # Make sure that the target namespace exists
         self._ensure_namespace()
+        # Make sure any shared resources exist
+        self._ensure_shared_resources()
         # Create the cloud credential secret
         secret_data = self._create_credential(name)
         secret_name = f"{name}-cloud-credentials"
