@@ -356,17 +356,6 @@ class Session:
             spec.setdefault("addons", {})["monitoring"] = options["monitoring_enabled"]
         return spec
 
-    def _modify_cluster_spec(
-        self,
-        cluster_spec: t.Dict[str, t.Any],
-        is_create: bool
-    ) -> t.Dict[str, t.Any]:
-        """
-        Hook that can be implemented by subclasses to make cloud-specific modifications
-        to the cluster spec.
-        """
-        return cluster_spec
-
     @convert_exceptions
     def create_cluster(
         self,
@@ -412,8 +401,6 @@ class Session:
         })
         if zenith_identity_realm_name:
             cluster_spec["zenithIdentityRealmName"] = zenith_identity_realm_name
-        # Call the hook method to allow any modifications
-        cluster_spec = self._modify_cluster_spec(cluster_spec, True)
         # Create the cluster
         ekclusters = self._client.api(AZIMUTH_API_VERSION).resource("clusters")
         cluster = ekclusters.create({
@@ -435,7 +422,6 @@ class Session:
         Update the specified cluster with the given parameters.
         """
         spec = self._build_cluster_spec(**options)
-        spec = self._modify_cluster_spec(spec, False)
         cluster = (
             self._client
                 .api(AZIMUTH_API_VERSION)

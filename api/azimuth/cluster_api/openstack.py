@@ -50,12 +50,3 @@ class Session(SessionBase):
                 })
             }
         }
-
-    def _modify_cluster_spec(self, cluster_spec, is_create):
-        # On create only, inject the network IDs for the external and internal networks
-        if is_create:
-            cluster_spec.update({
-                "externalNetworkId": self._cloud_session._external_network().id,
-                "networkId": self._cloud_session._tenant_network(True).id,
-            })
-        return cluster_spec
