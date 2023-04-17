@@ -50,3 +50,8 @@ class Session(SessionBase):
                 })
             }
         }
+
+    def _ensure_shared_resources(self):
+        # Just make sure that the shared tenant network exists
+        # This allows templates to target it via a tag filter if they want
+        self._cloud_session._tenant_network(True)
