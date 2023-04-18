@@ -3,9 +3,11 @@ This module contains the cluster engine implementation for azimuth-caas-crd.
 """
 import datetime
 import dateutil.parser
-import re
-import typing as t
 import logging
+import re
+import time
+import typing as t
+
 
 import easykube
 import yaml
@@ -66,7 +68,7 @@ def get_cluster_types(client) -> t.Iterable[dto.ClusterType]:
     return cluster_types
 
 
-def get_cluster_dto(raw_cluster):
+def get_cluster_dto(raw_cluster, status_if_ready: dto.ClusterStatus = None):
     raw_status = raw_cluster.get("status", {})
     status = dto.ClusterStatus.CONFIGURING
     task = None
@@ -79,6 +81,8 @@ def get_cluster_dto(raw_cluster):
         phase = raw_status.get("phase")
         if phase == "Ready":
             status = dto.ClusterStatus.READY
+            if status_if_ready:
+                status = status_if_ready
         elif phase == "Deleting":
             status = dto.ClusterStatus.DELETING
             task = "Deleting platform"
@@ -179,8 +183,11 @@ def delete_cluster(client, name: str):
     cluster_resource = client.api(CAAS_API_VERSION).resource("clusters")
     cluster_resource.delete(safe_name)
 
+    # NOTE(johngarbutt) we are racing the operator here,
+    # returning the ready state will confuse people
+    time.sleep(0.1)
     raw_cluster = cluster_resource.fetch(safe_name)
-    return get_cluster_dto(raw_cluster)
+    return get_cluster_dto(raw_cluster, status_if_ready=dto.ClusterStatus.DELETING)
 
 
 def patch_cluster(client, name: str):
@@ -217,8 +224,11 @@ def update_cluster(client, name: str, params: t.Mapping[str, t.Any], version=Non
     cluster_resource = client.api(CAAS_API_VERSION).resource("clusters")
     cluster_resource.patch(safe_name, dict(spec=spec))
 
+    # NOTE(johngarbutt) we are racing the operator here,
+    # returning the ready state will confuse people
+    time.sleep(0.1)
     raw_cluster = cluster_resource.fetch(safe_name)
-    return get_cluster_dto(raw_cluster)
+    return get_cluster_dto(raw_cluster, status_if_ready=dto.ClusterStatus.CONFIGURING)
 
 
 # TODO(johngarbutt) horrible testing hack!
