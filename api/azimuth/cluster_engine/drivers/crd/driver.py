@@ -26,6 +26,7 @@ def _escape_name(name):
 
 def _get_namespace(project_id):
     safe_project_id = _escape_name(project_id)
+    # TODO(johngarbutt): this should come from config
     return f"caas-{safe_project_id}"
 
 
