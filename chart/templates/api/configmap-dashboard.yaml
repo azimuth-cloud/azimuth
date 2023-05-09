@@ -107,7 +107,7 @@ data:
               },
               "editorMode": "code",
               "exemplar": true,
-              "expr": "sum(gunicorn_requests{app=\"$app_name\"}) by (app)",
+              "expr": "round(sum(increase(gunicorn_requests{app=\"$app_name\"}[$__range])) by (app))",
               "interval": "",
               "legendFormat": "__auto",
               "range": true,
@@ -168,7 +168,7 @@ data:
                 "uid": "prometheus"
               },
               "exemplar": true,
-              "expr": "sum(gunicorn_response_code{app=\"$app_name\"}) by (status)",
+              "expr": "round(sum(increase(gunicorn_response_code{app=\"$app_name\"}[$__range])) by (status))",
               "interval": "",
               "legendFormat": "{{"{{"}}status{{"}}"}}",
               "refId": "A"
@@ -261,13 +261,13 @@ data:
                 "uid": "prometheus"
               },
               "exemplar": true,
-              "expr": "rate(gunicorn_requests{app=\"$app_name\"}[1m])",
+              "expr": "sum(rate(gunicorn_requests{app=\"$app_name\"}[1m])) by (app)",
               "interval": "",
               "legendFormat": "",
               "refId": "A"
             }
           ],
-          "title": "Request Per Sec",
+          "title": "Requests Per Sec",
           "type": "timeseries"
         },
         {
@@ -313,6 +313,7 @@ data:
               "mappings": [],
               "max": 1,
               "min": 0,
+              "noValue": 1,
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -356,7 +357,7 @@ data:
                 "uid": "prometheus"
               },
               "exemplar": true,
-              "expr": "sum(gunicorn_response_code{app=\"$app_name\", status=~\"2.*\"}) / sum(gunicorn_response_code{app=\"$app_name\"})",
+              "expr": "round(sum(increase(gunicorn_response_code{app=\"azimuth-api\", status=~\"2.*\"}[1m])) by(app)) / round(sum(increase(gunicorn_response_code{app=\"azimuth-api\"}[1m])) by(app)) > 0",
               "interval": "",
               "legendFormat": "2XX Rate",
               "refId": "A"
@@ -408,6 +409,7 @@ data:
               "mappings": [],
               "max": 1,
               "min": 0,
+              "noValue": 0,
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -451,7 +453,7 @@ data:
                 "uid": "prometheus"
               },
               "exemplar": true,
-              "expr": "sum(gunicorn_response_code{app=\"$app_name\", status=~\"3.*\"}) / sum(gunicorn_response_code{app=\"$app_name\"})",
+              "expr": "round(sum(increase(gunicorn_response_code{app=\"azimuth-api\", status=~\"3.*\"}[1m])) by(app)) / round(sum(increase(gunicorn_response_code{app=\"azimuth-api\"}[1m])) by(app)) > 0",
               "interval": "",
               "legendFormat": "3XX Rate",
               "refId": "A"
@@ -503,6 +505,7 @@ data:
               "mappings": [],
               "max": 1,
               "min": 0,
+              "noValue": 0,
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -546,7 +549,7 @@ data:
                 "uid": "prometheus"
               },
               "exemplar": true,
-              "expr": "sum(gunicorn_response_code{app=\"$app_name\", status=~\"4.*\"}) / sum(gunicorn_response_code{app=\"$app_name\"})",
+              "expr": "round(sum(increase(gunicorn_response_code{app=\"azimuth-api\", status=~\"4.*\"}[1m])) by(app)) / round(sum(increase(gunicorn_response_code{app=\"azimuth-api\"}[1m])) by(app)) > 0",
               "interval": "",
               "legendFormat": "4XX Rate",
               "refId": "A"
@@ -598,6 +601,7 @@ data:
               "mappings": [],
               "max": 1,
               "min": 0,
+              "noValue": 0,
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -641,7 +645,7 @@ data:
                 "uid": "prometheus"
               },
               "exemplar": true,
-              "expr": "sum(gunicorn_response_code{app=\"$app_name\", status=~\"5.*\"}) / sum(gunicorn_response_code{app=\"$app_name\"})",
+              "expr": "round(sum(increase(gunicorn_response_code{app=\"azimuth-api\", status=~\"5.*\"}[1m])) by(app)) / round(sum(increase(gunicorn_response_code{app=\"azimuth-api\"}[1m])) by(app)) > 0",
               "interval": "",
               "legendFormat": "5XX Rate",
               "refId": "A"
