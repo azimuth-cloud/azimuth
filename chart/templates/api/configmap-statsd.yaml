@@ -9,7 +9,7 @@ metadata:
 data:
   # Note that we use histogram rather than summary for request duration
   # This is because the computation of the quantiles by statsd exporter prevents
-  # use from aggregating across multiple replicas
+  # us from aggregating across multiple replicas
   #   See https://povilasv.me/prometheus-tracking-request-duration/
   #
   # For now, we use the default bucket sizes
