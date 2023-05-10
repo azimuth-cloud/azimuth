@@ -25,6 +25,43 @@ metadata:
 data:
   azimuth_api_dashboard.json: |
     {
+      "__inputs": [
+        {
+          "name": "DS_PROMETHEUS",
+          "label": "Prometheus",
+          "description": "",
+          "type": "datasource",
+          "pluginId": "prometheus",
+          "pluginName": "Prometheus"
+        }
+      ],
+      "__elements": {},
+      "__requires": [
+        {
+          "type": "grafana",
+          "id": "grafana",
+          "name": "Grafana",
+          "version": "9.3.6"
+        },
+        {
+          "type": "datasource",
+          "id": "prometheus",
+          "name": "Prometheus",
+          "version": "1.0.0"
+        },
+        {
+          "type": "panel",
+          "id": "stat",
+          "name": "Stat",
+          "version": ""
+        },
+        {
+          "type": "panel",
+          "id": "timeseries",
+          "name": "Time series",
+          "version": ""
+        }
+      ],
       "annotations": {
         "list": [
           {
@@ -52,14 +89,14 @@ data:
       "fiscalYearStartMonth": 0,
       "gnetId": 16163,
       "graphTooltip": 0,
-      "id": 27,
+      "id": null,
       "links": [],
       "liveNow": false,
       "panels": [
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "$datasource"
           },
           "fieldConfig": {
             "defaults": {
@@ -83,7 +120,7 @@ data:
             "x": 0,
             "y": 0
           },
-          "id": 9,
+          "id": 1,
           "options": {
             "colorMode": "value",
             "graphMode": "area",
@@ -98,12 +135,12 @@ data:
             },
             "textMode": "auto"
           },
-          "pluginVersion": "9.2.4",
+          "pluginVersion": "9.3.6",
           "targets": [
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "$datasource"
               },
               "editorMode": "code",
               "exemplar": true,
@@ -121,7 +158,7 @@ data:
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "$datasource"
           },
           "fieldConfig": {
             "defaults": {
@@ -145,7 +182,7 @@ data:
             "x": 5,
             "y": 0
           },
-          "id": 11,
+          "id": 2,
           "options": {
             "colorMode": "value",
             "graphMode": "area",
@@ -160,17 +197,17 @@ data:
             },
             "textMode": "value_and_name"
           },
-          "pluginVersion": "9.2.4",
+          "pluginVersion": "9.3.6",
           "targets": [
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "$datasource"
               },
               "exemplar": true,
-              "expr": "round(sum(increase(gunicorn_response_code{app=\"$app_name\"}[$__range])) by (status))",
+              "expr": "round(sum(increase(gunicorn_response_code{app=\"$app_name\"}[$__range])) by (status)) > 0",
               "interval": "",
-              "legendFormat": "{{"{{"}}status{{"}}"}}",
+              "legendFormat": "{{ "{{" }} status {{ "}}" }}",
               "refId": "A"
             }
           ],
@@ -181,7 +218,195 @@ data:
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "$datasource"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 3,
+            "w": 5,
+            "x": 12,
+            "y": 0
+          },
+          "id": 3,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "pluginVersion": "9.3.6",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "$datasource"
+              },
+              "editorMode": "code",
+              "exemplar": true,
+              "expr": "count(gunicorn_workers{app=\"$app_name\"})",
+              "interval": "",
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "timeFrom": "24h",
+          "title": "Replica Count",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "#EAB839",
+                    "value": 1
+                  }
+                ]
+              },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 7,
+            "x": 17,
+            "y": 0
+          },
+          "id": 5,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "center",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "value_and_name"
+          },
+          "pluginVersion": "9.3.6",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "$datasource"
+              },
+              "exemplar": true,
+              "expr": "sum(increase(gunicorn_error_log_count{app=\"$app_name\"}[2m])) by (app, level)",
+              "interval": "",
+              "legendFormat": "{{ "{{" }} level {{ "}}" }}",
+              "refId": "A"
+            }
+          ],
+          "timeFrom": "24h",
+          "title": "Error Log Count",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 3,
+            "w": 5,
+            "x": 12,
+            "y": 3
+          },
+          "id": 4,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "pluginVersion": "9.3.6",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "$datasource"
+              },
+              "editorMode": "code",
+              "exemplar": true,
+              "expr": "sum(gunicorn_workers{app=\"$app_name\"}) by (app)",
+              "interval": "",
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "timeFrom": "24h",
+          "title": "Worker Count",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
           },
           "fieldConfig": {
             "defaults": {
@@ -236,12 +461,12 @@ data:
             "overrides": []
           },
           "gridPos": {
-            "h": 6,
+            "h": 8,
             "w": 12,
-            "x": 12,
-            "y": 0
+            "x": 0,
+            "y": 6
           },
-          "id": 7,
+          "id": 6,
           "options": {
             "legend": {
               "calcs": [],
@@ -258,10 +483,10 @@ data:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "$datasource"
               },
               "exemplar": true,
-              "expr": "sum(rate(gunicorn_requests{app=\"$app_name\"}[1m])) by (app)",
+              "expr": "sum(rate(gunicorn_requests{app=\"$app_name\"}[2m])) by (app)",
               "interval": "",
               "legendFormat": "",
               "refId": "A"
@@ -273,7 +498,155 @@ data:
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "$datasource"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineStyle": {
+                  "fill": "dash",
+                  "dash": [
+                    10,
+                    10
+                  ]
+                },
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "noValue": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Average"
+                },
+                "properties": [
+                  {
+                    "id": "custom.lineWidth",
+                    "value": 3
+                  },
+                  {
+                    "id": "custom.lineStyle"
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 6
+          },
+          "id": 7,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "$datasource"
+              },
+              "exemplar": true,
+              "expr": "(sum(increase(gunicorn_request_duration_sum{app=\"$app_name\"}[2m])) by (app) / sum(increase(gunicorn_request_duration_count{app=\"$app_name\"}[2m])) by (app)) > 0",
+              "interval": "",
+              "legendFormat": "Average",
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "$datasource"
+              },
+              "exemplar": true,
+              "expr": "histogram_quantile(0.5, sum(rate(gunicorn_request_duration_bucket{app=\"$app_name\"}[2m])) by (app, le)) > 0",
+              "interval": "",
+              "legendFormat": "PR 50",
+              "refId": "B"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "$datasource"
+              },
+              "exemplar": true,
+              "expr": "histogram_quantile(0.9, sum(rate(gunicorn_request_duration_bucket{app=\"$app_name\"}[2m])) by (app, le)) > 0",
+              "hide": false,
+              "interval": "",
+              "legendFormat": "PR 90",
+              "refId": "C"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "$datasource"
+              },
+              "exemplar": true,
+              "expr": "histogram_quantile(0.99, sum(rate(gunicorn_request_duration_bucket{app=\"$app_name\"}[2m])) by (app, le)) > 0",
+              "hide": false,
+              "interval": "",
+              "legendFormat": "PR 99",
+              "refId": "D"
+            }
+          ],
+          "title": "Request Duration",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
           },
           "fieldConfig": {
             "defaults": {
@@ -335,9 +708,9 @@ data:
             "h": 6,
             "w": 6,
             "x": 0,
-            "y": 6
+            "y": 14
           },
-          "id": 2,
+          "id": 8,
           "options": {
             "legend": {
               "calcs": [],
@@ -354,10 +727,10 @@ data:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "$datasource"
               },
               "exemplar": true,
-              "expr": "round(sum(increase(gunicorn_response_code{app=\"azimuth-api\", status=~\"2.*\"}[1m])) by(app)) / round(sum(increase(gunicorn_response_code{app=\"azimuth-api\"}[1m])) by(app)) > 0",
+              "expr": "(sum(increase(gunicorn_response_code{app=\"azimuth-api\", status=~\"2.*\"}[2m])) by(app) / sum(increase(gunicorn_response_code{app=\"azimuth-api\"}[2m])) by(app)) > 0",
               "interval": "",
               "legendFormat": "2XX Rate",
               "refId": "A"
@@ -369,7 +742,7 @@ data:
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "$datasource"
           },
           "fieldConfig": {
             "defaults": {
@@ -431,9 +804,9 @@ data:
             "h": 6,
             "w": 6,
             "x": 6,
-            "y": 6
+            "y": 14
           },
-          "id": 3,
+          "id": 9,
           "options": {
             "legend": {
               "calcs": [],
@@ -450,10 +823,10 @@ data:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "$datasource"
               },
               "exemplar": true,
-              "expr": "round(sum(increase(gunicorn_response_code{app=\"azimuth-api\", status=~\"3.*\"}[1m])) by(app)) / round(sum(increase(gunicorn_response_code{app=\"azimuth-api\"}[1m])) by(app)) > 0",
+              "expr": "(sum(increase(gunicorn_response_code{app=\"azimuth-api\", status=~\"3.*\"}[2m])) by(app) / sum(increase(gunicorn_response_code{app=\"azimuth-api\"}[2m])) by(app)) > 0",
               "interval": "",
               "legendFormat": "3XX Rate",
               "refId": "A"
@@ -465,7 +838,7 @@ data:
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "$datasource"
           },
           "fieldConfig": {
             "defaults": {
@@ -527,9 +900,9 @@ data:
             "h": 6,
             "w": 6,
             "x": 12,
-            "y": 6
+            "y": 14
           },
-          "id": 4,
+          "id": 10,
           "options": {
             "legend": {
               "calcs": [],
@@ -546,10 +919,10 @@ data:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "$datasource"
               },
               "exemplar": true,
-              "expr": "round(sum(increase(gunicorn_response_code{app=\"azimuth-api\", status=~\"4.*\"}[1m])) by(app)) / round(sum(increase(gunicorn_response_code{app=\"azimuth-api\"}[1m])) by(app)) > 0",
+              "expr": "(sum(increase(gunicorn_response_code{app=\"azimuth-api\", status=~\"4.*\"}[2m])) by(app) / sum(increase(gunicorn_response_code{app=\"azimuth-api\"}[2m])) by(app)) > 0",
               "interval": "",
               "legendFormat": "4XX Rate",
               "refId": "A"
@@ -561,7 +934,7 @@ data:
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "$datasource"
           },
           "fieldConfig": {
             "defaults": {
@@ -623,9 +996,9 @@ data:
             "h": 6,
             "w": 6,
             "x": 18,
-            "y": 6
+            "y": 14
           },
-          "id": 5,
+          "id": 11,
           "options": {
             "legend": {
               "calcs": [],
@@ -642,226 +1015,16 @@ data:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "$datasource"
               },
               "exemplar": true,
-              "expr": "round(sum(increase(gunicorn_response_code{app=\"azimuth-api\", status=~\"5.*\"}[1m])) by(app)) / round(sum(increase(gunicorn_response_code{app=\"azimuth-api\"}[1m])) by(app)) > 0",
+              "expr": "(sum(increase(gunicorn_response_code{app=\"azimuth-api\", status=~\"5.*\"}[2m])) by(app) / sum(increase(gunicorn_response_code{app=\"azimuth-api\"}[2m])) by(app)) > 0",
               "interval": "",
               "legendFormat": "5XX Rate",
               "refId": "A"
             }
           ],
           "title": "5XX Rate",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "s"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 12
-          },
-          "id": 13,
-          "options": {
-            "legend": {
-              "calcs": [],
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "single",
-              "sort": "none"
-            }
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "exemplar": true,
-              "expr": "gunicorn_request_duration_sum{app=\"$app_name\"} / gunicorn_request_duration_count{app=\"$app_name\"}",
-              "interval": "",
-              "legendFormat": "{{"{{"}}app{{"}}"}}",
-              "refId": "A"
-            }
-          ],
-          "title": "Request Average Duration",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "s"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 12
-          },
-          "id": 15,
-          "options": {
-            "legend": {
-              "calcs": [],
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "single",
-              "sort": "none"
-            }
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "exemplar": true,
-              "expr": "gunicorn_request_duration{app=\"$app_name\", quantile=\"0.5\"}",
-              "interval": "",
-              "legendFormat": "PR 50",
-              "refId": "A"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "exemplar": true,
-              "expr": "gunicorn_request_duration{app=\"$app_name\", quantile=\"0.9\"}",
-              "hide": false,
-              "interval": "",
-              "legendFormat": "PR 90",
-              "refId": "B"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "exemplar": true,
-              "expr": "gunicorn_request_duration{app=\"$app_name\", quantile=\"0.99\"}",
-              "hide": false,
-              "interval": "",
-              "legendFormat": "PR 99",
-              "refId": "C"
-            }
-          ],
-          "title": "Request Duration Percentile",
           "type": "timeseries"
         }
       ],
@@ -874,12 +1037,27 @@ data:
           {
             "current": {
               "selected": true,
-              "text": "azimuth-api",
-              "value": "azimuth-api"
+              "text": "Prometheus",
+              "value": "Prometheus"
             },
+            "hide": 0,
+            "includeAll": false,
+            "label": "Data Source",
+            "multi": false,
+            "name": "datasource",
+            "options": [],
+            "query": "prometheus",
+            "queryValue": "",
+            "refresh": 1,
+            "regex": "",
+            "skipUrlSync": false,
+            "type": "datasource"
+          },
+          {
+            "current": {},
             "datasource": {
               "type": "prometheus",
-              "uid": "prometheus"
+              "uid": "$datasource"
             },
             "definition": "label_values(gunicorn_workers{}, app)",
             "hide": 0,
@@ -901,14 +1079,14 @@ data:
         ]
       },
       "time": {
-        "from": "now-5m",
+        "from": "now-3h",
         "to": "now"
       },
       "timepicker": {},
       "timezone": "",
-      "title": "Azimuth API Dashboard",
+      "title": "Azimuth / API Overview",
       "uid": "nN74v-wnz11",
-      "version": 1,
+      "version": 36,
       "weekStart": ""
     }
 {{- end }}

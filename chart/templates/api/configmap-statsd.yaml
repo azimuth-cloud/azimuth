@@ -1,33 +1,61 @@
 {{- $component := "api" -}}
 {{- $values := get .Values $component -}}
 {{- if $values.monitoring.enabled }}
-# Creates a config file to be mounted into the statsd-exporter container
-# which instructs the exporter to modify some metrics when converting
-# to Prometheus format
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ include "azimuth.componentname" (list . $component) }}-statsd-metric-mapping
   labels: {{ include "azimuth.componentLabels" (list . $component) | nindent 4 }}
 data:
+  # Note that we use histogram rather than summary for request duration
+  # This is because the computation of the quantiles by statsd exporter prevents
+  # use from aggregating across multiple replicas
+  #   See https://povilasv.me/prometheus-tracking-request-duration/
+  #
+  # For now, we use the default bucket sizes
+  #   See https://pkg.go.dev/github.com/prometheus/client_golang/prometheus?utm_source=godoc#pkg-variables
+  # This may need tweaking in the future
+  #   See https://medium.com/mercari-engineering/have-you-been-using-histogram-metrics-correctly-730c9547a7a9
   statsd.conf: |
     mappings:
-    - match: "*.gunicorn.request.status.*"
-      help: "gunicorn response code"
-      name: "gunicorn_response_code"
-      labels:
-        app: "$1"
-        status: "$2"
-    - match: "*.gunicorn.workers"
-      name: "gunicorn_workers"
-      labels:
-        app: "$1"
-    - match: "*.gunicorn.requests"
-      name: "gunicorn_requests"
-      labels:
-        app: "$1"
-    - match: "*.gunicorn.request.duration"
-      name: "gunicorn_request_duration"
-      labels:
-        app: "$1"
+      - match: "*.gunicorn.request.status.*"
+        help: "gunicorn response code"
+        name: "gunicorn_response_code"
+        labels:
+          app: "$1"
+          status: "$2"
+      - match: "*.gunicorn.workers"
+        name: "gunicorn_workers"
+        labels:
+          app: "$1"
+      - match: "*.gunicorn.requests"
+        name: "gunicorn_requests"
+        labels:
+          app: "$1"
+      - match: "*.gunicorn.request.duration"
+        name: "gunicorn_request_duration"
+        labels:
+          app: "$1"
+        observer_type: histogram
+        histogram_options:
+          buckets:
+            - 0.005
+            - 0.01
+            - 0.025
+            - 0.05
+            - 0.1
+            - 0.25
+            - 0.5
+            - 1
+            - 2.5
+            - 5
+            - 10
+          native_histogram_bucket_factor: 1.1
+          native_histogram_max_buckets: 256
+      - match: "*.gunicorn.log.*"
+        help: "gunicorn error log count"
+        name: "gunicorn_error_log_count"
+        labels:
+          app: "$1"
+          level: "$2"
 {{- end }}
