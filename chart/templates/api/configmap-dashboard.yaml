@@ -205,7 +205,7 @@ data:
                 "uid": "$datasource"
               },
               "exemplar": true,
-              "expr": "round(sum(increase(gunicorn_response_code{app=\"$app_name\"}[$__range])) by (status)) > 0",
+              "expr": "round(sum(increase(gunicorn_response_code{app=\"$app_name\"}[$__range])) by (app, status)) > 0",
               "interval": "",
               "legendFormat": "{{ "{{" }} status {{ "}}" }}",
               "refId": "A"

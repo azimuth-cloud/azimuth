@@ -1,0 +1,53 @@
+{{- $component := "api" -}}
+{{- $values := get .Values $component -}}
+{{- if and $values.monitoring.enabled $values.monitoring.prometheusRule.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "azimuth.componentname" (list . $component) }}
+  labels: {{ include "azimuth.componentLabels" (list . $component) | nindent 4 }}
+spec:
+  groups:
+    - name: azimuth-api.recording-rules
+      rules:
+        - record: azimuth_api:gunicorn_response_code_total:rate2m
+          expr: sum(rate(gunicorn_response_code{app="azimuth-api"}[2m])) by(app)
+
+        - record: azimuth_api:gunicorn_response_code_4xx:rate2m
+          expr: sum(rate(gunicorn_response_code{app="azimuth-api",status=~"4(02|0[5-9]|[1-9][0-9])"}[2m])) by(app)
+
+        - record: azimuth_api:gunicorn_response_code_5xx:rate2m
+          expr: sum(rate(gunicorn_response_code{app="azimuth-api",status=~"5.*"}[2m])) by(app)
+
+    - name: azimuth-api.alerts
+      rules:
+        - alert: AzimuthHighClientErrorPercentage
+          expr: >-
+            (azimuth_api:gunicorn_response_code_4xx:rate2m / azimuth_api:gunicorn_response_code_total:rate2m) * 100 > 1
+          for: 15m
+          annotations:
+            description: >-
+              The Azimuth API has been returning a high percentage
+              ({{ "{{" }} printf "%.2f" $value {{ "}}" }}%)
+              of unexpected 4xx responses for longer than 15 minutes.
+            summary: >-
+              The Azimuth API has been returning a high percentage of unexpected 4xx
+              responses for more than 15 minutes.
+          labels:
+            severity: warning
+
+        - alert: AzimuthHighServerErrorPercentage
+          expr: >-
+            (azimuth_api:gunicorn_response_code_5xx:rate2m / azimuth_api:gunicorn_response_code_total:rate2m) * 100 > 1
+          for: 15m
+          annotations:
+            description: >-
+              The Azimuth API has been returning a high percentage
+              ({{ "{{" }} printf "%.2f" $value {{ "}}" }}%)
+              of 5xx responses for longer than 15 minutes.
+            summary: >-
+              The Azimuth API has been returning a high percentage of 5xx
+              responses for more than 15 minutes.
+          labels:
+            severity: warning
+{{- end }}
