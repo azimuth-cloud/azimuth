@@ -75,6 +75,9 @@ api:
       labels:
         # Required for Grafana to pick up the dashboard
         grafana_dashboard: "1"
+    # Indicates whether to create the alerting rule
+    prometheusRule:
+      enabled: true
 
 ui:
   # The image to use for the ui component
