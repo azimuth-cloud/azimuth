@@ -150,7 +150,9 @@ const KubernetesConfigurationForm = ({
     kubernetesClusterTemplates,
     kubernetesClusterTemplateActions,
     sizes,
-    sizeActions
+    sizeActions,
+    externalIps,
+    externalIpActions
 }) => {
     const [formState, _] = useKubernetesClusterFormState(undefined);
     return (
@@ -165,6 +167,8 @@ const KubernetesConfigurationForm = ({
             kubernetesClusterTemplateActions={kubernetesClusterTemplateActions}
             sizes={sizes}
             sizeActions={sizeActions}
+            externalIps={externalIps}
+            externalIpActions={externalIpActions}
         />
     );
 };
@@ -236,6 +240,8 @@ const PlatformConfigurationForm = ({
                         kubernetesClusterTemplateActions={tenancyActions.kubernetesClusterTemplate}
                         sizes={tenancy.sizes}
                         sizeActions={tenancyActions.size}
+                        externalIps={tenancy.externalIps}
+                        externalIpActions={tenancyActions.externalIp}
                     />
                 )}
                 {platformType.kind === "kubernetesAppTemplate" && (
