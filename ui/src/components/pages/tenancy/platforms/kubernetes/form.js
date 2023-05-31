@@ -576,10 +576,9 @@ export const KubernetesClusterForm = ({
                                 <>
                                     The IP address that will be associated with the ingress controller.
                                     <br />
-                                    You will need to ensure that a DNS record pointing to this IP address{" "}
-                                    exists for each host that you use in a Kubernetes <code>Ingress</code>{" "}
-                                    resource in your cluster - this will <strong>not</strong> be done{" "}
-                                    automatically.
+                                    Each <code>Ingress</code> resource created in your Kubernetes cluster{" "}
+                                    must have a DNS record pointing to this IP address.{" "}
+                                    This will <strong>not</strong> happen automatically.
                                 </>
                             }
                         >
