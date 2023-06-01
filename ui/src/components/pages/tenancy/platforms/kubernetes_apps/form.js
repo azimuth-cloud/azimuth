@@ -32,6 +32,8 @@ const KubernetesClusterSelectControlWithCreate = ({
     kubernetesClusterTemplateActions,
     sizes,
     sizeActions,
+    externalIps,
+    externalIpActions,
     ...props
 }) => {
     const [modalVisible, setModalVisible] = useState(false);
@@ -87,6 +89,8 @@ const KubernetesClusterSelectControlWithCreate = ({
                 kubernetesClusterTemplateActions={kubernetesClusterTemplateActions}
                 sizes={sizes}
                 sizeActions={sizeActions}
+                externalIps={externalIps}
+                externalIpActions={externalIpActions}
             />
         </>
     );
@@ -178,11 +182,13 @@ export const KubernetesAppForm = ({
     };
 
     const {
+        externalIps,
         kubernetesClusters,
         kubernetesClusterTemplates,
         sizes
     } = tenancy;
     const {
+        externalIp: externalIpActions,
         kubernetesCluster: kubernetesClusterActions,
         kubernetesClusterTemplate: kubernetesClusterTemplateActions,
         size: sizeActions
@@ -211,7 +217,7 @@ export const KubernetesAppForm = ({
                     type="text"
                     placeholder="Platform name"
                     required
-                    pattern="^[a-z][a-z0-9-]+[a-z0-9]$"
+                    pattern="^[a-z][a-z0-9-]+[a-z0-9]$/u"
                     autoComplete="off"
                     disabled={formState.isEdit}
                     value={formState.name}
@@ -234,6 +240,8 @@ export const KubernetesAppForm = ({
                     kubernetesClusterTemplateActions={kubernetesClusterTemplateActions}
                     sizes={sizes}
                     sizeActions={sizeActions}
+                    externalIps={externalIps}
+                    externalIpActions={externalIpActions}
                 />
             </Field>
             <Field

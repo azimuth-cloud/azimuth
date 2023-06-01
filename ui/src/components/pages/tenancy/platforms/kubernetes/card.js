@@ -463,6 +463,8 @@ const UpdateKubernetesClusterButton = ({
     kubernetesClusterTemplateActions,
     sizes,
     sizeActions,
+    externalIps,
+    externalIpActions,
     disabled,
     ...props
 }) => {
@@ -509,6 +511,8 @@ const UpdateKubernetesClusterButton = ({
                 kubernetesClusterTemplateActions={kubernetesClusterTemplateActions}
                 sizes={sizes}
                 sizeActions={sizeActions}
+                externalIps={externalIps}
+                externalIpActions={externalIpActions}
             />
         </>
     );
@@ -521,7 +525,9 @@ const KubernetesClusterDetailsButton = ({
     kubernetesClusterTemplates,
     kubernetesClusterTemplateActions,
     sizes,
-    sizeActions
+    sizeActions,
+    externalIps,
+    externalIpActions
 }) => {
     const [visible, setVisible] = useState(false);
     const open = () => setVisible(true);
@@ -586,6 +592,8 @@ const KubernetesClusterDetailsButton = ({
                                             kubernetesClusterTemplateActions={kubernetesClusterTemplateActions}
                                             sizes={sizes}
                                             sizeActions={sizeActions}
+                                            externalIps={externalIps}
+                                            externalIpActions={externalIpActions}
                                             disabled={inFlight || working}
                                             className="me-2"
                                         />
@@ -701,6 +709,8 @@ export const KubernetesCard = ({
                     kubernetesClusterTemplateActions={tenancyActions.kubernetesClusterTemplate}
                     sizes={tenancy.sizes}
                     sizeActions={tenancyActions.size}
+                    externalIps={tenancy.externalIps}
+                    externalIpActions={tenancyActions.externalIp}
                 />
             </Card.Footer>
         </Card>

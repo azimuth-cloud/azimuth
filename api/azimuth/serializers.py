@@ -694,15 +694,20 @@ class NodeGroupSpecSerializer(serializers.Serializer):
         return data
 
 
-class CreateKubernetesClusterSerializer(serializers.Serializer):
-    name = serializers.RegexField("^[a-z][a-z0-9-]+[a-z0-9]$")
-    template = serializers.RegexField("^[a-z0-9-]+$")
-    control_plane_size = serializers.RegexField(ID_REGEX)
-    node_groups = NodeGroupSpecSerializer(many = True)
-    autohealing_enabled = serializers.BooleanField(default = True)
-    dashboard_enabled = serializers.BooleanField(default = False)
-    ingress_enabled = serializers.BooleanField(default = False)
-    monitoring_enabled = serializers.BooleanField(default = False)
+class KubernetesClusterValidationMixin:
+    def validate(self, data):
+        if (
+            "ingress_enabled" in data and
+            data["ingress_enabled"] and
+            (
+                "ingress_controller_load_balancer_ip" not in data or
+                not data["ingress_controller_load_balancer_ip"]
+            )
+        ):
+            raise serializers.ValidationError(
+                "ingress_controller_load_balancer_ip is required when ingress is enabled."
+            )
+        return data
 
     def validate_template(self, value):
         capi_session = self.context["capi_session"]
@@ -727,44 +732,78 @@ class CreateKubernetesClusterSerializer(serializers.Serializer):
             raise serializers.ValidationError("There must be at least one worker node.")
         return value
 
+    def validate_ingress_controller_load_balancer_ip(self, value):
+        if value:
+            # If the value is the same as the previous value, we are done
+            if (
+                self.instance and
+                self.instance.ingress_controller_load_balancer_ip and
+                value == self.instance.ingress_controller_load_balancer_ip
+            ):
+                return value
+            # OCCM does not respect changes to the IP, so disallow it
+            if (
+                self.instance and
+                self.instance.ingress_enabled and
+                value != self.instance.ingress_controller_load_balancer_ip
+            ):
+                raise serializers.ValidationError(
+                    "Changing the IP address of the load balancer is not supported."
+                )
+            # If setting a new IP for a new installation of the ingress controller,
+            # check that the floating IP is not associated with a machine
+            session = self.context["session"]
+            try:
+                ip = session.find_external_ip_by_ip_address(value)
+            except errors.ObjectNotFoundError as exc:
+                raise serializers.ValidationError(str(exc))
+            if ip.machine_id:
+                raise serializers.ValidationError(
+                    f"{value} is already associated with another platform or machine."
+                )
+            return ip.external_ip
 
-class UpdateKubernetesClusterSerializer(serializers.Serializer):
+
+class CreateKubernetesClusterSerializer(
+    KubernetesClusterValidationMixin,
+    serializers.Serializer
+):
+    name = serializers.RegexField("^[a-z][a-z0-9-]+[a-z0-9]$")
+    template = serializers.RegexField("^[a-z0-9-]+$")
+    control_plane_size = serializers.RegexField(ID_REGEX)
+    node_groups = NodeGroupSpecSerializer(many = True)
+    autohealing_enabled = serializers.BooleanField(default = True)
+    dashboard_enabled = serializers.BooleanField(default = False)
+    ingress_enabled = serializers.BooleanField(default = False)
+    ingress_controller_load_balancer_ip = serializers.IPAddressField(
+        protocol = "IPv4",
+        allow_null = True,
+        required = False
+    )
+    monitoring_enabled = serializers.BooleanField(default = False)
+
+
+class UpdateKubernetesClusterSerializer(
+    KubernetesClusterValidationMixin,
+    serializers.Serializer
+):
     template = serializers.RegexField("^[a-z0-9-]+$", required = False)
     control_plane_size = serializers.RegexField(ID_REGEX, required = False)
     node_groups = NodeGroupSpecSerializer(many = True, required = False)
     autohealing_enabled = serializers.BooleanField(required = False)
     dashboard_enabled = serializers.BooleanField(required = False)
     ingress_enabled = serializers.BooleanField(required = False)
+    ingress_controller_load_balancer_ip = serializers.IPAddressField(
+        protocol = "IPv4",
+        allow_null = True,
+        required = False
+    )
     monitoring_enabled = serializers.BooleanField(required = False)
 
     def validate(self, data):
         if "template" in data and len(data) > 1:
             raise serializers.ValidationError("If template is given, no other fields are permitted.")
-        return data
-
-    def validate_template(self, value):
-        capi_session = self.context["capi_session"]
-        try:
-            template = capi_session.find_cluster_template(value)
-        except errors.ObjectNotFoundError as exc:
-            raise serializers.ValidationError(str(exc))
-        return template
-
-    def validate_control_plane_size(self, value):
-        session = self.context["session"]
-        try:
-            return session.find_size(value)
-        except errors.ObjectNotFoundError as exc:
-            raise serializers.ValidationError(str(exc))
-
-    def validate_node_groups(self, value):
-        # There must be at least one worker node, or the cluster will not deploy
-        min_worker_count = 0
-        for ng in value:
-            min_worker_count += ng["min_count"] if ng["autoscale"] else ng["count"]
-        if min_worker_count < 1:
-            raise serializers.ValidationError("There must be at least one worker node.")
-        return value
+        return super().validate(data)
 
 
 class KubernetesAppTemplateRefSerializer(RefSerializer):

@@ -33,7 +33,7 @@ export const TenanciesPage = ({ tenancies: { fetching, data: tenancies }}) => {
                                 Cloud resources are allocated to specific tenancies and are shared
                                 with everyone in that tenancy - for example you may have a cloud
                                 tenancy assigned to your project for all the members of your project
-                                to colloborate in.
+                                to collaborate in.
                             </p>
                             <p className="mb-0">
                                 If you want personal resources, you will need a personal tenancy.
