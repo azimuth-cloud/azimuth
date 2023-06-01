@@ -21,8 +21,9 @@ import {
 import { Error, Form, Field, withCustomValidity } from '../../../../utils';
 
 import {
-    MachineSizeLink,
+    ExternalIpSelectControl,
     KubernetesClusterTemplateSelectControl,
+    MachineSizeLink,
     SizeSelectControl
 } from '../../resource-utils';
 
@@ -113,7 +114,7 @@ const NodeGroupModalForm = ({
                             type="text"
                             placeholder="Name"
                             required
-                            pattern="^[a-z][a-z0-9-]+[a-z0-9]$"
+                            pattern="^[a-z][a-z0-9-]+[a-z0-9]$/u"
                             autoComplete="off"
                             value={getStateKey('name')}
                             onChange={setStateKeyFromInputEvent('name')}
@@ -122,7 +123,7 @@ const NodeGroupModalForm = ({
                     </Field>
                     <Field
                         name="machine_size"
-                        label="Node Size"
+                        label="Node size"
                         helpText="The size to use for nodes in the group."
                     >
                         <SizeSelectControl
@@ -153,11 +154,11 @@ const NodeGroupModalForm = ({
                             <Field
                                 as={Col}
                                 name="min_count"
-                                label="Minimum Node Count"
+                                label="Minimum node count"
                                 helpText="The minimum number of nodes in the group."
                             >
                                 <BSForm.Control
-                                    placeholder="Minimum Node Count"
+                                    placeholder="Minimum node count"
                                     type="number"
                                     required
                                     min="1"
@@ -169,12 +170,12 @@ const NodeGroupModalForm = ({
                             <Field
                                 as={Col}
                                 name="max_count"
-                                label="Maximum Node Count"
+                                label="Maximum node count"
                                 helpText="The maximum number of nodes in the group."
                             >
                                 <BSForm.Control
                                     as={InputWithCustomValidity}
-                                    placeholder="Maximum Node Count"
+                                    placeholder="Maximum node count"
                                     type="number"
                                     required
                                     min="1"
@@ -188,11 +189,11 @@ const NodeGroupModalForm = ({
                     ) : (
                         <Field
                             name="count"
-                            label="Node Count"
+                            label="Node count"
                             helpText="The target number of nodes in the group."
                         >
                             <BSForm.Control
-                                placeholder="Node Count"
+                                placeholder="Node count"
                                 type="number"
                                 required
                                 min="0"
@@ -232,6 +233,7 @@ const initialState = kubernetesCluster => {
             autohealing_enabled: kubernetesCluster.autohealing_enabled,
             dashboard_enabled: kubernetesCluster.dashboard_enabled,
             ingress_enabled: kubernetesCluster.ingress_enabled,
+            ingress_controller_load_balancer_ip: kubernetesCluster.ingress_controller_load_balancer_ip,
             monitoring_enabled: kubernetesCluster.monitoring_enabled
         };
     }
@@ -245,6 +247,7 @@ const initialState = kubernetesCluster => {
             autohealing_enabled: true,
             dashboard_enabled: true,
             ingress_enabled: false,
+            ingress_controller_load_balancer_ip: null,
             monitoring_enabled: true
         };
     }
@@ -268,6 +271,7 @@ export const useKubernetesClusterFormState = kubernetesCluster => {
 
     return [
         {
+            kubernetesCluster,
             isEdit: !!kubernetesCluster,
             data,
             setData,
@@ -298,12 +302,36 @@ export const KubernetesClusterForm = ({
     kubernetesClusterTemplateActions,
     sizes,
     sizeActions,
+    externalIps,
+    externalIpActions,
     ...props
 }) => {
     const getStateKey = key => formState.data[key] || '';
     const setStateKey = key => value => formState.setData(state => ({ ...state, [key]: value }));
     const setStateKeyFromInputEvent = key => evt => setStateKey(key)(evt.target.value);
     const setStateFromCheckboxEvent = key => evt => setStateKey(key)(evt.target.checked);
+    const setIngressEnabled = evt => formState.setData(state => {
+        if( evt.target.checked ) {
+            return {
+                ...state,
+                ingress_enabled: true,
+                // When ingress moves to enabled, restore the previous IP if there is one
+                ingress_controller_load_balancer_ip: (
+                    formState.kubernetesCluster &&
+                    formState.kubernetesCluster.ingress_controller_load_balancer_ip ||
+                    null
+                )
+            };
+        }
+        else {
+            return {
+                ...state,
+                ingress_enabled: false,
+                // When ingress is disabled, make sure the IP is set to null
+                ingress_controller_load_balancer_ip: null
+            };
+        }
+    });
 
     const cancelNodeGroupEdit = () => formState.setNodeGroupEditIdx(-1);
     const handleNodeGroupEdit = ngState => {
@@ -353,7 +381,7 @@ export const KubernetesClusterForm = ({
                         type="text"
                         placeholder="Cluster name"
                         required
-                        pattern="^[a-z][a-z0-9-]+[a-z0-9]$"
+                        pattern="^[a-z][a-z0-9-]+[a-z0-9]$/u"
                         autoComplete="off"
                         disabled={formState.isEdit}
                         value={getStateKey('name')}
@@ -376,7 +404,7 @@ export const KubernetesClusterForm = ({
                 </Field>
                 <Field
                     name="control_plane_size"
-                    label="Control Plane Size"
+                    label="Control plane size"
                     helpText="The size to use for the Kubernetes control plane node(s)."
                 >
                     <SizeSelectControl
@@ -390,7 +418,7 @@ export const KubernetesClusterForm = ({
                     />
                 </Field>
                 <Card className="mb-3">
-                    <Card.Header>Node Groups</Card.Header>
+                    <Card.Header>Node groups</Card.Header>
                     {formState.showWorkerCountMessage && workerCountMessage !== '' && (
                         <Card.Body>
                             <Row xs="auto" className="justify-content-center">
@@ -476,7 +504,7 @@ export const KubernetesClusterForm = ({
                     </div>
                 </Card>
                 <CollapsibleCard
-                    title="Cluster Addons"
+                    title="Cluster addons"
                     show={formState.showAddons}
                     toggle={formState.toggleShowAddons}
                     className="mb-3"
@@ -505,7 +533,7 @@ export const KubernetesClusterForm = ({
                     </Card.Body>
                 </CollapsibleCard>
                 <CollapsibleCard
-                    title="Advanced Options"
+                    title="Advanced options"
                     show={formState.showAdvancedOptions}
                     toggle={formState.toggleShowAdvancedOptions}
                 >
@@ -532,17 +560,43 @@ export const KubernetesClusterForm = ({
                                         Kubernetes Ingress
                                     </a>{" "}
                                     to expose services in the cluster via a load balancer.
-                                    <br />
-                                    <span className="text-danger">
-                                        Requires an external IP for the load balancer.
-                                    </span>
                                 </>
                             }
                         >
                             <BSForm.Check
                                 label="Enable Kubernetes Ingress?"
                                 checked={getStateKey('ingress_enabled')}
-                                onChange={setStateFromCheckboxEvent('ingress_enabled')}
+                                onChange={setIngressEnabled}
+                            />
+                        </Field>
+                        <Field
+                            name="ingress_controller_load_balancer_ip"
+                            label="Ingress controller external IP"
+                            helpText={
+                                <>
+                                    The IP address that will be associated with the ingress controller.
+                                    <br />
+                                    Each <code>Ingress</code> resource created in your Kubernetes cluster{" "}
+                                    must have a DNS record pointing to this IP address.{" "}
+                                    This will <strong>not</strong> happen automatically.
+                                </>
+                            }
+                        >
+                            <ExternalIpSelectControl
+                                resource={externalIps}
+                                resourceActions={externalIpActions}
+                                required={getStateKey('ingress_enabled')}
+                                disabled={
+                                    !getStateKey('ingress_enabled') ||
+                                    (
+                                        formState.kubernetesCluster &&
+                                        formState.kubernetesCluster.ingress_enabled
+                                    )
+                                }
+                                value={getStateKey('ingress_controller_load_balancer_ip')}
+                                onChange={setStateKey('ingress_controller_load_balancer_ip')}
+                                // Use the IP address itself as the value
+                                getOptionValue={ip => ip.external_ip}
                             />
                         </Field>
                     </Card.Body>
@@ -592,6 +646,8 @@ export const KubernetesClusterModalForm = ({
     kubernetesClusterTemplateActions,
     sizes,
     sizeActions,
+    externalIps,
+    externalIpActions,
     show,
     ...props
 }) => {
@@ -628,6 +684,8 @@ export const KubernetesClusterModalForm = ({
                     kubernetesClusterTemplateActions={kubernetesClusterTemplateActions}
                     sizes={sizes}
                     sizeActions={sizeActions}
+                    externalIps={externalIps}
+                    externalIpActions={externalIpActions}
                 />
             </Modal.Body>
             <Modal.Footer>

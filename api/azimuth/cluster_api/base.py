@@ -193,9 +193,11 @@ class Session:
         """
         Converts a cluster from the Kubernetes API to a DTO.
         """
+        cluster_addons = cluster.spec.get("addons", {})
+        cluster_status = cluster.get("status", {})
         # We want to account for the case where a change has been made but the operator
         # has not yet caught up by tweaking the cluster state against what is reported
-        cluster_state = cluster.get("status", {}).get("phase")
+        cluster_state = cluster_status.get("phase")
         if cluster.metadata.get("deletionTimestamp"):
             # If the cluster has a deletion timestamp, flag it as deleting even if
             # the operator hasn't yet updated the status
@@ -251,12 +253,17 @@ class Session:
                 for ng in cluster.spec.get("nodeGroups", [])
             ],
             cluster.spec["autohealing"],
-            cluster.spec.get("addons", {}).get("dashboard", False),
-            cluster.spec.get("addons", {}).get("ingress", False),
-            cluster.spec.get("addons", {}).get("monitoring", False),
-            cluster.get("status", {}).get("kubernetesVersion"),
+            cluster_addons.get("dashboard", False),
+            cluster_addons.get("ingress", False),
+            (
+                cluster_addons.get("ingressControllerLoadBalancerIp", None)
+                if cluster_addons.get("ingress", False)
+                else None
+            ),
+            cluster_addons.get("monitoring", False),
+            cluster_status.get("kubernetesVersion"),
             cluster_state,
-            cluster.get("status", {}).get("controlPlanePhase", "Unknown"),
+            cluster_status.get("controlPlanePhase", "Unknown"),
             [
                 dto.Node(
                     name,
@@ -275,15 +282,15 @@ class Session:
                     node.get("nodeGroup"),
                     dateutil.parser.parse(node["created"])
                 )
-                for name, node in cluster.get("status", {}).get("nodes", {}).items()
+                for name, node in cluster_status.get("nodes", {}).items()
             ],
             [
                 dto.Addon(name, addon.get("phase", "Unknown"))
-                for name, addon in cluster.get("status", {}).get("addons", {}).items()
+                for name, addon in cluster_status.get("addons", {}).items()
             ],
             [
                 dto.Service(name, service["label"], service["fqdn"], service.get("iconUrl"))
-                for name, service in cluster.get("status", {}).get("services", {}).items()
+                for name, service in cluster_status.get("services", {}).items()
             ],
             dateutil.parser.parse(cluster.metadata["creationTimestamp"]),
         )
@@ -356,12 +363,23 @@ class Session:
             ]
         if "autohealing_enabled" in options:
             spec["autohealing"] = options["autohealing_enabled"]
+        addons = spec.setdefault("addons", {})
         if "dashboard_enabled" in options:
-            spec.setdefault("addons", {})["dashboard"] = options["dashboard_enabled"]
+            addons["dashboard"] = options["dashboard_enabled"]
         if "ingress_enabled" in options:
-            spec.setdefault("addons", {})["ingress"] = options["ingress_enabled"]
+            addons["ingress"] = options["ingress_enabled"]
+            if options["ingress_enabled"]:
+                ip = options.get("ingress_controller_load_balancer_ip")
+                if not ip:
+                    raise errors.BadInputError(
+                        "ingress_controller_load_balancer_ip is required when "
+                        "ingress is enabled."
+                    )
+                addons["ingressControllerLoadBalancerIp"] = ip
+            else:
+                addons["ingressControllerLoadBalancerIp"] = None
         if "monitoring_enabled" in options:
-            spec.setdefault("addons", {})["monitoring"] = options["monitoring_enabled"]
+            addons["monitoring"] = options["monitoring_enabled"]
         return spec
 
     @convert_exceptions
@@ -374,6 +392,7 @@ class Session:
         autohealing_enabled: bool = True,
         dashboard_enabled: bool = False,
         ingress_enabled: bool = False,
+        ingress_controller_load_balancer_ip: t.Optional[str] = None,
         monitoring_enabled: bool = False,
         zenith_identity_realm_name: t.Optional[str] = None
     ) -> dto.Cluster:
@@ -401,6 +420,7 @@ class Session:
             autohealing_enabled = autohealing_enabled,
             dashboard_enabled = dashboard_enabled,
             ingress_enabled = ingress_enabled,
+            ingress_controller_load_balancer_ip = ingress_controller_load_balancer_ip,
             monitoring_enabled = monitoring_enabled
         )
         # Add the create-only pieces

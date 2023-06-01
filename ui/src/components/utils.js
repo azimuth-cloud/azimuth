@@ -458,7 +458,7 @@ export const Select = React.forwardRef(
                 <ReactSelect
                     {...props}
                     options={sortedOptions}
-                    value={selectedOption}
+                    value={selectedOption || ''}
                     onChange={handleSelectChange}
                     ref={selectRef}
                     isDisabled={disabled}

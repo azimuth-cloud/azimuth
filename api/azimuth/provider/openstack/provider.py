@@ -1102,6 +1102,20 @@ class ScopedSession(base.ScopedSession):
         return self._from_api_floatingip(fip)
 
     @convert_exceptions
+    def find_external_ip_by_ip_address(self, ip_address):
+        """
+        See :py:meth:`.base.ScopedSession.find_external_ip_by_ip_address`.
+        """
+        self._log("Fetching floating IP '%s'", ip_address)
+        fip = self._connection.network.floatingips.find_by_floating_ip_address(ip_address)
+        if fip:
+            return self._from_api_floatingip(fip)
+        else:
+            raise errors.ObjectNotFoundError(
+                "Could not find floating IP {}.".format(ip_address)
+            )
+
+    @convert_exceptions
     def attach_external_ip(self, ip, machine):
         """
         See :py:meth:`.base.ScopedSession.attach_external_ip`.

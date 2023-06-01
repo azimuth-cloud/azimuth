@@ -1119,6 +1119,14 @@ def cluster_service(request, tenant, cluster, service):
     """
     Redirects the user to the specified service on the specified cluster.
     """
+    if not cloud_settings.CLUSTER_ENGINE:
+        return response.Response(
+            {
+                "detail": "Clusters are not supported.",
+                "code": "unsupported_operation"
+            },
+            status = status.HTTP_404_NOT_FOUND
+        )
     service_fqdn = None
     service_label = None
     try:
@@ -1252,6 +1260,7 @@ def kubernetes_cluster_details(request, tenant, cluster):
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             if request.method == "PATCH":
                 input_serializer = serializers.UpdateKubernetesClusterSerializer(
+                    instance = capi_session.find_cluster(cluster),
                     data = request.data,
                     context = { "session": session, "capi_session": capi_session }
                 )

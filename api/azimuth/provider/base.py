@@ -327,6 +327,14 @@ class ScopedSession:
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
+    def find_external_ip_by_ip_address(self, ip_address: str):
+        """
+        Finds an external IP by the IP address.
+        """
+        raise errors.UnsupportedOperationError(
+            "Operation not supported for provider '{}'".format(self.provider_name)
+        )
+
     def allocate_external_ip(self) -> dto.ExternalIp:
         """
         Allocates a new external IP address for the tenancy from a pool and returns

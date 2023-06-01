@@ -111,6 +111,8 @@ class Cluster:
     dashboard_enabled: bool
     #: Indicates if ingress is enabled
     ingress_enabled: bool
+    #: The IP address of the ingress controller load balancer
+    ingress_controller_load_balancer_ip: t.Optional[str]
     #: Indicates if monitoring is enabled
     monitoring_enabled: bool
     #: The Kubernetes version of the cluster

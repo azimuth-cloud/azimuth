@@ -269,6 +269,7 @@ export const ExternalIpSelectControl = ({
     resource,
     resourceActions,
     isInvalid,
+    getOptionValue = item => item.id,
     ...props
 }) => (
     <InputGroup className={isInvalid ? "is-invalid" : undefined}>
@@ -279,9 +280,12 @@ export const ExternalIpSelectControl = ({
             getOptionLabel={(ip) => ip.external_ip}
             sortResources={(ips) => sortBy(ips, ip => ip.external_ip)}
             // The currently selected IP should be permitted, regardless of state
-            resourceFilter={(ip) => (ip.id === value) || (!ip.updating && !ip.machine)}
+            resourceFilter={
+                (ip) => (getOptionValue(ip) === value) || (!ip.updating && !ip.machine)
+            }
             value={value}
             isInvalid={isInvalid}
+            getOptionValue={getOptionValue}
             {...props}
         />
         <Button
