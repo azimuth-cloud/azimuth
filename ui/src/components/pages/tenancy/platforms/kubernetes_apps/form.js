@@ -217,7 +217,7 @@ export const KubernetesAppForm = ({
                     type="text"
                     placeholder="Platform name"
                     required
-                    pattern="^[a-z][a-z0-9-]+[a-z0-9]$/u"
+                    pattern="^[a-z][a-z0-9\-]+[a-z0-9]$"
                     autoComplete="off"
                     disabled={formState.isEdit}
                     value={formState.name}

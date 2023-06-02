@@ -114,7 +114,7 @@ const NodeGroupModalForm = ({
                             type="text"
                             placeholder="Name"
                             required
-                            pattern="^[a-z][a-z0-9-]+[a-z0-9]$/u"
+                            pattern="^[a-z][a-z0-9\-]+[a-z0-9]$"
                             autoComplete="off"
                             value={getStateKey('name')}
                             onChange={setStateKeyFromInputEvent('name')}
@@ -381,7 +381,7 @@ export const KubernetesClusterForm = ({
                         type="text"
                         placeholder="Cluster name"
                         required
-                        pattern="^[a-z][a-z0-9-]+[a-z0-9]$/u"
+                        pattern="^[a-z][a-z0-9\-]+[a-z0-9]$"
                         autoComplete="off"
                         disabled={formState.isEdit}
                         value={getStateKey('name')}
