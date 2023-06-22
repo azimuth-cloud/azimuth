@@ -1,3 +1,4 @@
+{{- if .Values.tags.apps -}}
 # Allow redirects to the apps
 AZIMUTH_AUTH:
   NEXT_URL_ALLOWED_DOMAINS:
@@ -15,3 +16,4 @@ AZIMUTH:
     {{- with .Values.apps.queryParams }}
     QUERY_PARAMS: {{ toYaml . | nindent 10 }}
     {{- end }}
+{{- end }}

@@ -1,2 +1,4 @@
+{{- if not .Values.tags.kubernetes -}}
 AZIMUTH:
   CLUSTER_API_PROVIDER: null
+{{- end }}

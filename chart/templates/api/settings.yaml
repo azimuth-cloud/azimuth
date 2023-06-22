@@ -1,3 +1,7 @@
+{{- if not (has .Values.clusterEngine.type (list "crd" "awx")) -}}
+{{- fail (printf "Unsupported cluster engine '%s'" .Values.clusterEngine.type) }}
+{{- end }}
+
 apiVersion: v1
 kind: Secret
 metadata:
@@ -15,28 +19,15 @@ data:
     {{- tpl (.Files.Get "files/api/settings/03-cloud-authenticators.yaml") . | b64enc | nindent 4 }}
   04-cloud-provider.yaml: |
     {{- tpl (.Files.Get "files/api/settings/04-cloud-provider.yaml") . | b64enc | nindent 4 }}
-{{- if .Values.tags.apps }}
   05-apps.yaml: |
     {{- tpl (.Files.Get "files/api/settings/05-apps.yaml") . | b64enc | nindent 4 }}
-{{- end }}
   06-ssh-key-store.yaml: |
     {{- tpl (.Files.Get "files/api/settings/06-ssh-key-store.yaml") . | b64enc | nindent 4 }}
-{{- if not .Values.tags.kubernetes }}
   07-disable-kubernetes.yaml: |
     {{- tpl (.Files.Get "files/api/settings/07-disable-kubernetes.yaml") . | b64enc | nindent 4 }}
-{{- end }}
-{{- if .Values.tags.clusters }}
-{{- if list "crd" "awx" | has .Values.clusterEngine.type }}
-{{- if eq .Values.clusterEngine.type "awx" }}
   08-awx.yaml: |
     {{- tpl (.Files.Get "files/api/settings/08-awx.yaml") . | b64enc | nindent 4 }}
   09-awx-passwords.py: |
     {{- tpl (.Files.Get "files/api/settings/09-awx-passwords.py") . | b64enc | nindent 4 }}
-{{- end }}
-{{- else }}
-{{- fail (printf "Unsupported cluster engine '%s'" .Values.clusterEngine.type) }}
-{{- end }}
-{{- else }}
   10-disable-caas.yaml: |
     {{- tpl (.Files.Get "files/api/settings/10-disable-caas.yaml") . | b64enc | nindent 4 }}
-{{- end }}

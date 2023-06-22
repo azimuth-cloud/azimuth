@@ -1,3 +1,4 @@
+{{- if and .Values.tags.clusters (eq .Values.clusterEngine.type "awx") -}}
 AZIMUTH:
   AWX:
     ENABLED: true
@@ -51,3 +52,4 @@ AZIMUTH:
         {{- end }}
       {{- end }}
     {{- end }}
+{{- end }}

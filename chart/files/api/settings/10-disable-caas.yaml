@@ -1,2 +1,4 @@
+{{- if not .Values.tags.clusters -}}
 AZIMUTH:
   CLUSTER_ENGINE: null
+{{- end }}
