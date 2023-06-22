@@ -12,17 +12,6 @@ from settings_object import (
 from .zenith import Zenith
 
 
-class CaaSCrdSettings(SettingsObject):
-    """
-    Settings object for the CaaS CRD sttings.
-    """
-    ####
-    # General settings
-    ####
-    #: Indicates if CaaS CRD is enabled
-    ENABLED = Setting(default = False)
-
-
 class AwxSettings(SettingsObject):
     """
     Settings object for the AWX settings.
@@ -73,31 +62,42 @@ class AwxSettings(SettingsObject):
 
 class ClusterEngineSetting(Setting):
     """
-    Custom setting for the cluster engine that will provide Cluster-as-a-Service functionality.
+    Custom setting for the cluster engine that will provide CaaS functionality.
     """
     def _get_default(self, instance):
-        # The driver for the default cluster engine comes from the AWX setting
-        if instance.CAAS_CRD.ENABLED:
-            from .cluster_engine.drivers import crd
+        if instance.CLUSTER_DRIVER:
             from .cluster_engine import Engine
-            driver = crd.Driver()
-            return Engine(driver, instance.APPS)
-        if instance.AWX.ENABLED:
-            from .cluster_engine.drivers import awx
-            driver = awx.Driver(
-                instance.AWX.URL,
-                instance.AWX.USERNAME,
-                instance.AWX.PASSWORD,
-                instance.AWX.CREATE_TEAMS,
-                instance.AWX.CREATE_TEAM_ALLOW_ALL_PERMISSION,
-                instance.AWX.VERIFY_SSL,
-                instance.AWX.TEMPLATE_INVENTORY
-            )
-            from .cluster_engine import Engine
-            # Inject the Zenith instance into the engine if it is available
-            return Engine(driver, instance.APPS)
+            return Engine(instance.CLUSTER_DRIVER, instance.APPS)
         else:
             return None
+
+
+class ClusterDriverSetting(ObjectFactorySetting):
+    """
+    Custom setting for the cluster driver that will be used for CaaS functionality.
+    """
+    def _get_default(self, instance):
+        # If AWX is enabled use the AWX driver, else use the CRD driver
+        if instance.AWX.ENABLED:
+            return {
+                "FACTORY": "azimuth.cluster_engine.drivers.awx.Driver",
+                "PARAMS": {
+                    "URL": instance.AWX.URL,
+                    "USERNAME": instance.AWX.USERNAME,
+                    "PASSWORD": instance.AWX.PASSWORD,
+                    "CREATE_TEAMS": instance.AWX.CREATE_TEAMS,
+                    "CREATE_TEAM_ALLOW_ALL_PERMISSION": (
+                        instance.AWX.CREATE_TEAM_ALLOW_ALL_PERMISSION
+                    ),
+                    "VERIFY_SSL": instance.AWX.VERIFY_SSL,
+                    "TEMPLATE_INVENTORY": instance.AWX.TEMPLATE_INVENTORY,
+                },
+            }
+        else:
+            return {
+                "FACTORY": "azimuth.cluster_engine.drivers.crd.Driver",
+                "PARAMS": {},
+            }
 
 
 class ClusterApiProviderSetting(ObjectFactorySetting):
@@ -198,6 +198,7 @@ class AzimuthSettings(SettingsObject):
     PROVIDER = ObjectFactorySetting()
 
     #: Cluster engine configuration
+    CLUSTER_DRIVER = ClusterDriverSetting()
     CLUSTER_ENGINE = ClusterEngineSetting()
 
     #: Cluster API configuration
@@ -244,8 +245,6 @@ class AzimuthSettings(SettingsObject):
 
     #: AWX configuration
     AWX = NestedSetting(AwxSettings)
-
-    CAAS_CRD = NestedSetting(CaaSCrdSettings)
 
     #: Configuration for the Zenith instance for apps
     APPS = ZenithSetting()

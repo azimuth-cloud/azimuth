@@ -17,19 +17,6 @@ from ..provider import dto as cloud_dto
 
 
 @dataclass(frozen = True)
-class Credential:
-    """
-    Represents a credential that is passed from the provider to interact with a cloud.
-
-    Credentials should be ephemeral and have an expiry, e.g. a token.
-    """
-    #: The credential type
-    type: str
-    #: The credential data
-    data: dict
-
-
-@dataclass(frozen = True)
 class Context:
     """
     Represents a context for an operation.
@@ -38,8 +25,9 @@ class Context:
     username: str
     #: The tenancy that the operation is being carried out in
     tenancy: cloud_dto.Tenancy
-    #: The credential to use for the operation
-    credential: Credential
+    #: The cloud credential associated with the operation
+    #: If the credential is not yet known, this should be None
+    credential: Optional[cloud_dto.Credential] = None
 
 
 @dataclass(frozen = True)

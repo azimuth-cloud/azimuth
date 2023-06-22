@@ -15,7 +15,7 @@ import dateutil.parser
 
 import rackit
 
-from ...cluster_engine.dto import Credential
+import yaml
 
 from .. import base, errors, dto
 
@@ -1281,19 +1281,57 @@ class ScopedSession(base.ScopedSession):
         self._connection.block_store.volumes.get(volume.id, force = True)
         return self.find_volume(volume.id)
 
-    def cluster_credential(self):
+    def cloud_credential(self, name, description):
         """
-        See :py:meth:`.base.ScopedSession.cluster_credential`.
+        See :py:meth:`.base.ScopedSession.cloud_credential`.
         """
-        # Return a credential that uses the current token to interact with OpenStack
-        return Credential(
-            type = "openstack_token",
-            data = dict(
-                auth_url = self._connection.auth_url,
-                project_id = self._connection.project_id,
-                token = self._connection.token,
-                verify_ssl = self._connection.verify
-            )
+        # Create an app cred and return a clouds.yaml for it
+        # If an app cred already exists with the same name, delete it
+        user = self._connection.identity.current_user
+        existing = user.application_credentials.find_by_name(name)
+        if existing:
+            existing._delete()
+        app_cred = user.application_credentials.create(
+            name = name,
+            description = description,
+            # TODO(mkjpryor)
+            # This is currently required to allow app creds to delete themselves
+            # However it also allows the app cred to make and delete other app creds
+            # which is much more power than we would ideally like the app cred to have
+            # We need to look at allowing restricted app creds to delete only themselves,
+            # either via policy or code changes depending on what is possible
+            unrestricted = True
+        )
+        return dto.Credential(
+            "openstack_application_credential",
+            {
+                "clouds.yaml": yaml.safe_dump(
+                    {
+                        "clouds": {
+                            "openstack": {
+                                "identity_api_version": 3,
+                                "interface": "public",
+                                "auth_type": "v3applicationcredential",
+                                "auth": {
+                                    "auth_url": self._connection.endpoints["identity"],
+                                    "application_credential_id": app_cred.id,
+                                    "application_credential_secret": app_cred.secret,
+                                },
+                                # Disable SSL verification for now
+                                "verify": False,
+                            }
+                        }
+                    }
+                ),
+                "user_info.yaml": yaml.safe_dump(
+                    {
+                        "project_id": self._connection.project_id,
+                        "project_name": self._connection.project_name,
+                        "username": self._connection.username,
+                        "user_id": self._connection.user_id,
+                    }
+                ),
+            }
         )
 
     def cluster_parameters(self):

@@ -417,9 +417,9 @@ class ScopedSession:
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def cluster_credential(self) -> clusters_dto.Credential:
+    def cloud_credential(self, name: str, description: str) -> dto.Credential:
         """
-        Returns a credential for use with a cluster engine.
+        Returns a credential with the given name for interacting with the cloud.
         """
         raise errors.UnsupportedOperationError(
             "Operation not supported for provider '{}'".format(self.provider_name)
@@ -427,7 +427,7 @@ class ScopedSession:
 
     def cluster_parameters(self) -> Mapping[str, Any]:
         """
-        Returns any additional parameters required for cloud infrastructure.
+        Returns any additional cluster parameters required for cloud infrastructure.
         """
         return {}
 

@@ -455,7 +455,8 @@ class Driver(base.Driver):
         """
         Utility method to return a credential to use.
         """
-        # First, try to find the AWX credential type
+        if not ctx.credential:
+            raise errors.InvalidOperationError("No credential present.")
         try:
             credential_type_name = CREDENTIAL_TYPE_NAMES[ctx.credential.type]
         except KeyError:
@@ -528,8 +529,7 @@ class Driver(base.Driver):
         cluster_type: dto.ClusterType,
         params: t.Mapping[str, t.Any],
         ssh_key: t.Optional[str],
-        ctx: dto.Context,
-        cloud_session
+        ctx: dto.Context
     ):
         """
         See :py:meth:`.base.Driver.create_cluster`.
