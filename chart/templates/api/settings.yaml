@@ -169,14 +169,12 @@ stringData:
       CLUSTER_API_PROVIDER: null
 {{- end }}
 {{- if .Values.tags.clusters }}
-{{- if (eq $clusterEngine.type "awx") }}
+{{- if list "crd" "awx" | has $clusterEngine.type }}
+{{- if eq $clusterEngine.type "awx" }}
   08-awx.yaml: |
     AZIMUTH:
-      CAAS_CRD:
-        # TODO: configurable!
-        ENABLED: true
       AWX:
-        ENABLED: false
+        ENABLED: true
         URL: {{ required "clusterEngine.awx.url is required" $clusterEngine.awx.url | quote }}
         VERIFY_SSL: {{ $clusterEngine.awx.verifySsl }}
         USERNAME: {{ $clusterEngine.awx.username }}
@@ -233,7 +231,12 @@ stringData:
     AZIMUTH['AWX']['PASSWORD'] = os.environ['AWX_PASSWORD']
     if 'AWX_ADMIN_PASSWORD' in os.environ:
         AZIMUTH['AWX']['ADMIN_PASSWORD'] = os.environ['AWX_ADMIN_PASSWORD']
+{{- end }}
 {{- else }}
 {{- fail (printf "Unsupported cluster engine '%s'" $clusterEngine.type) }}
 {{- end }}
+{{- else }}
+  08-disable-caas.yaml: |
+    AZIMUTH:
+      CLUSTER_ENGINE: null
 {{- end }}

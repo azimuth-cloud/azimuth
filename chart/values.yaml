@@ -292,8 +292,9 @@ apps:
 
 # The cluster engine to use for Cluster-as-a-Service support
 clusterEngine:
-  # The type of cluster engine to use (currently only AWX is supported)
-  type: awx
+  # The type of cluster engine to use
+  #   Currently only CRD is functional, and AWX support is deprecated
+  type: crd
   # Parameters for the awx cluster engine
   # By default, we use values that will work with the managed AWX
   awx:
