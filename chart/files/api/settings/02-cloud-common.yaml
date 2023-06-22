@@ -1,0 +1,27 @@
+AZIMUTH:
+  AVAILABLE_CLOUDS:
+    {{ .Values.settings.currentCloud.name }}:
+      label: {{ .Values.settings.currentCloud.label }}
+      {{- $proto := .Values.ingress.tls.enabled | ternary "https" "http" }}
+      url: {{ printf "%s://%s/tenancies" $proto .Values.ingress.host }}
+    {{- range .Values.settings.availableClouds }}
+    {{ .name }}:
+      label: {{ .label | quote }}
+      url: {{ .url | quote }}
+    {{- end }}
+  CURRENT_CLOUD: {{ .Values.settings.currentCloud.name }}
+  {{- with .Values.settings.metrics }}
+  METRICS:
+    {{- with .cloudMetricsUrl }}
+    CLOUD_METRICS_URL: {{ quote . }}
+    {{- end }}
+    {{- with .tenantMetricsUrlTemplate }}
+    TENANT_METRICS_URL_TEMPLATE: {{ quote . }}
+    {{- end }}
+  {{- end }}
+  {{- with .Values.settings.documentationUrl }}
+  DOCUMENTATION_URL: {{ quote . }}
+  {{- end }}
+  {{- with .Values.settings.curatedSizes }}
+  CURATED_SIZES: {{ toYaml . | nindent 8 }}
+  {{- end }}

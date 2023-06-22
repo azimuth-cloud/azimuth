@@ -1,0 +1,17 @@
+# Allow redirects to the apps
+AZIMUTH_AUTH:
+  NEXT_URL_ALLOWED_DOMAINS:
+    - {{ quote .Values.apps.baseDomain }}
+AZIMUTH:
+  APPS:
+    ENABLED: true
+    BASE_DOMAIN: {{ required "apps.baseDomain is required" .Values.apps.baseDomain | quote }}
+    VERIFY_SSL: {{ .Values.apps.verifySsl }}
+    VERIFY_SSL_CLIENTS: {{ .Values.apps.verifySslClients }}
+    SSHD_HOST: {{ required "apps.sshdHost is required" .Values.apps.sshdHost | quote }}
+    SSHD_PORT: {{ .Values.apps.sshdPort }}
+    REGISTRAR_EXTERNAL_URL: {{ required "apps.registrarExternalUrl is required" .Values.apps.registrarExternalUrl | quote }}
+    REGISTRAR_ADMIN_URL: {{ required "apps.registrarAdminUrl is required" .Values.apps.registrarAdminUrl | quote }}
+    {{- with .Values.apps.queryParams }}
+    QUERY_PARAMS: {{ toYaml . | nindent 10 }}
+    {{- end }}

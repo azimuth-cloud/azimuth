@@ -1,0 +1,24 @@
+AZIMUTH:
+  PROVIDER:
+    {{- if (eq .Values.provider.type "openstack") }}
+    FACTORY: azimuth.provider.openstack.Provider
+    PARAMS:
+      AUTH_URL: {{ required "provider.openstack.authUrl is required" .Values.provider.openstack.authUrl }}
+      DOMAIN: {{ .Values.provider.openstack.domain }}
+      VERIFY_SSL: {{ .Values.provider.openstack.verifySsl }}
+      {{- with .Values.provider.openstack.interface }}
+      INTERFACE: {{ . }}
+      {{- end }}
+      {{- with .Values.provider.openstack.internalNetTemplate }}
+      INTERNAL_NET_TEMPLATE: {{ . | quote }}
+      {{- end }}
+      {{- with .Values.provider.openstack.externalNetTemplate }}
+      EXTERNAL_NET_TEMPLATE: {{ . | quote }}
+      {{- end }}
+      CREATE_INTERNAL_NET: {{ .Values.provider.openstack.createInternalNet }}
+      {{- with .Values.provider.openstack.internalNetCidr }}
+      INTERNAL_NET_CIDR: {{ . | quote }}
+      {{- end }}
+    {{- else }}
+    {{- fail (printf "Unrecognised cloud provider '%s'" .Values.provider.type) }}
+    {{- end }}
