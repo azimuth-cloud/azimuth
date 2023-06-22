@@ -67,8 +67,7 @@ class Provider:
     """
     Base class for Cluster API providers.
     """
-    def __init__(self, namespace_template: str):
-        self._namespace_template = namespace_template
+    def __init__(self):
         # Get the easykube configuration from the environment
         self._ekconfig = Configuration.from_environment()
 
@@ -85,12 +84,8 @@ class Provider:
         """
         Returns the namespace to use for the given tenancy.
         """
-        tenancy_id = re.sub("[^a-z0-9]+", "-", str(tenancy.id).lower()).strip("-")
         tenancy_name = re.sub("[^a-z0-9]+", "-", str(tenancy.name).lower()).strip("-")
-        return self._namespace_template.format(
-            tenancy_id = tenancy_id,
-            tenancy_name = tenancy_name
-        )
+        return f"az-{tenancy_name}"
 
     def session(self, cloud_session: cloud_base.ScopedSession) -> 'Session':
         """
