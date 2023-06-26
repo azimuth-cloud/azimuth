@@ -1339,8 +1339,12 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.cluster_parameters`.
         """
         # Inject information about the networks to use
+        external_network = self._external_network().name
         return dict(
-            cluster_floating_network = self._external_network().name,
+            # Legacy name
+            cluster_floating_network = external_network,
+            # New name
+            cluster_external_network = external_network,
             cluster_network = self._tenant_network(True).name
         )
 
