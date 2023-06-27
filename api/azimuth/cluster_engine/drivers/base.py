@@ -43,7 +43,6 @@ class Driver:
         name: str,
         cluster_type: dto.ClusterType,
         params: t.Mapping[str, t.Any],
-        ssh_key: str,
         ctx: dto.Context
     ):
         """

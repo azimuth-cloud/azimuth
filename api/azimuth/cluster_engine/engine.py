@@ -276,6 +276,8 @@ class ClusterManager:
         if not validated:
             params = self.validate_cluster_params(cluster_type, params)
         params = dict(params, **self._cloud_session.cluster_parameters())
+        if ssh_key:
+            params["cluster_user_ssh_public_key"] = ssh_key
         if self._zenith:
             params = self._with_zenith_params(params, cluster_type)
         ctx = dto.Context(
@@ -290,7 +292,6 @@ class ClusterManager:
             name,
             cluster_type,
             params,
-            ssh_key,
             ctx
         )
         return self._cluster_modify(cluster)

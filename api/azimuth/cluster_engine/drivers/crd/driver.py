@@ -305,14 +305,12 @@ class Driver(base.Driver):
         name: str,
         cluster_type: dto.ClusterType,
         params: t.Mapping[str, t.Any],
-        ssh_key: str,
         ctx: dto.Context
     ) -> dto.Cluster:
         """
         Create a new cluster with the given name, type and parameters.
         """
         client = get_k8s_client(ctx.tenancy.id)
-        # TODO(johngarbutt): pass in the ssh key, or add to params?
         return create_cluster(client, name, cluster_type.name, params, ctx)
 
     def update_cluster(
