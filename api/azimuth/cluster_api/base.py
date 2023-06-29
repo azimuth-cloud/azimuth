@@ -67,8 +67,7 @@ class Provider:
     """
     Base class for Cluster API providers.
     """
-    def __init__(self, namespace_template: str):
-        self._namespace_template = namespace_template
+    def __init__(self):
         # Get the easykube configuration from the environment
         self._ekconfig = Configuration.from_environment()
 
@@ -81,14 +80,19 @@ class Provider:
         module = importlib.import_module(self.__module__)
         return module.Session
 
+    def _format_namespace(self, tenancy: cloud_dto.Tenancy):
+        """
+        Returns the namespace to use for the given tenancy.
+        """
+        tenancy_name = re.sub("[^a-z0-9]+", "-", str(tenancy.name).lower()).strip("-")
+        return f"az-{tenancy_name}"
+
     def session(self, cloud_session: cloud_base.ScopedSession) -> 'Session':
         """
         Returns a Cluster API session scoped to the given cloud provider session.
         """
         session_class = self.get_session_class()
-        # Get the namespace to use by substituting the sanitised tenancy name into the template
-        tenancy_name = re.sub("[^a-z0-9]+", "-", cloud_session.tenancy().name.lower()).strip("-")
-        namespace = self._namespace_template.format(tenancy_name = tenancy_name)
+        namespace = self._format_namespace(cloud_session.tenancy())
         # Create an easykube client targetting our namespace
         client = self._ekconfig.sync_client(default_namespace = namespace)
         return session_class(client, cloud_session)
@@ -329,13 +333,17 @@ class Session:
         sizes = list(self._cloud_session.sizes())
         return self._from_api_cluster(cluster, sizes)
 
-    def _create_credential(self):
+    def _create_credential(self, cluster_name):
         """
         Creates a new credential and returns the Kubernetes secret data.
 
         The return value should be a dict with the "data" and/or "stringData" keys.
         """
-        raise NotImplementedError
+        credential = self._cloud_session.cloud_credential(
+            f"az-kube-{cluster_name}",
+            f"Used by Azimuth to manage Kubernetes cluster '{cluster_name}'."
+        )
+        return credential.data
 
     def _ensure_shared_resources(self):
         """
@@ -403,15 +411,15 @@ class Session:
         self._ensure_namespace()
         # Make sure any shared resources exist
         self._ensure_shared_resources()
-        # Create the cloud credential secret
-        secret_data = self._create_credential(name)
-        secret_name = f"{name}-cloud-credentials"
-        secret_data.setdefault("metadata", {})["name"] = secret_name
-        secret = (
-            self._client
-                .api("v1")
-                .resource("secrets")
-                .create_or_replace(secret_name, secret_data)
+        secret = self._client.client_side_apply_object(
+            {
+                "apiVersion": "v1",
+                "kind": "Secret",
+                "metadata": {
+                    "name": f"{name}-cloud-credentials",
+                },
+                "stringData": self._create_credential(name),
+            }
         )
         # Build the cluster spec
         cluster_spec = self._build_cluster_spec(

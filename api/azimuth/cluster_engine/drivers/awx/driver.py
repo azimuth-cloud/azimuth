@@ -382,7 +382,6 @@ class Driver(base.Driver):
         # Extract the parameters that aren't really parameters
         name = params.pop("cluster_name")
         cluster_type = params.pop("cluster_type")
-        params.pop("cluster_user_ssh_public_key")
         return dto.Cluster(
             inventory.id,
             name,
@@ -455,7 +454,8 @@ class Driver(base.Driver):
         """
         Utility method to return a credential to use.
         """
-        # First, try to find the AWX credential type
+        if not ctx.credential:
+            raise errors.InvalidOperationError("No credential present.")
         try:
             credential_type_name = CREDENTIAL_TYPE_NAMES[ctx.credential.type]
         except KeyError:
@@ -527,7 +527,6 @@ class Driver(base.Driver):
         name: str,
         cluster_type: dto.ClusterType,
         params: t.Mapping[str, t.Any],
-        ssh_key: t.Optional[str],
         ctx: dto.Context
     ):
         """
@@ -595,8 +594,7 @@ class Driver(base.Driver):
                 { k: v for k, v in params.items() if v is not None },
                 cluster_id = inventory.id,
                 cluster_name = name,
-                cluster_type = cluster_type.name,
-                cluster_user_ssh_public_key = ssh_key
+                cluster_type = cluster_type.name
             )
         )
         # Execute the creation job

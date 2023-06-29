@@ -4,7 +4,8 @@ SECRET_KEY = 'notsecret'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
+USE_X_FORWARDED_HOST = True
 
 # Use cookie names that don't conflict by default
 CSRF_COOKIE_NAME = 'azimuth-csrftoken'
@@ -99,18 +100,37 @@ REST_FRAMEWORK = {
 
 
 AZIMUTH_AUTH = {
-    'AUTHENTICATOR': {
-        # The authenticator factory to use
-        'FACTORY': 'azimuth_auth.authenticator.openstack.PasswordAuthenticator',
-        'PARAMS': {
-            # OpenStack auth URL
-            'AUTH_URL': 'https://keystone.cloud.example.com/v3',
-            # The OpenStack domain to use
-            'DOMAIN': 'default',
-            # Whether to verify SSL or not (default true)
-            'VERIFY_SSL': True
+    'AUTHENTICATORS': [
+        {
+            # The name of the authenticator
+            'NAME': 'password',
+            # A human-readable name for the authenticator
+            'LABEL': 'Username + Password',
+            'AUTHENTICATOR': {
+                # The authenticator factory to use
+                'FACTORY': 'azimuth_auth.authenticator.openstack.PasswordAuthenticator',
+                'PARAMS': {
+                    # OpenStack auth URL
+                    'AUTH_URL': 'https://keystone.cloud.example.com/v3',
+                    # The OpenStack domain to use
+                    'DOMAIN': 'default',
+                    # Whether to verify SSL or not (default true)
+                    'VERIFY_SSL': True
+                },
+            },
         },
-    },
+        # {
+        #     'NAME': 'appcred',
+        #     'LABEL': 'Application Credential',
+        #     'AUTHENTICATOR': {
+        #         'FACTORY': 'azimuth_auth.authenticator.openstack.ApplicationCredentialAuthenticator',
+        #         'PARAMS': {
+        #             'AUTH_URL': OPENSTACK_AUTH_URL,
+        #             'VERIFY_SSL': OPENSTACK_VERIFY_SSL,
+        #         },
+        #     },
+        # },
+    ],
 }
 
 
@@ -164,90 +184,6 @@ AZIMUTH = {
     #     # The admin URL of the app proxy registrar, for reserving subdomains
     #     # REGISTRAR_ADMIN_URL = "http://registrar.internal"
     # },
-
-    # AWX settings for Cluster-as-a-Service support (optional)
-    # 'AWX': {
-    #     # Indicates whether AWX support should be enabled
-    #     'ENABLED': True,
-    #     # The AWX URL
-    #     'URL': 'https://tower.example.com',
-    #     # Indicates whether to verify SSL when connecting over HTTPS
-    #     'VERIFY_SSL': True,
-    #     # The username to use for CaaS operations
-    #     'USERNAME': 'caasctl',
-    #     # The password to use for CaaS operations
-    #     'PASSWORD': 'secretpassword',
-    #     # Indicates whether teams should be created on demand
-    #     # If set to false, then teams must be created manually in AWX, giving admins
-    #     # control of which tenancies have CaaS enabled and which do not
-    #     'CREATE_TEAMS': True,
-    #     # Determines whether newly created teams should have the allow all permission granted
-    #     # Only used if CREATE_TEAMS = True
-    #     'CREATE_TEAM_ALLOW_ALL_PERMISSION': True,
-    #     # Username and password for admin operations (e.g. creating resources),
-    #     # if different from the username and password for CaaS operations
-    #     'ADMIN_USERNAME': 'admin',
-    #     'ADMIN_PASSWORD': 'secretadminpassword'
-    #     # Any extra credentials to create and associate with the created projects below
-    #     #
-    #     # Each item should have the keys:
-    #     #   * NAME - The name of the credential.
-    #     #   * TYPE - The name of the credential type.
-    #     #   * INPUTS - The inputs for the credential.
-    #     'EXTRA_CREDENTIALS': [
-    #         {
-    #             'NAME': 'CaaS Consul',
-    #             'TYPE': 'Hashicorp Consul',
-    #             'INPUTS': {
-    #                 'address': 'azimuth-consul-server:8500',
-    #             },
-    #         },
-    #     ],
-    #     # Optional custom execution environment for CaaS jobs
-    #     'EXECUTION_ENVIRONMENT': {
-    #         # The image to use for the execution environment (required)
-    #         'IMAGE': 'registry.example.com/azimuth/caas-ee:<tag>',
-    #         # Indicates if the image should be pulled for every job (defaults to false)
-    #         # This can be useful in development, but in production the recommended method is
-    #         # to set this to false and use immutable tags
-    #         'ALWAYS_PULL': False,
-    #         # Optional credentials if the image is in a private registry
-    #         'CREDENTIALS': {
-    #             # The registry host
-    #             'HOST': 'registry.example.com',
-    #             # The username to use to authenticate
-    #             'USERNAME': 'username',
-    #             # The token/password to use to authenticate
-    #             'TOKEN': 'token',
-    #         },
-    #     },
-    #     # Definition of the default projects and job templates.
-    #     #
-    #     # Each item should have the required keys:
-    #     #   * NAME - The name of the project.
-    #     #   * GIT_URL - The git URL of the project.
-    #     #   * GIT_VERSION - The branch, tag or commit id to use.
-    #     #   * METADATA_ROOT - The base URL for cluster metadata files.
-    #     # 
-    #     # The following keys are optional:
-    #     #   * ALWAYS_UPDATE - Boolean indicating if the project should be updated to the latest
-    #     #                     commit for the branch every time a job is executed. Defaults to false.
-    #     #   * PLAYBOOKS - List of playbooks to create job templates for.
-    #     #                 If not given, a job template is created for each playbook
-    #     #                 in the project.
-    #     #   * EXTRA_VARS - A dictionary whose keys are the playbooks and whose values
-    #     #                  are dictionaries of Ansible extra_vars for those playbooks.
-    #     #                  The special key '__ALL__' can be used to set common extra_vars
-    #     #                  for all playbooks in a project.
-    #     'DEFAULT_PROJECTS': [
-    #         {
-    #             'NAME': 'My Site Appliances',
-    #             'GIT_URL': 'https://github.com/myorg/site-appliances.git',
-    #             'GIT_VERSION': 'master',
-    #             'METADATA_ROOT': 'https://raw.githubusercontent.com/myorg/site-appliances/master/ui-meta',
-    #         },
-    #     ]
-    # },
 
     # The SSH key store to use
     # The portal asks this store for the SSH key for a user

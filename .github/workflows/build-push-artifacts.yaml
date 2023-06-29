@@ -12,10 +12,10 @@ jobs:
           - component: ui
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -23,7 +23,7 @@ jobs:
 
       - name: Calculate metadata for image
         id: image-meta
-        uses: docker/metadata-action@v3
+        uses: docker/metadata-action@v4
         with:
           images: ghcr.io/stackhpc/azimuth-${{ matrix.component }}
           # Produce the branch name or tag and the SHA as tags
@@ -49,7 +49,7 @@ jobs:
     needs: [build_push_images]
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           # This is important for the semver action to work correctly
           # when determining the number of commits since the last tag

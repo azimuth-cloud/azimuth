@@ -1,0 +1,17 @@
+AZIMUTH:
+  SSH_KEY_STORE:
+    {{- if (eq .Values.sshKeyStore.type "provider") }}
+    FACTORY: azimuth.keystore.provider.ProviderKeyStore
+    {{- else if (eq .Values.sshKeyStore.type "dummy") }}
+    FACTORY: azimuth.keystore.dummy.DummyKeyStore
+    PARAMS:
+      KEY: {{ .Values.sshKeyStore.dummy.key | required "No key specified" }}
+    {{- else if (eq .Values.sshKeyStore.type "ldap") }}
+    FACTORY: azimuth.keystore.ldap.LdapKeyStore
+    PARAMS:
+      PRIMARY: {{ .Values.sshKeyStore.ldap.primary }}
+      REPLICAS: {{ toYaml .Values.sshKeyStore.ldap.replicas | nindent 8 }}
+      BASE_DN: {{ .Values.sshKeyStore.ldap.baseDn }}
+    {{- else }}
+    {{- fail (printf "Unrecognised key store '%s'" .Values.sshKeyStore.type) }}
+    {{- end }}

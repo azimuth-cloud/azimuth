@@ -65,24 +65,23 @@ class ClusterManager:
         self._driver = driver
         self._zenith = zenith
         self._cloud_session = cloud_session
-        self._ctx = dto.Context(
-            cloud_session.username(),
-            cloud_session.tenancy(),
-            cloud_session.cluster_credential()
-        )
+        self._username = cloud_session.username()
+        self._tenancy = cloud_session.tenancy()
         self._jinja_env = jinja2.Environment()
 
     def cluster_types(self) -> t.Iterable[dto.ClusterType]:
         """
         Lists the available cluster types.
         """
-        return self._driver.cluster_types(self._ctx)
+        ctx = dto.Context(self._username, self._tenancy)
+        return self._driver.cluster_types(ctx)
 
     def find_cluster_type(self, name: str) -> dto.ClusterType:
         """
         Find a cluster type by name.
         """
-        return self._driver.find_cluster_type(name, self._ctx)
+        ctx = dto.Context(self._username, self._tenancy)
+        return self._driver.find_cluster_type(name, ctx)
 
     def _cluster_modify(
         self,
@@ -151,8 +150,10 @@ class ClusterManager:
         """
         List the clusters that are deployed.
         """
+        ctx = dto.Context(self._username, self._tenancy)
         cluster_types = None
-        for cluster in self._driver.clusters(self._ctx):
+        for cluster in self._driver.clusters(ctx):
+            # cluster_types is lazily initialised once we know there is a cluster
             if not cluster_types:
                 cluster_types = {
                     ct.name: ct
@@ -164,7 +165,8 @@ class ClusterManager:
         """
         Find a cluster by id.
         """
-        cluster = self._driver.find_cluster(id, self._ctx)
+        ctx = dto.Context(self._username, self._tenancy)
+        cluster = self._driver.find_cluster(id, ctx)
         return self._cluster_modify(cluster)
 
     def validate_cluster_params(
@@ -274,14 +276,23 @@ class ClusterManager:
         if not validated:
             params = self.validate_cluster_params(cluster_type, params)
         params = dict(params, **self._cloud_session.cluster_parameters())
+        if ssh_key:
+            params["cluster_user_ssh_public_key"] = ssh_key
         if self._zenith:
             params = self._with_zenith_params(params, cluster_type)
+        ctx = dto.Context(
+            self._username,
+            self._tenancy,
+            self._cloud_session.cloud_credential(
+                f"az-caas-{name}",
+                f"Used by Azimuth to manage CaaS cluster '{name}'."
+            )
+        )
         cluster = self._driver.create_cluster(
             name,
             cluster_type,
             params,
-            ssh_key,
-            self._ctx
+            ctx
         )
         return self._cluster_modify(cluster)
 
@@ -315,7 +326,8 @@ class ClusterManager:
         params = dict(params, **self._cloud_session.cluster_parameters())
         if self._zenith:
             params = self._with_zenith_params(params, cluster_type, cluster)
-        cluster = self._driver.update_cluster(cluster, params, self._ctx)
+        ctx = dto.Context(self._username, self._tenancy)
+        cluster = self._driver.update_cluster(cluster, params, ctx)
         return self._cluster_modify(cluster)
 
     def patch_cluster(
@@ -331,7 +343,8 @@ class ClusterManager:
             raise errors.InvalidOperationError(
                 'Cannot patch cluster with status {}'.format(cluster.status.name)
             )
-        cluster = self._driver.patch_cluster(cluster, self._ctx)
+        ctx = dto.Context(self._username, self._tenancy)
+        cluster = self._driver.patch_cluster(cluster, ctx)
         return self._cluster_modify(cluster)
 
     def delete_cluster(
@@ -347,7 +360,8 @@ class ClusterManager:
             raise errors.InvalidOperationError(
                 'Cannot delete cluster with status {}'.format(cluster.status.name)
             )
-        cluster = self._driver.delete_cluster(cluster, self._ctx)
+        ctx = dto.Context(self._username, self._tenancy)
+        cluster = self._driver.delete_cluster(cluster, ctx)
         if cluster:
             return self._cluster_modify(cluster)
         else:

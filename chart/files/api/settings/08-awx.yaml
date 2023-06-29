@@ -1,0 +1,55 @@
+{{- if and .Values.tags.clusters (eq .Values.clusterEngine.type "awx") -}}
+AZIMUTH:
+  AWX:
+    ENABLED: true
+    URL: {{ required "clusterEngine.awx.url is required" .Values.clusterEngine.awx.url | quote }}
+    VERIFY_SSL: {{ .Values.clusterEngine.awx.verifySsl }}
+    USERNAME: {{ .Values.clusterEngine.awx.username }}
+    CREATE_TEAMS: {{ .Values.clusterEngine.awx.createTeams }}
+    CREATE_TEAM_ALLOW_ALL_PERMISSION: {{ .Values.clusterEngine.awx.createTeamAllowAllPermission }}
+    {{- with .Values.clusterEngine.awx.adminUsername }}
+    ADMIN_USERNAME: {{ . }}
+    {{- end }}
+    {{- if .Values.clusterEngine.terraformBackend.enabled }}
+    {{- if (eq .Values.clusterEngine.terraformBackend.type "consul") }}
+    EXTRA_CREDENTIALS:
+      - NAME: CaaS Consul
+        TYPE: Hashicorp Consul
+        INPUTS:
+          address: {{ required "clusterEngine.terraformBackend.consul.address" .Values.clusterEngine.terraformBackend.consul.address | quote }}
+    {{- else }}
+    {{- fail (printf "Unsupported terraform backend '%s'" .Values.clusterEngine.terraformBackend.type) }}
+    {{- end }}
+    {{- end }}
+    {{- with .Values.clusterEngine.awx.executionEnvironment }}
+    EXECUTION_ENVIRONMENT:
+      IMAGE: {{ .image }}
+      {{- if .alwaysPull }}
+      ALWAYS_PULL: true
+      {{- end }}
+      {{- with .credentials }}
+      CREDENTIALS:
+        HOST: {{ .host }}
+        USERNAME: {{ quote .username }}
+        TOKEN: {{ quote .token }}
+      {{- end }}
+    {{- end }}
+    {{- with .Values.clusterEngine.awx.defaultProjects }}
+    DEFAULT_PROJECTS:
+      {{- range . }}
+      - NAME: {{ .name | quote }}
+        GIT_URL: {{ .gitUrl }}
+        GIT_VERSION: {{ .gitVersion }}
+        METADATA_ROOT: {{ .metadataRoot }}
+        {{- if .alwaysUpdate }}
+        ALWAYS_UPDATE: true
+        {{- end }}
+        {{- with .playbooks }}
+        PLAYBOOKS: {{ toYaml . | nindent 14 }}
+        {{- end }}
+        {{- with .extraVars }}
+        EXTRA_VARS: {{ toYaml . | nindent 14 }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+{{- end }}

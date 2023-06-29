@@ -17,19 +17,6 @@ from ..provider import dto as cloud_dto
 
 
 @dataclass(frozen = True)
-class Credential:
-    """
-    Represents a credential that is passed from the provider to interact with a cloud.
-
-    Credentials should be ephemeral and have an expiry, e.g. a token.
-    """
-    #: The credential type
-    type: str
-    #: The credential data
-    data: dict
-
-
-@dataclass(frozen = True)
 class Context:
     """
     Represents a context for an operation.
@@ -38,8 +25,9 @@ class Context:
     username: str
     #: The tenancy that the operation is being carried out in
     tenancy: cloud_dto.Tenancy
-    #: The credential to use for the operation
-    credential: Credential
+    #: The cloud credential associated with the operation
+    #: If the credential is not yet known, this should be None
+    credential: Optional[cloud_dto.Credential] = None
 
 
 @dataclass(frozen = True)
@@ -103,9 +91,11 @@ class ClusterType:
     #: Can use Jinja2 syntax and should produce valid Markdown
     #: Receives the cluster parameters, as defined in `parameters`, as template args
     usage_template: Optional[str]
+    #: Used by the Azimuth CRD to support patching
+    version: Optional[str]
 
     @classmethod
-    def from_dict(cls, name, spec):
+    def from_dict(cls, name, spec, version=None):
         """
         Returns a new cluster type from the given dictionary specification.
 
@@ -120,7 +110,7 @@ class ClusterType:
             spec.get('label', name),
             spec.get('description'),
             spec.get('logo'),
-            spec.get('requires_ssh_key', True),
+            spec.get('requires_ssh_key', spec.get("requiresSshKey", True)),
             tuple(
                 ClusterParameter(
                     param['name'],
@@ -138,12 +128,13 @@ class ClusterType:
                 ClusterServiceSpec(
                     service['name'],
                     service.get('label', service['name']),
-                    service.get('icon_url'),
+                    service.get('icon_url', service.get('iconUrl')),
                     service.get('when')
                 )
                 for service in spec.get('services', [])
             ),
-            spec.get('usage_template', None)
+            spec.get('usage_template', spec.get('usageTemplate', None)),
+            version,
         )
 
     @classmethod

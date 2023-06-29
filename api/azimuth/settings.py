@@ -62,26 +62,42 @@ class AwxSettings(SettingsObject):
 
 class ClusterEngineSetting(Setting):
     """
-    Custom setting for the cluster engine that will provide Cluster-as-a-Service functionality.
+    Custom setting for the cluster engine that will provide CaaS functionality.
     """
     def _get_default(self, instance):
-        # The driver for the default cluster engine comes from the AWX setting
-        if instance.AWX.ENABLED:
-            from .cluster_engine.drivers import awx
-            driver = awx.Driver(
-                instance.AWX.URL,
-                instance.AWX.USERNAME,
-                instance.AWX.PASSWORD,
-                instance.AWX.CREATE_TEAMS,
-                instance.AWX.CREATE_TEAM_ALLOW_ALL_PERMISSION,
-                instance.AWX.VERIFY_SSL,
-                instance.AWX.TEMPLATE_INVENTORY
-            )
+        if instance.CLUSTER_DRIVER:
             from .cluster_engine import Engine
-            # Inject the Zenith instance into the engine if it is available
-            return Engine(driver, instance.APPS)
+            return Engine(instance.CLUSTER_DRIVER, instance.APPS)
         else:
             return None
+
+
+class ClusterDriverSetting(ObjectFactorySetting):
+    """
+    Custom setting for the cluster driver that will be used for CaaS functionality.
+    """
+    def _get_default(self, instance):
+        # If AWX is enabled use the AWX driver, else use the CRD driver
+        if instance.AWX.ENABLED:
+            return {
+                "FACTORY": "azimuth.cluster_engine.drivers.awx.Driver",
+                "PARAMS": {
+                    "URL": instance.AWX.URL,
+                    "USERNAME": instance.AWX.USERNAME,
+                    "PASSWORD": instance.AWX.PASSWORD,
+                    "CREATE_TEAMS": instance.AWX.CREATE_TEAMS,
+                    "CREATE_TEAM_ALLOW_ALL_PERMISSION": (
+                        instance.AWX.CREATE_TEAM_ALLOW_ALL_PERMISSION
+                    ),
+                    "VERIFY_SSL": instance.AWX.VERIFY_SSL,
+                    "TEMPLATE_INVENTORY": instance.AWX.TEMPLATE_INVENTORY,
+                },
+            }
+        else:
+            return {
+                "FACTORY": "azimuth.cluster_engine.drivers.crd.Driver",
+                "PARAMS": {},
+            }
 
 
 class ClusterApiProviderSetting(ObjectFactorySetting):
@@ -93,9 +109,7 @@ class ClusterApiProviderSetting(ObjectFactorySetting):
         if instance.PROVIDER.provider_name == "openstack":
             return {
                 "FACTORY": "azimuth.cluster_api.openstack.Provider",
-                "PARAMS": {
-                    "NAMESPACE_TEMPLATE": instance.KUBERNETES_NAMESPACE_TEMPLATE,
-                },
+                "PARAMS": {},
             }
         else:
             return None
@@ -182,17 +196,11 @@ class AzimuthSettings(SettingsObject):
     PROVIDER = ObjectFactorySetting()
 
     #: Cluster engine configuration
+    CLUSTER_DRIVER = ClusterDriverSetting()
     CLUSTER_ENGINE = ClusterEngineSetting()
 
     #: Cluster API configuration
     CLUSTER_API_PROVIDER = ClusterApiProviderSetting()
-
-    #: The template to use when creating namespaces for tenancy resources
-    KUBERNETES_NAMESPACE_TEMPLATE = Setting(default = "az-{tenancy_name}")
-    #: The template to use when creating identity realms for tenancies
-    IDENTITY_REALM_NAME_TEMPLATE = Setting(default = "az-{tenancy_name}")
-    #: The template to use when creating identity platforms for CaaS clusters
-    CLUSTER_PLATFORM_NAME_TEMPLATE = Setting(default = "caas-{cluster_name}")
 
     #: Configuration for curated sizes
     #: If given, should be a list of dictionaries

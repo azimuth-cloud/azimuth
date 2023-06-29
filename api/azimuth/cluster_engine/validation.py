@@ -193,7 +193,7 @@ def float_constraint(options, **kwargs):
 @register_constraint("boolean")
 def boolean_constraint(options, prev_value, **kwargs):
     # Booleans support a "permanent" option indicating that once a parameter
-    # has become true, it cannot become false again
+    # has become true, it cannot become false again
     def permanent(value):
         if options.get("permanent") and prev_value and not value:
             raise v.Invalid("This value cannot be unset.")

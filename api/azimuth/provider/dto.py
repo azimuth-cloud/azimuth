@@ -29,6 +29,17 @@ class Tenancy:
 
 
 @dataclass(frozen = True)
+class Credential:
+    """
+    Represents a credential for interacting with a cloud.
+    """
+    #: The credential type
+    type: str
+    #: The credential data
+    data: dict
+
+
+@dataclass(frozen = True)
 class Quota:
     """
     Represents a quota available to a tenancy.
