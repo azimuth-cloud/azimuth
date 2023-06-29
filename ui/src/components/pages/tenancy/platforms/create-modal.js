@@ -479,7 +479,7 @@ export const CreatePlatformButton = ({
         <>
             <Button
                 variant="success"
-                disabled={disabled || creating}
+                disabled={true}
                 onClick={open}
                 title="Create a new platform"
             >

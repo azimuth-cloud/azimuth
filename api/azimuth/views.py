@@ -982,6 +982,13 @@ def clusters(request, tenant):
     with request.auth.scoped_session(tenant) as session:
         with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
             if request.method == "POST":
+                return response.Response(
+                    {
+                        "detail": "Creating platforms is disabled.",
+                        "code": "unsupported_operation"
+                    },
+                    status = status.HTTP_409_CONFLICT
+                )
                 input_serializer = serializers.CreateClusterSerializer(
                     data = request.data,
                     context = { "session": session, "cluster_manager": cluster_manager }
@@ -1211,6 +1218,13 @@ def kubernetes_clusters(request, tenant):
     with request.auth.scoped_session(tenant) as session:
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             if request.method == "POST":
+                return response.Response(
+                    {
+                        "detail": "Creating platforms is disabled.",
+                        "code": "unsupported_operation"
+                    },
+                    status = status.HTTP_409_CONFLICT
+                )
                 input_serializer = serializers.CreateKubernetesClusterSerializer(
                     data = request.data,
                     context = { "session": session, "capi_session": capi_session }
@@ -1417,6 +1431,13 @@ def kubernetes_apps(request, tenant):
     with request.auth.scoped_session(tenant) as session:
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             if request.method == "POST":
+                return response.Response(
+                    {
+                        "detail": "Creating platforms is disabled.",
+                        "code": "unsupported_operation"
+                    },
+                    status = status.HTTP_409_CONFLICT
+                )
                 input_serializer = serializers.CreateKubernetesAppSerializer(
                     data = request.data,
                     context = { "session": session, "capi_session": capi_session }
