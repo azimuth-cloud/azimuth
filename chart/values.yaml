@@ -267,6 +267,9 @@ provider:
     # The CIDR to use for auto-created tenant internal networks
     # Defaults to 192.168.3.0/24 if not given, which should be OK for most circumstances
     internalNetCidr:
+    # The nameservers to use for auto-created tenant internal networks
+    # Defaults to an empty list if not given.
+    internalNetDNSNameservers:
 
 # Settings for apps
 apps:
