@@ -18,6 +18,7 @@ import jsonschema
 from .cluster_api import dto as capi_dto
 from .cluster_engine import dto as clusters_dto, errors as clusters_errors
 from .provider import dto, errors
+from .scheduling import dto as scheduling_dto
 from .settings import cloud_settings
 
 
@@ -440,6 +441,9 @@ class ExternalIPSerializer(make_dto_serializer(dto.ExternalIp)):
                 })
             )
         return result
+    
+
+ProjectedQuotaSerializer = make_dto_serializer(scheduling_dto.ProjectedQuota)
 
 
 ClusterParameterSerializer = make_dto_serializer(clusters_dto.ClusterParameter)

@@ -18,6 +18,8 @@ class ClusterTemplate:
     kubernetes_version: str
     #: Indicates if this is a deprecated template
     deprecated: bool
+    #: The number of control plane nodes that this template will deploy
+    control_plane_count: int
     #: The tags for the template
     tags: t.List[str]
     #: The datetime at which the template was created
@@ -88,7 +90,7 @@ class Service:
     label: str
     #: The FQDN for the service
     fqdn: str
-    #: The URL of an icon for the service
+    #: The URL of an ico for the service
     icon_url: t.Optional[str]
 
 
