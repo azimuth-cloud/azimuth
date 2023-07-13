@@ -20,7 +20,7 @@ from rest_framework.utils import formatting
 
 from azimuth_auth.settings import auth_settings
 
-from . import identity, serializers
+from . import identity, scheduling, serializers
 from .cluster_api import errors as cluster_api_errors
 from .cluster_engine import errors as cluster_engine_errors
 from .keystore import errors as keystore_errors
@@ -976,6 +976,45 @@ def cluster_type_details(request, tenant, cluster_type):
     return response.Response(serializer.data)
 
 
+@provider_api_view(["POST"])
+def cluster_schedule(request, tenant):
+    """
+    Returns scheduling information for the specified CaaS cluster.
+    """
+    if not cloud_settings.CLUSTER_ENGINE:
+        return response.Response(
+            {
+                "detail": "Clusters are not supported.",
+                "code": "unsupported_operation"
+            },
+            status = status.HTTP_404_NOT_FOUND
+        )
+    with request.auth.scoped_session(tenant) as session:
+        with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
+            input_serializer = serializers.CreateClusterSerializer(
+                data = request.data,
+                context = { "session": session, "cluster_manager": cluster_manager }
+            )
+            input_serializer.is_valid(raise_exception = True)
+            # Get the scheduling information for the cluster
+            calculator = scheduling.CaaSClusterCalculator(session)
+            resources = calculator.calculate(
+                input_serializer.validated_data["cluster_type"],
+                input_serializer.validated_data["parameter_values"]
+            )
+            checker = scheduling.QuotaChecker(session)
+            fits, quotas = checker.check(resources)
+            serializer = serializers.ProjectedQuotaSerializer(quotas, many = True)
+            return response.Response(
+                { "quotas": serializer.data },
+                status = (
+                    status.HTTP_200_OK
+                    if fits
+                    else status.HTTP_409_CONFLICT
+                )
+            )
+
+
 @provider_api_view(["GET", "POST"])
 def clusters(request, tenant):
     """
@@ -999,6 +1038,22 @@ def clusters(request, tenant):
                     context = { "session": session, "cluster_manager": cluster_manager }
                 )
                 input_serializer.is_valid(raise_exception = True)
+                # Check that the cluster fits within quota
+                calculator = scheduling.CaaSClusterCalculator(session)
+                resources = calculator.calculate(
+                    input_serializer.validated_data["cluster_type"],
+                    input_serializer.validated_data["parameter_values"]
+                )
+                checker = scheduling.QuotaChecker(session)
+                fits, _ = checker.check(resources)
+                if not fits:
+                    return response.Response(
+                        {
+                            "detail": "Cluster exceeds at least one quota.",
+                            "code": "quota_exceeded"
+                        },
+                        status = status.HTTP_409_CONFLICT
+                    )
                 # If an SSH key is available, add it to the params
                 try:
                     ssh_key = cloud_settings.SSH_KEY_STORE.get_key(

@@ -11,19 +11,19 @@ import Row from 'react-bootstrap/Row';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 
-import { usePageTitle, formatSize } from '../../utils';
+import { sortBy, usePageTitle, formatSize } from '../../utils';
 
 import { ResourcePanel } from './resource-utils';
 
 
-const QuotaProgress = ({ title, quota: { units, allocated, used } }) => {
+const QuotaProgress = ({ quota: { label, units, allocated, used } }) => {
     const percent = allocated > 0 ? (used * 100) / allocated : 0;
     const formatAmount = amount => (
         ["MB", "GB"].includes(units) ?
             formatSize(amount, units) :
             `${amount}`
     );
-    const label = (
+    const usage = (
         allocated >= 0 ?
             `${formatAmount(used)} of ${formatAmount(allocated)} used` :
             `${formatAmount(used)} used`
@@ -32,7 +32,7 @@ const QuotaProgress = ({ title, quota: { units, allocated, used } }) => {
     return (
         <Col className="quota-card-wrapper">
             <Card className="h-100">
-                <Card.Header><strong>{title}</strong></Card.Header>
+                <Card.Header><strong>{label}</strong></Card.Header>
                 <Card.Body>
                     <CircularProgressbar
                         className={allocated < 0 ? "quota-no-limit" : undefined}
@@ -44,28 +44,35 @@ const QuotaProgress = ({ title, quota: { units, allocated, used } }) => {
                         })}
                     />
                 </Card.Body>
-                <Card.Footer className="text-muted">{label}</Card.Footer>
+                <Card.Footer className="text-muted">{usage}</Card.Footer>
             </Card>
         </Col>
     );
 };
 
 
-const Quotas = ({ resourceData }) => (
-    // The volume service is optional, so quotas might not always be available for it
-    <Row className="g-3 justify-content-center">
-        <QuotaProgress title="Machines" quota={resourceData.machines} />
-        {resourceData.volumes &&
-            <QuotaProgress title="Volumes" quota={resourceData.volumes} />
+// The ordering for standard quotas
+const quotaOrdering = ["machines", "volumes", "external_ips", "cpus", "ram", "storage"];
+
+
+const Quotas = ({ resourceData }) => {
+    const sortedQuotas = sortBy(
+        Object.values(resourceData),
+        q => {
+            // Use a tuple of (index, name) so we can support unknown quotas
+            const index = quotaOrdering.findIndex(el => el === q.resource);
+            return [index >= 0 ? index : quotaOrdering.length, q.resource];
         }
-        <QuotaProgress title="External IPs" quota={resourceData.external_ips} />
-        <QuotaProgress title="CPUs" quota={resourceData.cpus} />
-        <QuotaProgress title="RAM" quota={resourceData.ram} />
-        {resourceData.storage &&
-            <QuotaProgress title="Storage" quota={resourceData.storage} />
-        }
-    </Row>
-);
+    );
+    return (
+        // The volume service is optional, so quotas might not always be available for it
+        <Row className="g-3 justify-content-center">
+            {sortedQuotas.map(quota => (
+                <QuotaProgress key={quota.resource} quota={quota} />)
+            )}
+        </Row>
+    );
+};
 
 
 export const TenancyQuotasPanel = ({ tenancy, tenancyActions }) => {
