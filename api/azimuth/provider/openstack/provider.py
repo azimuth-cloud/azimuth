@@ -141,6 +141,8 @@ class Provider(base.Provider):
                              when a tagged network or templated network cannot be found.
         internal_net_cidr: The CIDR for the internal network when it is
                            auto-created (default ``192.168.3.0/24``).
+        internal_net_dns_nameservers: The DNS nameservers for the internal network when it is
+                           auto-created (default ``None``).
         az_backdoor_net_map: Mapping of availability zone to the UUID of the backdoor network
                              for that availability zone (default ``None``).
                              The backdoor network will only be attached if the image specifically
@@ -161,6 +163,7 @@ class Provider(base.Provider):
                        external_net_template = None,
                        create_internal_net = True,
                        internal_net_cidr = "192.168.3.0/24",
+                       internal_net_dns_nameservers = None,
                        az_backdoor_net_map = None,
                        backdoor_vnic_type = None,
                        verify_ssl = True):
@@ -173,6 +176,7 @@ class Provider(base.Provider):
         self._external_net_template = external_net_template
         self._create_internal_net = create_internal_net
         self._internal_net_cidr = internal_net_cidr
+        self._internal_net_dns_nameservers = internal_net_dns_nameservers
         self._az_backdoor_net_map = az_backdoor_net_map or dict()
         self._backdoor_vnic_type = backdoor_vnic_type
         self._verify_ssl = verify_ssl
@@ -198,6 +202,7 @@ class Provider(base.Provider):
                 external_net_template = self._external_net_template,
                 create_internal_net = self._create_internal_net,
                 internal_net_cidr = self._internal_net_cidr,
+                internal_net_dns_nameservers = self._internal_net_dns_nameservers,
                 az_backdoor_net_map = self._az_backdoor_net_map,
                 backdoor_vnic_type = self._backdoor_vnic_type
             )
@@ -215,6 +220,7 @@ class UnscopedSession(base.UnscopedSession):
                        external_net_template = None,
                        create_internal_net = True,
                        internal_net_cidr = "192.168.3.0/24",
+                       internal_net_dns_nameservers = None,
                        az_backdoor_net_map = None,
                        backdoor_vnic_type = None):
         self._connection = connection
@@ -223,6 +229,7 @@ class UnscopedSession(base.UnscopedSession):
         self._external_net_template = external_net_template
         self._create_internal_net = create_internal_net
         self._internal_net_cidr = internal_net_cidr
+        self._internal_net_dns_nameservers = internal_net_dns_nameservers
         self._az_backdoor_net_map = az_backdoor_net_map or dict()
         self._backdoor_vnic_type = backdoor_vnic_type
 
@@ -359,6 +366,7 @@ class UnscopedSession(base.UnscopedSession):
                 external_net_template = self._external_net_template,
                 create_internal_net = self._create_internal_net,
                 internal_net_cidr = self._internal_net_cidr,
+                internal_net_dns_nameservers = self._internal_net_dns_nameservers,
                 az_backdoor_net_map = self._az_backdoor_net_map,
                 backdoor_vnic_type = self._backdoor_vnic_type
             )
@@ -389,6 +397,7 @@ class ScopedSession(base.ScopedSession):
                        external_net_template = None,
                        create_internal_net = True,
                        internal_net_cidr = "192.168.3.0/24",
+                       internal_net_dns_nameservers = None,
                        az_backdoor_net_map = None,
                        backdoor_vnic_type = None):
         self._username = username
@@ -399,6 +408,7 @@ class ScopedSession(base.ScopedSession):
         self._external_net_template = external_net_template
         self._create_internal_net = create_internal_net
         self._internal_net_cidr = internal_net_cidr
+        self._internal_net_dns_nameservers = internal_net_dns_nameservers
         self._az_backdoor_net_map = az_backdoor_net_map or dict()
         self._backdoor_vnic_type = backdoor_vnic_type
 
@@ -641,12 +651,16 @@ class ScopedSession(base.ScopedSession):
             network._update_tags(["portal-internal"])
             # Create a subnet for the network
             self._log("Creating subnet for network '%s'", network.name)
-            subnet = self._connection.network.subnets.create(
-                name = "portal-internal",
-                network_id = network.id,
-                ip_version = 4,
-                cidr = self._internal_net_cidr
-            )
+            subnet_create_args = {
+                "name": "portal-internal",
+                "network_id": network.id,
+                "ip_version": 4,
+                "cidr": self._internal_net_cidr
+            }
+            # When internal_net_dns_nameservers is set, add it to the subnet.
+            if self._internal_net_dns_nameservers is not None:
+                subnet_create_args['dns_nameservers'] = self._internal_net_dns_nameservers
+            subnet = self._connection.network.subnets.create(**subnet_create_args)
             # If we can find an external network, create a router that links the two
             try:
                 external_network = self._external_network()
