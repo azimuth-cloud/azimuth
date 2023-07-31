@@ -10,11 +10,11 @@ import Row from 'react-bootstrap/Row';
 import get from 'lodash/get';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faSave } from '@fortawesome/free-solid-svg-icons';
+import { faCheckCircle, faPlus, faSave } from '@fortawesome/free-solid-svg-icons';
 
 import Cookies from 'js-cookie';
 
-import { Error, Field, Form, Loading, sortBy } from '../../../../utils';
+import { Error, Field, Form, Loading, formatSize, sortBy } from '../../../../utils';
 
 import { PlatformTypeCard } from '../utils';
 
@@ -66,7 +66,6 @@ const useSchedulingData = (tenancyId, formState) => {
                     setData(response.ok, data);
                 }
                 else {
-
                     setError(new Error("HTTP request failed"));
                 }
             };
@@ -84,14 +83,44 @@ const quotaOrdering = ["machines", "volumes", "external_ips", "cpus", "ram", "st
 
 
 const ProjectedQuotaProgressBar = ({ quota }) => {
-    const max = Math.max(quota.allocated, quota.projected);
+    const max = quota.allocated >= 0 ? quota.allocated : quota.projected;
+    const exceeded = quota.allocated >= 0 && quota.projected > quota.allocated;
+    // We want the total size of the progress bar to be at most max
+    // If the projected quota is greater than the allocation, we just render it
+    // as danger instead of warning
+    const delta = Math.min(
+        quota.delta,
+        quota.allocated >= 0 ? quota.allocated - quota.current : quota.delta
+    );
+    const formatAmount = amount => (
+        ["MB", "GB"].includes(quota.units) ?
+            formatSize(amount, quota.units) :
+            `${amount}`
+    );
     return (
-        <div className="scheduling-projected-quota mb-3">
+        <div className="scheduling-projected-quota mb-2">
             {quota.label}
             <ProgressBar>
-                <ProgressBar variant="info" now={quota.current} max={max} />
-                <ProgressBar variant="warning" now={quota.delta} max={max} />
+                <ProgressBar variant="primary" now={quota.current} max={max} />
+                <ProgressBar
+                    variant={exceeded ? "danger" : "warning"}
+                    now={delta}
+                    max={max}
+                />
             </ProgressBar>
+            <small className="text-muted">
+                {formatAmount(quota.current)} current
+                {" "}/{" "}
+                <span className={exceeded ? "text-danger fw-bold" : undefined}>
+                    {formatAmount(quota.projected)} projected
+                </span>
+                {" "}/{" "}
+                {
+                    quota.allocated >= 0 ?
+                        `${formatAmount(quota.allocated)} allocated` :
+                        "no limit"
+                }
+            </small>
         </div>
     );
 };
@@ -106,60 +135,64 @@ const ProjectedQuotas = ({ quotas }) => {
             return [index >= 0 ? index : quotaOrdering.length, q.resource];
         }
     );
-    return sortedQuotas.map(quota => <ProjectedQuotaProgressBar quota={quota} />);
+    return sortedQuotas.map(
+        quota => <ProjectedQuotaProgressBar
+            key={quota.resource}
+            quota={quota}
+        />
+    );
 };
 
 
-const QuotaConfirmModal = ({ tenancyId, formState, visible, onCancel, onConfirm }) => {
+const PlatformSchedulingModal = ({ tenancyId, formState, onCancel, onConfirm }) => {
     const { loading, fits, quotas, error } = useSchedulingData(tenancyId, formState);
 
+    // If the platform fits within the quotas, just inform the user and create it
+    useEffect(
+        () => {
+            if( !fits ) return;
+            const timeout = setTimeout(onConfirm, 1000);
+            return () => { clearTimeout(timeout); };
+        },
+        [fits]
+    );
+
     return (
-        <Modal show={visible} backdrop="static" keyboard={false} size="md">
+        <Modal show={true} backdrop="static" keyboard={false} size="md">
             <Modal.Header>
                 <Modal.Title>Platform scheduling</Modal.Title>
             </Modal.Header>
             <Modal.Body>
-                {(loading || error) ? (
+                {(loading || error || fits) ? (
                     <Row className="justify-content-center">
-                        <Col xs={`auto py-${loading ? 3 : 2}`}>
-                            {loading ? (
-                                <Loading message="Checking scheduling constraints..." />
-                            ) : (
-                                <Error message="Error checking scheduling constraints" />
+                        <Col xs={`auto py-${loading || fits ? 3 : 2}`}>
+                            {loading && <Loading message="Checking scheduling constraints..." />}
+                            {error && <Error message="Error checking scheduling constraints" />}
+                            {fits && (
+                                <div className="text-success fw-bold">
+                                    <FontAwesomeIcon icon={faCheckCircle} className="me-2" />
+                                    Platform can be scheduled now
+                                </div>
                             )}
                         </Col>
                     </Row>
                 ) : (
                     <Row>
                         <Col>
-                            {fits ? (
-                                <>
-                                    <p>The selected options will consume the following resources:</p>
-                                    <ProjectedQuotas quotas={quotas} />
-                                    <p>Are you sure you want to proceed?</p>
-                                </>
-                            ): (
-                                <>
-                                    <p className="text-danger fw-bold">
-                                        The selected options do not fit within your quotas:
-                                    </p>
-                                    <ProjectedQuotas quotas={quotas} />
-                                    <p>Please revise the selected options and try again.</p>
-                                </>
-                            )}
+                            <p className="text-danger fw-bold">
+                                The selected options do not fit within your quotas:
+                            </p>
+                            <ProjectedQuotas quotas={quotas} />
+                            <p className="mb-0">
+                                Please revise the selected options and try again.
+                            </p>
                         </Col>
                     </Row>
                 )}
             </Modal.Body>
             <Modal.Footer>
-                <Button variant="secondary" onClick={onCancel}>Cancel</Button>
-                <Button
-                    variant="success"
-                    onClick={onConfirm}
-                    disabled={loading || error || !fits}
-                >
-                    <FontAwesomeIcon icon={faPlus} className="me-2" />
-                    Create platform
+                <Button variant="secondary" disabled={loading || fits} onClick={onCancel}>
+                    Close
                 </Button>
             </Modal.Footer>
         </Modal>
@@ -221,7 +254,7 @@ export const ClusterForm = ({
     tenancyActions,
     ...props
 }) => {
-    const [showConfirm, setShowConfirm] = useState(false);
+    const [showScheduling, setShowScheduling] = useState(false);
 
     const handleNameChange = evt => formState.setName(evt.target.value);
     const handleParameterValueChange = (name) => (value) => formState.setParameterValues(
@@ -237,9 +270,9 @@ export const ClusterForm = ({
     );
     const handleSubmit = (evt) => {
         evt.preventDefault();
-        setShowConfirm(true);
+        setShowScheduling(true);
     };
-    const handleCancel = () => setShowConfirm(false);
+    const handleCancel = () => setShowScheduling(false);
     const handleConfirm = () => onSubmit({
         name: formState.name,
         parameterValues: formState.parameterValues
@@ -276,11 +309,10 @@ export const ClusterForm = ({
                     />
                 ))}
             </Form>
-            {showConfirm && (
-                <QuotaConfirmModal
+            {showScheduling && (
+                <PlatformSchedulingModal
                     tenancyId={tenancy.id}
                     formState={formState}
-                    visible={showConfirm}
                     onCancel={handleCancel}
                     onConfirm={handleConfirm}
                 />
