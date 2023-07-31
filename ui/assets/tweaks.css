@@ -443,6 +443,14 @@
 
 
 /**
+ * Custom styles for the scheduling progress bars.
+ */
+.scheduling-projected-quota .progress-bar {
+    padding: 0.5rem 0;
+}
+
+
+/**
  * Styles for the sticky footer.
  */
 .sticky-footer-wrap {
