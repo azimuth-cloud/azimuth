@@ -13,6 +13,11 @@ def authenticator_choices():
     """
     for authenticator in auth_settings.AUTHENTICATORS:
         name = authenticator["NAME"]
+        # Allow authenticators to be hidden from selection
+        # They will still be available if the user knows the link
+        # In particular, this is used for the appcred authenticator
+        if authenticator.get("HIDDEN", False):
+            continue
         options = authenticator["AUTHENTICATOR"].get_options()
         if options:
             for option, option_label in options:

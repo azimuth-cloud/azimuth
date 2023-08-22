@@ -6,6 +6,7 @@ from django import template
 from django.urls import reverse
 
 from ..settings import auth_settings
+from ..forms import authenticator_choices
 
 
 register = template.Library()
@@ -29,7 +30,7 @@ def change_auth_button(context):
             reverse('azimuth_auth:login'),
             auth_settings.CHANGE_METHOD_PARAM
         ),
-        'render_button': len(auth_settings.AUTHENTICATORS) > 1,
+        'render_button': len(list(authenticator_choices())) > 1,
     }
 
 
