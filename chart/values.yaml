@@ -192,6 +192,8 @@ authenticators: []
   #   name: password
   #   # The human-readable name for the authenticator (defaults to name if not given)
   #   label: Username + Password
+  #   # Indicates whether the authenticator should be hidden from users
+  #   hidden: true
   #   # The type of authenticator to use
   #   # Currently only openstack-{password,application-credential,federation} are supported
   #   type: openstack-password
