@@ -2,15 +2,7 @@
 Django middlewares for the Azimuth auth package.
 """
 
-from datetime import datetime, timedelta
-import logging
-
-from dateutil import parser, tz
-
 from .settings import auth_settings
-
-
-logger = logging.getLogger(__name__)
 
 
 class BaseMiddleware:

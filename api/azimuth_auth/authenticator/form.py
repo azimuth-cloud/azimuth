@@ -32,14 +32,6 @@ class FormAuthenticator(BaseAuthenticator):
         """
         return self.form_class(*args, **kwargs)
 
-    def authenticate(self, form_data):
-        """
-        Given the data from a successful form validation, attempt an authentication.
-
-        Should return a token if the authentication is successful, None otherwise.
-        """
-        raise NotImplementedError
-
     def auth_start(self, request, auth_complete_url, selected_option = None):
         # Just render an empty form
         return render(
@@ -61,4 +53,4 @@ class FormAuthenticator(BaseAuthenticator):
         if not form.is_valid():
             return
         # If the form data is valid, attempt an authentication
-        return self.authenticate(form.cleaned_data)
+        return self.auth_token(form.cleaned_data)

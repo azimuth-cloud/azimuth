@@ -2,9 +2,11 @@
 Views for the Azimuth auth package.
 """
 
+import json
 import unicodedata
 from urllib.parse import urlparse, urlencode
 
+from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
@@ -147,6 +149,17 @@ def redirect_to_start(authenticator_choice, code = None):
     return redirect(redirect_to)
 
 
+@require_http_methods(["GET"])
+def authenticators(request):
+    """
+    Returns the list of available authenticators, primarily for use by the SDK.
+    """
+    return JsonResponse({
+        a["NAME"]: a["AUTHENTICATOR"].get_representation()
+        for a in auth_settings.AUTHENTICATORS
+    })
+
+
 @require_http_methods(["GET", "POST"])
 def login(request):
     """
@@ -195,7 +208,7 @@ def login(request):
 @require_safe
 def start(request, authenticator):
     """
-    Start the authentication flow for the selected authenticator.
+    Start an interactive, i.e. browser-based, authentication flow for the authenticator.
     """
     # First, verify that the requested authenticator exists
     try:
@@ -234,7 +247,7 @@ def start(request, authenticator):
 @csrf_exempt
 def complete(request, authenticator):
     """
-    Complete the authentication flow for the configured authenticator.
+    Complete an interactive, i.e. browser-based, authentication flow for the authenticator.
     """
     try:
         authenticator_obj = next(
@@ -266,6 +279,51 @@ def complete(request, authenticator):
     if not authenticator_obj.uses_crossdomain_post_requests:
         handle_request = csrf_protect(handle_request)
     return handle_request(request)
+
+
+@require_http_methods(["POST"])
+@csrf_exempt
+def token(request, authenticator):
+    """
+    Use the authenticator to get a token in a non-interactive flow, e.g. for the SDK.
+    """
+    try:
+        authenticator_obj = next(
+            a["AUTHENTICATOR"]
+            for a in auth_settings.AUTHENTICATORS
+            # Some authenticators, e.g. openstack_federation, can only be used interactively
+            if a["NAME"] == authenticator and not a["AUTHENTICATOR"].interactive_only
+        )
+    except StopIteration:
+        return JsonResponse(
+            { "message": f"Could not find authenticator '{authenticator}'." },
+            status = 404
+        )
+    # Try to pass the authentication data from the request
+    try:
+        auth_data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse(
+            { "message": "Request does not contain valid JSON." },
+            status = 400
+        )
+    # The auth_token method of the authenticator should return a token or null
+    # depending on whether the given auth data is valid or not
+    token = authenticator_obj.auth_token(auth_data)
+    if token:
+        return JsonResponse(
+            {
+                "authenticator_type": authenticator_obj.authenticator_type,
+                "authenticator": authenticator,
+                "token": token,
+            },
+            status = 201
+        )
+    else:
+        return JsonResponse(
+            { "message": "Invalid credentials provided." },
+            status = 401
+        )
 
 
 @require_http_methods(["GET", "POST"])
