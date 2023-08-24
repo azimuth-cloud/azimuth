@@ -28,10 +28,16 @@ class OpenStackFormAuthenticator(FormAuthenticator):
         raise NotImplementedError
 
     def auth_token(self, auth_data):
+        # Try to get the identity data from the provided auth data
+        # If the required data is not present, a KeyError will be raised
+        try:
+            identity = self.get_identity(auth_data)
+        except KeyError:
+            return None
         # Authenticate the user by submitting an appropriate request to the token URL
         response = requests.post(
             self.token_url,
-            json = dict(auth = dict(identity = self.get_identity(auth_data))),
+            json = dict(auth = dict(identity = identity)),
             verify = self.verify_ssl
         )
         # If the response is a success, return the token
