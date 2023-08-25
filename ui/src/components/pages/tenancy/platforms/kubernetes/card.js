@@ -482,7 +482,7 @@ const UpdateKubernetesClusterButton = ({
     const handleSubmit = data => {
         // Remove the name and template from the data for an update
         const { name, template, ...patchData } = data;
-        kubernetesClusterActions.update(patchData, true);
+        kubernetesClusterActions.update(patchData);
         setInFlight(true);
         close();
     };

@@ -355,7 +355,7 @@ const KubernetesAppDetailsButton = ({
                                 tenancy={tenancy}
                                 tenancyActions={tenancyActions}
                                 disabled={inFlight || working}
-                                onSubmit={data => kubernetesAppActions.update(data, true)}
+                                onSubmit={kubernetesAppActions.update}
                                 className="me-2"
                             />
                             <PlatformDeleteButton
