@@ -130,7 +130,9 @@ const NodeGroupModalForm = ({
                             resource={sizes}
                             resourceActions={sizeActions}
                             // Kubernetes can only use sizes with at least 2 CPUs and 20GB disk
-                            resourceFilter={size => size.cpus >= 2 && size.disk >= 20}
+                            // resourceFilter={size => size.cpus >= 2 && size.disk >= 20}
+                            // Disk restriction is irrelevant for boot-from-volume
+                            resourceFilter={size => size.cpus >= 2}
                             required
                             value={getStateKey('machine_size')}
                             onChange={setStateKey('machine_size')}
@@ -411,7 +413,9 @@ export const KubernetesClusterForm = ({
                         resource={sizes}
                         resourceActions={sizeActions}
                         // Kubernetes can only use sizes with at least 2 CPUs and 20GB disk
-                        resourceFilter={size => size.cpus >= 2 && size.disk >= 20}
+                        // resourceFilter={size => size.cpus >= 2 && size.disk >= 20}
+                        // Disk restriction is irrelevant for boot-from-volume
+                        resourceFilter={size => size.cpus >= 2}
                         required
                         value={getStateKey('control_plane_size')}
                         onChange={setStateKey('control_plane_size')}
