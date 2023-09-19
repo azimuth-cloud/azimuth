@@ -225,6 +225,7 @@ class Connection(rackit.Connection):
         project = json['token'].get('project', {})
         self.project_id = project.get('id')
         self.project_name = project.get('name')
+        self.roles = json['token'].get('roles', [])
 
         # Extract the endpoints from the catalog on the correct interface
         self.endpoints = {}

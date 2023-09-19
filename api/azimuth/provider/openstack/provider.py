@@ -1305,9 +1305,15 @@ class ScopedSession(base.ScopedSession):
         existing = user.application_credentials.find_by_name(name)
         if existing:
             existing._delete()
+        app_cred_roles = [
+            {"name": role["name"]}
+            for role in self._connection.roles
+            if role["name"] != "admin"
+        ]
         app_cred = user.application_credentials.create(
             name = name,
             description = description,
+            roles=app_cred_roles,
             # TODO(mkjpryor)
             # This is currently required to allow app creds to delete themselves
             # However it also allows the app cred to make and delete other app creds
