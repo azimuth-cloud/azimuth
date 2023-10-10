@@ -7,6 +7,7 @@ import logging
 import re
 import time
 import typing as t
+import uuid
 
 
 import easykube
@@ -105,8 +106,14 @@ def get_cluster_dto(raw_cluster, status_if_ready: dto.ClusterStatus = None):
         if raw_status.get("updatedTimestamp"):
             updated_at = dateutil.parser.parse(raw_status["updatedTimestamp"])
 
+    # Once all clusters have their id in extra vars
+    # we can remove the fallback to the k8s uid
+    # that doesn't work well with valero backup
+    cluster_id = raw_cluster.spec.extraVars["extraVars"].get(
+        "cluster_id", raw_cluster.metadata.uid)
+
     return dto.Cluster(
-        id=raw_cluster.metadata.uid,
+        id=cluster_id,
         name=raw_cluster.metadata.name,
         cluster_type=raw_cluster.spec.clusterTypeName,
         status=status,
@@ -148,6 +155,7 @@ def create_cluster(
     params: dict,
     ctx: dto.Context
 ):
+    cluster_id = uuid.uuid4().hex
     safe_name = _escape_name(name)
     secret_name = f"{safe_name}-caas-credential"
     secret_resource = client.api("v1").resource("secrets")
@@ -168,16 +176,21 @@ def create_cluster(
         "clusterTypeVersion": cluster_type.version,
         "cloudCredentialsSecretName": secret_name,
     }
+    cluster_spec["extraVars"] = {}
     if params:
-        cluster_spec["extraVars"] = {}
         for key, value in params.items():
             cluster_spec["extraVars"][key] = value
+    cluster_spec["extraVars"]["cluster_id"] = cluster_id
+
     cluster_resource = client.api(CAAS_API_VERSION).resource("clusters")
     cluster = cluster_resource.create(
         {
             "metadata": {
                 "name": safe_name,
-                "labels": {"app.kubernetes.io/managed-by": "azimuth"},
+                "labels": {
+                    "app.kubernetes.io/managed-by": "azimuth",
+                    "azimuth.openstack.org/cluster-id": cluster_id,
+                },
             },
             "spec": cluster_spec,
         }
@@ -294,6 +307,7 @@ class Driver(base.Driver):
         """
         Find a cluster by id.
         """
+        # TODO(johngarbutt) try find by id label first?
         all_clusters = self.clusters(ctx)
         for cluster in all_clusters:
             if cluster.id == id:
