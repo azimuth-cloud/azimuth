@@ -122,8 +122,8 @@ function apiRequestEpic(action$) {
                 const method = options.method || 'GET';
                 // Make sure we ask for JSON
                 const headers = { 'Content-Type': 'application/json' };
-                // For POST/PUT/DELETE, include the CSRF token if present
-                if( ['POST', 'PUT', 'DELETE'].includes(method.toUpperCase()) ) {
+                // For POST/PATCH/PUT/DELETE, include the CSRF token if present
+                if( ['POST', 'PATCH', 'PUT', 'DELETE'].includes(method.toUpperCase()) ) {
                     const csrfToken = Cookies.get('csrftoken');
                     if( csrfToken ) headers['X-CSRFToken'] = csrfToken;
                 }

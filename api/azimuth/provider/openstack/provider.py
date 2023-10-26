@@ -1378,15 +1378,6 @@ class ScopedSession(base.ScopedSession):
             for k, v in cluster.parameter_values.items()
             if k not in {"cluster_floating_network", "cluster_network"}
         }
-        # Add any tags attached to the stack
-        try:
-            stack = self._connection.orchestration.stacks.find_by_stack_name(cluster.name)
-        except (api.ServiceNotSupported, rackit.NotFound):
-            tags = cluster.tags
-        else:
-            tags = list(cluster.tags)
-            if stack:
-                tags.extend(stack.tags or [])
         original_error = (cluster.error_message or "").lower()
         # Convert quota-related error messages based on known OpenStack errors
         if any(m in original_error for m in {"quota exceeded", "exceedsavailablequota"}):
@@ -1407,7 +1398,6 @@ class ScopedSession(base.ScopedSession):
         return dataclasses.replace(
             cluster,
             parameter_values = params,
-            tags = tags,
             error_message = error_message
         )
 

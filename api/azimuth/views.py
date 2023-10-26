@@ -786,19 +786,19 @@ def external_ips(request, tenant):
         return response.Response(serializer.data)
 
 
-@provider_api_view(["GET", "PUT"])
+@provider_api_view(["GET", "PATCH"])
 def external_ip_details(request, tenant, ip):
     """
     On ``GET`` requests, return the details for the external IP address.
 
-    On ``PUT`` requests, attach the specified machine to the external IP address.
+    On ``PATCH`` requests, attach the specified machine to the external IP address.
     If the machine_id is ``null``, the external IP address will be detached from
     the machine it is currently attached to.
     The request body should contain the machine ID::
 
         { "machine_id": "<machine id>" }
     """
-    if request.method == "PUT":
+    if request.method == "PATCH":
         input_serializer = serializers.ExternalIPSerializer(data = request.data)
         input_serializer.is_valid(raise_exception = True)
         machine_id = input_serializer.validated_data["machine_id"]
@@ -867,12 +867,12 @@ def volumes(request, tenant):
         return response.Response(serializer.data)
 
 
-@provider_api_view(["GET", "PUT", "DELETE"])
+@provider_api_view(["GET", "PATCH", "DELETE"])
 def volume_details(request, tenant, volume):
     """
     On ``GET`` requests, return the details for the specified volume.
 
-    On ``PUT`` requests, update the attachment status of the specified volume
+    On ``PATCH`` requests, update the attachment status of the specified volume
     depending on the given ``machine_id``.
 
     To attach a volume to a machine, just give the machine id::
@@ -885,7 +885,7 @@ def volume_details(request, tenant, volume):
 
     On ``DELETE`` requests, delete the specified volume.
     """
-    if request.method == "PUT":
+    if request.method == "PATCH":
         input_serializer = serializers.UpdateVolumeSerializer(data = request.data)
         input_serializer.is_valid(raise_exception = True)
         machine_id = input_serializer.validated_data["machine_id"]
@@ -1023,12 +1023,12 @@ def clusters(request, tenant):
                 return response.Response(serializer.data)
 
 
-@provider_api_view(["GET", "PUT", "DELETE"])
+@provider_api_view(["GET", "PATCH", "DELETE"])
 def cluster_details(request, tenant, cluster):
     """
     On ``GET`` requests, return the named cluster.
 
-    On ``PUT`` requests, update the named cluster with the given paramters.
+    On ``PATCH`` requests, update the named cluster with the given paramters.
 
     On ``DELETE`` requests, delete the named cluster.
     """
@@ -1043,7 +1043,7 @@ def cluster_details(request, tenant, cluster):
     with request.auth.scoped_session(tenant) as session:
         with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
             cluster = cluster_manager.find_cluster(cluster)
-            if request.method == "PUT":
+            if request.method == "PATCH":
                 input_serializer = serializers.UpdateClusterSerializer(
                     data = request.data,
                     context = dict(

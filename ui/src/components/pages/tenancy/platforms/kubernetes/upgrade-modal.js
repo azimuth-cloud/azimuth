@@ -39,7 +39,7 @@ export const UpgradeKubernetesClusterButton = ({
 
     const handleSubmit = (evt) => {
         evt.preventDefault();
-        kubernetesClusterActions.update({ template }, true);
+        kubernetesClusterActions.update({ template });
         setInFlight(true);
         close();
     };

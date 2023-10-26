@@ -8,6 +8,9 @@ AZIMUTH_AUTH:
       {{- with .label }}
       LABEL: {{ quote . }}
       {{- end }}
+      {{- with .hidden }}
+      HIDDEN: true
+      {{- end }}
       AUTHENTICATOR:
         {{- if (eq .type "openstack-password") }}
         FACTORY: azimuth_auth.authenticator.openstack.PasswordAuthenticator

@@ -21,17 +21,23 @@ class OpenStackFormAuthenticator(FormAuthenticator):
         self.token_url = f"{self.auth_url}/auth/tokens"
         self.verify_ssl = verify_ssl
 
-    def get_identity(self, form_data):
+    def get_identity(self, auth_data):
         """
         Returns the identity to use for the token request, derived from the form data.
         """
         raise NotImplementedError
 
-    def authenticate(self, form_data):
+    def auth_token(self, auth_data):
+        # Try to get the identity data from the provided auth data
+        # If the required data is not present, a KeyError will be raised
+        try:
+            identity = self.get_identity(auth_data)
+        except KeyError:
+            return None
         # Authenticate the user by submitting an appropriate request to the token URL
         response = requests.post(
             self.token_url,
-            json = dict(auth = dict(identity = self.get_identity(form_data))),
+            json = dict(auth = dict(identity = identity)),
             verify = self.verify_ssl
         )
         # If the response is a success, return the token
@@ -49,18 +55,20 @@ class PasswordAuthenticator(OpenStackFormAuthenticator):
     Authenticator that authenticates with an OpenStack cloud using the
     password authentication method.
     """
+    authenticator_type = "openstack_password"
+
     def __init__(self, auth_url, domain = 'default', verify_ssl = True):
         super().__init__(auth_url, verify_ssl)
         self.domain = domain
 
-    def get_identity(self, form_data):
+    def get_identity(self, auth_data):
         return dict(
             methods = ['password'],
             password = dict(
                 user = dict(
                     domain = dict(name = self.domain),
-                    name = form_data['username'],
-                    password = form_data['password']
+                    name = auth_data['username'],
+                    password = auth_data['password']
                 )
             )
         )
@@ -78,14 +86,16 @@ class ApplicationCredentialAuthenticator(OpenStackFormAuthenticator):
     """
     Authenticator that authenticates with an OpenStack cloud using an application credential.
     """
+    authenticator_type = "openstack_application_credential"
+
     form_class = ApplicationCredentialForm
 
-    def get_identity(self, form_data):
+    def get_identity(self, auth_data):
         return dict(
             methods = ['application_credential'],
             application_credential = dict(
-                id = form_data['application_credential_id'],
-                secret = form_data['application_credential_secret']
+                id = auth_data['application_credential_id'],
+                secret = auth_data['application_credential_secret']
             )
         )
 
@@ -104,6 +114,8 @@ class FederatedAuthenticator(RedirectAuthenticator):
         "{auth_url}/auth/OS-FEDERATION/identity_providers/{provider}/protocols/{protocol}/websso"
     )
     PROTOCOL_ONLY_TPL = "{auth_url}/auth/OS-FEDERATION/websso/{protocol}"
+
+    authenticator_type = "openstack_federation"
 
     uses_crossdomain_post_requests = True
 

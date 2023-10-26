@@ -20,6 +20,22 @@ class BaseAuthenticator:
     #:   https://blog.chromium.org/2019/10/developers-get-ready-for-new.html
     uses_crossdomain_post_requests = False
 
+    #: Indicates if the authenticator should only be used in interactive flows, e.g.
+    #: if a browser is required in order to complete the authentication
+    interactive_only = False
+
+    def get_representation(self):
+        """
+        Returns a dictionary representation of the authenticator, for use in the SDK.
+        """
+        if hasattr(self, "authenticator_type"):
+            return {
+                "type": self.authenticator_type,
+                "options": self.get_options(),
+            }
+        else:
+            raise NotImplementedError
+
     def get_options(self):
         """
         Allows the authenticator to contribute multiple options to the authenticator
@@ -55,5 +71,13 @@ class BaseAuthenticator:
         successful or None if not.
 
         This method may receive GET or POST requests depending on the implementation.
+        """
+        raise NotImplementedError
+
+    def auth_token(self, auth_data):
+        """
+        Use the given auth data to attempt to obtain a token.
+
+        Returns the token if successful, None if not..
         """
         raise NotImplementedError

@@ -30,6 +30,9 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'azimuth_auth.middleware.BearerTokenMiddleware',
+    # Include the session middleware after the bearer token middleware
+    # so that the session takes precedence when it is available
     'azimuth_auth.middleware.SessionTokenMiddleware',
     'azimuth.middleware.CleanupProviderMiddleware',
 ]

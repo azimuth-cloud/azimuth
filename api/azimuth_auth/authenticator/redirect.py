@@ -16,6 +16,9 @@ class RedirectAuthenticator(BaseAuthenticator):
     Its main purpose is to ensure that we can break a redirection loop when an
     authentication fails.
     """
+    # Authentications that begin with a redirect require a browser
+    interactive_only = True
+
     failure_code = "external_auth_failed"
     failure_template = "azimuth_auth/external_auth_failed.html"
 

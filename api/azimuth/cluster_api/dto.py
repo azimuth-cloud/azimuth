@@ -18,6 +18,8 @@ class ClusterTemplate:
     kubernetes_version: str
     #: Indicates if this is a deprecated template
     deprecated: bool
+    #: The tags for the template
+    tags: t.List[str]
     #: The datetime at which the template was created
     created_at: datetime.datetime
 

@@ -2,9 +2,6 @@
 Django middleware for restoring the cloud provider.
 """
 
-from .provider import errors
-from .settings import cloud_settings
-
 
 class CleanupProviderMiddleware:
     """
