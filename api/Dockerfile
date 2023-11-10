@@ -1,4 +1,5 @@
 FROM python:3.9
+# no op for baseline data
 
 # Create the user that will be used to run the app
 ENV APP_UID 1001
