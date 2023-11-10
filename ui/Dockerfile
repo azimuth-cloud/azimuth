@@ -23,6 +23,7 @@ FROM nginx
 
 # Install Tini
 RUN apt-get update && \
+    apt-get dist-upgrade && \
     apt-get install -y tini && \
     rm -rf /var/lib/apt/lists/*
 
