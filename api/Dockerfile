@@ -1,5 +1,38 @@
-FROM python:3.9
-# no op for baseline data
+FROM ubuntu:jammy as build-image
+
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install --no-install-recommends python3.10-venv git curl -y && \
+    rm -rf /var/lib/apt/lists/*
+
+# build into a venv we can copy across
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+COPY ./requirements.txt /application/
+RUN pip install -U pip setuptools
+RUN pip install --no-deps --requirement /application/requirements.txt
+
+COPY . /application
+RUN pip install --no-deps /application
+
+# Install the scripts
+COPY ./bin /opt/venv/bin
+
+#
+# Now the image we run with
+#
+FROM ubuntu:jammy as run-image
+
+# Add just python tini and some ca-certs
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install --no-install-recommends python3 tini ca-certificates -y && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy accross the venv
+COPY --from=build-image /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
 # Create the user that will be used to run the app
 ENV APP_UID 1001
@@ -22,22 +55,6 @@ RUN apt-get update && \
 # Don't buffer stdout and stderr as it breaks realtime logging
 ENV PYTHONUNBUFFERED 1
 
-# Install gunicorn as the WSGI server, whitenoise to handle static files and
-# django-flexi-settings for smart handling of settings
-RUN pip install --no-cache-dir \
-      'gunicorn==20.1.0' \
-      'whitenoise==5.3.0' \
-      'git+https://github.com/stackhpc/django-flexi-settings.git@079359cc1e2d380a15ae6149ebffbcdae8094276#egg=django_flexi_settings'
-
-# Install dependencies
-# Doing this separately by copying only the requirements file enables better use of the build cache
-COPY ./requirements.txt /application/
-RUN pip install --no-deps --requirement /application/requirements.txt
-
-# Install the application itself
-COPY . /application
-RUN pip install --no-deps -e /application
-
 # Install Gunicorn config
 COPY ./etc/gunicorn /etc/gunicorn
 
@@ -49,9 +66,6 @@ RUN mkdir -p /etc/azimuth/settings.d
 
 # Collect the static files
 RUN django-admin collectstatic
-
-# Install the scripts
-COPY ./bin /usr/local/bin
 
 # By default, serve the app on port 8080 using the app user
 EXPOSE 8080
