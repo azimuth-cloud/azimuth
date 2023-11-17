@@ -1,10 +1,10 @@
 name: Publish artifacts
 
 on:
-  # Publish artifacts on every push to main and every tag
+  # Publish artifacts on every push to master and every tag
   push:
     branches:
-      - main
+      - master
     tags:
       - "*"
   # Also allow publication to be done via a workflow call
