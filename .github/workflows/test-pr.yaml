@@ -9,7 +9,7 @@ on:
       - ready_for_review
       - reopened
     branches:
-      - main
+      - master
 
 concurrency:
   group: ${{ github.head_ref }}
