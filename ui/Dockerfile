@@ -66,5 +66,5 @@ COPY ./etc/nginx/conf.d/default.conf /etc/nginx/conf.d/
 
 # The Nginx user has UID 999
 USER 999
-ENTRYPOINT ["tini", "-g", "--", "/docker-entrypoint.sh"]
+ENTRYPOINT ["tini", "-g", "--"]
 CMD ["nginx", "-g", "daemon off;"]
