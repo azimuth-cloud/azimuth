@@ -1,6 +1,25 @@
 name: Publish artifacts
-# Run the tasks on every push
-on: push
+
+on:
+  # Publish artifacts on every push to main and every tag
+  push:
+    branches:
+      - main
+    tags:
+      - "*"
+  # Also allow publication to be done via a workflow call
+  # In this case, the chart version is returned as an output
+  workflow_call:
+    inputs:
+      ref:
+        type: string
+        description: The ref to build.
+        required: true
+    outputs:
+      chart-version:
+        description: The chart version that was published
+        value: ${{ jobs.build_push_chart.outputs.chart-version }}
+
 jobs:
   build_push_images:
     name: Build and push images
@@ -13,6 +32,8 @@ jobs:
     steps:
       - name: Check out the repository
         uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.ref || github.ref }}
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v2
@@ -47,10 +68,13 @@ jobs:
     runs-on: ubuntu-latest
     # Only build and push the chart if the images built successfully
     needs: [build_push_images]
+    outputs:
+      chart-version: ${{ steps.semver.outputs.version }}
     steps:
       - name: Check out the repository
         uses: actions/checkout@v3
         with:
+          ref: ${{ inputs.ref || github.ref }}
           # This is important for the semver action to work correctly
           # when determining the number of commits since the last tag
           fetch-depth: 0
