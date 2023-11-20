@@ -1,0 +1,31 @@
+---
+
+version: 2
+
+updates:
+  # Automatically propose PRs for out-of-date GitHub actions
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      # Check for new versions weekly
+      interval: weekly
+    # Update all actions in a single PR
+    groups:
+      github-actions:
+        patterns: ["*"]
+    labels:
+      - automation
+      - gha-update
+
+  # Automatically propose PRs for Python dependencies
+  - package-ecosystem: pip
+    directory: "/api"
+    schedule:
+      # Check for new versions daily
+      interval: daily
+    # Open one PR at a time to limit concurrent use of test infra
+    open-pull-requests-limit: 1
+    labels:
+      - automation
+      - pip-update
+      - api
