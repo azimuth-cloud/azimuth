@@ -48,7 +48,7 @@ jobs:
         uses: stackhpc/azimuth-config/.github/actions/setup@main
         with:
           os-clouds: ${{ secrets.OS_CLOUDS }}
-          environment-prefix: capi-ci
+          environment-prefix: api-ci
           # Use the version of the chart that we just built
           # The workstation + Kubernetes apps tests are sufficient to exercise the API
           extra-vars: |

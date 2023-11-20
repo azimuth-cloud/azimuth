@@ -20,6 +20,9 @@ on:
         description: The chart version that was published
         value: ${{ jobs.build_push_chart.outputs.chart-version }}
 
+env:
+  NGINX_VERSION: 1.25.3
+
 jobs:
   build_push_images:
     name: Build and push images
