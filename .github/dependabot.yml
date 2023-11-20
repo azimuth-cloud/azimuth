@@ -29,3 +29,17 @@ updates:
       - automation
       - pip-update
       - api
+
+  # Automatically propose PRs for Python dependencies
+  - package-ecosystem: npm
+    directory: "/ui"
+    schedule:
+      # Check for new versions daily
+      interval: daily
+    # Don't open PRs for JS dependencies for now, as we don't have any
+    # way of testing them
+    open-pull-requests-limit: 0
+    labels:
+      - automation
+      - javascript
+      - ui
