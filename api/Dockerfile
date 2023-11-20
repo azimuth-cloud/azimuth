@@ -10,8 +10,10 @@ RUN python3 -m venv /venv && \
 COPY requirements.txt /app/requirements.txt
 RUN  /venv/bin/pip install --no-deps --requirement /app/requirements.txt
 
+# Django fails to load templates if this is installed the "regular" way
+# If we use an editable mode install then it works
 COPY . /app
-RUN /venv/bin/pip install --no-deps /app
+RUN /venv/bin/pip install --no-deps -e /app
 
 
 FROM ubuntu:jammy
@@ -38,6 +40,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=python-builder /venv /venv
+COPY --from=python-builder /app /app
 
 # Install Gunicorn config
 COPY ./etc/gunicorn /etc/gunicorn
