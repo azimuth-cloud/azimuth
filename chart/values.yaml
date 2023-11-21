@@ -1,3 +1,4 @@
+---
 # Tags for optional features
 tags:
   # Setting this tag to true enables apps via a Zenith app proxy
@@ -60,7 +61,7 @@ api:
       # The image for the statsd exporter
       image:
         repository: prom/statsd-exporter
-        tag: v0.23.0
+        tag: v0.25.0
         pullPolicy: IfNotPresent
       # Container-level security context for the statsd container
       securityContext:
