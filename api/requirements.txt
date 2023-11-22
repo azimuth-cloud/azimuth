@@ -14,7 +14,7 @@ easykube==0.1.1
 gunicorn==20.1.0
 h11==0.14.0
 httpcore==0.16.3
-httpx==0.23.3
+httpx==0.25.1
 idna==3.4
 jasmin-ldap @ git+https://github.com/cedadev/jasmin-ldap.git@3e1d2659731e9e1a65e8723b4e72c776ae7f7b25
 Jinja2==3.1.2
