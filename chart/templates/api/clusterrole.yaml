@@ -57,9 +57,11 @@ rules:
     resources:
       - secrets
     verbs:
+      - list
       - get
       - create
       - update
+      - patch
       - delete
   - apiGroups:
       - caas.azimuth.stackhpc.com
