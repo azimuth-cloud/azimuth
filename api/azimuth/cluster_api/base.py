@@ -19,7 +19,7 @@ from easykube import (
     PRESENT
 )
 
-from ..provider import base as cloud_base, dto as cloud_dto
+from ..provider import base as cloud_base, dto as cloud_dto, errors as cloud_errors
 
 from . import dto, errors
 
@@ -412,14 +412,25 @@ class Session:
         self._ensure_namespace()
         # Make sure any shared resources exist
         self._ensure_shared_resources()
+        try:
+            credential = self._create_credential(name)
+        except cloud_errors.InvalidOperationError:
+            raise errors.InvalidOperationError(f"Cluster '{name}' already exists")
         secret = self._client.client_side_apply_object(
             {
                 "apiVersion": "v1",
                 "kind": "Secret",
                 "metadata": {
                     "name": f"{name}-cloud-credentials",
+                    "labels": {
+                        "app.kubernetes.io/managed-by": "azimuth",
+                    },
+                    "annotations": {
+                        # Add the annotation that permits the janitor to delete this appcred
+                        "janitor.capi.stackhpc.com/credential-policy": "delete",
+                    },
                 },
-                "stringData": self._create_credential(name),
+                "stringData": credential,
             }
         )
         # Build the cluster spec
@@ -506,6 +517,18 @@ class Session:
         """
         if isinstance(cluster, dto.Cluster):
             cluster = cluster.id
+        # Before deleting the cluster, patch the credential secret with the annotation
+        # that permits the janitor to remove the appcred
+        self._client.api("v1").resource("secrets").patch(
+            f"{cluster}-cloud-credentials",
+            {
+                "metadata": {
+                    "annotations": {
+                        "janitor.capi.stackhpc.com/credential-policy": "delete",
+                    },
+                },
+            }
+        )
         self._client.api(AZIMUTH_API_VERSION).resource("clusters").delete(cluster)
         return self.find_cluster(cluster)
 
