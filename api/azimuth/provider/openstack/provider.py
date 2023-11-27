@@ -1295,6 +1295,7 @@ class ScopedSession(base.ScopedSession):
         self._connection.block_store.volumes.get(volume.id, force = True)
         return self.find_volume(volume.id)
 
+    @convert_exceptions
     def cloud_credential(self, name, description):
         """
         See :py:meth:`.base.ScopedSession.cloud_credential`.
@@ -1302,9 +1303,6 @@ class ScopedSession(base.ScopedSession):
         # Create an app cred and return a clouds.yaml for it
         # If an app cred already exists with the same name, delete it
         user = self._connection.identity.current_user
-        existing = user.application_credentials.find_by_name(name)
-        if existing:
-            existing._delete()
         app_cred_roles = [
             {"name": role["name"]}
             for role in self._connection.roles
@@ -1313,7 +1311,7 @@ class ScopedSession(base.ScopedSession):
         app_cred = user.application_credentials.create(
             name = name,
             description = description,
-            roles=app_cred_roles,
+            roles = app_cred_roles,
             # TODO(mkjpryor)
             # This is currently required to allow app creds to delete themselves
             # However it also allows the app cred to make and delete other app creds
