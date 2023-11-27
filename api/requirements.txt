@@ -25,7 +25,7 @@ pyasn1==0.4.8
 pycparser==2.21
 pyrsistent==0.20.0
 python-dateutil==2.8.2
-pytz==2022.7.1
+pytz==2023.3.post1
 PyYAML==6.0.1
 rackit @ git+https://github.com/stackhpc/rackit.git@cb2da480f9fc99f36cc777d58dfbccec33434879
 requests==2.31.0
