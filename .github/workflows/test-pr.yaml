@@ -46,7 +46,7 @@ jobs:
           max-concurrency: 1
 
   run_azimuth_tests:
-    needs: [wait_in_queue]
+    needs: [publish_artifacts, wait_in_queue]
     runs-on: ubuntu-latest
     steps:
       # Check out the configuration repository
