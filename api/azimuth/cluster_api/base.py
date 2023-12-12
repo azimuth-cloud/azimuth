@@ -273,7 +273,7 @@ class Session:
                 dto.Node(
                     name,
                     node["role"],
-                    node["phase"],
+                    node.get("phase", "Unknown"),
                     next(
                         (
                             size.id
