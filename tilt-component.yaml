@@ -1,0 +1,10 @@
+chart: ./chart
+
+images:
+  azimuth-api:
+    context: ./api
+    chart_path: api.image
+
+  azimuth-ui:
+    context: ./ui
+    chart_path: ui.image
