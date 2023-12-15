@@ -1,3 +1,16 @@
+#####
+# NOTE
+#
+# The build/push/deploy cycle doesn't really work for UI development as the
+# feedback cycle is too slow - this is because even a change to a single file
+# triggers a whole production rebuild including obfuscation, tree-shaking etc.
+#
+# Instead of changing the container build, which is what we want for prod, we
+# instead set up a port forward for the Azimuth API and run the UI locally using
+# a local_resource
+# #####
+
+
 chart: ./chart
 
 images:
@@ -5,6 +18,17 @@ images:
     context: ./api
     chart_path: api.image
 
+port_forwards:
+  - kind: service
+    name: azimuth-api
+    port: "8000:80"
+
+local_resources:
   azimuth-ui:
-    context: ./ui
-    chart_path: ui.image
+    serve_cmd:
+      - yarn
+      - --cwd
+      - ./ui
+      - serve
+    links:
+      - http://localhost:3000
