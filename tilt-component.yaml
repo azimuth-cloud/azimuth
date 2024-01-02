@@ -18,6 +18,10 @@ images:
     context: ./api
     chart_path: api.image
 
+  azimuth-ui:
+    context: ./ui
+    chart_path: ui.image
+
 port_forwards:
   - kind: service
     name: azimuth-api
