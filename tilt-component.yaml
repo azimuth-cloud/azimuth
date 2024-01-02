@@ -28,7 +28,16 @@ port_forwards:
     port: "8000:80"
 
 local_resources:
+  azimuth-ui-install:
+    cmd:
+      - yarn
+      - --cwd
+      - ./ui
+      - install
+      - --frozen-lockfile
   azimuth-ui:
+    resource_deps:
+      - azimuth-ui-install
     serve_cmd:
       - yarn
       - --cwd
