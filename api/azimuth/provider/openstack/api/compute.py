@@ -81,8 +81,6 @@ class Server(ResourceWithDetail):
             fault = dict
         )
 
-    flavor = EmbeddedResource(Flavor)
-    image = EmbeddedResource(Image)
     volume_attachments = NestedResource(VolumeAttachment)
 
     def logs(self):
