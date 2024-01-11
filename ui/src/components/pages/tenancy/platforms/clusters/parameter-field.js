@@ -194,6 +194,7 @@ const CloudSizeControl = ({
     min_ram: minRAM,
     min_disk: minDisk,
     min_ephemeral_disk: minEphemeralDisk,
+    has_properties: hasProperties,
     ...props
 }) => (
     <SizeSelectControl
@@ -205,6 +206,13 @@ const CloudSizeControl = ({
             if( !!minRAM && size.ram < minRAM ) return false;
             if( !!minDisk && size.disk < minDisk ) return false;
             if( !!minEphemeralDisk && size.ephemeral_disk < minEphemeralDisk ) return false;
+            if( !!hasProperties ) {
+                for( var prop of hasProperties ) {
+                    if( !size.additional_properties.hasOwnProperty(prop.name) ) return false;
+                    if( !prop.hasOwnProperty("value") ) continue
+                    if( prop.value.toString() != size.additional_properties[prop.name] ) return false;
+                }
+            }
             return true;
         }}
     />
