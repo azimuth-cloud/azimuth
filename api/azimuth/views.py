@@ -503,7 +503,7 @@ def _format_size(amount, original_units):
         formatted_amount = int(new_amount)
     else:
         formatted_amount = f"{new_amount:.2f}"
-    units_index = _SIZE_UNITS.index(original_units) + exponent;
+    units_index = _SIZE_UNITS.index(original_units) + exponent
     # Return the formatted value
     return f"{formatted_amount}{_SIZE_UNITS[units_index]}"
 
@@ -531,6 +531,18 @@ def _curated_size(cloud_size, curated_size_spec):
                     "ephemeral_disk": _format_size(cloud_size.ephemeral_disk, "GB")
                 })
             )
+        )
+    if "additional_properties" in curated_size_spec:
+        additional_properties = curated_size.additional_properties.copy()
+        additional_properties.update(
+            {
+                str(key): str(value)
+                for key, value in curated_size_spec["additional_properties"].items()
+            }
+        )
+        curated_size = dataclasses.replace(
+            curated_size,
+            additional_properties = additional_properties
         )
     return dataclasses.replace(
         curated_size,

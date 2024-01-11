@@ -555,7 +555,7 @@ class ScopedSession(base.ScopedSession):
             api_flavor.ram,
             api_flavor.disk,
             getattr(api_flavor, "ephemeral_disk", 0),
-            getattr(api_flavor, "extra_specs", {})
+            getattr(api_flavor, "extra_specs", None) or {}
         )
 
     @convert_exceptions

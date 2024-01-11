@@ -209,6 +209,9 @@ class AzimuthSettings(SettingsObject):
     #: name reported by the cloud and the default description
     #: The description is treated as a Django template, and receives the variables "cpus",
     #: "ram", "disk" and "ephemeral_disk"
+    #: Each item can also include an "additional_properties" key, which should be a mapping
+    #: of property names to property values, that are merged with the properties from
+    #: the underlying flavor
     CURATED_SIZES = Setting(default = None)
 
     #: SSH key store configuration
