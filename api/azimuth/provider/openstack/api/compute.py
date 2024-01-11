@@ -81,8 +81,6 @@ class Server(ResourceWithDetail):
             fault = dict
         )
 
-    flavor = EmbeddedResource(Flavor)
-    image = EmbeddedResource(Image)
     volume_attachments = NestedResource(VolumeAttachment)
 
     def logs(self):
@@ -136,6 +134,7 @@ class ComputeService(Service):
     OpenStack service class for the compute service.
     """
     catalog_type = 'compute'
+    microversion = '2.61'
     path_prefix = '/v2.1'
 
     flavors = RootResource(Flavor)

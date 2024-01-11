@@ -554,7 +554,8 @@ class ScopedSession(base.ScopedSession):
             api_flavor.vcpus,
             api_flavor.ram,
             api_flavor.disk,
-            getattr(api_flavor, "ephemeral_disk", 0)
+            getattr(api_flavor, "ephemeral_disk", 0),
+            getattr(api_flavor, "extra_specs", None) or {}
         )
 
     @convert_exceptions
@@ -739,14 +740,12 @@ class ScopedSession(base.ScopedSession):
         7: "Suspended",
     }
 
-    def _from_api_server(self, api_server, get_tenant_network):
+    def _from_api_server(self, api_server, flavors, get_tenant_network):
         """
         Returns a machine DTO for the given API server representation.
-
-        The additional arguments are the tenant network and an optional iterable of
-        the images for the tenancy (used to save fetching each image individually
-        when listing machines).
         """
+        flavor_name = getattr(api_server, "flavor", {}).get("original_name")
+        flavor_id = flavors.get(flavor_name) if flavor_name else None
         status = api_server.status
         fault = api_server.fault.get("message", None)
         task = api_server.task_state
@@ -770,8 +769,8 @@ class ScopedSession(base.ScopedSession):
         return dto.Machine(
             api_server.id,
             api_server.name,
-            getattr(api_server.image, "id", None),
-            getattr(api_server.flavor, "id", None),
+            getattr(api_server, "image", {}).get("id"),
+            flavor_id,
             dto.MachineStatus(
                 getattr(dto.MachineStatusType, status, dto.MachineStatusType.OTHER),
                 status,
@@ -800,10 +799,13 @@ class ScopedSession(base.ScopedSession):
         self._log("Fetching available servers")
         api_servers = tuple(self._connection.compute.servers.all())
         self._log("Found %s servers", len(api_servers))
+        # We need to be able to look up the flavor ID from the name, which is all that is reported
+        # To avoid multiple queries, we look up all the flavors and index them by name
+        flavors = { f.name: f.id for f in self._connection.compute.flavors.all() }
         # Note that this will (a) only load the network if required and (b)
         # reuse the network once loaded
         get_tenant_network = Lazy(self._tenant_network)
-        return tuple(self._from_api_server(s, get_tenant_network) for s in api_servers)
+        return tuple(self._from_api_server(s, flavors, get_tenant_network) for s in api_servers)
 
     @convert_exceptions
     def find_machine(self, id):
@@ -812,9 +814,13 @@ class ScopedSession(base.ScopedSession):
         """
         self._log("Fetching server with id '%s'", id)
         server = self._connection.compute.servers.get(id)
+        # We need to be able to look up the flavor from the name
+        # It is not possible to filter the query by name using GET params, so the best
+        # we can do it query the list and index it
+        flavors = { f.name: f.id for f in self._connection.compute.flavors.all() }
         # Don't discover the tenant network unless the server is found
         get_tenant_network = Lazy(self._tenant_network)
-        return self._from_api_server(server, get_tenant_network)
+        return self._from_api_server(server, flavors, get_tenant_network)
 
     @convert_exceptions
     def fetch_logs_for_machine(self, machine):

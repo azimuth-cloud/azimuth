@@ -97,6 +97,8 @@ class Size:
     disk: int
     #: The size of the ephemeral disk in GB
     ephemeral_disk: int
+    #: Any additional properties of the size
+    additional_properties: Mapping[str, str]
     #: The sort index of the size in the UI
     sort_idx: int = 0
 

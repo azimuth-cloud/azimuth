@@ -311,6 +311,8 @@ class Service(rackit.Connection):
     #: The name of the catalog type that this service is for
     #: This is used to retrieve the endpoint from the service catalog
     catalog_type = None
+    #: The specific microversion to request, if required
+    microversion = None
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -350,6 +352,12 @@ class Service(rackit.Connection):
                 message = self._find_message(item)
                 if message:
                     return message
+
+    def prepare_request(self, request):
+        # If a specific microversion is requested, add the appropriate header
+        if self.microversion:
+            request.headers["OpenStack-API-Version"] = f"{self.catalog_type} {self.microversion}"
+        return super().prepare_request(request)
 
     def extract_error_message(self, response):
         """

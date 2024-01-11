@@ -256,6 +256,14 @@ def cloud_size_constraint(cloud_session, options, **kwargs):
         ):
             raise v.Invalid('Size does not have enough ephemeral disk.')
         return size
+    def has_properties(size):
+        for prop in options.get('has_properties', []):
+            prop_name = prop['name']
+            if prop_name not in size.additional_properties:
+                raise v.Invalid(f'Size does not have required property \'{prop_name}\'.')
+            if 'value' in prop and str(prop['value']) != size.additional_properties[prop_name]:
+                raise v.Invalid(f'Property \'{prop_name}\' does not have required value.')
+        return size
     return v.All(
         v.Coerce(str),
         convert_not_found(
@@ -266,6 +274,7 @@ def cloud_size_constraint(cloud_session, options, **kwargs):
         min_ram,
         min_disk,
         min_ephemeral_disk,
+        has_properties,
         lambda s: s.id
     )
 
