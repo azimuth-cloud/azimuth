@@ -6,26 +6,6 @@ from ..provider import base as cloud_provider, dto as cloud_dto
 from . import dto
 
 
-def mergeconcat(defaults, overrides):
-    """
-    Merge two values together. Dicts are deep-merged, lists are concatenated.
-    """
-    if isinstance(defaults, dict) and isinstance(overrides, dict):
-        merged = dict(defaults)
-        for key, value in overrides.items():
-            if key in defaults:
-                merged[key] = mergeconcat(defaults[key], value)
-            else:
-                merged[key] = value
-        return merged
-    elif isinstance(defaults, (list, tuple)) and isinstance(overrides, (list, tuple)):
-        merged = list(defaults)
-        merged.extend(overrides)
-        return merged
-    else:
-        return overrides if overrides is not None else defaults
-
-
 class CaaSClusterCalculator:
     """
     Calculates the resources required for a CaaS cluster.
@@ -64,30 +44,4 @@ class CaaSClusterCalculator:
             # The cloud.volume and cloud.ip kinds represent resources that have
             # already been allocated, so they do not need to be accounted for
             # in any quota calculations
-        return resources
-
-
-class KubernetesResourceCalculator:
-    """
-    Calculates the resources required for a Kubernetes cluster.
-    """
-    def calculate(
-        self,
-        template: capi_dto.ClusterTemplate,
-        control_plane_size: cloud_dto.Size,
-        node_groups: t.Iterable[dict],
-        **kwargs
-    ) -> dto.PlatformResources:
-        """
-        Calculates the resources required to make the specified changes
-        to the Kubernetes cluster.
-        """
-        resources = dto.PlatformResources()
-        resources.add_machines(template.control_plane_count, control_plane_size)
-        for ng in node_groups:
-            count = ng["min_count"] if ng["autoscale"] else ng["count"]
-            resources.add_machines(count, ng["machine_size"])
-        # NOTE(mkjpryor)
-        # The IP for ingress is selected from pre-allocated IPs, so does
-        # not need to be accounted for in any quota calculations
         return resources
