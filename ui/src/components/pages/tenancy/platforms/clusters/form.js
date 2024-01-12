@@ -150,11 +150,11 @@ const PlatformSchedulingModal = ({ tenancyId, formState, onCancel, onConfirm }) 
     // If the platform fits within the quotas, just inform the user and create it
     useEffect(
         () => {
-            if( !fits ) return;
-            const timeout = setTimeout(onConfirm, 1000);
+            if( loading || !fits ) return;
+            const timeout = setTimeout(onConfirm, 1500);
             return () => { clearTimeout(timeout); };
         },
-        [fits]
+        [loading, fits]
     );
 
     return (
@@ -295,6 +295,7 @@ export const ClusterForm = ({
                         disabled={formState.isEdit}
                         value={formState.name}
                         onChange={handleNameChange}
+                        autoFocus
                     />
                 </Field>
                 {formState.clusterType.parameters.map(p => (
