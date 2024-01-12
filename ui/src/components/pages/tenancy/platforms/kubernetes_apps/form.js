@@ -222,6 +222,7 @@ export const KubernetesAppForm = ({
                     disabled={formState.isEdit}
                     value={formState.name}
                     onChange={handleNameChange}
+                    autoFocus
                 />
             </Field>
             <Field
