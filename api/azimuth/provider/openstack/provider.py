@@ -775,7 +775,7 @@ class ScopedSession(base.ScopedSession):
         return dto.Machine(
             api_server.id,
             api_server.name,
-            getattr(api_server, "image", {}).get("id"),
+            (getattr(api_server, "image", None) or {}).get("id"),
             flavor_id,
             dto.MachineStatus(
                 getattr(dto.MachineStatusType, status, dto.MachineStatusType.OTHER),
