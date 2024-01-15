@@ -81,53 +81,49 @@ const ProjectedQuotas = ({ quotas }) => {
 export const PlatformSchedulingModal = ({ useSchedulingData, onCancel, onConfirm }) => {
     const { loading, fits, quotas, error } = useSchedulingData();
 
-    // If the platform fits within the quotas, just inform the user and create it
-    useEffect(
-        () => {
-            if( loading || !fits ) return;
-            const timeout = setTimeout(onConfirm, 1500);
-            return () => { clearTimeout(timeout); };
-        },
-        [loading, fits]
-    );
-
     return (
         <Modal show={true} backdrop="static" keyboard={false} size="md">
             <Modal.Header>
-                <Modal.Title>Platform scheduling</Modal.Title>
+                <Modal.Title>Review usage</Modal.Title>
             </Modal.Header>
             <Modal.Body>
-                {(loading || error || fits) ? (
+                {(loading || error) ? (
                     <Row className="justify-content-center">
                         <Col xs={`auto py-${loading || fits ? 3 : 2}`}>
-                            {loading && <Loading message="Checking scheduling constraints..." />}
-                            {error && <Error message="Error checking scheduling constraints" />}
-                            {fits && (
-                                <div className="text-success fw-bold">
-                                    <FontAwesomeIcon icon={faCheckCircle} className="me-2" />
-                                    Platform can be scheduled now
-                                </div>
-                            )}
+                            {loading && <Loading message="Checking quotas..." />}
+                            {error && <Error message="Error quotas" />}
                         </Col>
                     </Row>
                 ) : (
                     <Row>
                         <Col>
-                            <p className="text-danger fw-bold">
-                                The selected options do not fit within your quotas:
-                            </p>
+                            {fits ? (
+                                <p>
+                                    Please confirm that you are happy with the resources
+                                    that your platform will consume.
+                                </p>
+                            ) : (
+                                <Error
+                                    message={(
+                                        "The requested platform does not fit within your quota. " +
+                                        "Revise the selected options and try again."
+                                    )}
+                                />
+                            )}
                             <ProjectedQuotas quotas={quotas} />
-                            <p className="mb-0">
-                                Please revise the selected options and try again.
-                            </p>
                         </Col>
                     </Row>
                 )}
             </Modal.Body>
             <Modal.Footer>
-                <Button variant="secondary" disabled={loading || fits} onClick={onCancel}>
-                    Close
+                <Button variant="secondary" disabled={loading} onClick={onCancel}>
+                    Back
                 </Button>
+                {!loading && !error && fits && (
+                    <Button variant="success" onClick={onConfirm} autoFocus>
+                        Confirm
+                    </Button>
+                )}
             </Modal.Footer>
         </Modal>
     );
