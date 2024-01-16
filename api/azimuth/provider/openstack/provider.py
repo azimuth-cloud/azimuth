@@ -48,6 +48,7 @@ _REPLACEMENTS = [
     ("flavor", "size"),
     ("Flavor", "Size"),
     ("Security group rule", "Firewall rule"),
+    ("Floating IP", "External IP"),
 ]
 def _replace_resource_names(message):
     return functools.reduce(
@@ -1094,7 +1095,9 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.external_ips`.
         """
         self._log("Fetching floating ips")
-        fips = list(self._connection.network.floatingips.all())
+        # Only consider FIPs on the specified external network
+        extnet = self._external_network()
+        fips = list(self._connection.network.floatingips.all(floating_network_id = extnet.id))
         self._log("Found %s floating ips", len(fips))
         # If any floating IPs were found, fetch all the ports in one go and index them
         # by ID so we can locate the attached machines without making one request per port
@@ -1125,7 +1128,12 @@ class ScopedSession(base.ScopedSession):
         """
         self._log("Fetching floating IP with id '%s'", ip)
         fip = self._connection.network.floatingips.get(ip)
-        return self._from_api_floatingip(fip)
+        # Check that the FIP belongs to the correct external network
+        extnet = self._external_network()
+        if fip.floating_network_id == extnet.id:
+            return self._from_api_floatingip(fip)
+        else:
+            raise errors.ObjectNotFoundError("External IP {} could not be found".format(ip))
 
     @convert_exceptions
     def find_external_ip_by_ip_address(self, ip_address):
@@ -1133,12 +1141,17 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.find_external_ip_by_ip_address`.
         """
         self._log("Fetching floating IP '%s'", ip_address)
-        fip = self._connection.network.floatingips.find_by_floating_ip_address(ip_address)
-        if fip:
-            return self._from_api_floatingip(fip)
-        else:
+        # Only consider FIPs on the correct network
+        extnet = self._external_network()
+        fips = self._connection.network.floatingips.all(
+            floating_network_id = extnet.id,
+            floating_ip_address = ip_address
+        )
+        try:
+            return self._from_api_floatingip(next(fips))
+        except StopIteration:
             raise errors.ObjectNotFoundError(
-                "Could not find floating IP {}.".format(ip_address)
+                "External IP {} could not be found".format(ip_address)
             )
 
     @convert_exceptions
@@ -1147,8 +1160,9 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.attach_external_ip`.
         """
         machine = machine.id if isinstance(machine, dto.Machine) else machine
-        ip = ip.id if isinstance(ip, dto.ExternalIp) else ip
-        self._log("Attaching floating ip '%s' to server '%s'", ip, machine)
+        # If the IP is given as an ID, make sure it belongs to the correct extnet
+        ip = ip if isinstance(ip, dto.ExternalIp) else self.find_external_ip(ip)
+        self._log("Attaching floating ip '%s' to server '%s'", ip.id, machine)
         # Get the port that attaches the machine to the tenant network
         tenant_network = self._tenant_network()
         if tenant_network:
@@ -1168,7 +1182,7 @@ class ScopedSession(base.ScopedSession):
         if current:
             current._update(port_id = None)
         # Find the floating IP instance and associate the floating IP with the port
-        fip = self._connection.network.floatingips.get(ip)
+        fip = self._connection.network.floatingips.get(ip.id)
         return self._from_api_floatingip(fip._update(port_id = port.id))
 
     @convert_exceptions
@@ -1178,9 +1192,8 @@ class ScopedSession(base.ScopedSession):
         """
         ip = ip.id if isinstance(ip, dto.ExternalIp) else ip
         self._log("Detaching floating ip '%s'", ip)
-        # Find the floating IP instance for the given address
-        fip = self._connection.network.floatingips.get(ip)
         # Remove any association for the floating IP
+        fip = self._connection.network.floatingips.get(ip)
         return self._from_api_floatingip(fip._update(port_id = None))
 
     _VOLUME_STATUSES = {
