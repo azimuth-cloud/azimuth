@@ -20,7 +20,7 @@ class CaaSClusterCalculator:
     ) -> dto.PlatformResources:
         """
         Calculates the resources required to make the specified changes
-        to the Kubernetes cluster.
+        to the CaaS cluster.
         """
         resources = dto.PlatformResources()
         for parameter in cluster_type.parameters:

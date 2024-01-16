@@ -359,6 +359,11 @@ const BooleanParameterField = ({ parameter, value, onChange, isCreate }) => {
 };
 
 
+const HiddenParameterField = ({ parameter, value }) => (
+    <FormControl type="hidden" id={parameter.name} value={value} />
+);
+
+
 const DefaultParameterField = ({
     tenancy,
     tenancyActions,
@@ -401,7 +406,13 @@ const DefaultParameterField = ({
 
 
 export const ClusterParameterField = (props) => {
-    return props.parameter.kind == "boolean" ?
-        <BooleanParameterField {...props} /> :
-        <DefaultParameterField {...props} />;
+    if( props.parameter.hidden ) {
+        return <HiddenParameterField {...props} />;
+    }
+    else if( props.parameter.kind == "boolean" ) {
+        return <BooleanParameterField {...props} />;
+    }
+    else {
+        return <DefaultParameterField {...props} />;
+    }
 };

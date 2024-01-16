@@ -482,7 +482,7 @@ class ScopedSession(base.ScopedSession):
             quotas.extend([
                 dto.Quota(
                     "storage",
-                    "Storage",
+                    "Volume Storage",
                     "GB",
                     volume_limits.total_volume_gigabytes,
                     volume_limits.total_gigabytes_used
