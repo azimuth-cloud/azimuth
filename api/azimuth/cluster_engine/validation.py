@@ -311,6 +311,13 @@ def cloud_ip_constraint(cloud_session, prev_value, **kwargs):
     )
 
 
+@register_constraint("cloud.volume_size")
+def cloud_volume_size_constraint(options, **kwargs):
+    # A volume size is just an integer with a minimum of 1
+    options.setdefault("min", 1)
+    return integer_constraint(options, **kwargs)
+
+
 @register_constraint("cloud.volume")
 def cloud_volume_constraint(cloud_session, options, **kwargs):
     def min_size(vol):

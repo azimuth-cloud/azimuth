@@ -444,18 +444,21 @@ class ScopedSession(base.ScopedSession):
         quotas = [
             dto.Quota(
                 "cpus",
+                "CPUs",
                 None,
                 compute_limits.total_cores,
                 compute_limits.total_cores_used
             ),
             dto.Quota(
                 "ram",
+                "RAM",
                 "MB",
                 compute_limits.total_ram,
                 compute_limits.total_ram_used
             ),
             dto.Quota(
                 "machines",
+                "Machines",
                 None,
                 compute_limits.instances,
                 compute_limits.instances_used
@@ -466,6 +469,7 @@ class ScopedSession(base.ScopedSession):
         quotas.append(
             dto.Quota(
                 "external_ips",
+                "External IPs",
                 None,
                 network_quotas.floatingip,
                 # Just get the length of the list of IPs
@@ -479,12 +483,14 @@ class ScopedSession(base.ScopedSession):
             quotas.extend([
                 dto.Quota(
                     "storage",
+                    "Volume Storage",
                     "GB",
                     volume_limits.total_volume_gigabytes,
                     volume_limits.total_gigabytes_used
                 ),
                 dto.Quota(
                     "volumes",
+                    "Volumes",
                     None,
                     volume_limits.volumes,
                     volume_limits.volumes_used
@@ -770,7 +776,7 @@ class ScopedSession(base.ScopedSession):
         return dto.Machine(
             api_server.id,
             api_server.name,
-            getattr(api_server, "image", {}).get("id"),
+            (getattr(api_server, "image", None) or {}).get("id"),
             flavor_id,
             dto.MachineStatus(
                 getattr(dto.MachineStatusType, status, dto.MachineStatusType.OTHER),

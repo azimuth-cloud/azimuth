@@ -97,6 +97,26 @@ const NumberControl = ({
 const IntegerControl = (props) => <NumberControl step="1" {...props} />;
 
 
+const VolumeSizeControl = ({ onInvalid, ...props }) => {
+    const [isInvalid, setIsInvalid] = useState(false);
+    const onControlInvalid = evt => {
+        setIsInvalid(!!evt.target.validationMessage);
+        if( onInvalid ) onInvalid(evt);
+    };
+
+    return (
+        <InputGroup className={isInvalid ? "is-invalid" : undefined}>
+            <IntegerControl
+                min="1"
+                onInvalid={onControlInvalid}
+                {...props}
+            />
+            <InputGroup.Text>GB</InputGroup.Text>
+        </InputGroup>
+    );
+};
+
+
 const ChoiceControl = ({
     tenancy: _,
     tenancyActions: __,
@@ -292,6 +312,7 @@ const kindToControlMap = {
     'cloud.machine': CloudMachineControl,
     'cloud.ip': CloudIpControl,
     'cloud.volume': CloudVolumeControl,
+    'cloud.volume_size': VolumeSizeControl,
     'cloud.cluster': CloudClusterControl,
 };
 
@@ -338,6 +359,11 @@ const BooleanParameterField = ({ parameter, value, onChange, isCreate }) => {
 };
 
 
+const HiddenParameterField = ({ parameter, value }) => (
+    <FormControl type="hidden" id={parameter.name} value={value} />
+);
+
+
 const DefaultParameterField = ({
     tenancy,
     tenancyActions,
@@ -380,7 +406,13 @@ const DefaultParameterField = ({
 
 
 export const ClusterParameterField = (props) => {
-    return props.parameter.kind == "boolean" ?
-        <BooleanParameterField {...props} /> :
-        <DefaultParameterField {...props} />;
+    if( props.parameter.hidden ) {
+        return <HiddenParameterField {...props} />;
+    }
+    else if( props.parameter.kind == "boolean" ) {
+        return <BooleanParameterField {...props} />;
+    }
+    else {
+        return <DefaultParameterField {...props} />;
+    }
 };

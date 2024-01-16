@@ -401,7 +401,7 @@ const CreatePlatformModal = ({
                 >
                     <Nav.Item>
                         <Nav.Link eventKey="platformType" className="p-3">
-                            Pick a platform type
+                            1. Pick a platform type
                         </Nav.Link>
                     </Nav.Item>
                     <Nav.Item>
@@ -410,7 +410,7 @@ const CreatePlatformModal = ({
                             disabled={!platformTypeId}
                             className="p-3"
                         >
-                            Configure platform
+                            2. Configure platform
                         </Nav.Link>
                     </Nav.Item>
                 </Nav>

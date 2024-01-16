@@ -123,6 +123,7 @@ urlpatterns = [
         ])),
         path("clusters/", include([
             path("", views.clusters, name = "clusters"),
+            path("schedule/", views.cluster_schedule, name = "cluster_schedule"),
             path("<id:cluster>/", include([
                 path("", views.cluster_details, name = "cluster_details"),
                 path("patch/", views.cluster_patch, name = "cluster_patch"),

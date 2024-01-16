@@ -156,12 +156,14 @@ class Session:
         """
         Converts a cluster template from the Kubernetes API to a DTO.
         """
+        values = ct.spec["values"]
         return dto.ClusterTemplate(
             ct.metadata.name,
             ct.spec.label,
             ct.spec.get("description"),
-            ct.spec["values"]["kubernetesVersion"],
+            values["kubernetesVersion"],
             ct.spec.get("deprecated", False),
+            values.get("controlPlane", {}).get("machineCount", 3),
             ct.spec.get("tags", []),
             dateutil.parser.parse(ct.metadata["creationTimestamp"]),
         )

@@ -46,6 +46,8 @@ class Quota:
     """
     #: The resource that the quota is for
     resource: str
+    #: The human-readable label for the quota
+    label: str
     #: The units of the quota. For a unit-less quota, use ``None``.
     units: Optional[str]
     #: The amount of the resource that has been allocated

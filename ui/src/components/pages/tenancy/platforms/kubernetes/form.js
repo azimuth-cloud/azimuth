@@ -119,6 +119,7 @@ const NodeGroupModalForm = ({
                             value={getStateKey('name')}
                             onChange={setStateKeyFromInputEvent('name')}
                             validationMessage={nameInUseMessage}
+                            autoFocus
                         />
                     </Field>
                     <Field
@@ -386,6 +387,7 @@ export const KubernetesClusterForm = ({
                         disabled={formState.isEdit}
                         value={getStateKey('name')}
                         onChange={setStateKeyFromInputEvent('name')}
+                        autoFocus
                     />
                 </Field>
                 <Field

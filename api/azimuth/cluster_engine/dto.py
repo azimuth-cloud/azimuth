@@ -51,6 +51,8 @@ class ClusterParameter:
     required: bool
     #: A default value for the parameter
     default: Any
+    #: Indicates whether or not the parameter should be hidden in the UI
+    hidden: bool
 
 
 @dataclass(frozen = True)
@@ -120,7 +122,8 @@ class ClusterType:
                     param.get('options', {}),
                     param.get('immutable', False),
                     param.get('required', True),
-                    param.get('default', None)
+                    param.get('default', None),
+                    param.get('hidden', False)
                 )
                 for param in spec.get('parameters', [])
             ),
