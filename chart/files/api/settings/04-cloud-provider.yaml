@@ -16,6 +16,7 @@ AZIMUTH:
       EXTERNAL_NET_TEMPLATE: {{ . | quote }}
       {{- end }}
       CREATE_INTERNAL_NET: {{ .Values.provider.openstack.createInternalNet }}
+      CREATE_MANILA_PROJECT_SHARE: {{ .Values.provider.openstack.createManilaProjectShare }}
       {{- with .Values.provider.openstack.internalNetCidr }}
       INTERNAL_NET_CIDR: {{ . | quote }}
       {{- end }}

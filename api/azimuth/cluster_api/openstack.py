@@ -30,3 +30,5 @@ class Session(SessionBase):
         # Just make sure that the shared tenant network exists
         # This allows templates to target it via a tag filter if they want
         self._cloud_session._tenant_network(True)
+        # For consistency, ensure the project share is created
+        self._cloud_session._project_share(True)
