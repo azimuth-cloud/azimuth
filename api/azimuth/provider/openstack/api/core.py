@@ -13,6 +13,11 @@ import rackit
 
 logger = logging.getLogger(__name__)
 
+# get some debug logs
+logger2 = logging.getLogger('rackit.connection')
+logger2.setLevel(logging.DEBUG)
+logger2.addHandler(logging.StreamHandler())
+
 
 class UnmanagedResourceOptions(rackit.resource.Options):
     def __init__(self, options = None):
@@ -59,6 +64,8 @@ class ResourceManager(rackit.ResourceManager):
         # OpenStack responses have the list under a named key
         # If there is a next page, that is provided under a links attribute
         data = response.json()
+        if self.resource_cls._opts.resource_list_key not in data:
+            raise Exception(f"{data}")
         list_data = data[self.resource_cls._opts.resource_list_key]
         next_url = self.extract_next_url(data)
         return list_data, next_url, {}
@@ -357,6 +364,8 @@ class Service(rackit.Connection):
         # If a specific microversion is requested, add the appropriate header
         if self.microversion:
             request.headers["OpenStack-API-Version"] = f"{self.catalog_type} {self.microversion}"
+            if self.catalog_type == "sharev2":
+                request.headers["X-OpenStack-Manila-API-Version"] = f"{self.microversion}"
         return super().prepare_request(request)
 
     def extract_error_message(self, response):

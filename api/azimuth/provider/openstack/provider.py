@@ -706,8 +706,82 @@ class ScopedSession(base.ScopedSession):
         else:
             raise errors.InvalidOperationError("Could not find internal network.")
 
-    def project_share(self, create_share=True):
-        pass
+    def _project_share(self, create_share=True):
+        # By default we don't try to touch Manila
+        # TODO add me back!
+        # TODO remove me!!
+        self._create_manila_project_share = True
+        self._project_share_name = "johng-dev"
+
+        if not self._create_manila_project_share:
+            return
+
+        # find if project share exists
+        project_share = None
+        current_shares = self._connection.share.shares.all()
+        for share in current_shares:
+            if share.name == self._project_share_name:
+                self._log(f"Found project share for: {self._connection.project_id}")
+                project_share = share
+
+        # no share found, create if required
+        if not project_share and self._create_manila_project_share:
+            self._log(f"Creating share for: {self._connection.project_id}")
+
+            # find correct type
+            default_share_type = None
+            all_types = list(self._connection.share.types.all())
+            if len(all_types) == 1:
+                default_share_type = all_types[0]
+            else:
+                for share_type in all_types:
+                    if share_type.is_default:
+                        default_share_type = share_type
+                        break
+
+            if not default_share_type:
+                raise Exception("Unable to find valid share type!")
+            self._log(f"Found share type: {default_share_type.name}")
+
+            # TODO(johngarbutt) need to support non-ceph types
+            # and rework the access system based on that.
+            project_share = self._connection.share.shares.create(
+                share_proto="CephFS",
+                size=10,
+                name=self._project_share_name,
+                description="Project share auto-created by Azimuth.",
+                share_type=default_share_type.id)
+            # TODO: correctly poll for async actions being complete
+            import time
+            time.sleep(0.5)
+            project_share.grant_rw_access(self._project_share_user)
+            time.sleep(0.5)
+            self._log(f"Create new project share: {project_share}")
+
+        # Ensure expected access user is present
+        if project_share:
+            # double check share has the correct protocol and is available
+            share_details = self._connection.share.shares.get(project_share.id)
+            self._log(f"Got share details f{share_details}")
+            if share_details.share_proto.upper() != "CEPHFS":
+                raise Exception("Currently only support CephFS shares!")
+            if share_details.status.lower() != "available":
+                raise Exception("Share is not available!")
+            if share_details.access_rules_status.lower() != "active":
+                raise Exception("Share has a problem with its access rules!")
+
+            access_list = list(self._connection.share.access.all(
+                share_id=project_share.id))
+            self._log(f"Share access list found: {access_list}")
+            found_expected_access = False
+            for access in access_list:
+                if access.access_to == self._project_share_user:
+                    found_expected_access = True
+                    break
+            if not found_expected_access:
+                raise Exception("can't find the expected access rule!")
+
+        raise Exception("FIXME!")
 
     def _external_network(self):
         """
