@@ -707,12 +707,6 @@ class ScopedSession(base.ScopedSession):
             raise errors.InvalidOperationError("Could not find internal network.")
 
     def _project_share(self, create_share=True):
-        # By default we don't try to touch Manila
-        # TODO add me back!
-        # TODO remove me!!
-        self._create_manila_project_share = True
-        self._project_share_name = "johng-dev"
-
         if not self._create_manila_project_share:
             return
 
@@ -780,8 +774,6 @@ class ScopedSession(base.ScopedSession):
                     break
             if not found_expected_access:
                 raise Exception("can't find the expected access rule!")
-
-        raise Exception("FIXME!")
 
     def _external_network(self):
         """
