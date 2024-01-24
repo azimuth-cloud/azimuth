@@ -119,6 +119,10 @@ def get_cluster_dto(raw_cluster, status_if_ready: dto.ClusterStatus = None):
         updated=updated_at,
         patched=None,
         services=[],
+        createdByUsername=raw_cluster.spec.get("createdByUsername"),
+        createdByUserId=raw_cluster.spec.get("createdByUserId"),
+        updatedByUsername=raw_cluster.spec.get("updatedByUsername"),
+        updatedByUserId=raw_cluster.spec.get("updatedByUserId"),
     )
 
 
@@ -167,6 +171,8 @@ def create_cluster(
         "clusterTypeName": cluster_type_name,
         "clusterTypeVersion": cluster_type.version,
         "cloudCredentialsSecretName": secret_name,
+        "createdByUsername": ctx.username,
+        "createdByUserId": ctx.user_id,
     }
     if params:
         cluster_spec["extraVars"] = {}
@@ -199,7 +205,7 @@ def delete_cluster(client, name: str):
     return get_cluster_dto(raw_cluster, status_if_ready=dto.ClusterStatus.DELETING)
 
 
-def patch_cluster(client, name: str):
+def patch_cluster(client, name: str, ctx: dto.Context):
     safe_name = _escape_name(name)
 
     # get current version for requested cluster type
@@ -213,10 +219,11 @@ def patch_cluster(client, name: str):
 
     # Trigger an update, even if no change in version requested
     # TODO(johngarbutt): cluster_upgrade_system_packages=true needed?
-    return update_cluster(client, name, {}, cluster_type.version)
+    return update_cluster(client, name, {}, cluster_type.version, ctx)
 
 
-def update_cluster(client, name: str, params: t.Mapping[str, t.Any], version=None):
+def update_cluster(client, name: str, params: t.Mapping[str, t.Any],
+                   version: str, ctx: dto.Context):
     safe_name = _escape_name(name)
 
     # trigger updates even when params are same as create or last update
@@ -225,7 +232,11 @@ def update_cluster(client, name: str, params: t.Mapping[str, t.Any], version=Non
     params["azimuth_requested_update_at"] = now_string
 
     # NOTE(johngarbutt): we assume no parameters are being removed here
-    spec = dict(extraVars=params)
+    spec = dict(
+        extraVars=params,
+        updatedByUsername=ctx.username,
+        updatedByUserId=ctx.user_id,
+    )
     if version:
         spec["clusterTypeVersion"] = version
 
@@ -323,14 +334,15 @@ class Driver(base.Driver):
         Updates an existing cluster with the given parameters.
         """
         client = get_k8s_client(ctx.tenancy.id)
-        return update_cluster(client, cluster.name, params)
+        return update_cluster(client, cluster.name, params,
+                              version=None, ctx=ctx)
 
     def patch_cluster(self, cluster: dto.Cluster, ctx: dto.Context) -> dto.Cluster:
         """
         Patches the given existing cluster.
         """
         client = get_k8s_client(ctx.tenancy.id)
-        return patch_cluster(client, cluster.name)
+        return patch_cluster(client, cluster.name, ctx)
 
     def delete_cluster(
         self,

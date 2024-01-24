@@ -65,6 +65,7 @@ class ClusterManager:
         self._driver = driver
         self._zenith = zenith
         self._cloud_session = cloud_session
+        self._user_id = cloud_session.user_id()
         self._username = cloud_session.username()
         self._tenancy = cloud_session.tenancy()
         self._jinja_env = jinja2.Environment()
@@ -73,14 +74,14 @@ class ClusterManager:
         """
         Lists the available cluster types.
         """
-        ctx = dto.Context(self._username, self._tenancy)
+        ctx = dto.Context(self._username, self._user_id, self._tenancy)
         return self._driver.cluster_types(ctx)
 
     def find_cluster_type(self, name: str) -> dto.ClusterType:
         """
         Find a cluster type by name.
         """
-        ctx = dto.Context(self._username, self._tenancy)
+        ctx = dto.Context(self._username, self._user_id, self._tenancy)
         return self._driver.find_cluster_type(name, ctx)
 
     def _cluster_modify(
@@ -150,7 +151,7 @@ class ClusterManager:
         """
         List the clusters that are deployed.
         """
-        ctx = dto.Context(self._username, self._tenancy)
+        ctx = dto.Context(self._username, self._user_id, self._tenancy)
         cluster_types = None
         for cluster in self._driver.clusters(ctx):
             # cluster_types is lazily initialised once we know there is a cluster
@@ -165,7 +166,7 @@ class ClusterManager:
         """
         Find a cluster by id.
         """
-        ctx = dto.Context(self._username, self._tenancy)
+        ctx = dto.Context(self._username, self._user_id, self._tenancy)
         cluster = self._driver.find_cluster(id, ctx)
         return self._cluster_modify(cluster)
 
@@ -282,6 +283,7 @@ class ClusterManager:
             params = self._with_zenith_params(params, cluster_type)
         ctx = dto.Context(
             self._username,
+            self._user_id,
             self._tenancy,
             self._cloud_session.cloud_credential(
                 f"az-caas-{name}",
@@ -326,7 +328,7 @@ class ClusterManager:
         params = dict(params, **self._cloud_session.cluster_parameters())
         if self._zenith:
             params = self._with_zenith_params(params, cluster_type, cluster)
-        ctx = dto.Context(self._username, self._tenancy)
+        ctx = dto.Context(self._username, self._user_id, self._tenancy)
         cluster = self._driver.update_cluster(cluster, params, ctx)
         return self._cluster_modify(cluster)
 
@@ -343,7 +345,7 @@ class ClusterManager:
             raise errors.InvalidOperationError(
                 'Cannot patch cluster with status {}'.format(cluster.status.name)
             )
-        ctx = dto.Context(self._username, self._tenancy)
+        ctx = dto.Context(self._username, self._user_id, self._tenancy)
         cluster = self._driver.patch_cluster(cluster, ctx)
         return self._cluster_modify(cluster)
 
@@ -360,7 +362,7 @@ class ClusterManager:
             raise errors.InvalidOperationError(
                 'Cannot delete cluster with status {}'.format(cluster.status.name)
             )
-        ctx = dto.Context(self._username, self._tenancy)
+        ctx = dto.Context(self._username, self._user_id, self._tenancy)
         cluster = self._driver.delete_cluster(cluster, ctx)
         if cluster:
             return self._cluster_modify(cluster)
