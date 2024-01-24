@@ -722,11 +722,11 @@ class ScopedSession(base.ScopedSession):
             share_details = self._connection.share.shares.get(project_share.id)
             self._log(f"Got share details f{share_details}")
             if share_details.share_proto.upper() != "CEPHFS":
-                raise Exception("Currently only support CephFS shares!")
+                raise errors.ImproperlyConfiguredError("Currently only support CephFS shares!")
             if share_details.status.lower() != "available":
-                raise Exception("Share is not available!")
+                raise errors.Error("Share is not available!")
             if share_details.access_rules_status.lower() != "active":
-                raise Exception("Share has a problem with its access rules!")
+                raise errors.Error("Share has a problem with its access rules!")
 
             access_list = list(self._connection.share.access.all(
                 share_id=project_share.id))
@@ -736,7 +736,7 @@ class ScopedSession(base.ScopedSession):
                     found_expected_access = True
                     break
             if not found_expected_access:
-                raise Exception("can't find the expected access rule!")
+                raise errors.ImproperlyConfiguredError("can't find the expected access rule!")
             self._log(f"Found project share for: {self._connection.project_id}")
 
         # no share found, create if required
@@ -754,7 +754,10 @@ class ScopedSession(base.ScopedSession):
                         default_share_type = share_type
                         break
             if not default_share_type:
-                raise Exception("Unable to find valid share type!")
+                # Silent ignore here, as it usually means project
+                # has not been setup for manila
+                self._log("Unable to find valid share type!")
+                return
 
             # TODO(johngarbutt) need to support non-ceph types eventually
             project_share = self._connection.share.shares.create(
@@ -769,6 +772,8 @@ class ScopedSession(base.ScopedSession):
                 latest = self._connection.share.shares.get(project_share.id)
                 if latest.status.lower() == "available":
                     break
+                if latest.status.lower() == "error":
+                    raise error.Error("Unable to create project share.")
                 time.sleep(0.1)
 
             project_share.grant_rw_access(self._project_share_user)
