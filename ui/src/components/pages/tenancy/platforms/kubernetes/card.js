@@ -298,6 +298,14 @@ const ClusterOverviewCard = ({ kubernetesCluster, kubernetesClusterTemplates }) 
                     <th>Created</th>
                     <td>{kubernetesCluster.created_at.toRelative()}</td>
                 </tr>
+	        <tr>
+                    <th>Created by</th>
+                    <td>{kubernetesCluster.created_by_username ? kubernetesCluster.created_by_username : '-'}</td>
+                </tr>
+	        <tr>
+                    <th>Updated by</th>
+                    <td>{kubernetesCluster.updated_by_username ? kubernetesCluster.updated_by_username : '-'}</td>
+                </tr>
             </tbody>
         </Table>
     </Card>
