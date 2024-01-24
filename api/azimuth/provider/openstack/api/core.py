@@ -357,8 +357,6 @@ class Service(rackit.Connection):
         # If a specific microversion is requested, add the appropriate header
         if self.microversion:
             request.headers["OpenStack-API-Version"] = f"{self.catalog_type} {self.microversion}"
-            if self.catalog_type == "sharev2":
-                request.headers["X-OpenStack-Manila-API-Version"] = f"{self.microversion}"
         return super().prepare_request(request)
 
     def extract_error_message(self, response):

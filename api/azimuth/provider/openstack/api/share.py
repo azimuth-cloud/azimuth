@@ -77,10 +77,12 @@ class ShareService(Service):
     """
     name = "share"
     catalog_type = "sharev2"
-    microversion = '2.51'
     path_prefix = '/v2/{project_id}'
 
     limits = Endpoint(ShareLimits)
     shares = RootResource(Share)
     types = RootResource(ShareType)
     access = RootResource(ShareAccess)
+
+    def prepare_request(self, request):
+        request.headers["X-OpenStack-Manila-API-Version"] = "2.51"
