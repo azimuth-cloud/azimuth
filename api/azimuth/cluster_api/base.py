@@ -505,6 +505,7 @@ class Session:
         if not isinstance(template, dto.ClusterTemplate):
             template = self.find_cluster_template(template)
 
+        # note who triggered the upgrade
         spec = {"templateName": template.id}
         spec["updatedByUsername"] = self._cloud_session.username()
         spec["updatedByUserId"]: self._cloud_session.user_id()

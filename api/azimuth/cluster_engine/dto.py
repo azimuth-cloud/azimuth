@@ -239,10 +239,10 @@ class Cluster:
     updated: datetime
     #: The datetime at which the cluster was last patched
     patched: datetime
+    #: Details about the users interacting with the cluster
+    created_by_username: Optional[str]
+    created_by_user_id: Optional[str]
+    updated_by_username: Optional[str]
+    updated_by_user_id: Optional[str]
     #: A list of Zenith services enabled for the cluster
     services: Sequence[ClusterService] = field(default_factory = list)
-    #: Details about the users interacting with the cluster
-    created_by_username: Optional[str] = None
-    created_by_user_id: Optional[str] = None
-    updated_by_username: Optional[str] = None
-    updated_by_user_id: Optional[str] = None
