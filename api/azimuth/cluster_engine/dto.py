@@ -242,7 +242,7 @@ class Cluster:
     #: A list of Zenith services enabled for the cluster
     services: Sequence[ClusterService] = field(default_factory = list)
     #: Details about the users interacting with the cluster
-    createdByUsername: Optional[str] = None
-    createdByUserId: Optional[str] = None
-    updatedByUsername: Optional[str] = None
-    updatedByUserId: Optional[str] = None
+    created_by_username: Optional[str] = None
+    created_by_user_id: Optional[str] = None
+    updated_by_username: Optional[str] = None
+    updated_by_user_id: Optional[str] = None

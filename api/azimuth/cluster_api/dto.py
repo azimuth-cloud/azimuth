@@ -133,6 +133,11 @@ class Cluster:
     services: t.List[Service]
     #: The time at which the cluster was created
     created_at: datetime.datetime
+    #: Details about the users interacting with the cluster
+    created_by_username: Optional[str] = None
+    created_by_user_id: Optional[str] = None
+    updated_by_username: Optional[str] = None
+    updated_by_user_id: Optional[str] = None
 
 
 @dataclasses.dataclass(frozen = True)

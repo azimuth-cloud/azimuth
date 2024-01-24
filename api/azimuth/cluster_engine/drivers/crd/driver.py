@@ -119,10 +119,10 @@ def get_cluster_dto(raw_cluster, status_if_ready: dto.ClusterStatus = None):
         updated=updated_at,
         patched=None,
         services=[],
-        createdByUsername=raw_cluster.spec.get("createdByUsername"),
-        createdByUserId=raw_cluster.spec.get("createdByUserId"),
-        updatedByUsername=raw_cluster.spec.get("updatedByUsername"),
-        updatedByUserId=raw_cluster.spec.get("updatedByUserId"),
+        created_by_username=raw_cluster.spec.get("createdByUsername"),
+        created_by_user_id=raw_cluster.spec.get("createdByUserId"),
+        updated_by_username=raw_cluster.spec.get("updatedByUsername"),
+        updated_by_user_id=raw_cluster.spec.get("updatedByUserId"),
     )
 
 
