@@ -166,8 +166,16 @@ const ClusterStatusCard = ({ cluster }) => (
                     <td>{cluster.created.toRelative()}</td>
                 </tr>
                 <tr>
+                    <th>Created by</th>
+                    <td>{cluster.created_by_username ? cluster.created_by_username : '-'}</td>
+                </tr>
+                <tr>
                     <th>Updated</th>
                     <td>{cluster.updated ? cluster.updated.toRelative() : '-'}</td>
+                </tr>
+                <tr>
+                    <th>Updated by</th>
+                    <td>{cluster.updated_by_username ? cluster.updated_by_username : '-'}</td>
                 </tr>
                 <tr>
                     <th>Patched</th>
