@@ -708,9 +708,6 @@ class ScopedSession(base.ScopedSession):
             raise errors.InvalidOperationError("Could not find internal network.")
 
     def _project_share(self, create_share=True):
-        self._create_manila_project_share = True
-        self._project_share_name = "johng-dev"
-
         if not self._create_manila_project_share:
             return
 
