@@ -345,7 +345,9 @@
 .platform-type-card .card-title {
     border-bottom: 1px solid var(--bs-gray-300) !important;
 }
-
+.badge {
+    margin-left: 5px
+}
 
 /**
  * Custom styles for quota cards.

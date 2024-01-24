@@ -692,6 +692,9 @@ export const KubernetesCard = ({
     return (
         <Card className="platform-card">
             <Card.Header>
+                {kubernetesCluster.is_mine && (
+                <Badge bg='primary'>YOURS</Badge>
+                )}
                 <Badge bg={statusBadgeBg[kubernetesCluster.status]}>
                     {kubernetesCluster.status.toUpperCase()}
                 </Badge>

@@ -415,6 +415,9 @@ export const ClusterCard = ({
     return (
         <Card className="platform-card">
             <Card.Header>
+	        {cluster.is_mine && (
+                <Badge bg='primary'>YOURS</Badge>
+		)}
                 <Badge bg={statusBadgeBg[cluster.status]}>{cluster.status}</Badge>
             </Card.Header>
             <Card.Img src={clusterType.logo} />
