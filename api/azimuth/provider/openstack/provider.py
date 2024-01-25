@@ -425,6 +425,9 @@ class ScopedSession(base.ScopedSession):
         self._backdoor_vnic_type = backdoor_vnic_type
 
         # TODO(johngarbutt): consider moving some of this to config
+        # and/or hopefully having this feature on by default
+        # and auto detecting when its available, which is not currently
+        # feasible.
         self._project_share_name = "azimuth-project-share"
         prefix = "proj"
         project_id_safe = self._connection.project_id.replace("-", "")
