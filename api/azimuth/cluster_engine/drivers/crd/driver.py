@@ -123,7 +123,6 @@ def get_cluster_dto(raw_cluster, user_id, status_if_ready: dto.ClusterStatus = N
         created_by_user_id=raw_cluster.spec.get("createdByUserId"),
         updated_by_username=raw_cluster.spec.get("updatedByUsername"),
         updated_by_user_id=raw_cluster.spec.get("updatedByUserId"),
-        is_mine=(raw_cluster.spec.get("createdByUserId")==user_id),
     )
 
 
