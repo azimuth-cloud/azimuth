@@ -708,6 +708,23 @@ class ScopedSession(base.ScopedSession):
             raise errors.InvalidOperationError("Could not find internal network.")
 
     def _project_share(self, create_share=True):
+        """
+        Returns the project specific Manila share.
+
+        If we are not configured to create the project share,
+        we do nothing here, and return None.
+
+        If we are configured to create the project share,
+        we look to see if a valid share is already created.
+        If we find a valid share, we return that object.
+
+        Finally, we look to create the share dynamically,
+        then return that share.
+
+        If this project has not available share type in
+        Manila, we simply log that we can't create a share
+        for this project, and return None.
+        """
         if not self._create_manila_project_share:
             return
 
@@ -773,7 +790,7 @@ class ScopedSession(base.ScopedSession):
                 if latest.status.lower() == "available":
                     break
                 if latest.status.lower() == "error":
-                    raise error.Error("Unable to create project share.")
+                    raise errors.Error("Unable to create project share.")
                 time.sleep(0.1)
 
             project_share.grant_rw_access(self._project_share_user)
@@ -1483,12 +1500,15 @@ class ScopedSession(base.ScopedSession):
             cluster_network = self._tenant_network(True).name
         )
 
-        # Optionally inject name of the project specific manila share
+        # If configured to, find if we can have a project share
         project_share = self._project_share(True)
         if project_share:
+            params["cluster_project_manila_share"] = True
             params["cluster_project_manila_share_name"] = project_share.name
             user = self._project_share_user
             params["cluster_project_manila_share_user"] = user
+        else:
+            params["cluster_project_manila_share"] = False
 
         return params
 
