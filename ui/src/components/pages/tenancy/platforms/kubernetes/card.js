@@ -707,7 +707,8 @@ export const KubernetesCard = ({
                 />
             )}
             <Card.Body className="small text-muted">
-                Created {kubernetesCluster.created_at.toRelative()}
+                Created {kubernetesCluster.created_at.toRelative()}<br/>
+                Created by {kubernetesCluster.created_by_username ? kubernetesCluster.created_by_username : '-'}
             </Card.Body>
             <Card.Footer>
                 <KubernetesClusterDetailsButton

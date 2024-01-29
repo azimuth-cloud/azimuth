@@ -411,7 +411,6 @@ export const ClusterCard = ({
     tenancyActions
 }) => {
     const clusterType = clusterTypes.data[cluster.cluster_type];
-    const updatedAt = cluster.updated || cluster.created;
     return (
         <Card className="platform-card">
             <Card.Header>
@@ -431,7 +430,8 @@ export const ClusterCard = ({
                 </Card.Body>
             )}
             <Card.Body className="small text-muted">
-                Updated {updatedAt.toRelative()}
+                Created {cluster.created.toRelative()}<br/>
+                Created by {cluster.created_by_username ? cluster.created_by_username : '-'}
             </Card.Body>
             <Card.Footer>
                 <ClusterDetailsButton
