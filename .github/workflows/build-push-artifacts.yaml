@@ -53,7 +53,6 @@ jobs:
         id: image-meta
         uses: docker/metadata-action@v5
         with:
-          context: git
           images: ghcr.io/stackhpc/azimuth-${{ matrix.component }}
           # Produce the branch name or tag and the SHA as tags
           tags: |
