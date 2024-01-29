@@ -400,11 +400,15 @@ export const ClusterCard = ({
     clusterTypes,
     clusterActions,
     tenancy,
-    tenancyActions
+    tenancyActions,
+    notificationActions
 }) => {
     const clusterType = clusterTypes.data[cluster.cluster_type];
     if (!clusterType) {
-        // TODO log a warning we have a pending cluster type
+        notificationActions.error({
+                title: 'Cluster type not found',
+                message: `Unable to load cluster type '${cluster.cluster_type}' for cluster '${cluster.name}'`
+        });
         return;
     }
     const updatedAt = cluster.updated || cluster.created;
