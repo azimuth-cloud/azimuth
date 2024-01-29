@@ -386,6 +386,7 @@ class Driver(base.Driver):
             inventory.id,
             name,
             cluster_type,
+            "",  # no version to report here
             status,
             task,
             error_message,
