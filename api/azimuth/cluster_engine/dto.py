@@ -244,5 +244,6 @@ class Cluster:
     created_by_user_id: Optional[str]
     updated_by_username: Optional[str]
     updated_by_user_id: Optional[str]
+    is_mine: bool
     #: A list of Zenith services enabled for the cluster
     services: Sequence[ClusterService] = field(default_factory = list)

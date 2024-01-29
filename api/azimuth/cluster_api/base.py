@@ -304,6 +304,7 @@ class Session:
             cluster.spec.get("createdByUserId"),
             cluster.spec.get("updatedByUsername"),
             cluster.spec.get("updatedByUserId"),
+            cluster.spec.get("createdByUserId") == user_id,
         )
 
     @convert_exceptions
