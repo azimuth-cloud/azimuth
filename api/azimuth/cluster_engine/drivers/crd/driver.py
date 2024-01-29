@@ -76,8 +76,7 @@ def get_cluster_dto(raw_cluster, status_if_ready: dto.ClusterStatus = None):
     error_message = None
     created_at = dateutil.parser.parse(raw_cluster.metadata.creationTimestamp)
     updated_at = created_at
-    # default patched at to created_at, so we warn users to update
-    patched_at = created_at
+    patched_at = None
 
     if raw_status:
         phase = raw_status.get("phase")
