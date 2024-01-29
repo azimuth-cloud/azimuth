@@ -2,7 +2,7 @@ name: Integration tests
 
 on:
   # We use pull_request_target so that dependabot-created workflows can run
-  pull_request_target:
+  pull_request:
     types:
       - opened
       - synchronize
