@@ -403,6 +403,10 @@ export const ClusterCard = ({
     tenancyActions
 }) => {
     const clusterType = clusterTypes.data[cluster.cluster_type];
+    if (!clusterType) {
+        // TODO log a warning we have a pending cluster type
+        return;
+    }
     const updatedAt = cluster.updated || cluster.created;
     return (
         <Card className="platform-card">
