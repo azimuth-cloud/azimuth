@@ -125,9 +125,10 @@ const ClusterTask = ({ cluster: { task } }) => {
 
 
 const ClusterPatched = ({ cluster, clusterType }) => {
+    const patched = cluster.patched ? cluster.patched.toRelative() : cluster.created.toRelative()
     const newVersionAvailable = cluster.cluster_type_version && (cluster.cluster_type_version != clusterType.version);
     return !newVersionAvailable ?
-        cluster.patched.toRelative() :
+        patched :
         <OverlayTrigger
             placement="top"
             overlay={<Tooltip>A new version is available, please patch this cluster.</Tooltip>}
@@ -136,7 +137,7 @@ const ClusterPatched = ({ cluster, clusterType }) => {
         >
             <strong className="text-danger overlay-trigger">
                 <FontAwesomeIcon icon={faExclamationCircle} className="me-2" />
-                {cluster.patched.toRelative()}
+                {patched}
             </strong>
         </OverlayTrigger>;
 };
@@ -171,7 +172,7 @@ const ClusterStatusCard = ({ cluster, clusterType }) => (
                 </tr>
                 <tr>
                     <th>Patched</th>
-                    <td>{cluster.patched ? <ClusterPatched cluster={cluster} clusterType={clusterType} /> : '-'}</td>
+                    <td><ClusterPatched cluster={cluster} clusterType={clusterType} /></td>
                 </tr>
             </tbody>
         </Table>
