@@ -742,11 +742,14 @@ class ScopedSession(base.ScopedSession):
             share_details = self._connection.share.shares.get(project_share.id)
             self._log(f"Got share details f{share_details}")
             if share_details.share_proto.upper() != "CEPHFS":
-                raise errors.ImproperlyConfiguredError("Currently only support CephFS shares!")
+                raise errors.ImproperlyConfiguredError(
+                    "Currently only support CephFS shares!")
             if share_details.status.lower() != "available":
-                raise errors.Error("Share is not available!")
+                raise errors.ImproperlyConfiguredError(
+                    "Project share is not available!")
             if share_details.access_rules_status.lower() != "active":
-                raise errors.Error("Share has a problem with its access rules!")
+                raise errors.ImproperlyConfiguredError(
+                    "Project share has a problem with its access rules!")
 
             access_list = list(self._connection.share.access.all(
                 share_id=project_share.id))
