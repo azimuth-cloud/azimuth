@@ -138,7 +138,6 @@ class Cluster:
     created_by_user_id: t.Optional[str]
     updated_by_username: t.Optional[str]
     updated_by_user_id: t.Optional[str]
-    is_mine: bool
 
 
 @dataclasses.dataclass(frozen = True)

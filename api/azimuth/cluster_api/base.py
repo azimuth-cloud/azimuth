@@ -196,7 +196,7 @@ class Session:
                 .fetch(id)
         )
 
-    def _from_api_cluster(self, cluster, sizes, user_id):
+    def _from_api_cluster(self, cluster, sizes):
         """
         Converts a cluster from the Kubernetes API to a DTO.
         """
@@ -304,7 +304,6 @@ class Session:
             cluster.spec.get("createdByUserId"),
             cluster.spec.get("updatedByUsername"),
             cluster.spec.get("updatedByUserId"),
-            cluster.spec.get("createdByUserId") == user_id,
         )
 
     @convert_exceptions
@@ -322,8 +321,7 @@ class Session:
         self._log("Found %s clusters", len(clusters))
         if clusters:
             sizes = list(self._cloud_session.sizes())
-            user_id = self._cloud_session.user_id()
-            return tuple(self._from_api_cluster(c, sizes, user_id) for c in clusters)
+            return tuple(self._from_api_cluster(c, sizes) for c in clusters)
         else:
             return ()
 
@@ -340,8 +338,7 @@ class Session:
                 .fetch(id)
         )
         sizes = list(self._cloud_session.sizes())
-        user_id = self._cloud_session.user_id()
-        return self._from_api_cluster(cluster, sizes, user_id)
+        return self._from_api_cluster(cluster, sizes)
 
     def _create_credential(self, cluster_name):
         """
@@ -475,8 +472,7 @@ class Session:
         })
         # Use the sizes that we already have
         sizes = [control_plane_size] + [ng["machine_size"] for ng in node_groups]
-        user_id = self._cloud_session.user_id()
-        return self._from_api_cluster(cluster, sizes, user_id)
+        return self._from_api_cluster(cluster, sizes)
 
     @convert_exceptions
     def update_cluster(self, cluster: t.Union[dto.Cluster, str], **options):
@@ -493,8 +489,7 @@ class Session:
                 .patch(cluster, { "spec": spec })
         )
         sizes = list(self._cloud_session.sizes())
-        user_id = self._cloud_session.user_id()
-        return self._from_api_cluster(cluster, sizes, user_id)
+        return self._from_api_cluster(cluster, sizes)
 
     @convert_exceptions
     def upgrade_cluster(
@@ -519,8 +514,7 @@ class Session:
         ekclusters = self._client.api(AZIMUTH_API_VERSION).resource("clusters")
         cluster = ekclusters.patch(cluster, {"spec": spec})
         sizes = list(self._cloud_session.sizes())
-        user_id = self._cloud_session.user_id()
-        return self._from_api_cluster(cluster, sizes, user_id)
+        return self._from_api_cluster(cluster, sizes)
 
     @convert_exceptions
     def delete_cluster(

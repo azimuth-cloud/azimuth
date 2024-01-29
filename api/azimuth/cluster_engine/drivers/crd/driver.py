@@ -68,7 +68,7 @@ def get_cluster_types(client) -> t.Iterable[dto.ClusterType]:
     return cluster_types
 
 
-def get_cluster_dto(raw_cluster, user_id, status_if_ready: dto.ClusterStatus = None):
+def get_cluster_dto(raw_cluster, status_if_ready: dto.ClusterStatus = None):
     raw_status = raw_cluster.get("status", {})
     status = dto.ClusterStatus.CONFIGURING
     task = None
@@ -123,15 +123,14 @@ def get_cluster_dto(raw_cluster, user_id, status_if_ready: dto.ClusterStatus = N
         created_by_user_id=raw_cluster.spec.get("createdByUserId"),
         updated_by_username=raw_cluster.spec.get("updatedByUsername"),
         updated_by_user_id=raw_cluster.spec.get("updatedByUserId"),
-        is_mine=(raw_cluster.spec.get("createdByUserId")==user_id),
     )
 
 
-def get_clusters(client, ctx: dto.Context) -> t.Iterable[dto.Cluster]:
+def get_clusters(client) -> t.Iterable[dto.Cluster]:
     raw_clusters = list(client.api(CAAS_API_VERSION).resource("clusters").list())
     clusters = []
     for raw_cluster in raw_clusters:
-        cluster = get_cluster_dto(raw_cluster, ctx.user_id)
+        cluster = get_cluster_dto(raw_cluster)
         clusters.append(cluster)
     return clusters
 
@@ -189,10 +188,10 @@ def create_cluster(
             "spec": cluster_spec,
         }
     )
-    return get_cluster_dto(cluster, ctx.user_id)
+    return get_cluster_dto(cluster)
 
 
-def delete_cluster(client, name: str, ctx: dto.Context):
+def delete_cluster(client, name: str):
     safe_name = _escape_name(name)
 
     # TODO(johngarbutt) should we be refreshing the application cred here?
@@ -203,7 +202,7 @@ def delete_cluster(client, name: str, ctx: dto.Context):
     # returning the ready state will confuse people
     time.sleep(0.1)
     raw_cluster = cluster_resource.fetch(safe_name)
-    return get_cluster_dto(raw_cluster,  ctx.user_id, status_if_ready=dto.ClusterStatus.DELETING)
+    return get_cluster_dto(raw_cluster, status_if_ready=dto.ClusterStatus.DELETING)
 
 
 def patch_cluster(client, name: str, ctx: dto.Context):
@@ -249,7 +248,7 @@ def update_cluster(client, name: str, params: t.Mapping[str, t.Any],
     # returning the ready state will confuse people
     time.sleep(0.1)
     raw_cluster = cluster_resource.fetch(safe_name)
-    return get_cluster_dto(raw_cluster,  ctx.user_id, status_if_ready=dto.ClusterStatus.CONFIGURING)
+    return get_cluster_dto(raw_cluster, status_if_ready=dto.ClusterStatus.CONFIGURING)
 
 
 # TODO(johngarbutt) horrible testing hack!
@@ -300,7 +299,7 @@ class Driver(base.Driver):
         List the clusters that are deployed.
         """
         client = get_k8s_client(ctx.tenancy.id)
-        return get_clusters(client, ctx)
+        return get_clusters(client)
 
     def find_cluster(self, id: str, ctx: dto.Context) -> dto.Cluster:
         """
@@ -354,4 +353,4 @@ class Driver(base.Driver):
         Deletes an existing cluster.
         """
         client = get_k8s_client(ctx.tenancy.id)
-        return delete_cluster(client, cluster.name, ctx)
+        return delete_cluster(client, cluster.name)
