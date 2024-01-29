@@ -45,6 +45,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Get SemVer version for current commit
+        id: semver
+        uses: stackhpc/github-actions/semver@master
+
       - name: Calculate metadata for image
         id: image-meta
         uses: docker/metadata-action@v5
@@ -55,7 +59,7 @@ jobs:
           tags: |
             type=ref,event=branch
             type=ref,event=tag
-            type=sha,prefix=
+            type=raw,value=${{ steps.semver.outputs.short-sha }}
 
       - name: Build and push image
         uses: stackhpc/github-actions/docker-multiarch-build-push@master
