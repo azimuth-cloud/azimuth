@@ -76,6 +76,7 @@ def get_cluster_dto(raw_cluster, status_if_ready: dto.ClusterStatus = None):
     error_message = None
     created_at = dateutil.parser.parse(raw_cluster.metadata.creationTimestamp)
     updated_at = created_at
+    patched_at = None
 
     if raw_status:
         phase = raw_status.get("phase")
@@ -105,6 +106,9 @@ def get_cluster_dto(raw_cluster, status_if_ready: dto.ClusterStatus = None):
         if raw_status.get("updatedTimestamp"):
             updated_at = dateutil.parser.parse(raw_status["updatedTimestamp"])
 
+        if raw_status.get("patchedTimestamp"):
+            patched_at = dateutil.parser.parse(raw_status["patchedTimestamp"])
+
     return dto.Cluster(
         id=raw_cluster.metadata.uid,
         name=raw_cluster.metadata.name,
@@ -117,7 +121,7 @@ def get_cluster_dto(raw_cluster, status_if_ready: dto.ClusterStatus = None):
         outputs=outputs,
         created=created_at,
         updated=updated_at,
-        patched=None,
+        patched=patched_at,
         services=[],
     )
 
