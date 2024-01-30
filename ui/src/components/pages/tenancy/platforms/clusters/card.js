@@ -167,7 +167,7 @@ const ClusterStatusCard = ({ cluster }) => (
                 </tr>
                 <tr>
                     <th>Created by</th>
-                    <td>{cluster.created_by_username ? cluster.created_by_username : '-'}</td>
+                    <td>{cluster.created_by_username || '-'}</td>
                 </tr>
                 <tr>
                     <th>Updated</th>
@@ -175,7 +175,7 @@ const ClusterStatusCard = ({ cluster }) => (
                 </tr>
                 <tr>
                     <th>Updated by</th>
-                    <td>{cluster.updated_by_username ? cluster.updated_by_username : '-'}</td>
+                    <td>{cluster.updated_by_username || '-'}</td>
                 </tr>
                 <tr>
                     <th>Patched</th>
