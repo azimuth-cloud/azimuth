@@ -298,6 +298,14 @@ const ClusterOverviewCard = ({ kubernetesCluster, kubernetesClusterTemplates }) 
                     <th>Created</th>
                     <td>{kubernetesCluster.created_at.toRelative()}</td>
                 </tr>
+                <tr>
+                    <th>Created by</th>
+                    <td>{kubernetesCluster.created_by_username || '-'}</td>
+                </tr>
+                <tr>
+                    <th>Updated by</th>
+                    <td>{kubernetesCluster.updated_by_username || '-'}</td>
+                </tr>
             </tbody>
         </Table>
     </Card>
@@ -699,7 +707,8 @@ export const KubernetesCard = ({
                 />
             )}
             <Card.Body className="small text-muted">
-                Created {kubernetesCluster.created_at.toRelative()}
+                Created {kubernetesCluster.created_at.toRelative()}<br/>
+                Created by {cluster.created_by_username || 'unknown'}
             </Card.Body>
             <Card.Footer>
                 <KubernetesClusterDetailsButton

@@ -120,6 +120,12 @@ class ScopedSession:
     """
     Class for a tenancy-scoped session.
     """
+    def user_id(self) -> str:
+        """
+        Returns the username for this session.
+        """
+        raise NotImplementedError
+
     def username(self) -> str:
         """
         Returns the username for this session.

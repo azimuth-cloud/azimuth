@@ -23,6 +23,8 @@ class Context:
     """
     #: The username of the user carrying out the operation
     username: str
+    #: The user id of the user carrying out the operation
+    user_id: str
     #: The tenancy that the operation is being carried out in
     tenancy: cloud_dto.Tenancy
     #: The cloud credential associated with the operation
@@ -239,5 +241,10 @@ class Cluster:
     updated: datetime
     #: The datetime at which the cluster was last patched
     patched: datetime
+    #: Details about the users interacting with the cluster
+    created_by_username: Optional[str]
+    created_by_user_id: Optional[str]
+    updated_by_username: Optional[str]
+    updated_by_user_id: Optional[str]
     #: A list of Zenith services enabled for the cluster
     services: Sequence[ClusterService] = field(default_factory = list)
