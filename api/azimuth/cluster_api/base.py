@@ -300,6 +300,10 @@ class Session:
                 for name, service in cluster_status.get("services", {}).items()
             ],
             dateutil.parser.parse(cluster.metadata["creationTimestamp"]),
+            cluster.spec.get("createdByUsername"),
+            cluster.spec.get("createdByUserId"),
+            cluster.spec.get("updatedByUsername"),
+            cluster.spec.get("updatedByUserId"),
         )
 
     @convert_exceptions
@@ -450,6 +454,8 @@ class Session:
             "label": name,
             "templateName": template.id,
             "cloudCredentialsSecretName": secret.metadata.name,
+            "createdByUsername": self._cloud_session.username(),
+            "createdByUserId": self._cloud_session.user_id(),
         })
         if zenith_identity_realm_name:
             cluster_spec["zenithIdentityRealmName"] = zenith_identity_realm_name
@@ -474,6 +480,8 @@ class Session:
         Update the specified cluster with the given parameters.
         """
         spec = self._build_cluster_spec(**options)
+        spec["updatedByUsername"] = self._cloud_session.username()
+        spec["updatedByUserId"]: self._cloud_session.user_id()
         cluster = (
             self._client
                 .api(AZIMUTH_API_VERSION)
@@ -496,16 +504,15 @@ class Session:
             cluster = cluster.id
         if not isinstance(template, dto.ClusterTemplate):
             template = self.find_cluster_template(template)
+
+        # note who triggered the upgrade
+        spec = {"templateName": template.id}
+        spec["updatedByUsername"] = self._cloud_session.username()
+        spec["updatedByUserId"]: self._cloud_session.user_id()
+
         # Apply a patch to the specified cluster to update the template
         ekclusters = self._client.api(AZIMUTH_API_VERSION).resource("clusters")
-        cluster = ekclusters.patch(
-            cluster,
-            {
-                "spec": {
-                    "templateName": template.id,
-                },
-            }
-        )
+        cluster = ekclusters.patch(cluster, {"spec": spec})
         sizes = list(self._cloud_session.sizes())
         return self._from_api_cluster(cluster, sizes)
 

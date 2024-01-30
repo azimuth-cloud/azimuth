@@ -420,6 +420,12 @@ class ScopedSession(base.ScopedSession):
             self._username, self._tenancy.name, *args, **kwargs
         )
 
+    def user_id(self) -> str:
+        """
+        See :py:meth:`.base.ScopedSession.user_id`.
+        """
+        return self._connection.user_id
+
     def username(self):
         """
         See :py:meth:`.base.ScopedSession.username`.
