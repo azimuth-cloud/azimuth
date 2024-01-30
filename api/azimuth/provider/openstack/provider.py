@@ -141,8 +141,8 @@ class Provider(base.Provider):
                                fragment ``{tenant_name}``.
         create_internal_net: If ``True`` (the default), then the internal network is auto-created
                              when a tagged network or templated network cannot be found.
-        create_manila_project_share: If ``True`` (the default is False), then
-                             manila project share is auto created when cannot be found.
+        manila_project_share_gb: If >0 (the default is 0), then
+                             manila project share is auto created with specified size.
         internal_net_cidr: The CIDR for the internal network when it is
                            auto-created (default ``192.168.3.0/24``).
         internal_net_dns_nameservers: The DNS nameservers for the internal network when it is
@@ -166,7 +166,7 @@ class Provider(base.Provider):
                        internal_net_template = None,
                        external_net_template = None,
                        create_internal_net = True,
-                       create_manila_project_share = False,
+                       manila_project_share_gb = 0,
                        internal_net_cidr = "192.168.3.0/24",
                        internal_net_dns_nameservers = None,
                        az_backdoor_net_map = None,
@@ -180,7 +180,9 @@ class Provider(base.Provider):
         self._internal_net_template = internal_net_template
         self._external_net_template = external_net_template
         self._create_internal_net = create_internal_net
-        self._create_manila_project_share = create_manila_project_share
+        self._manila_project_share_gb = 0
+        if manila_project_share_gb:
+            self._manila_project_share_gb = int(manila_project_share_gb)
         self._internal_net_cidr = internal_net_cidr
         self._internal_net_dns_nameservers = internal_net_dns_nameservers
         self._az_backdoor_net_map = az_backdoor_net_map or dict()
@@ -207,7 +209,7 @@ class Provider(base.Provider):
                 internal_net_template = self._internal_net_template,
                 external_net_template = self._external_net_template,
                 create_internal_net = self._create_internal_net,
-                create_manila_project_share = self._create_manila_project_share,
+                manila_project_share_gb = self._manila_project_share_gb,
                 internal_net_cidr = self._internal_net_cidr,
                 internal_net_dns_nameservers = self._internal_net_dns_nameservers,
                 az_backdoor_net_map = self._az_backdoor_net_map,
@@ -226,7 +228,7 @@ class UnscopedSession(base.UnscopedSession):
                        internal_net_template = None,
                        external_net_template = None,
                        create_internal_net = True,
-                       create_manila_project_share = False,
+                       manila_project_share_gb = 0,
                        internal_net_cidr = "192.168.3.0/24",
                        internal_net_dns_nameservers = None,
                        az_backdoor_net_map = None,
@@ -236,7 +238,7 @@ class UnscopedSession(base.UnscopedSession):
         self._internal_net_template = internal_net_template
         self._external_net_template = external_net_template
         self._create_internal_net = create_internal_net
-        self._create_manila_project_share = create_manila_project_share
+        self._manila_project_share_gb = manila_project_share_gb
         self._internal_net_cidr = internal_net_cidr
         self._internal_net_dns_nameservers = internal_net_dns_nameservers
         self._az_backdoor_net_map = az_backdoor_net_map or dict()
@@ -374,7 +376,7 @@ class UnscopedSession(base.UnscopedSession):
                 internal_net_template = self._internal_net_template,
                 external_net_template = self._external_net_template,
                 create_internal_net = self._create_internal_net,
-                create_manila_project_share = self._create_manila_project_share,
+                manila_project_share_gb = self._manila_project_share_gb,
                 internal_net_cidr = self._internal_net_cidr,
                 internal_net_dns_nameservers = self._internal_net_dns_nameservers,
                 az_backdoor_net_map = self._az_backdoor_net_map,
@@ -406,7 +408,7 @@ class ScopedSession(base.ScopedSession):
                        internal_net_template = None,
                        external_net_template = None,
                        create_internal_net = True,
-                       create_manila_project_share = False,
+                       manila_project_share_gb = 0,
                        internal_net_cidr = "192.168.3.0/24",
                        internal_net_dns_nameservers = None,
                        az_backdoor_net_map = None,
@@ -418,7 +420,7 @@ class ScopedSession(base.ScopedSession):
         self._internal_net_template = internal_net_template
         self._external_net_template = external_net_template
         self._create_internal_net = create_internal_net
-        self._create_manila_project_share = create_manila_project_share
+        self._manila_project_share_gb = manila_project_share_gb
         self._internal_net_cidr = internal_net_cidr
         self._internal_net_dns_nameservers = internal_net_dns_nameservers
         self._az_backdoor_net_map = az_backdoor_net_map or dict()
@@ -734,7 +736,7 @@ class ScopedSession(base.ScopedSession):
         Manila, we simply log that we can't create a share
         for this project, and return None.
         """
-        if not self._create_manila_project_share:
+        if not self._manila_project_share_gb:
             return
 
         # find if project share exists
@@ -791,7 +793,7 @@ class ScopedSession(base.ScopedSession):
             # TODO(johngarbutt) need to support non-ceph types eventually
             project_share = self._connection.share.shares.create(
                 share_proto="CephFS",
-                size=10,
+                size=self._manila_project_share_gb,
                 name=self._project_share_name,
                 description="Project share auto-created by Azimuth.",
                 share_type=default_share_type.id)
