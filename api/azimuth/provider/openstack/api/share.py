@@ -86,3 +86,4 @@ class ShareService(Service):
 
     def prepare_request(self, request):
         request.headers["X-OpenStack-Manila-API-Version"] = "2.51"
+        return super().prepare_request(request)
