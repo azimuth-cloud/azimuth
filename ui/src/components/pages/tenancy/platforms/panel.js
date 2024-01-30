@@ -58,7 +58,8 @@ const clustersWithLinks = tenancy => {
 export const TenancyPlatformsPanel = ({
     sshKey,
     tenancy,
-    tenancyActions
+    tenancyActions,
+    notificationActions,
 }) => {
     usePageTitle('Platforms');
 
@@ -204,6 +205,7 @@ export const TenancyPlatformsPanel = ({
                     platforms={resource.data}
                     tenancy={tenancy}
                     tenancyActions={tenancyActions}
+                    notificationActions={notificationActions}
                 />
             ) : (
                 <Row className="justify-content-center">

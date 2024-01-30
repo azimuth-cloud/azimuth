@@ -124,25 +124,26 @@ const ClusterTask = ({ cluster: { task } }) => {
 };
 
 
-const ClusterPatched = ({ cluster: { patched }}) => {
-    const threshold = DateTime.now().minus({ weeks: 2 });
-    return patched > threshold ?
-        patched.toRelative() :
+const ClusterPatched = ({ cluster, clusterType }) => {
+    const patched = cluster.patched ? cluster.patched.toRelative() : cluster.created.toRelative()
+    const newVersionAvailable = cluster.cluster_type_version && (cluster.cluster_type_version != clusterType.version);
+    return !newVersionAvailable ?
+        patched :
         <OverlayTrigger
             placement="top"
-            overlay={<Tooltip>This cluster has not been patched recently.</Tooltip>}
+            overlay={<Tooltip>A new version is available, please patch this cluster.</Tooltip>}
             trigger="click"
             rootClose
         >
             <strong className="text-danger overlay-trigger">
                 <FontAwesomeIcon icon={faExclamationCircle} className="me-2" />
-                {patched.toRelative()}
+                {patched}
             </strong>
         </OverlayTrigger>;
 };
 
 
-const ClusterStatusCard = ({ cluster }) => (
+const ClusterStatusCard = ({ cluster, clusterType }) => (
     <Card className="mb-3">
         <Card.Header className="text-center">Cluster status</Card.Header>
         <Table borderless className="details-table">
@@ -171,7 +172,7 @@ const ClusterStatusCard = ({ cluster }) => (
                 </tr>
                 <tr>
                     <th>Patched</th>
-                    <td>{cluster.patched ? <ClusterPatched cluster={cluster} /> : '-'}</td>
+                    <td><ClusterPatched cluster={cluster} clusterType={clusterType} /></td>
                 </tr>
             </tbody>
         </Table>
@@ -371,7 +372,7 @@ const ClusterDetailsButton = ({
                             <ClusterUsage cluster={cluster} clusterType={clusterType} />
                         </Col>
                         <Col xl={5}>
-                            <ClusterStatusCard cluster={cluster} />
+                            <ClusterStatusCard cluster={cluster} clusterType={clusterType} />
                             <ClusterServicesCard cluster={cluster} />
                         </Col>
                     </Row>
@@ -400,9 +401,17 @@ export const ClusterCard = ({
     clusterTypes,
     clusterActions,
     tenancy,
-    tenancyActions
+    tenancyActions,
+    notificationActions
 }) => {
     const clusterType = clusterTypes.data[cluster.cluster_type];
+    if (!clusterType) {
+        notificationActions.error({
+                title: 'Cluster type not found',
+                message: `Unable to load cluster type '${cluster.cluster_type}' for cluster '${cluster.name}'`
+        });
+        return;
+    }
     const updatedAt = cluster.updated || cluster.created;
     return (
         <Card className="platform-card">
