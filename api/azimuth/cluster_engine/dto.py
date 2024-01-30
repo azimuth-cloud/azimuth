@@ -219,6 +219,8 @@ class Cluster:
     name: str
     #: The name of the cluster type of the cluster
     cluster_type: str
+    #: The version of the cluster type
+    cluster_type_version: str
     #: The status of the cluster
     status: ClusterStatus
     #: Description of the currently executing task, or None if no task is executing
