@@ -18,7 +18,7 @@ import { KubernetesCard } from './kubernetes';
 import { KubernetesAppCard } from './kubernetes_apps';
 
 
-const PlatformCard = ({ platform, tenancy, tenancyActions, ...props }) => {
+const PlatformCard = ({ platform, tenancy, tenancyActions, notificationActions, ...props }) => {
     if( platform.kind === "cluster" ) {
         return (
             <ClusterCard
@@ -27,6 +27,7 @@ const PlatformCard = ({ platform, tenancy, tenancyActions, ...props }) => {
                 clusterActions={bindArgsToActions(tenancyActions.cluster, platform.object.id)}
                 tenancy={tenancy}
                 tenancyActions={tenancyActions}
+                notificationActions={notificationActions}
                 {...props}
             />
         );
@@ -70,7 +71,8 @@ export const PlatformsGrid = ({
     creating,
     platforms,
     tenancy,
-    tenancyActions
+    tenancyActions,
+    notificationActions
 }) => {
     // We record in local storage when the info alert is dismissed so that it is persistent
     const [infoDismissed, setInfoDismissed_] = useState(
@@ -119,6 +121,7 @@ export const PlatformsGrid = ({
                                 platform={platform}
                                 tenancy={tenancy}
                                 tenancyActions={tenancyActions}
+                                notificationActions={notificationActions}
                             />
                         </Col>
                     ))}
