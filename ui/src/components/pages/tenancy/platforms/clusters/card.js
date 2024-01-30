@@ -431,7 +431,7 @@ export const ClusterCard = ({
             )}
             <Card.Body className="small text-muted">
                 Created {cluster.created.toRelative()}<br/>
-                Created by {cluster.created_by_username ? cluster.created_by_username : '-'}
+                Created by {cluster.created_by_username || 'unknown'}
             </Card.Body>
             <Card.Footer>
                 <ClusterDetailsButton
