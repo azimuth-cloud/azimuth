@@ -10,6 +10,7 @@ import itertools
 import logging
 import random
 import re
+import time
 
 import dateutil.parser
 
@@ -140,6 +141,8 @@ class Provider(base.Provider):
                                fragment ``{tenant_name}``.
         create_internal_net: If ``True`` (the default), then the internal network is auto-created
                              when a tagged network or templated network cannot be found.
+        manila_project_share_gb: If >0 (the default is 0), then
+                             manila project share is auto created with specified size.
         internal_net_cidr: The CIDR for the internal network when it is
                            auto-created (default ``192.168.3.0/24``).
         internal_net_dns_nameservers: The DNS nameservers for the internal network when it is
@@ -163,6 +166,7 @@ class Provider(base.Provider):
                        internal_net_template = None,
                        external_net_template = None,
                        create_internal_net = True,
+                       manila_project_share_gb = 0,
                        internal_net_cidr = "192.168.3.0/24",
                        internal_net_dns_nameservers = None,
                        az_backdoor_net_map = None,
@@ -176,6 +180,9 @@ class Provider(base.Provider):
         self._internal_net_template = internal_net_template
         self._external_net_template = external_net_template
         self._create_internal_net = create_internal_net
+        self._manila_project_share_gb = 0
+        if manila_project_share_gb:
+            self._manila_project_share_gb = int(manila_project_share_gb)
         self._internal_net_cidr = internal_net_cidr
         self._internal_net_dns_nameservers = internal_net_dns_nameservers
         self._az_backdoor_net_map = az_backdoor_net_map or dict()
@@ -202,6 +209,7 @@ class Provider(base.Provider):
                 internal_net_template = self._internal_net_template,
                 external_net_template = self._external_net_template,
                 create_internal_net = self._create_internal_net,
+                manila_project_share_gb = self._manila_project_share_gb,
                 internal_net_cidr = self._internal_net_cidr,
                 internal_net_dns_nameservers = self._internal_net_dns_nameservers,
                 az_backdoor_net_map = self._az_backdoor_net_map,
@@ -220,6 +228,7 @@ class UnscopedSession(base.UnscopedSession):
                        internal_net_template = None,
                        external_net_template = None,
                        create_internal_net = True,
+                       manila_project_share_gb = 0,
                        internal_net_cidr = "192.168.3.0/24",
                        internal_net_dns_nameservers = None,
                        az_backdoor_net_map = None,
@@ -229,6 +238,7 @@ class UnscopedSession(base.UnscopedSession):
         self._internal_net_template = internal_net_template
         self._external_net_template = external_net_template
         self._create_internal_net = create_internal_net
+        self._manila_project_share_gb = manila_project_share_gb
         self._internal_net_cidr = internal_net_cidr
         self._internal_net_dns_nameservers = internal_net_dns_nameservers
         self._az_backdoor_net_map = az_backdoor_net_map or dict()
@@ -366,6 +376,7 @@ class UnscopedSession(base.UnscopedSession):
                 internal_net_template = self._internal_net_template,
                 external_net_template = self._external_net_template,
                 create_internal_net = self._create_internal_net,
+                manila_project_share_gb = self._manila_project_share_gb,
                 internal_net_cidr = self._internal_net_cidr,
                 internal_net_dns_nameservers = self._internal_net_dns_nameservers,
                 az_backdoor_net_map = self._az_backdoor_net_map,
@@ -397,6 +408,7 @@ class ScopedSession(base.ScopedSession):
                        internal_net_template = None,
                        external_net_template = None,
                        create_internal_net = True,
+                       manila_project_share_gb = 0,
                        internal_net_cidr = "192.168.3.0/24",
                        internal_net_dns_nameservers = None,
                        az_backdoor_net_map = None,
@@ -408,10 +420,20 @@ class ScopedSession(base.ScopedSession):
         self._internal_net_template = internal_net_template
         self._external_net_template = external_net_template
         self._create_internal_net = create_internal_net
+        self._manila_project_share_gb = manila_project_share_gb
         self._internal_net_cidr = internal_net_cidr
         self._internal_net_dns_nameservers = internal_net_dns_nameservers
         self._az_backdoor_net_map = az_backdoor_net_map or dict()
         self._backdoor_vnic_type = backdoor_vnic_type
+
+        # TODO(johngarbutt): consider moving some of this to config
+        # and/or hopefully having this feature on by default
+        # and auto detecting when its available, which is not currently
+        # feasible.
+        self._project_share_name = "azimuth-project-share"
+        prefix = "proj"
+        project_id_safe = self._connection.project_id.replace("-", "")
+        self._project_share_user = prefix + project_id_safe
 
     def _log(self, message, *args, level = logging.INFO, **kwargs):
         logger.log(
@@ -695,6 +717,101 @@ class ScopedSession(base.ScopedSession):
             return network
         else:
             raise errors.InvalidOperationError("Could not find internal network.")
+
+    def _project_share(self, create_share=True):
+        """
+        Returns the project specific Manila share.
+
+        If we are not configured to create the project share,
+        we do nothing here, and return None.
+
+        If we are configured to create the project share,
+        we look to see if a valid share is already created.
+        If we find a valid share, we return that object.
+
+        Finally, we look to create the share dynamically,
+        then return that share.
+
+        If this project has not available share type in
+        Manila, we simply log that we can't create a share
+        for this project, and return None.
+        """
+        if not self._manila_project_share_gb:
+            return
+
+        # find if project share exists
+        project_share = None
+        current_shares = self._connection.share.shares.all()
+        for share in current_shares:
+            if share.name == self._project_share_name:
+                project_share = share
+        if project_share:
+            # double check share has the correct protocol and is available
+            share_details = self._connection.share.shares.get(project_share.id)
+            self._log(f"Got share details f{share_details}")
+            if share_details.share_proto.upper() != "CEPHFS":
+                raise errors.ImproperlyConfiguredError(
+                    "Currently only support CephFS shares!")
+            if share_details.status.lower() != "available":
+                raise errors.ImproperlyConfiguredError(
+                    "Project share is not available!")
+            if share_details.access_rules_status.lower() != "active":
+                raise errors.ImproperlyConfiguredError(
+                    "Project share has a problem with its access rules!")
+
+            access_list = list(self._connection.share.access.all(
+                share_id=project_share.id))
+            found_expected_access = False
+            for access in access_list:
+                if access.access_to == self._project_share_user:
+                    found_expected_access = True
+                    break
+            if not found_expected_access:
+                raise errors.ImproperlyConfiguredError("can't find the expected access rule!")
+            self._log(f"Found project share for: {self._connection.project_id}")
+
+        # no share found, create if required
+        if not project_share and create_share:
+            self._log(f"Creating project share for: {self._connection.project_id}")
+
+            # Find share type
+            default_share_type = None
+            all_types = list(self._connection.share.types.all())
+            if len(all_types) == 1:
+                default_share_type = all_types[0]
+            else:
+                for share_type in all_types:
+                    if share_type.is_default:
+                        default_share_type = share_type
+                        break
+            if not default_share_type:
+                # Silent ignore here, as it usually means project
+                # has not been setup for manila
+                self._log("Unable to find valid share type!")
+                return
+
+            # TODO(johngarbutt) need to support non-ceph types eventually
+            project_share = self._connection.share.shares.create(
+                share_proto="CephFS",
+                size=self._manila_project_share_gb,
+                name=self._project_share_name,
+                description="Project share auto-created by Azimuth.",
+                share_type=default_share_type.id)
+
+            # wait for share to be available before trying to grant access
+            for _ in range(10):
+                latest = self._connection.share.shares.get(project_share.id)
+                if latest.status.lower() == "available":
+                    break
+                if latest.status.lower() == "error":
+                    raise errors.Error("Unable to create project share.")
+                time.sleep(0.1)
+
+            project_share.grant_rw_access(self._project_share_user)
+            # TODO(johngarbutt) should we wait for access to be granted?
+            self._log(f"Created new project share: {project_share.id}")
+
+        return project_share
 
     def _external_network(self):
         """
@@ -1389,13 +1506,25 @@ class ScopedSession(base.ScopedSession):
         """
         # Inject information about the networks to use
         external_network = self._external_network().name
-        return dict(
+        params = dict(
             # Legacy name
             cluster_floating_network = external_network,
             # New name
             cluster_external_network = external_network,
             cluster_network = self._tenant_network(True).name
         )
+
+        # If configured to, find if we can have a project share
+        project_share = self._project_share(True)
+        if project_share:
+            params["cluster_project_manila_share"] = True
+            params["cluster_project_manila_share_name"] = project_share.name
+            user = self._project_share_user
+            params["cluster_project_manila_share_user"] = user
+        else:
+            params["cluster_project_manila_share"] = False
+
+        return params
 
     def cluster_modify(self, cluster):
         """
