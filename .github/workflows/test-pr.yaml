@@ -51,7 +51,7 @@ jobs:
     steps:
       # Check out the configuration repository
       - name: Set up Azimuth environment
-        uses: stackhpc/azimuth-config/.github/actions/setup@main
+        uses: stackhpc/azimuth-config/.github/actions/setup@devel
         with:
           os-clouds: ${{ secrets.OS_CLOUDS }}
           environment-prefix: api-ci
@@ -66,13 +66,13 @@ jobs:
 
       # Provision Azimuth using the azimuth-ops version under test
       - name: Provision Azimuth
-        uses: stackhpc/azimuth-config/.github/actions/provision@main
+        uses: stackhpc/azimuth-config/.github/actions/provision@devel
 
       # # Run the tests
       - name: Run Azimuth tests
-        uses: stackhpc/azimuth-config/.github/actions/test@main
+        uses: stackhpc/azimuth-config/.github/actions/test@devel
 
       # Tear down the environment
       - name: Destroy Azimuth
-        uses: stackhpc/azimuth-config/.github/actions/destroy@main
+        uses: stackhpc/azimuth-config/.github/actions/destroy@devel
         if: ${{ always() }}
