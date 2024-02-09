@@ -48,13 +48,17 @@ const useSchedulingData = (tenancyId, formState) => {
                 const headers = { 'Content-Type': 'application/json' };
                 const csrfToken = Cookies.get('csrftoken');
                 if( csrfToken ) headers['X-CSRFToken'] = csrfToken;
+                const url = formState.id ?
+                    `/api/tenancies/${tenancyId}/clusters/${formState.id}/schedule/` :
+                    `/api/tenancies/${tenancyId}/clusters/schedule/`;
                 const response = await fetch(
-                    `/api/tenancies/${tenancyId}/clusters/schedule/`,
+                    url,
                     {
                         method: "POST",
                         headers,
                         credentials: "same-origin",
                         body: JSON.stringify({
+                            id: formState.id || null,
                             name: formState.name,
                             cluster_type: formState.clusterType.name,
                             parameter_values: formState.parameterValues
@@ -103,6 +107,7 @@ const initialParameterValues = (clusterType, cluster) => {
 
 
 export const useClusterFormState = (clusterType, cluster) => {
+    const [id, _] = useState(cluster ? cluster.id : "");
     const [name, setName] = useState(cluster ? cluster.name : "");
     const [parameterValues, setParameterValues] = useState(
         initialParameterValues(clusterType, cluster)
@@ -111,6 +116,7 @@ export const useClusterFormState = (clusterType, cluster) => {
         {
             clusterType,
             isEdit: !!cluster,
+            id,
             name,
             setName,
             parameterValues,

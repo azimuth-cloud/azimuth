@@ -1,13 +1,10 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 
 import Button from 'react-bootstrap/Button';
 import Col from 'react-bootstrap/Col';
 import Modal from 'react-bootstrap/Modal';
 import ProgressBar from 'react-bootstrap/ProgressBar';
 import Row from 'react-bootstrap/Row';
-
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheckCircle } from '@fortawesome/free-solid-svg-icons';
 
 import { Error, Loading, formatSize, sortBy } from '../../../utils';
 
@@ -17,15 +14,13 @@ const quotaOrdering = ["machines", "volumes", "external_ips", "cpus", "ram", "st
 
 
 const ProjectedQuotaProgressBar = ({ quota }) => {
-    const max = quota.allocated >= 0 ? quota.allocated : quota.projected;
+    const max = quota.allocated >= 0 ? quota.allocated : Math.max(quota.projected, quota.current);
     const exceeded = quota.allocated >= 0 && quota.projected > quota.allocated;
-    // We want the total size of the progress bar to be at most max
-    // If the projected quota is greater than the allocation, we just render it
-    // as danger instead of warning
-    const delta = Math.min(
-        quota.delta,
-        quota.allocated >= 0 ? quota.allocated - quota.current : quota.delta
-    );
+    const reduction = quota.delta < 0 ? Math.abs(quota.delta) : 0;
+    // For aesthetics, cap the size of the increase at the remaining space
+    // so that the progress bar never grows bigger than the allocated amount
+    // If the increase goes over the allocated, just render the increase as danger
+    const increase = Math.min(quota.delta >= 0 ? quota.delta : 0, max - quota.current);
     const formatAmount = amount => (
         ["MB", "GB"].includes(quota.units) ?
             formatSize(amount, quota.units) :
@@ -35,10 +30,11 @@ const ProjectedQuotaProgressBar = ({ quota }) => {
         <div className="scheduling-projected-quota mb-2">
             {quota.label}
             <ProgressBar>
-                <ProgressBar variant="primary" now={quota.current} max={max} />
+                <ProgressBar variant="primary" now={quota.current - reduction} max={max} />
+                <ProgressBar variant="secondary" now={reduction} max={max} />
                 <ProgressBar
                     variant={exceeded ? "danger" : "warning"}
-                    now={delta}
+                    now={increase}
                     max={max}
                 />
             </ProgressBar>
@@ -91,7 +87,7 @@ export const PlatformSchedulingModal = ({ useSchedulingData, onCancel, onConfirm
                     <Row className="justify-content-center">
                         <Col xs={`auto py-${loading || fits ? 3 : 2}`}>
                             {loading && <Loading message="Checking quotas..." />}
-                            {error && <Error message="Error quotas" />}
+                            {error && <Error message="Error checking quotas" />}
                         </Col>
                     </Row>
                 ) : (

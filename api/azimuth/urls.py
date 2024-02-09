@@ -123,9 +123,10 @@ urlpatterns = [
         ])),
         path("clusters/", include([
             path("", views.clusters, name = "clusters"),
-            path("schedule/", views.cluster_schedule, name = "cluster_schedule"),
+            path("schedule/", views.cluster_schedule_new, name = "cluster_schedule_new"),
             path("<id:cluster>/", include([
                 path("", views.cluster_details, name = "cluster_details"),
+                path("schedule/", views.cluster_schedule_existing, name = "cluster_schedule_existing"),
                 path("patch/", views.cluster_patch, name = "cluster_patch"),
                 path(
                     "services/<id:service>/",

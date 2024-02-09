@@ -549,9 +549,10 @@ class UpdateClusterSerializer(serializers.Serializer):
         # Convert the provider error into a DRF ValidationError
         cluster_manager = self.context["cluster_manager"]
         cluster = self.context["cluster"]
+        cluster_type = self.context.get("cluster_type", cluster.cluster_type)
         try:
             data["parameter_values"] = cluster_manager.validate_cluster_params(
-                cluster.cluster_type,
+                cluster_type,
                 data["parameter_values"],
                 cluster.parameter_values
             )
