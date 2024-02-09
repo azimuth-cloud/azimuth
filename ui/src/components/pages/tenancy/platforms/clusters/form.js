@@ -58,7 +58,6 @@ const useSchedulingData = (tenancyId, formState) => {
                         headers,
                         credentials: "same-origin",
                         body: JSON.stringify({
-                            id: formState.id || null,
                             name: formState.name,
                             cluster_type: formState.clusterType.name,
                             parameter_values: formState.parameterValues
