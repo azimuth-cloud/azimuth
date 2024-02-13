@@ -542,7 +542,6 @@ const KubernetesClusterDetailsButton = ({
     const close = () => setVisible(false);
 
     const inFlight = !!kubernetesCluster.updating || !!kubernetesCluster.deleting;
-    const working = kubernetesCluster.status.endsWith("ing");
 
     return (
         <>
@@ -602,7 +601,7 @@ const KubernetesClusterDetailsButton = ({
                                             sizeActions={sizeActions}
                                             externalIps={externalIps}
                                             externalIpActions={externalIpActions}
-                                            disabled={inFlight || working}
+                                            disabled={inFlight || kubernetesCluster.status === "Deleting"}
                                             className="me-2"
                                         />
                                         <UpgradeKubernetesClusterButton
@@ -610,7 +609,7 @@ const KubernetesClusterDetailsButton = ({
                                             kubernetesClusterActions={kubernetesClusterActions}
                                             kubernetesClusterTemplates={kubernetesClusterTemplates}
                                             kubernetesClusterTemplateActions={kubernetesClusterTemplateActions}
-                                            disabled={inFlight || working}
+                                            disabled={inFlight || kubernetesCluster.status.endsWith("ing")}
                                             className="me-2"
                                         />
                                         <PlatformDeleteButton

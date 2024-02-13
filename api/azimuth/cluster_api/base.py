@@ -481,7 +481,7 @@ class Session:
         """
         spec = self._build_cluster_spec(**options)
         spec["updatedByUsername"] = self._cloud_session.username()
-        spec["updatedByUserId"]: self._cloud_session.user_id()
+        spec["updatedByUserId"] = self._cloud_session.user_id()
         cluster = (
             self._client
                 .api(AZIMUTH_API_VERSION)
@@ -508,7 +508,7 @@ class Session:
         # note who triggered the upgrade
         spec = {"templateName": template.id}
         spec["updatedByUsername"] = self._cloud_session.username()
-        spec["updatedByUserId"]: self._cloud_session.user_id()
+        spec["updatedByUserId"] = self._cloud_session.user_id()
 
         # Apply a patch to the specified cluster to update the template
         ekclusters = self._client.api(AZIMUTH_API_VERSION).resource("clusters")
