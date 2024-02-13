@@ -73,7 +73,6 @@ jobs:
           push: true
           tags: ${{ steps.image-meta.outputs.tags }}
           labels: ${{ steps.image-meta.outputs.labels }}
-          sign_image: true
 
   build_push_chart:
     name: Build and push Helm chart
