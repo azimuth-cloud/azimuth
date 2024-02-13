@@ -32,6 +32,10 @@ jobs:
         include:
           - component: api
           - component: ui
+    permissions:
+      contents: read
+      packages: write
+      id-token: write # needed for signing the images with GitHub OIDC Token
     steps:
       - name: Check out the repository
         uses: actions/checkout@v4
