@@ -32,6 +32,10 @@ jobs:
         include:
           - component: api
           - component: ui
+    permissions:
+      contents: read
+      packages: write
+      id-token: write # needed for signing the images with GitHub OIDC Token
     steps:
       - name: Check out the repository
         uses: actions/checkout@v4
@@ -69,6 +73,7 @@ jobs:
           push: true
           tags: ${{ steps.image-meta.outputs.tags }}
           labels: ${{ steps.image-meta.outputs.labels }}
+          sign_image: true
 
   build_push_chart:
     name: Build and push Helm chart
