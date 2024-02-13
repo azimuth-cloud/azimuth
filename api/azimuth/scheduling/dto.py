@@ -53,6 +53,13 @@ class ResourceSummary:
         assert self.ram >= 0
         assert self.storage >= 0
 
+    @classmethod
+    def none(cls):
+        """
+        Creates a resource summary that consumes no resources.
+        """
+        return cls(0, 0, 0, 0, 0, 0)
+
 
 @dataclasses.dataclass(frozen = True)
 class MachineResources:

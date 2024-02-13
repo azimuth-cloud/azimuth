@@ -977,9 +977,9 @@ def cluster_type_details(request, tenant, cluster_type):
 
 
 @provider_api_view(["POST"])
-def cluster_schedule(request, tenant):
+def cluster_schedule_new(request, tenant):
     """
-    Returns scheduling information for the specified CaaS cluster.
+    Returns scheduling information for the creating a new CaaS cluster.
     """
     if not cloud_settings.CLUSTER_ENGINE:
         return response.Response(
@@ -1004,6 +1004,56 @@ def cluster_schedule(request, tenant):
             )
             checker = scheduling.QuotaChecker(session)
             fits, quotas = checker.check(resources)
+            serializer = serializers.ProjectedQuotaSerializer(quotas, many = True)
+            return response.Response(
+                { "quotas": serializer.data },
+                status = (
+                    status.HTTP_200_OK
+                    if fits
+                    else status.HTTP_409_CONFLICT
+                )
+            )
+
+
+@provider_api_view(["POST"])
+def cluster_schedule_existing(request, tenant, cluster):
+    """
+    Returns scheduling information for updating the specified CaaS cluster.
+    """
+    if not cloud_settings.CLUSTER_ENGINE:
+        return response.Response(
+            {
+                "detail": "Clusters are not supported.",
+                "code": "unsupported_operation"
+            },
+            status = status.HTTP_404_NOT_FOUND
+        )
+    with request.auth.scoped_session(tenant) as session:
+        with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
+            cluster = cluster_manager.find_cluster(cluster)
+            cluster_type = cluster_manager.find_cluster_type(cluster.cluster_type)
+            input_serializer = serializers.UpdateClusterSerializer(
+                data = request.data,
+                context = dict(
+                    session = session,
+                    cluster_manager = cluster_manager,
+                    cluster = cluster,
+                    cluster_type = cluster_type
+                )
+            )
+            input_serializer.is_valid(raise_exception = True)
+            # Get the scheduling information for the cluster
+            calculator = scheduling.CaaSClusterCalculator(session)
+            current_resources = calculator.calculate(
+                cluster_type,
+                cluster.parameter_values
+            )
+            future_resources = calculator.calculate(
+                cluster_type,
+                input_serializer.validated_data["parameter_values"]
+            )
+            checker = scheduling.QuotaChecker(session)
+            fits, quotas = checker.check(future_resources, current_resources)
             serializer = serializers.ProjectedQuotaSerializer(quotas, many = True)
             return response.Response(
                 { "quotas": serializer.data },
@@ -1111,15 +1161,37 @@ def cluster_details(request, tenant, cluster):
         with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
             cluster = cluster_manager.find_cluster(cluster)
             if request.method == "PATCH":
+                cluster_type = cluster_manager.find_cluster_type(cluster.cluster_type)
                 input_serializer = serializers.UpdateClusterSerializer(
                     data = request.data,
                     context = dict(
                         session = session,
                         cluster_manager = cluster_manager,
-                        cluster = cluster
+                        cluster = cluster,
+                        cluster_type = cluster_type
                     )
                 )
                 input_serializer.is_valid(raise_exception = True)
+                # Check that the changes to the cluster fit within quota
+                calculator = scheduling.CaaSClusterCalculator(session)
+                current_resources = calculator.calculate(
+                    cluster_type,
+                    cluster.parameter_values
+                )
+                future_resources = calculator.calculate(
+                    cluster_type,
+                    input_serializer.validated_data["parameter_values"]
+                )
+                checker = scheduling.QuotaChecker(session)
+                fits, _ = checker.check(future_resources, current_resources)
+                if not fits:
+                    return response.Response(
+                        {
+                            "detail": "Cluster exceeds at least one quota.",
+                            "code": "quota_exceeded"
+                        },
+                        status = status.HTTP_409_CONFLICT
+                    )
                 cluster = cluster_manager.update_cluster(
                     cluster,
                     input_serializer.validated_data["parameter_values"]

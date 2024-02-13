@@ -13,19 +13,28 @@ class QuotaChecker:
 
     def check(
         self,
-        resources: dto.PlatformResources
+        future_resources: dto.PlatformResources,
+        current_resources: t.Optional[dto.PlatformResources] = None
     ) -> tuple[bool, t.Iterable[dto.ProjectedQuota]]:
         """
         Runs a quota check for the given platform resources and returns a tuple
-        of (bool, new quotas) where the bool indicates if the platform fits in the
-        available space and the new quotas represent the new state of the quotas
-        if the platform was provisioned.
+        of (fits, projected_quotas) where "fits" indicates if the changes to the
+        platform fit in the remaining quotas and projected_quotas represents the
+        new state of the quotas if the changes were applied.
         """
-        summary = resources.summarise()
+        # Summarise the current and future resource consumption of the platform
+        future_summary = future_resources.summarise()
+        if current_resources is not None:
+            current_summary = current_resources.summarise()
+        else:
+            current_summary = dto.ResourceSummary.none()
+        # Check whether the delta fits within the remaining quota
         projected_quotas = []
         fits = True
         for quota in self._session.quotas():
-            delta = getattr(summary, quota.resource, 0)
+            future = getattr(future_summary, quota.resource, 0)
+            current = getattr(current_summary, quota.resource, 0)
+            delta = future - current
             projected_quota = dto.ProjectedQuota(
                 quota.resource,
                 quota.label,
