@@ -13,7 +13,7 @@ docutils==0.20.1
 easykube==0.1.1
 gunicorn==21.2.0
 h11==0.14.0
-httpcore==1.0.2
+httpcore==1.0.3
 httpx==0.26.0
 idna==3.6
 jasmin-ldap @ git+https://github.com/cedadev/jasmin-ldap.git@3e1d2659731e9e1a65e8723b4e72c776ae7f7b25
