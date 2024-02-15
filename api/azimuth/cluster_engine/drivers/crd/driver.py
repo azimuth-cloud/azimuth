@@ -143,9 +143,11 @@ def get_clusters(client) -> t.Iterable[dto.Cluster]:
     return clusters
 
 
-def _get_cluster_type(client, cluster_type_name: str):
+def _get_cluster_type(client, cluster_type_name: str, tenancy):
     clustertypes_resource = client.api(CAAS_API_VERSION).resource("clustertypes")
     raw = clustertypes_resource.fetch(cluster_type_name)
+    # if not allowed_by_acls(raw, tenancy):
+    #     raise errors.InvalidOperationError(f"Cannot get cluster type {cluster_type_name} - cluster type blocked by ACLs in tenancy {tenancy.id}")
     cluster_type = _get_cluster_type_dto(raw)
     if cluster_type:
         return cluster_type
@@ -174,7 +176,7 @@ def create_cluster(
         }
     )
 
-    cluster_type = _get_cluster_type(client, cluster_type_name)
+    cluster_type = _get_cluster_type(client, cluster_type_name, ctx.tenancy)
     cluster_spec = {
         "clusterTypeName": cluster_type_name,
         "clusterTypeVersion": cluster_type.version,
@@ -209,6 +211,7 @@ def delete_cluster(client, name: str):
     # NOTE(johngarbutt) we are racing the operator here,
     # returning the ready state will confuse people
     time.sleep(0.1)
+    # NOTE(sd109) Avoid checking allowed_by_acls here so that deletion is never blocked
     raw_cluster = cluster_resource.fetch(safe_name)
     return get_cluster_dto(raw_cluster, status_if_ready=dto.ClusterStatus.DELETING)
 
@@ -221,9 +224,9 @@ def patch_cluster(client, name: str, ctx: dto.Context):
     inital_raw_cluster = cluster_resource.fetch(safe_name)
 
     cluster_type_name = inital_raw_cluster["spec"]["clusterTypeName"]
-    cluster_type = _get_cluster_type(client, cluster_type_name)
+    cluster_type = _get_cluster_type(client, cluster_type_name, ctx.tenancy)
     if not cluster_type:
-        raise Exception(f"Can not update as type {cluster_type_name} not found")
+        raise Exception(f"Cannot update as type {cluster_type_name} not found")
 
     # Trigger an update, even if no change in version requested
     # TODO(johngarbutt): cluster_upgrade_system_packages=true needed?
@@ -256,6 +259,9 @@ def update_cluster(client, name: str, params: t.Mapping[str, t.Any],
     # returning the ready state will confuse people
     time.sleep(0.1)
     raw_cluster = cluster_resource.fetch(safe_name)
+    if not allowed_by_acls(raw_cluster, ctx.tenancy):
+        raise errors.InvalidOperationError(f"Cannot update cluster {name} - cluster type blocked by ACLs in tenancy {ctx.tenancy.id}")
+
     return get_cluster_dto(raw_cluster, status_if_ready=dto.ClusterStatus.CONFIGURING)
 
 
