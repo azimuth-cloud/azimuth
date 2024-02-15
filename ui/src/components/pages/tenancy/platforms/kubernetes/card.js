@@ -554,7 +554,7 @@ const KubernetesClusterDetailsButton = ({
                     <Modal.Title>Cluster details for {kubernetesCluster.name}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
-                    { kubernetesTemplatesAvailable || 
+                    { kubernetesTemplatesAvailable ||
                         <Row className="m-4" style={{color: "red"}}>
                             <h5 className="text-center">WARNING: Kubernetes functionality is no longer available in this tenancy.</h5>
                         </Row> 
