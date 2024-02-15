@@ -14,9 +14,6 @@ ACL_KEYS = [
     ACL_DENY_PATTERN_KEY,
 ]
 
-class TemplateFilterException(Exception):
-    pass
-
 def allowed_by_acls(raw, tenancy):
     """
     Returns true if the application template is permitted in the given tenancy.
@@ -29,22 +26,24 @@ def allowed_by_acls(raw, tenancy):
     annotations = raw.get("metadata").get("annotations")
     annotation_keys = annotations.keys()
 
+    # NOTE(sd109) Use if instead of elif so that acls are additive
+
     # If no ACL annotations are found then access is granted
     if not any(k in annotation_keys for k in ACL_KEYS):
         pass
     # Deny IDs list takes priority over allow IDs list and any regex patterns
-    elif ACL_DENY_IDS_KEY in annotation_keys:
+    if ACL_DENY_IDS_KEY in annotation_keys:
         denied_tenancies = annotations[ACL_DENY_IDS_KEY]
         is_allowed = (not tenancy.id in denied_tenancies)
-    elif ACL_ALLOW_IDS_KEY in annotation_keys:
+    if ACL_ALLOW_IDS_KEY in annotation_keys:
         allowed_tenancies = annotations[ACL_ALLOW_IDS_KEY]
         is_allowed = (tenancy.id in allowed_tenancies)
     # Deny regex takes priority for allow regex
-    elif ACL_DENY_PATTERN_KEY in annotation_keys:
+    if ACL_DENY_PATTERN_KEY in annotation_keys:
         pattern = annotations[ACL_DENY_PATTERN_KEY]
         is_match = (re.match(pattern, tenancy.name) is not None)
         is_allowed = not is_match
-    elif ACL_ALLOW_PATTERN_KEY in annotation_keys:
+    if ACL_ALLOW_PATTERN_KEY in annotation_keys:
         pattern = annotations[ACL_ALLOW_PATTERN_KEY]
         is_match = (re.match(pattern, tenancy.name) is not None)
         is_allowed = is_match
