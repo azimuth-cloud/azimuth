@@ -405,6 +405,7 @@ const statusBadgeBg = {
     'ERROR': 'danger'
 };
 
+// Placeholder object which holds the minimum set of fields required for a successful UI render
 const clusterTypePlaceholder = {
     logo: azimuthLogo, 
     label: "Cluster type unavailable",
