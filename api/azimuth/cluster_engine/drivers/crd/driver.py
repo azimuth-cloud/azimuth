@@ -14,6 +14,8 @@ import easykube
 from azimuth.cluster_engine.drivers import base
 from azimuth.cluster_engine import dto
 from azimuth.cluster_engine import errors
+# TODO: Is there a better place for this file?
+from ....utils import allowed_by_acls
 
 CAAS_API_VERSION = "caas.azimuth.stackhpc.com/v1alpha1"
 LOG = logging.getLogger(__name__)
@@ -58,13 +60,14 @@ def _get_cluster_type_dto(raw):
         )
 
 
-def get_cluster_types(client) -> t.Iterable[dto.ClusterType]:
+def get_cluster_types(client, tenancy) -> t.Iterable[dto.ClusterType]:
     raw_types = list(client.api(CAAS_API_VERSION).resource("clustertypes").list())
     cluster_types = []
     for raw in raw_types:
-        cluster_type = _get_cluster_type_dto(raw)
-        if cluster_type:
-            cluster_types.append(cluster_type)
+        if allowed_by_acls(raw, tenancy):
+            cluster_type = _get_cluster_type_dto(raw)
+            if cluster_type:
+                cluster_types.append(cluster_type)
     return cluster_types
 
 
@@ -287,7 +290,7 @@ class Driver(base.Driver):
 
     def cluster_types(self, ctx: dto.Context) -> t.Iterable[dto.ClusterType]:
         client = get_k8s_client(ctx.tenancy.id)
-        return get_cluster_types(client)
+        return get_cluster_types(client, ctx.tenancy)
 
     def find_cluster_type(self, name: str, ctx: dto.Context) -> dto.ClusterType:
         """

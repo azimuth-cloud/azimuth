@@ -22,6 +22,7 @@ from easykube import (
 from ..provider import base as cloud_base, dto as cloud_dto, errors as cloud_errors
 
 from . import dto, errors
+from ..utils import allowed_by_acls
 
 
 logger = logging.getLogger(__name__)
@@ -180,6 +181,11 @@ class Session:
                 .resource("clustertemplates")
                 .list()
         )
+
+        # Filter cluster templates based on ACL annotations
+        tenancy = self._cloud_session.tenancy()
+        templates = list(filter(lambda t: allowed_by_acls(t, tenancy), templates))
+
         self._log("Found %s cluster templates", len(templates))
         return tuple(self._from_api_cluster_template(ct) for ct in templates)
 
@@ -614,6 +620,11 @@ class Session:
                 .list()
         )
         self._log("Found %s app templates", len(templates))
+
+        # Filter templates based on ACL annotations
+        tenancy = self._cloud_session.tenancy()
+        templates = list(filter(lambda t: allowed_by_acls(t, tenancy), templates))
+
         # Don't return app templates with no versions
         return tuple(
             self._from_api_app_template(at)
