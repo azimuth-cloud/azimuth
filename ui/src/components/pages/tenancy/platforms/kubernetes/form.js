@@ -396,6 +396,7 @@ export const KubernetesClusterForm = ({
                     helpText="The template determines the Kubernetes version for the cluster."
                 >
                     <KubernetesClusterTemplateSelectControl
+                        kubernetesCluster={formState.kubernetesCluster}
                         resource={kubernetesClusterTemplates}
                         resourceActions={kubernetesClusterTemplateActions}
                         required

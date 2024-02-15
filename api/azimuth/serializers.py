@@ -15,6 +15,8 @@ from rest_framework import serializers
 
 import jsonschema
 
+import easysemver
+
 from .cluster_api import dto as capi_dto
 from .cluster_engine import dto as clusters_dto, errors as clusters_errors
 from .provider import dto, errors
@@ -717,9 +719,13 @@ class KubernetesClusterValidationMixin:
     def validate_template(self, value):
         capi_session = self.context["capi_session"]
         try:
-            return capi_session.find_cluster_template(value)
+            template = capi_session.find_cluster_template(value)
         except errors.ObjectNotFoundError as exc:
             raise serializers.ValidationError(str(exc))
+        # When picking a new template, it must not be deprecated
+        if template.deprecated:
+            raise serializers.ValidationError("Selected template is deprecated.")
+        return template
 
     def validate_control_plane_size(self, value):
         session = self.context["session"]
@@ -809,6 +815,40 @@ class UpdateKubernetesClusterSerializer(
         if "template" in data and len(data) > 1:
             raise serializers.ValidationError("If template is given, no other fields are permitted.")
         return super().validate(data)
+
+    def validate_template(self, value):
+        capi_session = self.context["capi_session"]
+        current_template = capi_session.find_cluster_template(self.instance.template_id)
+        current_version = easysemver.Version(current_template.kubernetes_version)
+        next_template = super().validate_template(value)
+        next_version = easysemver.Version(next_template.kubernetes_version)
+        # The template is not permitted to be a downgrade
+        if next_version < current_version:
+            raise serializers.ValidationError("Downgrading is not supported.")
+        # Prevent the major version from changing
+        # TODO(mkjpryor) change this if Kubernetes 2.x is ever released and upgrade is allowed
+        if next_version.major != current_version.major:
+            raise serializers.ValidationError("Upgrading to a new major version is not supported.")
+        # The template can only be bumped by one minor version
+        if next_version.minor > current_version.minor.increment():
+            raise serializers.ValidationError("Upgrading by more than one minor version is not supported.")
+        # Make sure that the new template is within one minor version of the oldest node
+        # NOTE(mkjpryor) this is stricter than the official Kubernetes skew policy, which
+        #                allows kubelet to be up to three minor versions old, but enforcing
+        #                the stricter constraint here reduces the risk of races in the
+        #                control plane when multiple upgrades are applied without waiting
+        #                for the previous one to finish
+        oldest_kubelet_version = min(
+            easysemver.Version(node.kubelet_version)
+            for node in self.instance.nodes
+            if node.kubelet_version
+        )
+        if next_version.minor > oldest_kubelet_version.minor.increment():
+            raise serializers.ValidationError(
+                "Upgrading to more than one minor version newer than "
+                "the oldest node is not supported."
+            )
+        return next_template
 
 
 class KubernetesAppTemplateRefSerializer(RefSerializer):
