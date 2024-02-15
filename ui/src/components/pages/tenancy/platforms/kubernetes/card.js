@@ -609,7 +609,7 @@ const KubernetesClusterDetailsButton = ({
                                             kubernetesClusterActions={kubernetesClusterActions}
                                             kubernetesClusterTemplates={kubernetesClusterTemplates}
                                             kubernetesClusterTemplateActions={kubernetesClusterTemplateActions}
-                                            disabled={inFlight || kubernetesCluster.status.endsWith("ing")}
+                                            disabled={inFlight || kubernetesCluster.status === "Deleting"}
                                             className="me-2"
                                         />
                                         <PlatformDeleteButton

@@ -75,6 +75,7 @@ export const UpgradeKubernetesClusterButton = ({
                             helpText="The template determines the Kubernetes version for the cluster."
                         >
                             <KubernetesClusterTemplateSelectControl
+                                kubernetesCluster={kubernetesCluster}
                                 resource={kubernetesClusterTemplates}
                                 resourceActions={kubernetesClusterTemplateActions}
                                 required
