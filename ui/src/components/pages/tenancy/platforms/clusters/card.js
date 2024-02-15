@@ -408,10 +408,10 @@ const statusBadgeBg = {
 const clusterTypePlaceholder = {
     logo: azimuthLogo, 
     label: "Cluster type unavailable",
-    description: "This cluster type is no longer available.",
+    description: "",
     usage_template: "This cluster type is no longer available in this tenancy.",
     version: null,
-    parameters: [{name: "not-used"}],
+    parameters: [],
 }
 
 export const ClusterCard = ({
@@ -422,7 +422,9 @@ export const ClusterCard = ({
     tenancyActions,
     notificationActions
 }) => {
-    const clusterType = clusterTypes.data[cluster.cluster_type] || clusterTypePlaceholder;
+    // If cluster type is no longer available from the API (e.g. due to ACL changes in the tenancy) then use a placeholder.
+    // NOTE(sd109) We set the placeholder's version to match the current cluster version so that users do not get prompted to patch their cluster.
+    const clusterType = clusterTypes.data[cluster.cluster_type] || {...clusterTypePlaceholder, version: cluster.cluster_type_version};
     if (!clusterType.version) {
         notificationActions.error({
                 title: 'Cluster type not found',
