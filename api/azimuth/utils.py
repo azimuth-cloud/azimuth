@@ -33,12 +33,8 @@ def allowed_by_acls(raw, tenancy):
         denied_tenancies = annotations[ACL_DENY_IDS_KEY]
         return not tenancy.id in denied_tenancies
     elif ACL_ALLOW_IDS_KEY in annotation_keys:
-        # As soon as allow list is present, switch to deny by default
-        is_allowed = False
         allowed_tenancies = annotations[ACL_ALLOW_IDS_KEY]
-        if tenancy.id in allowed_tenancies:
-            is_allowed = True
-        return is_allowed
+        return tenancy.id in allowed_tenancies
     # Deny regex takes priority over allow regex
     elif ACL_DENY_PATTERN_KEY in annotation_keys:
         pattern = annotations[ACL_DENY_PATTERN_KEY]
