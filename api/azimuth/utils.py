@@ -38,7 +38,7 @@ def allowed_by_acls(raw, tenancy):
     if ACL_ALLOW_IDS_KEY in annotation_keys:
         allowed_tenancies = annotations[ACL_ALLOW_IDS_KEY]
         is_allowed = (tenancy.id in allowed_tenancies)
-    # Deny regex takes priority for allow regex
+    # Deny regex takes priority over allow regex
     if ACL_DENY_PATTERN_KEY in annotation_keys:
         pattern = annotations[ACL_DENY_PATTERN_KEY]
         is_match = (re.match(pattern, tenancy.name) is not None)
