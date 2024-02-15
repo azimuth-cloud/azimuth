@@ -22,11 +22,8 @@ def allowed_by_acls(raw, tenancy):
     and 'tenancy-test-2' tenancies the regex pattern should be '.*-test-'.
     """
     
-    is_allowed = True    
     annotations = raw.get("metadata").get("annotations")
     annotation_keys = annotations.keys()
-
-    # NOTE(sd109) Use if instead of elif so that acls are additive
 
     # If no ACL annotations are found then access is granted
     if not any(k in annotation_keys for k in ACL_KEYS):
@@ -34,18 +31,20 @@ def allowed_by_acls(raw, tenancy):
     # Deny IDs list takes priority over allow IDs list and any regex patterns
     if ACL_DENY_IDS_KEY in annotation_keys:
         denied_tenancies = annotations[ACL_DENY_IDS_KEY]
-        is_allowed = (not tenancy.id in denied_tenancies)
-    if ACL_ALLOW_IDS_KEY in annotation_keys:
+        return not tenancy.id in denied_tenancies
+    elif ACL_ALLOW_IDS_KEY in annotation_keys:
+        # As soon as allow list is present, switch to deny by default
+        is_allowed = False
         allowed_tenancies = annotations[ACL_ALLOW_IDS_KEY]
-        is_allowed = (tenancy.id in allowed_tenancies)
+        if tenancy.id in allowed_tenancies:
+            is_allowed = True
+        return is_allowed
     # Deny regex takes priority over allow regex
-    if ACL_DENY_PATTERN_KEY in annotation_keys:
+    elif ACL_DENY_PATTERN_KEY in annotation_keys:
         pattern = annotations[ACL_DENY_PATTERN_KEY]
-        is_match = (re.match(pattern, tenancy.name) is not None)
-        is_allowed = not is_match
-    if ACL_ALLOW_PATTERN_KEY in annotation_keys:
+        return re.match(pattern, tenancy.name) is None
+    elif ACL_ALLOW_PATTERN_KEY in annotation_keys:
         pattern = annotations[ACL_ALLOW_PATTERN_KEY]
-        is_match = (re.match(pattern, tenancy.name) is not None)
-        is_allowed = is_match
-        
-    return is_allowed
+        return re.match(pattern, tenancy.name) is not None
+    
+    return True
