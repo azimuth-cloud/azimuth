@@ -317,7 +317,7 @@ const ClusterDetailsButton = ({
     const open = () => setVisible(true);
     const close = () => setVisible(false);
 
-    const missingClusterType = clusterType.version === null;
+    const missingClusterType = clusterType.placeholder;
     const inFlight = !!cluster.updating || !!cluster.patching || !!cluster.deleting;
     const working = ['CONFIGURING', 'DELETING'].includes(cluster.status);
 
@@ -413,6 +413,8 @@ const clusterTypePlaceholder = {
     usage_template: "This cluster type is no longer available in this tenancy.",
     version: null,
     parameters: [],
+    // Used to conditionally render UI components when placeholder is in use
+    placeholder: true,
 }
 
 export const ClusterCard = ({
