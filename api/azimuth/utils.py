@@ -30,7 +30,7 @@ def allowed_by_acls(raw, tenancy):
 
     # If no ACL annotations are found then access is granted
     if not any(k in annotation_keys for k in ACL_KEYS):
-        pass
+        return True
     # Deny IDs list takes priority over allow IDs list and any regex patterns
     if ACL_DENY_IDS_KEY in annotation_keys:
         denied_tenancies = annotations[ACL_DENY_IDS_KEY]
