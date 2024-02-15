@@ -195,12 +195,18 @@ class Session:
         Finds a cluster template by id.
         """
         self._log("Fetching cluster template with id '%s'", id)
-        return self._from_api_cluster_template(
+        template = (
             self._client
                 .api(AZIMUTH_API_VERSION)
                 .resource("clustertemplates")
                 .fetch(id)
         )
+        
+        if not allowed_by_acls(template, self._cloud_session.tenancy()):
+            raise errors.InvalidOperationError(f"Cannot fetch cluster template {id} - template blocked by tenancy ACLs")
+        
+        return self._from_api_cluster_template(template)
+            
 
     def _from_api_cluster(self, cluster, sizes):
         """
@@ -644,6 +650,10 @@ class Session:
                 .resource("apptemplates")
                 .fetch(id)
         )
+        
+        if not allowed_by_acls(template, self._cloud_session.tenancy()):
+            raise errors.InvalidOperationError(f"Cannot fetch app template {id} - template blocked by tenancy ACLs")
+        
         # Don't return app templates with no versions
         if template.get("status", {}).get("versions"):
             return self._from_api_app_template(template)
