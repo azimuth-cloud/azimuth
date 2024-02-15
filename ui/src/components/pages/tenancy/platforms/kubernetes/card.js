@@ -543,6 +543,8 @@ const KubernetesClusterDetailsButton = ({
 
     const inFlight = !!kubernetesCluster.updating || !!kubernetesCluster.deleting;
     const working = kubernetesCluster.status.endsWith("ing");
+    const kubernetesTemplatesAvailable = (kubernetesClusterTemplates.initialised && Object.getOwnPropertyNames(kubernetesClusterTemplates.data).length > 0)
+    console.log(kubernetesClusterTemplates, kubernetesTemplatesAvailable);
 
     return (
         <>
@@ -552,6 +554,11 @@ const KubernetesClusterDetailsButton = ({
                     <Modal.Title>Cluster details for {kubernetesCluster.name}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
+                    { kubernetesTemplatesAvailable || 
+                        <Row className="m-4" style={{color: "red"}}>
+                            <h5 className="text-center">WARNING: Kubernetes functionality is no longer available in this tenancy.</h5>
+                        </Row> 
+                    }
                     <Tab.Container defaultActiveKey="overview">
                         <Row className="mb-4">
                             <Col>
@@ -602,7 +609,7 @@ const KubernetesClusterDetailsButton = ({
                                             sizeActions={sizeActions}
                                             externalIps={externalIps}
                                             externalIpActions={externalIpActions}
-                                            disabled={inFlight || working}
+                                            disabled={inFlight || working || !kubernetesTemplatesAvailable}
                                             className="me-2"
                                         />
                                         <UpgradeKubernetesClusterButton
@@ -610,7 +617,7 @@ const KubernetesClusterDetailsButton = ({
                                             kubernetesClusterActions={kubernetesClusterActions}
                                             kubernetesClusterTemplates={kubernetesClusterTemplates}
                                             kubernetesClusterTemplateActions={kubernetesClusterTemplateActions}
-                                            disabled={inFlight || working}
+                                            disabled={inFlight || working || !kubernetesTemplatesAvailable}
                                             className="me-2"
                                         />
                                         <PlatformDeleteButton
