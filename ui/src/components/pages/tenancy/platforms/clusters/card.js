@@ -439,7 +439,6 @@ export const ClusterCard = ({
             <Card.Header>
                 <Badge bg={statusBadgeBg[cluster.status]}>{cluster.status}</Badge>
             </Card.Header>
-            {/* {clusterType.logo ? <Card.Img src={clusterType.logo} /> : <Placeholder />} */}
             <Card.Img src={clusterType.logo} />
             <Card.Body>
                 <Card.Title>{cluster.name}</Card.Title>
