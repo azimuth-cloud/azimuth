@@ -262,12 +262,10 @@ class Session:
             cluster.spec["autohealing"],
             cluster_addons.get("dashboard", False),
             cluster_addons.get("ingress", False),
-            (
-                cluster_addons.get("ingressControllerLoadBalancerIp", None)
-                if cluster_addons.get("ingress", False)
-                else None
-            ),
+            cluster_addons.get("ingressControllerLoadBalancerIp"),
             cluster_addons.get("monitoring", False),
+            cluster_addons.get("monitoringPrometheusVolumeSize", 10),
+            cluster_addons.get("monitoringLokiVolumeSize", 10),
             cluster_status.get("kubernetesVersion"),
             cluster_state,
             cluster_status.get("controlPlanePhase", "Unknown"),
@@ -361,6 +359,9 @@ class Session:
         """
 
     def _build_cluster_spec(self, **options):
+        """
+        Translates API options into a CRD spec.
+        """
         spec = {}
         if "control_plane_size" in options:
             spec["controlPlaneMachineSize"] = options["control_plane_size"].name
@@ -383,18 +384,14 @@ class Session:
             addons["dashboard"] = options["dashboard_enabled"]
         if "ingress_enabled" in options:
             addons["ingress"] = options["ingress_enabled"]
-            if options["ingress_enabled"]:
-                ip = options.get("ingress_controller_load_balancer_ip")
-                if not ip:
-                    raise errors.BadInputError(
-                        "ingress_controller_load_balancer_ip is required when "
-                        "ingress is enabled."
-                    )
-                addons["ingressControllerLoadBalancerIp"] = ip
-            else:
-                addons["ingressControllerLoadBalancerIp"] = None
+        if "ingress_controller_load_balancer_ip" in options:
+            addons["ingressControllerLoadBalancerIp"] = options["ingress_controller_load_balancer_ip"]
         if "monitoring_enabled" in options:
             addons["monitoring"] = options["monitoring_enabled"]
+        if "monitoring_metrics_volume_size" in options:
+            addons["monitoringPrometheusVolumeSize"] = options["monitoring_metrics_volume_size"]
+        if "monitoring_logs_volume_size" in options:
+            addons["monitoringLokiVolumeSize"] = options["monitoring_logs_volume_size"]
         return spec
 
     @convert_exceptions
@@ -409,6 +406,8 @@ class Session:
         ingress_enabled: bool = False,
         ingress_controller_load_balancer_ip: t.Optional[str] = None,
         monitoring_enabled: bool = False,
+        monitoring_metrics_volume_size: t.Optional[int] = None,
+        monitoring_logs_volume_size: t.Optional[int] = None,
         zenith_identity_realm_name: t.Optional[str] = None
     ) -> dto.Cluster:
         """
@@ -440,7 +439,7 @@ class Session:
             }
         )
         # Build the cluster spec
-        cluster_spec = self._build_cluster_spec(
+        options = dict(
             control_plane_size = control_plane_size,
             node_groups = node_groups,
             autohealing_enabled = autohealing_enabled,
@@ -449,6 +448,11 @@ class Session:
             ingress_controller_load_balancer_ip = ingress_controller_load_balancer_ip,
             monitoring_enabled = monitoring_enabled
         )
+        if monitoring_metrics_volume_size is not None:
+            options.update(monitoring_metrics_volume_size = monitoring_metrics_volume_size)
+        if monitoring_logs_volume_size is not None:
+            options.update(monitoring_logs_volume_size = monitoring_logs_volume_size)
+        cluster_spec = self._build_cluster_spec(**options)
         # Add the create-only pieces
         cluster_spec.update({
             "label": name,
