@@ -1163,11 +1163,11 @@ def cluster_details(request, tenant, cluster):
             if request.method == "PATCH":
                 cluster_type = cluster_manager.find_cluster_type(cluster.cluster_type)
                 input_serializer = serializers.UpdateClusterSerializer(
+                    instance = cluster,
                     data = request.data,
                     context = dict(
                         session = session,
                         cluster_manager = cluster_manager,
-                        cluster = cluster,
                         cluster_type = cluster_type
                     )
                 )
