@@ -22,7 +22,7 @@ from easykube import (
 from ..provider import base as cloud_base, dto as cloud_dto, errors as cloud_errors
 
 from . import dto, errors
-from ..utils import allowed_by_acls
+from ..acls.acls import allowed_by_acls
 
 
 logger = logging.getLogger(__name__)
@@ -184,7 +184,7 @@ class Session:
 
         # Filter cluster templates based on ACL annotations
         tenancy = self._cloud_session.tenancy()
-        templates = list(filter(lambda t: allowed_by_acls(t, tenancy), templates))
+        templates = [t for t in templates if allowed_by_acls(t, tenancy)]
 
         self._log("Found %s cluster templates", len(templates))
         return tuple(self._from_api_cluster_template(ct) for ct in templates)
@@ -203,7 +203,7 @@ class Session:
         )
         
         if not allowed_by_acls(template, self._cloud_session.tenancy()):
-            raise errors.InvalidOperationError(f"Cannot fetch cluster template {id} - template blocked by tenancy ACLs")
+            raise errors.ObjectNotFoundError(f"Cannot find cluster template {id} in tenancy.")
         
         return self._from_api_cluster_template(template)
             
@@ -629,7 +629,7 @@ class Session:
 
         # Filter templates based on ACL annotations
         tenancy = self._cloud_session.tenancy()
-        templates = list(filter(lambda t: allowed_by_acls(t, tenancy), templates))
+        templates = [t for t in templates if allowed_by_acls(t, tenancy)]
 
         # Don't return app templates with no versions
         return tuple(
@@ -651,8 +651,9 @@ class Session:
                 .fetch(id)
         )
         
-        if not allowed_by_acls(template, self._cloud_session.tenancy()):
-            raise errors.InvalidOperationError(f"Cannot fetch app template {id} - template blocked by tenancy ACLs")
+        tenancy =  self._cloud_session.tenancy()
+        if not allowed_by_acls(template, tenancy):
+            raise errors.ObjectNotFoundError(f"Cannot find app template {id} in tenancy {tenancy.id}")
         
         # Don't return app templates with no versions
         if template.get("status", {}).get("versions"):
