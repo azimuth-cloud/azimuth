@@ -5,6 +5,7 @@ import ButtonGroup from 'react-bootstrap/ButtonGroup';
 import Card from 'react-bootstrap/Card';
 import Col from 'react-bootstrap/Col';
 import Collapse from 'react-bootstrap/Collapse';
+import InputGroup from 'react-bootstrap/InputGroup';
 import BSForm from 'react-bootstrap/Form';
 import Modal from 'react-bootstrap/Modal';
 import Row from 'react-bootstrap/Row';
@@ -14,6 +15,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faBan,
     faEdit,
+    faExclamationTriangle,
     faPlus,
     faSave
 } from '@fortawesome/free-solid-svg-icons';
@@ -235,7 +237,9 @@ const initialState = kubernetesCluster => {
             dashboard_enabled: kubernetesCluster.dashboard_enabled,
             ingress_enabled: kubernetesCluster.ingress_enabled,
             ingress_controller_load_balancer_ip: kubernetesCluster.ingress_controller_load_balancer_ip,
-            monitoring_enabled: kubernetesCluster.monitoring_enabled
+            monitoring_enabled: kubernetesCluster.monitoring_enabled,
+            monitoring_metrics_volume_size: kubernetesCluster.monitoring_metrics_volume_size,
+            monitoring_logs_volume_size: kubernetesCluster.monitoring_logs_volume_size
         };
     }
     else {
@@ -249,7 +253,9 @@ const initialState = kubernetesCluster => {
             dashboard_enabled: true,
             ingress_enabled: false,
             ingress_controller_load_balancer_ip: null,
-            monitoring_enabled: true
+            monitoring_enabled: true,
+            monitoring_metrics_volume_size: 10,
+            monitoring_logs_volume_size: 10
         };
     }
 };
@@ -296,6 +302,20 @@ export const useKubernetesClusterFormState = kubernetesCluster => {
 };
 
 
+const VolumeSizeControl = ({ isInvalid, ...props }) => (
+    <InputGroup className={isInvalid ? "is-invalid" : undefined}>
+        <BSForm.Control
+            isInvalid={isInvalid}
+            type="number"
+            min="1"
+            step="1"
+            {...props}
+        />
+        <InputGroup.Text>GB</InputGroup.Text>
+    </InputGroup>
+);
+
+
 export const KubernetesClusterForm = ({
     formState,
     onSubmit,
@@ -318,8 +338,7 @@ export const KubernetesClusterForm = ({
                 ingress_enabled: true,
                 // When ingress moves to enabled, restore the previous IP if there is one
                 ingress_controller_load_balancer_ip: (
-                    formState.kubernetesCluster &&
-                    formState.kubernetesCluster.ingress_controller_load_balancer_ip ||
+                    formState.kubernetesCluster?.ingress_controller_load_balancer_ip ||
                     null
                 )
             };
@@ -396,6 +415,7 @@ export const KubernetesClusterForm = ({
                     helpText="The template determines the Kubernetes version for the cluster."
                 >
                     <KubernetesClusterTemplateSelectControl
+                        kubernetesCluster={formState.kubernetesCluster}
                         resource={kubernetesClusterTemplates}
                         resourceActions={kubernetesClusterTemplateActions}
                         required
@@ -590,15 +610,68 @@ export const KubernetesClusterForm = ({
                                 required={getStateKey('ingress_enabled')}
                                 disabled={
                                     !getStateKey('ingress_enabled') ||
-                                    (
-                                        formState.kubernetesCluster &&
-                                        formState.kubernetesCluster.ingress_enabled
-                                    )
+                                    formState.kubernetesCluster?.ingress_enabled
                                 }
                                 value={getStateKey('ingress_controller_load_balancer_ip')}
                                 onChange={setStateKey('ingress_controller_load_balancer_ip')}
                                 // Use the IP address itself as the value
                                 getOptionValue={ip => ip.external_ip}
+                            />
+                        </Field>
+                        <Field
+                            name="monitoring_metrics_volume_size"
+                            label="Metrics volume size"
+                            helpText={
+                                <>
+                                    Metrics will be retained for 90 days or until this volume is full,
+                                    whichever occurs first.
+                                    <br />
+                                    The rate at which metrics are produced depends on the cluster usage.
+                                </>
+                            }
+                        >
+                            <VolumeSizeControl
+                                placeholder="Metrics volume size"
+                                required={getStateKey('monitoring_enabled')}
+                                disabled={!getStateKey('monitoring_enabled')}
+                                // The volume cannot be smaller than the previous size
+                                min={
+                                    formState.kubernetesCluster?.monitoring_enabled &&
+                                    formState.kubernetesCluster.monitoring_metrics_volume_size ||
+                                    1
+                                }
+                                value={getStateKey('monitoring_metrics_volume_size')}
+                                onChange={setStateKeyFromInputEvent('monitoring_metrics_volume_size')}
+                            />
+                        </Field>
+                        <Field
+                            name="monitoring_logs_volume_size"
+                            label="Logs volume size"
+                            helpText={
+                                <>
+                                    Logs are retained for 72 hours. The rate at which logs are produced
+                                    depends on the cluster usage.
+                                    <br />
+                                    <strong className="text-warning">
+                                        <FontAwesomeIcon icon={faExclamationTriangle} className="me-2" />
+                                        If this volume becomes full, no new logs will be recorded and
+                                        existing logs may be corrupted.
+                                    </strong>
+                                </>
+                            }
+                        >
+                            <VolumeSizeControl
+                                placeholder="Logs volume size"
+                                required={getStateKey('monitoring_enabled')}
+                                disabled={!getStateKey('monitoring_enabled')}
+                                // The volume cannot be smaller than the previous size
+                                min={
+                                    formState.kubernetesCluster?.monitoring_enabled &&
+                                    formState.kubernetesCluster.monitoring_logs_volume_size ||
+                                    1
+                                }
+                                value={getStateKey('monitoring_logs_volume_size')}
+                                onChange={setStateKeyFromInputEvent('monitoring_logs_volume_size')}
                             />
                         </Field>
                     </Card.Body>

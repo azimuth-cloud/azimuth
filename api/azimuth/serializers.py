@@ -15,6 +15,8 @@ from rest_framework import serializers
 
 import jsonschema
 
+import easysemver
+
 from .cluster_api import dto as capi_dto
 from .cluster_engine import dto as clusters_dto, errors as clusters_errors
 from .provider import dto, errors
@@ -548,13 +550,12 @@ class UpdateClusterSerializer(serializers.Serializer):
         # type for the cluster
         # Convert the provider error into a DRF ValidationError
         cluster_manager = self.context["cluster_manager"]
-        cluster = self.context["cluster"]
-        cluster_type = self.context.get("cluster_type", cluster.cluster_type)
+        cluster_type = self.context.get("cluster_type", self.instance.cluster_type)
         try:
             data["parameter_values"] = cluster_manager.validate_cluster_params(
                 cluster_type,
                 data["parameter_values"],
-                cluster.parameter_values
+                self.instance.parameter_values
             )
         except clusters_errors.ValidationError as exc:
             raise serializers.ValidationError({ "parameter_values": exc.errors })
@@ -701,25 +702,95 @@ class NodeGroupSpecSerializer(serializers.Serializer):
 
 class KubernetesClusterValidationMixin:
     def validate(self, data):
+        # If ingress is being enabled, an IP must be specified and that IP must be free
         if (
-            "ingress_enabled" in data and
-            data["ingress_enabled"] and
-            (
-                "ingress_controller_load_balancer_ip" not in data or
-                not data["ingress_controller_load_balancer_ip"]
-            )
+            # Ingress is being enabled by the change
+            data.get("ingress_enabled", False) and
+            # Ingress is not currently enabled
+            not getattr(self.instance, "ingress_enabled", False)
         ):
-            raise serializers.ValidationError(
-                "ingress_controller_load_balancer_ip is required when ingress is enabled."
-            )
+            ip_address = data.get("ingress_controller_load_balancer_ip")
+            # No ingress controller IP is given
+            if not ip_address:
+                raise serializers.ValidationError({
+                    "ingress_controller_load_balancer_ip": "Required when ingress is enabled.",
+                })
+            # The given IP is not free
+            session = self.context["session"]
+            try:
+                ip = session.find_external_ip_by_ip_address(ip_address)
+            except errors.ObjectNotFoundError as exc:
+                raise serializers.ValidationError({
+                    "ingress_controller_load_balancer_ip": str(exc),
+                })
+            else:
+                if ip.machine_id:
+                    raise serializers.ValidationError({
+                        "ingress_controller_load_balancer_ip": (
+                            f"{ip_address} is already associated with "
+                            "another platform or machine."
+                        )
+                    })
+
+        # OCCM does not respect changes to the ingress loadbalancer IP, so disallow it
+        if(
+            # Ingress is currently enabled
+            getattr(self.instance, "ingress_enabled", False) and
+            # Ingress will still be enabled after the changes
+            data.get("ingress_enabled", True) and
+            # The ingress IP is being changed
+            "ingress_controller_load_balancer_ip" in data and
+            data["ingress_controller_load_balancer_ip"] != self.instance.ingress_controller_load_balancer_ip
+        ):
+            raise serializers.ValidationError({
+                "ingress_controller_load_balancer_ip": (
+                    "Changing the IP address of the load balancer is not supported."
+                ),
+            })
+
+        # The size of the metrics volume is not permitted to decrease
+        if (
+            # The metrics volume size is present and needs validating
+            data.get("monitoring_metrics_volume_size") and
+            # The monitoring is currently enabled
+            getattr(self.instance, "monitoring_enabled", False) and
+            # The monitoring will still be enabled after the changes are applied
+            data.get("monitoring_enabled", True) and
+            # The new volume size is less than the previous volume size
+            data["monitoring_metrics_volume_size"] < self.instance.monitoring_metrics_volume_size
+        ):
+            raise serializers.ValidationError({
+                "monitoring_metrics_volume_size": (
+                    "Decreasing the size of the metrics volume is not permitted."
+                ),
+            })
+
+        # Similar for the logs volume
+        if (
+            data.get("monitoring_logs_volume_size") and
+            getattr(self.instance, "monitoring_enabled", False) and
+            data.get("monitoring_enabled", True) and
+            data["monitoring_logs_volume_size"] < self.instance.monitoring_logs_volume_size
+        ):
+            raise serializers.ValidationError({
+                "monitoring_logs_volume_size": (
+                    "Decreasing the size of the logs volume is not permitted."
+                ),
+            })
+
+        # The data is good
         return data
 
     def validate_template(self, value):
         capi_session = self.context["capi_session"]
         try:
-            return capi_session.find_cluster_template(value)
+            template = capi_session.find_cluster_template(value)
         except errors.ObjectNotFoundError as exc:
             raise serializers.ValidationError(str(exc))
+        # When picking a new template, it must not be deprecated
+        if template.deprecated:
+            raise serializers.ValidationError("Selected template is deprecated.")
+        return template
 
     def validate_control_plane_size(self, value):
         session = self.context["session"]
@@ -736,37 +807,6 @@ class KubernetesClusterValidationMixin:
         if min_worker_count < 1:
             raise serializers.ValidationError("There must be at least one worker node.")
         return value
-
-    def validate_ingress_controller_load_balancer_ip(self, value):
-        if value:
-            # If the value is the same as the previous value, we are done
-            if (
-                self.instance and
-                self.instance.ingress_controller_load_balancer_ip and
-                value == self.instance.ingress_controller_load_balancer_ip
-            ):
-                return value
-            # OCCM does not respect changes to the IP, so disallow it
-            if (
-                self.instance and
-                self.instance.ingress_enabled and
-                value != self.instance.ingress_controller_load_balancer_ip
-            ):
-                raise serializers.ValidationError(
-                    "Changing the IP address of the load balancer is not supported."
-                )
-            # If setting a new IP for a new installation of the ingress controller,
-            # check that the floating IP is not associated with a machine
-            session = self.context["session"]
-            try:
-                ip = session.find_external_ip_by_ip_address(value)
-            except errors.ObjectNotFoundError as exc:
-                raise serializers.ValidationError(str(exc))
-            if ip.machine_id:
-                raise serializers.ValidationError(
-                    f"{value} is already associated with another platform or machine."
-                )
-            return ip.external_ip
 
 
 class CreateKubernetesClusterSerializer(
@@ -786,6 +826,14 @@ class CreateKubernetesClusterSerializer(
         required = False
     )
     monitoring_enabled = serializers.BooleanField(default = False)
+    monitoring_metrics_volume_size = serializers.IntegerField(
+        required = False,
+        min_value = 1
+    )
+    monitoring_logs_volume_size = serializers.IntegerField(
+        required = False,
+        min_value = 1
+    )
 
 
 class UpdateKubernetesClusterSerializer(
@@ -804,11 +852,53 @@ class UpdateKubernetesClusterSerializer(
         required = False
     )
     monitoring_enabled = serializers.BooleanField(required = False)
+    monitoring_metrics_volume_size = serializers.IntegerField(
+        required = False,
+        min_value = 1
+    )
+    monitoring_logs_volume_size = serializers.IntegerField(
+        required = False,
+        min_value = 1
+    )
 
     def validate(self, data):
         if "template" in data and len(data) > 1:
             raise serializers.ValidationError("If template is given, no other fields are permitted.")
         return super().validate(data)
+
+    def validate_template(self, value):
+        capi_session = self.context["capi_session"]
+        current_template = capi_session.find_cluster_template(self.instance.template_id)
+        current_version = easysemver.Version(current_template.kubernetes_version)
+        next_template = super().validate_template(value)
+        next_version = easysemver.Version(next_template.kubernetes_version)
+        # The template is not permitted to be a downgrade
+        if next_version < current_version:
+            raise serializers.ValidationError("Downgrading is not supported.")
+        # Prevent the major version from changing
+        # TODO(mkjpryor) change this if Kubernetes 2.x is ever released and upgrade is allowed
+        if next_version.major != current_version.major:
+            raise serializers.ValidationError("Upgrading to a new major version is not supported.")
+        # The template can only be bumped by one minor version
+        if next_version.minor > current_version.minor.increment():
+            raise serializers.ValidationError("Upgrading by more than one minor version is not supported.")
+        # Make sure that the new template is within one minor version of the oldest node
+        # NOTE(mkjpryor) this is stricter than the official Kubernetes skew policy, which
+        #                allows kubelet to be up to three minor versions old, but enforcing
+        #                the stricter constraint here reduces the risk of races in the
+        #                control plane when multiple upgrades are applied without waiting
+        #                for the previous one to finish
+        oldest_kubelet_version = min(
+            easysemver.Version(node.kubelet_version)
+            for node in self.instance.nodes
+            if node.kubelet_version
+        )
+        if next_version.minor > oldest_kubelet_version.minor.increment():
+            raise serializers.ValidationError(
+                "Upgrading to more than one minor version newer than "
+                "the oldest node is not supported."
+            )
+        return next_template
 
 
 class KubernetesAppTemplateRefSerializer(RefSerializer):

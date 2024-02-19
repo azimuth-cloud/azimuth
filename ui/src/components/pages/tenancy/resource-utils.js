@@ -317,11 +317,22 @@ export const MachineSelectControl = (props) => (
 const splitSemVerVersion = (version) => version.split(".").map(p => parseInt(p));
 
 
-export const KubernetesClusterTemplateSelectControl = ({ resource, value, ...props }) => {
+export const KubernetesClusterTemplateSelectControl = ({
+    kubernetesCluster,
+    resource,
+    value,
+    ...props
+}) => {
     // Get the Kubernetes version of the initial value
     const [initialValue, _] = useState(value);
-    const initialTemplate = (resource.data || {})[initialValue];
-    const initialKubernetesVersion = (initialTemplate || {}).kubernetes_version;
+    const initialKubernetesVersion = resource.data?.[initialValue]?.kubernetes_version;
+    const minNodeVersion = (
+        (kubernetesCluster?.nodes || [])
+            .filter(n => !!n.kubelet_version)
+            .map(n => splitSemVerVersion(n.kubelet_version))
+            .sort(compareElementwise)
+            .find(_ => true)
+    );
     return (
         <ResourceSelectControl
             resourceName="Kubernetes cluster template"
@@ -334,12 +345,20 @@ export const KubernetesClusterTemplateSelectControl = ({ resource, value, ...pro
                 t => [t.kubernetes_version],
                 true
             )}
-            // Disable templates whose Kubernetes version is less than the initial value
             isOptionDisabled={(opt) => {
                 if( initialKubernetesVersion ) {
                     const initialParts = splitSemVerVersion(initialKubernetesVersion);
                     const optionParts = splitSemVerVersion(opt.kubernetes_version);
-                    return compareElementwise(optionParts, initialParts) < 0;
+                    // Disable templates whose Kubernetes version is less than the initial value
+                    if( compareElementwise(optionParts, initialParts) < 0 ) return true;
+                    // Disable templates whose major version is different from the initial value
+                    if( optionParts[0] !== initialParts[0] ) return true;
+                    // Disable templates whose minor version is more than one greater than the initial
+                    if( optionParts[1] > initialParts[1] + 1 ) return true;
+                    // Disable templates that cause more than one minor version drift from the oldest node
+                    if( minNodeVersion && optionParts[1] > minNodeVersion[1] + 1 ) return true;
+                    // The template is permitted
+                    return false;
                 }
                 else {
                     // If there is no initial version, all options are available

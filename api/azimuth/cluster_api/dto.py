@@ -119,6 +119,10 @@ class Cluster:
     ingress_controller_load_balancer_ip: t.Optional[str]
     #: Indicates if monitoring is enabled
     monitoring_enabled: bool
+    #: The size of the volume to use for metrics data
+    monitoring_metrics_volume_size: int
+    #: The size of the volume to use for logging data
+    monitoring_logs_volume_size: int
     #: The Kubernetes version of the cluster
     kubernetes_version: t.Optional[str]
     #: The overall status of the cluster
