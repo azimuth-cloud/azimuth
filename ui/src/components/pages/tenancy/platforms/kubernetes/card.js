@@ -554,7 +554,11 @@ const KubernetesClusterDetailsButton = ({
                 </Modal.Header>
                 <Modal.Body>
                     { kubernetesTemplatesAvailable ||
-                        <Error className="text-center" message={"WARNING: Kubernetes functionality is no longer available in this tenancy."} />
+                        <Row className="justify-content-center">
+                            <Col xs="auto">
+                                <Error className="text-center" message={"WARNING: Kubernetes functionality is no longer available in this tenancy."} />
+                            </Col>
+                        </Row>
                     }
                     <Tab.Container defaultActiveKey="overview">
                         <Row className="mb-4">
