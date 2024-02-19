@@ -146,7 +146,7 @@ def _get_cluster_type(client, cluster_type_name: str, tenancy):
     clustertypes_resource = client.api(CAAS_API_VERSION).resource("clustertypes")
     raw = clustertypes_resource.fetch(cluster_type_name)
     if not allowed_by_acls(raw, tenancy):
-        raise errors.ObjectNotFoundError(f"Cannot find cluster type {cluster_type_name} in tenancy {tenancy.id}")
+        raise errors.ObjectNotFoundError(f"Cannot find cluster type {cluster_type_name}")
     cluster_type = _get_cluster_type_dto(raw)
     if cluster_type:
         return cluster_type
@@ -259,7 +259,7 @@ def update_cluster(client, name: str, params: t.Mapping[str, t.Any],
     time.sleep(0.1)
     raw_cluster = cluster_resource.fetch(safe_name)
     if not allowed_by_acls(raw_cluster, ctx.tenancy):
-        raise errors.ObjectNotFoundError(f"Cannot update cluster {name} - cluster type not found in tenancy {ctx.tenancy.id}")
+        raise errors.ObjectNotFoundError(f"Cannot update cluster {name} - cluster type not found")
 
     return get_cluster_dto(raw_cluster, status_if_ready=dto.ClusterStatus.CONFIGURING)
 

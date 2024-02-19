@@ -203,7 +203,7 @@ class Session:
         )
         
         if not allowed_by_acls(template, self._cloud_session.tenancy()):
-            raise errors.ObjectNotFoundError(f"Cannot find cluster template {id} in tenancy.")
+            raise errors.ObjectNotFoundError(f"Cannot find cluster template {id}")
         
         return self._from_api_cluster_template(template)
             
@@ -653,7 +653,7 @@ class Session:
         
         tenancy =  self._cloud_session.tenancy()
         if not allowed_by_acls(template, tenancy):
-            raise errors.ObjectNotFoundError(f"Cannot find app template {id} in tenancy {tenancy.id}")
+            raise errors.ObjectNotFoundError(f"Cannot find app template {id}")
         
         # Don't return app templates with no versions
         if template.get("status", {}).get("versions"):
