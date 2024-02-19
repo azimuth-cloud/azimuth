@@ -18,38 +18,41 @@ ACL_KEYS = [
 def allowed_by_acls(raw, tenancy):
     """
     Returns true if the application template is permitted in the given tenancy.
-    The regex pattern matching starts at the beginning of the string (i.e uses
-    re.match rather than re.search), therefore to match e.g. both 'tenancy-test-1'
-    and 'tenancy-test-2' tenancies the regex pattern should be '.*-test-'.
     """
-
-    annotations = raw.get("metadata").get("annotations")
-    annotation_keys = annotations.keys()
-    # Default to allow access unless any 'allow' type annotation are present since
-    # these annotations indicate an intention to deny access to non-matches.
-    is_allowed = not (
-        ACL_ALLOW_IDS_KEY in annotation_keys or ACL_ALLOW_PATTERN_KEY in annotation_keys
-    )
+    annotations = raw.get("metadata", {}).get("annotations", {})
 
     # If no ACL annotations are found then access is granted
-    if not any(k in annotation_keys for k in ACL_KEYS):
+    if not any(k in annotations for k in ACL_KEYS):
         return True
     # Deny IDs list takes priority over allow IDs list and any regex patterns
-    if ACL_DENY_IDS_KEY in annotation_keys:
-        denied_tenancies = annotations[ACL_DENY_IDS_KEY].split(",")
+    if ACL_DENY_IDS_KEY in annotations:
+        # Split into list and strip any whitespace between IDs
+        denied_tenancies = [t.strip() for t in annotations[ACL_DENY_IDS_KEY].split(",")]
         # Return immediately if access is denied
-        return not tenancy.id in denied_tenancies
-    if ACL_ALLOW_IDS_KEY in annotation_keys:
-        allowed_tenancies = annotations[ACL_ALLOW_IDS_KEY].split(",")
-        # Don't return immediately as we want to check allow regex pattern too
-        is_allowed = tenancy.id in allowed_tenancies
+        if tenancy.id in denied_tenancies:
+            return False
+    # Allow IDs list takes priority over any regex patterns
+    if ACL_ALLOW_IDS_KEY in annotations:
+        allowed_tenancies = [
+            t.strip() for t in annotations[ACL_ALLOW_IDS_KEY].split(",")
+        ]
+        # Return immediately if allowed since allow by
+        # IDs takes priority over deny by regex
+        if tenancy.id in allowed_tenancies:
+            return True
     # Deny regex takes priority over allow regex
-    if ACL_DENY_PATTERN_KEY in annotation_keys:
+    if ACL_DENY_PATTERN_KEY in annotations:
         pattern = annotations[ACL_DENY_PATTERN_KEY]
         # Return immediately if access is denied
-        return re.match(pattern, tenancy.name) is None
-    if ACL_ALLOW_PATTERN_KEY in annotation_keys:
+        if re.search(pattern, tenancy.name):
+            return False
+    if ACL_ALLOW_PATTERN_KEY in annotations:
         pattern = annotations[ACL_ALLOW_PATTERN_KEY]
-        is_allowed = re.match(pattern, tenancy.name) is not None
+        # Return immediately since we've already checked all deny
+        # annotations by this point so there won't be conflicts
+        if re.search(pattern, tenancy.name):
+            return True
 
-    return is_allowed
+    return not (
+        ACL_ALLOW_IDS_KEY in annotations or ACL_ALLOW_PATTERN_KEY in annotations
+    )
