@@ -10,7 +10,7 @@ import ProgressBar from 'react-bootstrap/ProgressBar';
 import Row from 'react-bootstrap/Row';
 import Table from 'react-bootstrap/Table';
 import Tooltip from 'react-bootstrap/Tooltip';
-import azimuthLogo from "../../../../../../assets/azimuth-logo-blue-text.png";
+import sadFace from "../../../../../../assets/face-frown-regular.svg";
 
 import get from 'lodash/get';
 import truncate from 'lodash/truncate';
@@ -32,6 +32,8 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 
 import { PlatformTypeCard, PlatformServicesListGroup, PlatformDeleteButton } from '../utils';
+import { Error } from '../../../../utils';
+
 
 import { ClusterModalForm } from './form';
 
@@ -331,6 +333,13 @@ const ClusterDetailsButton = ({
                     <Modal.Title>Platform details for {cluster.name}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
+                    { missingClusterType && 
+                        <Row className="justify-content-center">
+                            <Col xs="auto">
+                                <Error className="text-center" message={"WARNING: This cluster type is no longer available."} />
+                            </Col>
+                        </Row>
+                    }
                     <Row className="justify-content-end mb-2">
                         <Col xs="auto">
                             <Button
@@ -407,10 +416,10 @@ const statusBadgeBg = {
 
 // Placeholder object which holds the minimum set of fields required for a successful UI render
 const clusterTypePlaceholder = {
-    logo: azimuthLogo, 
+    logo: sadFace,
     label: "Cluster type unavailable",
     description: "",
-    usage_template: "This cluster type is no longer available in this tenancy.",
+    usage_template: "",
     version: null,
     parameters: [],
     // Used to conditionally render UI components when placeholder is in use
