@@ -22,7 +22,7 @@ from easykube import (
 from ..provider import base as cloud_base, dto as cloud_dto, errors as cloud_errors
 
 from . import dto, errors
-from ..acls.acls import allowed_by_acls
+from ..acls import allowed_by_acls
 
 
 logger = logging.getLogger(__name__)

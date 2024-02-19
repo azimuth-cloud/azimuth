@@ -14,7 +14,7 @@ import easykube
 from azimuth.cluster_engine.drivers import base
 from azimuth.cluster_engine import dto
 from azimuth.cluster_engine import errors
-from ....acls.acls import allowed_by_acls
+from ....acls import allowed_by_acls
 
 CAAS_API_VERSION = "caas.azimuth.stackhpc.com/v1alpha1"
 LOG = logging.getLogger(__name__)

@@ -1,10 +1,9 @@
 from unittest import TestCase
-from .acls import (
+from acls import (
     ACL_ALLOW_IDS_KEY,
     ACL_ALLOW_PATTERN_KEY,
     ACL_DENY_IDS_KEY,
     ACL_DENY_PATTERN_KEY,
-    ACL_KEYS,
     allowed_by_acls,
 )
 
