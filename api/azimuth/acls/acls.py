@@ -53,6 +53,7 @@ def allowed_by_acls(raw, tenancy):
         if re.search(pattern, tenancy.name):
             return True
 
-    return not (
-        ACL_ALLOW_IDS_KEY in annotations or ACL_ALLOW_PATTERN_KEY in annotations
+    return (
+        ACL_ALLOW_IDS_KEY not in annotations and
+        ACL_ALLOW_PATTERN_KEY not in annotations
     )
