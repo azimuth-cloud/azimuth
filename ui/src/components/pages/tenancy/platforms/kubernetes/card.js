@@ -26,7 +26,7 @@ import {
     faTimesCircle
 } from '@fortawesome/free-solid-svg-icons';
 
-import { sortBy } from '../../../../utils';
+import { sortBy, Error } from '../../../../utils';
 
 import { MachineSizeLink } from '../../resource-utils';
 
@@ -555,7 +555,7 @@ const KubernetesClusterDetailsButton = ({
                 <Modal.Body>
                     { kubernetesTemplatesAvailable ||
                         <Row className="m-4" style={{color: "red"}}>
-                            <h5 className="text-center">WARNING: Kubernetes functionality is no longer available in this tenancy.</h5>
+                            <Error className="text-center" message={"WARNING: Kubernetes functionality is no longer available in this tenancy."} />
                         </Row> 
                     }
                     <Tab.Container defaultActiveKey="overview">
