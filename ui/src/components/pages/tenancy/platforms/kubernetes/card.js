@@ -543,7 +543,6 @@ const KubernetesClusterDetailsButton = ({
 
     const inFlight = !!kubernetesCluster.updating || !!kubernetesCluster.deleting;
     const kubernetesTemplatesAvailable = (kubernetesClusterTemplates.initialised && Object.getOwnPropertyNames(kubernetesClusterTemplates.data).length > 0)
-    console.log(kubernetesClusterTemplates, kubernetesTemplatesAvailable);
 
     return (
         <>

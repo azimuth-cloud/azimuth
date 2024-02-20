@@ -82,7 +82,6 @@ const useSchedulingData = (tenancyId, formState) => {
 
 
 const initialParameterValues = (clusterType, cluster) => {
-    console.log(clusterType);
     if( cluster ) {
         return Object.assign(
             {},
