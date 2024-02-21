@@ -15,8 +15,6 @@ import sadFace from "../../../../../../assets/face-frown-regular.svg";
 import get from 'lodash/get';
 import truncate from 'lodash/truncate';
 
-import { DateTime } from 'luxon';
-
 import ReactMarkdown from 'react-markdown';
 
 import nunjucks from 'nunjucks';
