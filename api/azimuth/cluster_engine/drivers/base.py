@@ -64,6 +64,7 @@ class Driver:
     def patch_cluster(
         self,
         cluster: dto.Cluster,
+        params: t.Mapping[str, t.Any],
         ctx: dto.Context
     ) -> dto.Cluster:
         """
