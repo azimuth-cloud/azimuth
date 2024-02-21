@@ -34,8 +34,7 @@ import { PlatformTypeCard, PlatformServicesListGroup, PlatformDeleteButton } fro
 import { KubernetesAppModalForm } from './form';
 
 
-// Minimal object structure required to render the UI card
-// (used when app is deployed then app template access is restricted)
+// Placeholder object which holds the minimum set of fields required for a successful UI render
 const kubernetesAppTemplatePlaceholder = {
     logo: sadFace,
     label: "App type unavailable",
@@ -43,8 +42,7 @@ const kubernetesAppTemplatePlaceholder = {
     versions: [{
         name: "deprecated"
     }],
-    // Used to detect when placeholder is in use 
-    // to allow disabling buttons etc.
+    // Used to conditionally render UI components when placeholder is in use
     placeholder: true,
 }
 
