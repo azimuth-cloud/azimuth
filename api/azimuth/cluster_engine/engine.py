@@ -346,7 +346,11 @@ class ClusterManager:
                 'Cannot patch cluster with status {}'.format(cluster.status.name)
             )
         ctx = dto.Context(self._username, self._user_id, self._tenancy)
-        cluster = self._driver.patch_cluster(cluster, ctx)
+        cluster = self._driver.patch_cluster(
+            cluster,
+            self._cloud_session.cluster_parameters(),
+            ctx
+        )
         return self._cluster_modify(cluster)
 
     def delete_cluster(

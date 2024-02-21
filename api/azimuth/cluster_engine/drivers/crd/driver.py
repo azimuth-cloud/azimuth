@@ -210,7 +210,7 @@ def delete_cluster(client, name: str):
     return get_cluster_dto(raw_cluster, status_if_ready=dto.ClusterStatus.DELETING)
 
 
-def patch_cluster(client, name: str, ctx: dto.Context):
+def patch_cluster(client, name: str, params: t.Mapping[str, t.Any], ctx: dto.Context):
     safe_name = _escape_name(name)
 
     # get current version for requested cluster type
@@ -224,7 +224,7 @@ def patch_cluster(client, name: str, ctx: dto.Context):
 
     # Trigger an update, even if no change in version requested
     # TODO(johngarbutt): cluster_upgrade_system_packages=true needed?
-    return update_cluster(client, name, {}, cluster_type.version, ctx)
+    return update_cluster(client, name, params, cluster_type.version, ctx)
 
 
 def update_cluster(client, name: str, params: t.Mapping[str, t.Any],
@@ -342,12 +342,17 @@ class Driver(base.Driver):
         return update_cluster(client, cluster.name, params,
                               version=None, ctx=ctx)
 
-    def patch_cluster(self, cluster: dto.Cluster, ctx: dto.Context) -> dto.Cluster:
+    def patch_cluster(
+        self,
+        cluster: dto.Cluster,
+        params: t.Mapping[str, t.Any],
+        ctx: dto.Context
+    ) -> dto.Cluster:
         """
         Patches the given existing cluster.
         """
         client = get_k8s_client(ctx.tenancy.id)
-        return patch_cluster(client, cluster.name, ctx)
+        return patch_cluster(client, cluster.name, params, ctx)
 
     def delete_cluster(
         self,
