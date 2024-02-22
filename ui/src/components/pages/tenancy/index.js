@@ -34,6 +34,7 @@ import { TenancyVolumesPanel } from './volumes';
 import { TenancyPlatformsPanel } from './platforms';
 
 import { SSHKeyUpdateModal } from '../../ssh-key-update-modal';
+import { useResourceInitialised } from './resource-utils';
 
 
 const SSHKeyUpdateNavLink = ({ sshKey, sshKeyActions }) => {
@@ -72,11 +73,11 @@ const TenancyNav = ({
     sshKeyActions,
     capabilities,
     currentTenancy,
-    selectedResource
+    selectedResource,
+    supportsPlatforms,
 }) => {
     const [userExpanded, setUserExpanded] = useState(false);
     const toggleUserExpanded = () => setUserExpanded(expanded => !expanded);
-    const supportsPlatforms = capabilities.supports_clusters || capabilities.supports_kubernetes;
     const selectedResourceIsAdvanced = ['machines', 'volumes'].includes(selectedResource);
     // If the cloud doesn't support platforms, always show the advanced resources
     // If the user is on an advanced tab, show the items even if they are not expanded
@@ -246,6 +247,17 @@ export const TenancyResourcePage = ({
         [resource]
     );
 
+    let supportsPlatforms = capabilities.supports_clusters || capabilities.supports_kubernetes;
+    useResourceInitialised(currentTenancy.clusterTypes, tenancyActions.clusterType.fetchList);
+    useResourceInitialised(currentTenancy.kubernetesClusterTemplates, tenancyActions.kubernetesClusterTemplate.fetchList);
+    if (currentTenancy.kubernetesClusterTemplates.initialised && currentTenancy.clusterTypes.initialised) {
+        const kubernetesClusterTemplatesAvailable = Object.getOwnPropertyNames(currentTenancy.kubernetesClusterTemplates.data).length > 0;
+        const clusterTypesAvailable = Object.getOwnPropertyNames(currentTenancy.clusterTypes.data).length > 0;
+        if (!(kubernetesClusterTemplatesAvailable || clusterTypesAvailable)) {
+            supportsPlatforms = false;
+        }
+    };
+
     let PanelComponent;
     if( PlatformPanelComponents.hasOwnProperty(resource) ) {
         PanelComponent = PlatformPanelComponents[resource];
@@ -264,6 +276,7 @@ export const TenancyResourcePage = ({
                             capabilities={capabilities}
                             currentTenancy={currentTenancy}
                             selectedResource={resource}
+                            supportsPlatforms={supportsPlatforms}
                         />
                     </div>
                 </div>
@@ -275,34 +288,7 @@ export const TenancyResourcePage = ({
                         sshKey={sshKey}
                         capabilities={capabilities}
                         tenancy={currentTenancy}
-                        // Bind all the actions to the current tenancy
-                        tenancyActions={{
-                            idp: bindArgsToActions(tenancyActions.idp, currentTenancy.id),
-                            quota: bindArgsToActions(tenancyActions.quota, currentTenancy.id),
-                            image: bindArgsToActions(tenancyActions.image, currentTenancy.id),
-                            size: bindArgsToActions(tenancyActions.size, currentTenancy.id),
-                            externalIp: bindArgsToActions(tenancyActions.externalIp, currentTenancy.id),
-                            volume: bindArgsToActions(tenancyActions.volume, currentTenancy.id),
-                            machine: bindArgsToActions(tenancyActions.machine, currentTenancy.id),
-                            kubernetesClusterTemplate: bindArgsToActions(
-                                tenancyActions.kubernetesClusterTemplate,
-                                currentTenancy.id
-                            ),
-                            kubernetesCluster: bindArgsToActions(
-                                tenancyActions.kubernetesCluster,
-                                currentTenancy.id
-                            ),
-                            kubernetesAppTemplate: bindArgsToActions(
-                                tenancyActions.kubernetesAppTemplate,
-                                currentTenancy.id
-                            ),
-                            kubernetesApp: bindArgsToActions(
-                                tenancyActions.kubernetesApp,
-                                currentTenancy.id
-                            ),
-                            clusterType: bindArgsToActions(tenancyActions.clusterType, currentTenancy.id),
-                            cluster: bindArgsToActions(tenancyActions.cluster, currentTenancy.id)
-                        }}
+                        tenancyActions={tenancyActions}
                         notificationActions={notificationActions}
                     />
                 </Col>
