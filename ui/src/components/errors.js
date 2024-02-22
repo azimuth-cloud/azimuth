@@ -5,9 +5,7 @@ import Row from 'react-bootstrap/Row';
 import { Error } from "./utils"
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
-    faPersonFallingBurst,
-} from '@fortawesome/free-solid-svg-icons';
+import { faBomb } from '@fortawesome/free-solid-svg-icons';
 
 // Based on example in official docs here:
 // https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary
@@ -38,7 +36,7 @@ export class ApplicationErrorBoundary extends React.Component {
                 <>
                     <Row className="justify-content-center align-items-end" style={{height: "50vh"}}>
                         <Col xs="auto py-3">
-                            <FontAwesomeIcon icon={faPersonFallingBurst} size="10x" />
+                            <FontAwesomeIcon icon={faBomb} size="10x" />
                         </Col>
                     </Row>
                     <Row className="justify-content-center">

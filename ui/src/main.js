@@ -17,7 +17,14 @@ const root = createRoot(container);
 root.render(
     <Provider store={store}>
         <BrowserRouter>
-            <ApplicationErrorBoundary message="An unexpected error occurred, try refreshing. If this issue persists, raise an issue with your Azimuth operator." >
+            <ApplicationErrorBoundary
+                message={
+                    <>
+                        <p>An unexpected error occurred, please try refreshing the page.</p>
+                        <p className="mb-0">If the problem persists, raise an issue with your Azimuth operator.</p>
+                    </>
+                }
+            >
                 <Application />
             </ApplicationErrorBoundary>
         </BrowserRouter>
