@@ -1206,8 +1206,6 @@ def cluster_details(request, tenant, cluster):
                 )
                 return response.Response(output_serializer.data)
             elif request.method == "DELETE":
-                if cloud_settings.APPS:
-                    identity.remove_platform_for_cluster(session.tenancy(), cluster)
                 deleted = cluster_manager.delete_cluster(cluster)
                 if deleted:
                     serializer = serializers.ClusterSerializer(

@@ -115,6 +115,15 @@ def ensure_platform_for_cluster(
                     "labels": {
                         "app.kubernetes.io/managed-by": "azimuth",
                     },
+                    "ownerReferences": [
+                        {
+                            "apiVersion": "caas.azimuth.stackhpc.com/v1alpha1",
+                            "kind": "Cluster",
+                            "name": utils.sanitise(cluster.name),
+                            "uid": cluster.id,
+                            "blockOwnerDeletion": True,
+                        },
+                    ],
                 },
                 "spec": {
                     "realmName": realm.name,
@@ -128,16 +137,4 @@ def ensure_platform_for_cluster(
                 },
             },
             force = True
-        )
-
-
-def remove_platform_for_cluster(tenancy: dto.Tenancy, cluster: cluster_dto.Cluster):
-    """
-    Removes the identity platform for the cluster.
-    """
-    with ekconfig.sync_client(default_field_manager = "azimuth") as client:
-        tenancy_namespace = utils.get_namespace(client, tenancy)
-        client.api(AZIMUTH_IDENTITY_API_VERSION).resource("platforms").delete(
-            f"caas-{utils.sanitise(cluster.name)}",
-            namespace = tenancy_namespace
         )
