@@ -4,49 +4,29 @@ This module contains the cluster engine implementation for azimuth-caas-crd.
 import datetime
 import dateutil.parser
 import logging
-import re
 import time
 import typing as t
 
 
 import easykube
 
+from azimuth.acls import allowed_by_acls
 from azimuth.cluster_engine.drivers import base
 from azimuth.cluster_engine import dto
 from azimuth.cluster_engine import errors
-from ....acls import allowed_by_acls
+from azimuth import utils
+
 
 CAAS_API_VERSION = "caas.azimuth.stackhpc.com/v1alpha1"
 LOG = logging.getLogger(__name__)
 
 
-def _escape_name(name):
-    return re.sub("[^a-z0-9]+", "-", name).strip("-")
-
-
-def _get_namespace(project_id):
-    safe_project_id = _escape_name(project_id)
-    # TODO(johngarbutt): this should come from config
-    return f"caas-{safe_project_id}"
-
-
-# TODO(johngarbutt): share with cluster API better?
-def _ensure_namespace(client, namespace):
-    try:
-        client.api("v1").resource("namespaces").create(
-            {"metadata": {"name": namespace}}
-        )
-    except easykube.ApiError as exc:
-        # Swallow the conflict that occurs when the namespace already exists
-        if exc.status_code != 409 or exc.reason.lower() != "alreadyexists":
-            raise
-
-
-def get_k8s_client(project_id):
-    namespace = _get_namespace(project_id)
+def get_k8s_client(ctx: dto.Context, ensure_namespace: bool = False):
     ekconfig = easykube.Configuration.from_environment()
-    client = ekconfig.sync_client(default_namespace=namespace)
-    _ensure_namespace(client, namespace)
+    client = ekconfig.sync_client()
+    client.default_namespace = utils.get_namespace(client, ctx.tenancy)
+    if ensure_namespace:
+        utils.ensure_namespace(client, client.default_namespace, ctx.tenancy)
     return client
 
 
@@ -161,7 +141,7 @@ def create_cluster(
     params: dict,
     ctx: dto.Context
 ):
-    safe_name = _escape_name(name)
+    safe_name = utils.sanitise(name)
     secret_name = f"{safe_name}-caas-credential"
     secret_resource = client.api("v1").resource("secrets")
     string_data = ctx.credential.data
@@ -201,7 +181,7 @@ def create_cluster(
 
 
 def delete_cluster(client, name: str):
-    safe_name = _escape_name(name)
+    safe_name = utils.sanitise(name)
 
     # TODO(johngarbutt) should we be refreshing the application cred here?
     cluster_resource = client.api(CAAS_API_VERSION).resource("clusters")
@@ -216,7 +196,7 @@ def delete_cluster(client, name: str):
 
 
 def patch_cluster(client, name: str, params: t.Mapping[str, t.Any], ctx: dto.Context):
-    safe_name = _escape_name(name)
+    safe_name = utils.sanitise(name)
 
     # get current version for requested cluster type
     cluster_resource = client.api(CAAS_API_VERSION).resource("clusters")
@@ -234,7 +214,7 @@ def patch_cluster(client, name: str, params: t.Mapping[str, t.Any], ctx: dto.Con
 
 def update_cluster(client, name: str, params: t.Mapping[str, t.Any],
                    version: str, ctx: dto.Context):
-    safe_name = _escape_name(name)
+    safe_name = utils.sanitise(name)
 
     # trigger updates even when params are same as create or last update
     now = datetime.datetime.utcnow()
@@ -264,23 +244,6 @@ def update_cluster(client, name: str, params: t.Mapping[str, t.Any],
     return get_cluster_dto(raw_cluster, status_if_ready=dto.ClusterStatus.CONFIGURING)
 
 
-# TODO(johngarbutt) horrible testing hack!
-if __name__ == "__main__":
-    fake_project_id = "123"
-    client = get_k8s_client(fake_project_id)
-    print(get_cluster_types(client))
-    clusters = get_clusters(client)
-    print(clusters)
-    if not clusters:
-        create_cluster(client, "jg-test", "quick-test", {})
-    clusters = get_clusters(client)
-    print(clusters)
-    if clusters:
-        delete_cluster(client, "jg-test")
-    clusters = get_clusters(client)
-    print(clusters)
-
-
 class Driver(base.Driver):
     """
     Cluster engine driver implementation for AWX.
@@ -294,7 +257,7 @@ class Driver(base.Driver):
         pass
 
     def cluster_types(self, ctx: dto.Context) -> t.Iterable[dto.ClusterType]:
-        client = get_k8s_client(ctx.tenancy.id)
+        client = get_k8s_client(ctx)
         return get_cluster_types(client, ctx.tenancy)
 
     def find_cluster_type(self, name: str, ctx: dto.Context) -> dto.ClusterType:
@@ -311,7 +274,7 @@ class Driver(base.Driver):
         """
         List the clusters that are deployed.
         """
-        client = get_k8s_client(ctx.tenancy.id)
+        client = get_k8s_client(ctx)
         return get_clusters(client)
 
     def find_cluster(self, id: str, ctx: dto.Context) -> dto.Cluster:
@@ -334,7 +297,7 @@ class Driver(base.Driver):
         """
         Create a new cluster with the given name, type and parameters.
         """
-        client = get_k8s_client(ctx.tenancy.id)
+        client = get_k8s_client(ctx, True)
         return create_cluster(client, name, cluster_type.name, params, ctx)
 
     def update_cluster(
@@ -346,7 +309,7 @@ class Driver(base.Driver):
         """
         Updates an existing cluster with the given parameters.
         """
-        client = get_k8s_client(ctx.tenancy.id)
+        client = get_k8s_client(ctx, True)
         return update_cluster(client, cluster.name, params,
                               version=None, ctx=ctx)
 
@@ -359,7 +322,7 @@ class Driver(base.Driver):
         """
         Patches the given existing cluster.
         """
-        client = get_k8s_client(ctx.tenancy.id)
+        client = get_k8s_client(ctx, True)
         return patch_cluster(client, cluster.name, params, ctx)
 
     def delete_cluster(
@@ -370,5 +333,5 @@ class Driver(base.Driver):
         """
         Deletes an existing cluster.
         """
-        client = get_k8s_client(ctx.tenancy.id)
+        client = get_k8s_client(ctx, True)
         return delete_cluster(client, cluster.name)
