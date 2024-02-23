@@ -1,11 +1,11 @@
 import dataclasses
-import re
 import typing as t
 
 from easykube import Configuration, ApiError
 
 from .cluster_engine import dto as cluster_dto
 from .provider import dto
+from . import utils
 
 
 AZIMUTH_IDENTITY_API_VERSION = "identity.azimuth.stackhpc.com/v1alpha1"
@@ -13,13 +13,6 @@ AZIMUTH_IDENTITY_API_VERSION = "identity.azimuth.stackhpc.com/v1alpha1"
 
 # Configure the Kubernetes client from the environment
 ekconfig = Configuration.from_environment()
-
-
-def sanitize(value):
-    """
-    Returns a sanitized form of the given value suitable for Kubernetes resource names.
-    """
-    return re.sub("[^a-z0-9]+", "-", str(value).lower()).strip("-")
 
 
 @dataclasses.dataclass(frozen = True)
@@ -54,12 +47,12 @@ def get_realm(tenancy: dto.Tenancy) -> t.Optional[Realm]:
     """
     Returns the identity realm for the tenancy.
     """
-    sanitized_tenancy_name = sanitize(tenancy.name)
     with ekconfig.sync_client() as client:
+        tenancy_namespace = utils.get_namespace(client, tenancy)
         try:
             realm = client.api(AZIMUTH_IDENTITY_API_VERSION).resource("realms").fetch(
-                f"az-{sanitized_tenancy_name}",
-                namespace = f"az-{sanitized_tenancy_name}"
+                tenancy_namespace,
+                namespace = tenancy_namespace
             )
         except ApiError as exc:
             if exc.status_code == 404:
@@ -74,31 +67,21 @@ def ensure_realm(tenancy: dto.Tenancy) -> Realm:
     """
     Ensures that an identity realm exists for the given tenancy.
     """
-    sanitized_tenancy_name = sanitize(tenancy.name)
-    namespace = f"az-{sanitized_tenancy_name}"
     with ekconfig.sync_client(default_field_manager = "azimuth") as client:
+        tenancy_namespace = utils.get_namespace(client, tenancy)
         # Create the namespace if required
-        try:
-            client.api("v1").resource("namespaces").create({
-                "metadata": {
-                    "name": namespace,
-                    "labels": {
-                        "app.kubernetes.io/managed-by": "azimuth",
-                    },
-                },
-            })
-        except ApiError as exc:
-            # Swallow the conflict that occurs when the namespace already exists
-            if exc.status_code != 409 or exc.reason.lower() != "alreadyexists":
-                raise
-        # Then create the realm
+        utils.ensure_namespace(client, tenancy_namespace, tenancy)
+        # We create a realm with the same name as the tenancy namespace
+        # This means that we don't get a realm name of the format {namespace}-{name}
+        # because in the case where the namespace and name are identical, the identity
+        # operator reduces that to just {name}
         realm = client.apply_object(
             {
                 "apiVersion": AZIMUTH_IDENTITY_API_VERSION,
                 "kind": "Realm",
                 "metadata": {
-                    "name": f"az-{sanitized_tenancy_name}",
-                    "namespace": namespace,
+                    "name": tenancy_namespace,
+                    "namespace": tenancy_namespace,
                     "labels": {
                         "app.kubernetes.io/managed-by": "azimuth",
                     },
@@ -120,16 +103,15 @@ def ensure_platform_for_cluster(
     """
     Ensures that an identity platform exists for the cluster.
     """
-    sanitized_name = sanitize(cluster.name)
-    sanitized_tenancy_name = sanitize(tenancy.name)
     with ekconfig.sync_client(default_field_manager = "azimuth") as client:
+        tenancy_namespace = utils.get_namespace(client, tenancy)
         client.apply_object(
             {
                 "apiVersion": AZIMUTH_IDENTITY_API_VERSION,
                 "kind": "Platform",
                 "metadata": {
-                    "name": f"caas-{sanitized_name}",
-                    "namespace": f"az-{sanitized_tenancy_name}",
+                    "name": f"caas-{utils.sanitise(cluster.name)}",
+                    "namespace": tenancy_namespace,
                     "labels": {
                         "app.kubernetes.io/managed-by": "azimuth",
                     },
@@ -153,10 +135,9 @@ def remove_platform_for_cluster(tenancy: dto.Tenancy, cluster: cluster_dto.Clust
     """
     Removes the identity platform for the cluster.
     """
-    sanitized_name = sanitize(cluster.name)
-    sanitized_tenancy_name = sanitize(tenancy.name)
     with ekconfig.sync_client(default_field_manager = "azimuth") as client:
+        tenancy_namespace = utils.get_namespace(client, tenancy)
         client.api(AZIMUTH_IDENTITY_API_VERSION).resource("platforms").delete(
-            f"caas-{sanitized_name}",
-            namespace = f"az-{sanitized_tenancy_name}"
+            f"caas-{utils.sanitise(cluster.name)}",
+            namespace = tenancy_namespace
         )

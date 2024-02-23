@@ -51,7 +51,10 @@ rules:
     resources:
       - namespaces
     verbs:
+      - list
+      - get
       - create
+      - patch
   - apiGroups:
       - ""
     resources:
