@@ -1,3 +1,4 @@
+---
 name: Publish artifacts
 
 on:
@@ -21,7 +22,7 @@ on:
         value: ${{ jobs.build_push_chart.outputs.chart-version }}
 
 env:
-  NGINX_VERSION: 1.25.3
+  NGINX_VERSION: 1.25.4
 
 jobs:
   build_push_images:
