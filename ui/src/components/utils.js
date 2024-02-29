@@ -231,7 +231,7 @@ export const Error = ({
 }) => (
     <Alert variant="danger" className="d-flex" {...props}>
         <Row>
-            <Col xs="auto">
+            <Col xs="auto m-auto">
                 <FontAwesomeIcon icon={faExclamationCircle} size={iconSize} />
             </Col>
             <Col>

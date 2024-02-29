@@ -8,6 +8,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
 
 import { Application } from './application';
+import { ApplicationErrorBoundary } from './components/errors';
 import { store } from './redux';
 
 
@@ -16,7 +17,16 @@ const root = createRoot(container);
 root.render(
     <Provider store={store}>
         <BrowserRouter>
-            <Application />
+            <ApplicationErrorBoundary
+                message={
+                    <>
+                        <p>An unexpected error occurred, please try refreshing the page.</p>
+                        <p className="mb-0">If the problem persists, raise an issue with your Azimuth operator.</p>
+                    </>
+                }
+            >
+                <Application />
+            </ApplicationErrorBoundary>
         </BrowserRouter>
     </Provider>
 );
