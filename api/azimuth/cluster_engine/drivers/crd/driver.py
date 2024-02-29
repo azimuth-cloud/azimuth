@@ -14,6 +14,7 @@ import easykube
 from azimuth.cluster_engine.drivers import base
 from azimuth.cluster_engine import dto
 from azimuth.cluster_engine import errors
+from ....acls import allowed_by_acls
 
 CAAS_API_VERSION = "caas.azimuth.stackhpc.com/v1alpha1"
 LOG = logging.getLogger(__name__)
@@ -58,13 +59,14 @@ def _get_cluster_type_dto(raw):
         )
 
 
-def get_cluster_types(client) -> t.Iterable[dto.ClusterType]:
+def get_cluster_types(client, tenancy) -> t.Iterable[dto.ClusterType]:
     raw_types = list(client.api(CAAS_API_VERSION).resource("clustertypes").list())
     cluster_types = []
     for raw in raw_types:
-        cluster_type = _get_cluster_type_dto(raw)
-        if cluster_type:
-            cluster_types.append(cluster_type)
+        if allowed_by_acls(raw, tenancy):
+            cluster_type = _get_cluster_type_dto(raw)
+            if cluster_type:
+                cluster_types.append(cluster_type)
     return cluster_types
 
 
@@ -140,9 +142,11 @@ def get_clusters(client) -> t.Iterable[dto.Cluster]:
     return clusters
 
 
-def _get_cluster_type(client, cluster_type_name: str):
+def _get_cluster_type(client, cluster_type_name: str, tenancy):
     clustertypes_resource = client.api(CAAS_API_VERSION).resource("clustertypes")
     raw = clustertypes_resource.fetch(cluster_type_name)
+    if not allowed_by_acls(raw, tenancy):
+        raise errors.ObjectNotFoundError(f"Cannot find cluster type {cluster_type_name}")
     cluster_type = _get_cluster_type_dto(raw)
     if cluster_type:
         return cluster_type
@@ -171,7 +175,7 @@ def create_cluster(
         }
     )
 
-    cluster_type = _get_cluster_type(client, cluster_type_name)
+    cluster_type = _get_cluster_type(client, cluster_type_name, ctx.tenancy)
     cluster_spec = {
         "clusterTypeName": cluster_type_name,
         "clusterTypeVersion": cluster_type.version,
@@ -206,6 +210,7 @@ def delete_cluster(client, name: str):
     # NOTE(johngarbutt) we are racing the operator here,
     # returning the ready state will confuse people
     time.sleep(0.1)
+    # NOTE(sd109) Avoid checking allowed_by_acls here so that deletion is never blocked
     raw_cluster = cluster_resource.fetch(safe_name)
     return get_cluster_dto(raw_cluster, status_if_ready=dto.ClusterStatus.DELETING)
 
@@ -218,9 +223,9 @@ def patch_cluster(client, name: str, params: t.Mapping[str, t.Any], ctx: dto.Con
     inital_raw_cluster = cluster_resource.fetch(safe_name)
 
     cluster_type_name = inital_raw_cluster["spec"]["clusterTypeName"]
-    cluster_type = _get_cluster_type(client, cluster_type_name)
+    cluster_type = _get_cluster_type(client, cluster_type_name, ctx.tenancy)
     if not cluster_type:
-        raise Exception(f"Can not update as type {cluster_type_name} not found")
+        raise Exception(f"Cannot update as type {cluster_type_name} not found")
 
     # Trigger an update, even if no change in version requested
     # TODO(johngarbutt): cluster_upgrade_system_packages=true needed?
@@ -253,6 +258,9 @@ def update_cluster(client, name: str, params: t.Mapping[str, t.Any],
     # returning the ready state will confuse people
     time.sleep(0.1)
     raw_cluster = cluster_resource.fetch(safe_name)
+    if not allowed_by_acls(raw_cluster, ctx.tenancy):
+        raise errors.ObjectNotFoundError(f"Cannot update cluster {name} - cluster type not found")
+
     return get_cluster_dto(raw_cluster, status_if_ready=dto.ClusterStatus.CONFIGURING)
 
 
@@ -287,7 +295,7 @@ class Driver(base.Driver):
 
     def cluster_types(self, ctx: dto.Context) -> t.Iterable[dto.ClusterType]:
         client = get_k8s_client(ctx.tenancy.id)
-        return get_cluster_types(client)
+        return get_cluster_types(client, ctx.tenancy)
 
     def find_cluster_type(self, name: str, ctx: dto.Context) -> dto.ClusterType:
         """

@@ -22,6 +22,7 @@ from easykube import (
 from ..provider import base as cloud_base, dto as cloud_dto, errors as cloud_errors
 
 from . import dto, errors
+from ..acls import allowed_by_acls
 
 
 logger = logging.getLogger(__name__)
@@ -180,6 +181,11 @@ class Session:
                 .resource("clustertemplates")
                 .list()
         )
+
+        # Filter cluster templates based on ACL annotations
+        tenancy = self._cloud_session.tenancy()
+        templates = [t for t in templates if allowed_by_acls(t, tenancy)]
+
         self._log("Found %s cluster templates", len(templates))
         return tuple(self._from_api_cluster_template(ct) for ct in templates)
 
@@ -189,12 +195,18 @@ class Session:
         Finds a cluster template by id.
         """
         self._log("Fetching cluster template with id '%s'", id)
-        return self._from_api_cluster_template(
+        template = (
             self._client
                 .api(AZIMUTH_API_VERSION)
                 .resource("clustertemplates")
                 .fetch(id)
         )
+        
+        if not allowed_by_acls(template, self._cloud_session.tenancy()):
+            raise errors.ObjectNotFoundError(f"Cannot find cluster template {id}")
+        
+        return self._from_api_cluster_template(template)
+            
 
     def _from_api_cluster(self, cluster, sizes):
         """
@@ -618,6 +630,11 @@ class Session:
                 .list()
         )
         self._log("Found %s app templates", len(templates))
+
+        # Filter templates based on ACL annotations
+        tenancy = self._cloud_session.tenancy()
+        templates = [t for t in templates if allowed_by_acls(t, tenancy)]
+
         # Don't return app templates with no versions
         return tuple(
             self._from_api_app_template(at)
@@ -637,6 +654,11 @@ class Session:
                 .resource("apptemplates")
                 .fetch(id)
         )
+        
+        tenancy =  self._cloud_session.tenancy()
+        if not allowed_by_acls(template, tenancy):
+            raise errors.ObjectNotFoundError(f"Cannot find app template {id}")
+        
         # Don't return app templates with no versions
         if template.get("status", {}).get("versions"):
             return self._from_api_app_template(template)

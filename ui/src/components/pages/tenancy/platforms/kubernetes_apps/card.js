@@ -27,10 +27,24 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 
 import { sortBy } from '../../../../utils';
+import sadFace from "../../../../../../assets/face-frown-regular.svg";
 
 import { PlatformTypeCard, PlatformServicesListGroup, PlatformDeleteButton } from '../utils';
 
 import { KubernetesAppModalForm } from './form';
+
+
+// Placeholder object which holds the minimum set of fields required for a successful UI render
+const kubernetesAppTemplatePlaceholder = {
+    logo: sadFace,
+    label: "App type unavailable",
+    description: "",
+    versions: [{
+        name: "deprecated"
+    }],
+    // Used to conditionally render UI components when placeholder is in use
+    placeholder: true,
+}
 
 
 const Usage = ({ kubernetesApp }) => {
@@ -270,7 +284,8 @@ const KubernetesAppUpdateButton = ({
 
     const kubernetesAppTemplate = get(
         tenancy.kubernetesAppTemplates.data,
-        kubernetesApp.template.id
+        kubernetesApp.template.id,
+        kubernetesAppTemplatePlaceholder,
     );
 
     const handleSubmit = data => {
@@ -354,7 +369,7 @@ const KubernetesAppDetailsButton = ({
                                 kubernetesApp={kubernetesApp}
                                 tenancy={tenancy}
                                 tenancyActions={tenancyActions}
-                                disabled={inFlight || working}
+                                disabled={inFlight || working || kubernetesAppTemplate.placeholder}
                                 onSubmit={kubernetesAppActions.update}
                                 className="me-2"
                             />
@@ -375,7 +390,7 @@ const KubernetesAppDetailsButton = ({
                                     description: kubernetesAppTemplate.description
                                 }}
                             />
-                            <Usage kubernetesApp={kubernetesApp} />
+                            {!kubernetesAppTemplate.placeholder && <Usage kubernetesApp={kubernetesApp} />}
                         </Col>
                         <Col xl={5}>
                             <StatusCard
@@ -438,7 +453,7 @@ export const KubernetesAppCard = ({
     tenancy,
     tenancyActions
 }) => {
-    const kubernetesAppTemplate = get(kubernetesAppTemplates.data, kubernetesApp.template.id);
+    const kubernetesAppTemplate = get(kubernetesAppTemplates.data, kubernetesApp.template.id, kubernetesAppTemplatePlaceholder);
     if( kubernetesAppTemplate ) {
         return (
             <Card className="platform-card">

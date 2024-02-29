@@ -10,11 +10,10 @@ import ProgressBar from 'react-bootstrap/ProgressBar';
 import Row from 'react-bootstrap/Row';
 import Table from 'react-bootstrap/Table';
 import Tooltip from 'react-bootstrap/Tooltip';
+import sadFace from "../../../../../../assets/face-frown-regular.svg";
 
 import get from 'lodash/get';
 import truncate from 'lodash/truncate';
-
-import { DateTime } from 'luxon';
 
 import ReactMarkdown from 'react-markdown';
 
@@ -31,6 +30,8 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 
 import { PlatformTypeCard, PlatformServicesListGroup, PlatformDeleteButton } from '../utils';
+import { Error } from '../../../../utils';
+
 
 import { ClusterModalForm } from './form';
 
@@ -229,7 +230,7 @@ const ClusterUpdateButton = ({
     const open = () => setVisible(true);
     const close = () => setVisible(false);
 
-    const clusterType = get(tenancy.clusterTypes.data, cluster.cluster_type);
+    const clusterType = get(tenancy.clusterTypes.data, cluster.cluster_type) || clusterTypePlaceholder;
 
     const handleSubmit = data => {
         onSubmit({ parameter_values: data.parameterValues });
@@ -316,6 +317,7 @@ const ClusterDetailsButton = ({
     const open = () => setVisible(true);
     const close = () => setVisible(false);
 
+    const missingClusterType = clusterType.placeholder;
     const inFlight = !!cluster.updating || !!cluster.patching || !!cluster.deleting;
     const working = ['CONFIGURING', 'DELETING'].includes(cluster.status);
 
@@ -329,6 +331,13 @@ const ClusterDetailsButton = ({
                     <Modal.Title>Platform details for {cluster.name}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
+                    { missingClusterType && 
+                        <Row className="justify-content-center">
+                            <Col xs="auto">
+                                <Error className="text-center" message={"WARNING: This cluster type is no longer available."} />
+                            </Col>
+                        </Row>
+                    }
                     <Row className="justify-content-end mb-2">
                         <Col xs="auto">
                             <Button
@@ -349,14 +358,14 @@ const ClusterDetailsButton = ({
                                 cluster={cluster}
                                 tenancy={tenancy}
                                 tenancyActions={tenancyActions}
-                                disabled={inFlight || working}
+                                disabled={inFlight || working || missingClusterType}
                                 onSubmit={clusterActions.update}
                                 className="me-2"
                             />
                             <ClusterPatchButton
                                 name={cluster.name}
                                 inFlight={!!cluster.patching}
-                                disabled={inFlight || working}
+                                disabled={inFlight || working || missingClusterType}
                                 onConfirm={clusterActions.patch}
                                 className="me-2"
                             />
@@ -403,6 +412,17 @@ const statusBadgeBg = {
     'ERROR': 'danger'
 };
 
+// Placeholder object which holds the minimum set of fields required for a successful UI render
+const clusterTypePlaceholder = {
+    logo: sadFace,
+    label: "Cluster type unavailable",
+    description: "",
+    usage_template: "",
+    version: null,
+    parameters: [],
+    // Used to conditionally render UI components when placeholder is in use
+    placeholder: true,
+}
 
 export const ClusterCard = ({
     cluster,
@@ -412,14 +432,16 @@ export const ClusterCard = ({
     tenancyActions,
     notificationActions
 }) => {
-    const clusterType = clusterTypes.data[cluster.cluster_type];
-    if (!clusterType) {
+    // If cluster type is no longer available from the API (e.g. due to ACL changes in the tenancy) then use a placeholder.
+    // NOTE(sd109) We set the placeholder's version to match the current cluster version so that users do not get prompted to patch their cluster.
+    const clusterType = clusterTypes.data[cluster.cluster_type] || {...clusterTypePlaceholder, version: cluster.cluster_type_version};
+    if (!clusterType.version) {
         notificationActions.error({
                 title: 'Cluster type not found',
                 message: `Unable to load cluster type '${cluster.cluster_type}' for cluster '${cluster.name}'`
         });
-        return;
     }
+
     const updatedAt = cluster.updated || cluster.created;
     return (
         <Card className="platform-card">

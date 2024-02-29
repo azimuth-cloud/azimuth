@@ -26,7 +26,7 @@ import {
     faTimesCircle
 } from '@fortawesome/free-solid-svg-icons';
 
-import { sortBy } from '../../../../utils';
+import { sortBy, Error } from '../../../../utils';
 
 import { MachineSizeLink } from '../../resource-utils';
 
@@ -542,6 +542,7 @@ const KubernetesClusterDetailsButton = ({
     const close = () => setVisible(false);
 
     const inFlight = !!kubernetesCluster.updating || !!kubernetesCluster.deleting;
+    const kubernetesTemplatesAvailable = (kubernetesClusterTemplates.initialised && Object.getOwnPropertyNames(kubernetesClusterTemplates.data).length > 0)
 
     return (
         <>
@@ -551,6 +552,13 @@ const KubernetesClusterDetailsButton = ({
                     <Modal.Title>Cluster details for {kubernetesCluster.name}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
+                    { kubernetesTemplatesAvailable ||
+                        <Row className="justify-content-center">
+                            <Col xs="auto">
+                                <Error className="text-center" message={"WARNING: Kubernetes functionality is no longer available in this tenancy."} />
+                            </Col>
+                        </Row>
+                    }
                     <Tab.Container defaultActiveKey="overview">
                         <Row className="mb-4">
                             <Col>
@@ -601,7 +609,7 @@ const KubernetesClusterDetailsButton = ({
                                             sizeActions={sizeActions}
                                             externalIps={externalIps}
                                             externalIpActions={externalIpActions}
-                                            disabled={inFlight || kubernetesCluster.status === "Deleting"}
+                                            disabled={inFlight || kubernetesCluster.status === "Deleting" || !kubernetesTemplatesAvailable}
                                             className="me-2"
                                         />
                                         <UpgradeKubernetesClusterButton
@@ -609,7 +617,7 @@ const KubernetesClusterDetailsButton = ({
                                             kubernetesClusterActions={kubernetesClusterActions}
                                             kubernetesClusterTemplates={kubernetesClusterTemplates}
                                             kubernetesClusterTemplateActions={kubernetesClusterTemplateActions}
-                                            disabled={inFlight || kubernetesCluster.status === "Deleting"}
+                                            disabled={inFlight || kubernetesCluster.status === "Deleting" || !kubernetesTemplatesAvailable}
                                             className="me-2"
                                         />
                                         <PlatformDeleteButton
