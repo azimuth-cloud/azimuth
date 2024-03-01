@@ -26,7 +26,7 @@ MarkupSafe==2.1.5
 pyasn1==0.5.1
 pycparser==2.21
 pyrsistent==0.20.0
-python-dateutil==2.8.2
+python-dateutil==2.9.0.post0
 pytz==2024.1
 PyYAML==6.0.1
 rackit @ git+https://github.com/stackhpc/rackit.git@cb2da480f9fc99f36cc777d58dfbccec33434879
