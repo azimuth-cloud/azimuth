@@ -29,39 +29,36 @@ def allowed_by_acls(raw, tenancy):
         return True
     # Deny IDs list takes priority over allow IDs list and any regex patterns
     if ACL_DENY_IDS_KEY in annotations:
-        value = annotations[ACL_DENY_IDS_KEY]
-        if value != "":
+        deny_ids_annotation = annotations.get(ACL_DENY_IDS_KEY)
+        if deny_ids_annotation:
             # Split into list and strip any whitespace between IDs
-            denied_tenancies = [t.strip() for t in value.split(",")]
+            denied_tenancies = [t.strip() for t in deny_ids_annotation.split(",")]
             # Return immediately if access is denied
             if tenancy.id in denied_tenancies:
                 return False
     # Allow IDs list takes priority over any regex patterns
     if ACL_ALLOW_IDS_KEY in annotations:
-        value = annotations[ACL_ALLOW_IDS_KEY]
-        if value != "":
-            allowed_tenancies = [t.strip() for t in value.split(",")]
+        allow_ids_annotation = annotations.get(ACL_ALLOW_IDS_KEY)
+        if allow_ids_annotation:
+            allowed_tenancies = [t.strip() for t in allow_ids_annotation.split(",")]
             # Return immediately if allowed since allow by
             # IDs takes priority over deny by regex
             if tenancy.id in allowed_tenancies:
                 return True
     # Deny regex takes priority over allow regex
     if ACL_DENY_PATTERN_KEY in annotations:
-        pattern = annotations[ACL_DENY_PATTERN_KEY]
-        if pattern != "":
-            # Return immediately if access is denied
-            if re.search(pattern, tenancy.name):
-                return False
+        deny_pattern = annotations.get(ACL_DENY_PATTERN_KEY)
+        # Return immediately if access is denied
+        if deny_pattern and re.search(deny_pattern, tenancy.name):
+            return False
     if ACL_ALLOW_PATTERN_KEY in annotations:
-        pattern = annotations[ACL_ALLOW_PATTERN_KEY]
-        if pattern != "":
-            # Return immediately since we've already checked all deny
-            # annotations by this point so there won't be conflicts
-            if re.search(pattern, tenancy.name):
-                return True
+        allow_pattern = annotations[ACL_ALLOW_PATTERN_KEY]
+        # Return immediately since we've already checked all deny
+        # annotations by this point so there won't be conflicts
+        if allow_pattern and re.search(allow_pattern, tenancy.name):
+            return True
 
     # If either 'allow' annotation is present and non-empty then default to deny
     return not (
-        (ACL_ALLOW_IDS_KEY in annotations and annotations[ACL_ALLOW_IDS_KEY] != "") or
-        (ACL_ALLOW_PATTERN_KEY in annotations and annotations[ACL_ALLOW_PATTERN_KEY] != "")
+        annotations.get(ACL_ALLOW_IDS_KEY) or annotations.get(ACL_ALLOW_PATTERN_KEY)
     )
