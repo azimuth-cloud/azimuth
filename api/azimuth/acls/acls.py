@@ -55,8 +55,8 @@ def allowed_by_acls(raw, tenancy):
     # Check allow regex last
     allow_pattern = annotations.get(ACL_ALLOW_PATTERN_KEY)
     if allow_pattern and re.search(allow_pattern, tenancy.name):
-    # Return immediately since we've already checked all deny
-    # annotations by this point so there won't be conflicts
+        # Return immediately since we've already checked all deny
+        # annotations by this point so there won't be conflicts
         return True
 
     # If either 'allow' annotation is present and non-empty then default to deny
