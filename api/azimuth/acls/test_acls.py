@@ -1,5 +1,6 @@
 from unittest import TestCase
 from .acls import (
+    ACL_KEYS,
     ACL_ALLOW_IDS_KEY,
     ACL_ALLOW_PATTERN_KEY,
     ACL_DENY_IDS_KEY,
@@ -24,6 +25,13 @@ class ACLTestCase(TestCase):
     def test_no_annotations(self):
         tenancies = [Tenancy(id=f"test-id-{i}", name=f"name-{i}") for i in range(3)]
         test_resource = {"metadata": {"annotations": {}}}
+        for t in tenancies:
+            self.assert_allowed(test_resource, t)
+
+    # Check that all tenancies are allowed when all ACL annotations are present but empty
+    def test_empty_annotations(self):
+        tenancies = [Tenancy(id=f"test-id-{i}", name=f"name-{i}") for i in range(3)]
+        test_resource = {"metadata": {"annotations": {k: "" for k in ACL_KEYS}}}
         for t in tenancies:
             self.assert_allowed(test_resource, t)
 
