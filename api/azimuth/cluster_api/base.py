@@ -3,7 +3,6 @@ import functools
 import importlib
 import json
 import logging
-import re
 import typing as t
 
 import dateutil.parser
@@ -20,6 +19,7 @@ from easykube import (
 )
 
 from ..provider import base as cloud_base, dto as cloud_dto, errors as cloud_errors
+from .. import utils
 
 from . import dto, errors
 from ..acls import allowed_by_acls
@@ -81,21 +81,12 @@ class Provider:
         module = importlib.import_module(self.__module__)
         return module.Session
 
-    def _format_namespace(self, tenancy: cloud_dto.Tenancy):
-        """
-        Returns the namespace to use for the given tenancy.
-        """
-        tenancy_name = re.sub("[^a-z0-9]+", "-", str(tenancy.name).lower()).strip("-")
-        return f"az-{tenancy_name}"
-
     def session(self, cloud_session: cloud_base.ScopedSession) -> 'Session':
         """
         Returns a Cluster API session scoped to the given cloud provider session.
         """
         session_class = self.get_session_class()
-        namespace = self._format_namespace(cloud_session.tenancy())
-        # Create an easykube client targetting our namespace
-        client = self._ekconfig.sync_client(default_namespace = namespace)
+        client = self._ekconfig.sync_client()
         return session_class(client, cloud_session)
 
 
@@ -134,24 +125,6 @@ class Session:
             *args,
             **kwargs
         )
-
-    def _ensure_namespace(self):
-        """
-        Ensures that the target namespace exists.
-        """
-        try:
-            self._client.api("v1").resource("namespaces").create({
-                "metadata": {
-                    "name": self._client.default_namespace,
-                    "labels": {
-                        "app.kubernetes.io/managed-by": "azimuth",
-                    },
-                },
-            })
-        except ApiError as exc:
-            # Swallow the conflict that occurs when the namespace already exists
-            if exc.status_code != 409 or exc.reason.lower() != "alreadyexists":
-                raise
 
     def _from_api_cluster_template(self, ct):
         """
@@ -426,7 +399,11 @@ class Session:
         Create a new cluster in the tenancy.
         """
         # Make sure that the target namespace exists
-        self._ensure_namespace()
+        utils.ensure_namespace(
+            self._client,
+            self._client.default_namespace,
+            self._cloud_session.tenancy()
+        )
         # Make sure any shared resources exist
         self._ensure_shared_resources()
         try:
@@ -859,6 +836,10 @@ class Session:
         Called when entering a context manager block.
         """
         self._client.__enter__()
+        # Work out what namespace to target for the tenancy
+        namespace = utils.get_namespace(self._client, self._cloud_session.tenancy())
+        # Set the target namespace as the default namespace for the client
+        self._client.default_namespace = namespace
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
