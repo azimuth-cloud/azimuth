@@ -273,8 +273,8 @@ const RedirectToLogin = () => {
 const Protected = connect(
     (state) => ({ session: state.session })
 )(({ children , session }) => {
-    if (session.username) return children;
-    else if (session.initialising) return null;
+    if( session.username ) return children;
+    else if( session.initialising ) return null;
     else return <RedirectToLogin />;
 });
 
