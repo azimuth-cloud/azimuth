@@ -60,6 +60,7 @@ export const TenancyPlatformsPanel = ({
     tenancy,
     tenancyActions,
     notificationActions,
+    supportsPlatforms,
 }) => {
     usePageTitle('Platforms');
 
@@ -198,7 +199,7 @@ export const TenancyPlatformsPanel = ({
                     </ButtonGroup>
                 </Col>
             </Row>
-            {resource.initialised ? (
+            {(resource.initialised && supportsPlatforms) ? (
                 <PlatformsGrid
                     showCreateModal={() => setCreateModalVisible(true)}
                     creating={resource.creating}
@@ -209,9 +210,9 @@ export const TenancyPlatformsPanel = ({
                 />
             ) : (
                 <Row className="justify-content-center">
-                    {platformsNotFound ? (
+                    {!supportsPlatforms ? (
                         <Col xs="auto py-3">
-                            <Error message="Platforms are not supported." />
+                            <Error message="Platforms are not available in this tenancy." />
                         </Col>
                     ) : (
                         (resource.fetchErrors && !resource.fetching) ? (

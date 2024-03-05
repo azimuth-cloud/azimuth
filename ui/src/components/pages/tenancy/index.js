@@ -217,9 +217,10 @@ const PlatformPanelComponents = {
 export const TenancyResourcePage = ({
     resource,
     capabilities,
+    supportsPlatforms,
     sshKey,
     sshKeyActions,
-    tenancies: { current: currentTenancy },
+    currentTenancy,
     tenancyActions,
     notificationActions
 }) => {
@@ -246,17 +247,6 @@ export const TenancyResourcePage = ({
         },
         [resource]
     );
-
-    let supportsPlatforms = capabilities.supports_clusters || capabilities.supports_kubernetes;
-    useResourceInitialised(currentTenancy.clusterTypes, tenancyActions.clusterType.fetchList);
-    useResourceInitialised(currentTenancy.kubernetesClusterTemplates, tenancyActions.kubernetesClusterTemplate.fetchList);
-    if (currentTenancy.kubernetesClusterTemplates.initialised && currentTenancy.clusterTypes.initialised) {
-        const kubernetesClusterTemplatesAvailable = Object.getOwnPropertyNames(currentTenancy.kubernetesClusterTemplates.data).length > 0;
-        const clusterTypesAvailable = Object.getOwnPropertyNames(currentTenancy.clusterTypes.data).length > 0;
-        if (!(kubernetesClusterTemplatesAvailable || clusterTypesAvailable)) {
-            supportsPlatforms = false;
-        }
-    };
 
     let PanelComponent;
     if( PlatformPanelComponents.hasOwnProperty(resource) ) {
@@ -290,6 +280,7 @@ export const TenancyResourcePage = ({
                         tenancy={currentTenancy}
                         tenancyActions={tenancyActions}
                         notificationActions={notificationActions}
+                        supportsPlatforms={supportsPlatforms}
                     />
                 </Col>
             </Row>

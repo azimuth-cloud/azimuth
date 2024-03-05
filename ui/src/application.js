@@ -12,6 +12,8 @@ import { Navigate, Routes, Route, useParams } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
+import { StatusCodes } from 'http-status-codes';
+
 import { actionCreators as sshKeyActions } from './redux/ssh-public-key';
 import { actionCreators as tenancyActions } from './redux/tenancies';
 import { actionCreators as notificationActions } from './redux/notifications';
@@ -100,46 +102,142 @@ const ConnectedTenancyResourcePage = connect(
         notificationActions: bindActionCreators(notificationActions, dispatch),
         sshKeyActions: bindActionCreators(sshKeyActions, dispatch)
     })
-)(props => {
+)(({ tenancies, tenancyActions, ...props }) => {
     const { resource: matchedResource } = useParams();
 
-    const tenancyActions = props.tenancyActions;
-    const currentTenancy = props.tenancies.current;
+    const currentTenancy = tenancies.current;
 
-    // Bind actions to current tenancy here rather than within TenancyResourcePage
-    // so that we can conditionally render the tenancy resource page based on
-    // whether platforms usage is restricted or not within the given tenancy.
-    return <TenancyResourcePage
-        {...props}
-        resource={matchedResource}
-        tenancyActions={{
-            idp: bindArgsToActions(tenancyActions.idp, currentTenancy.id),
-            quota: bindArgsToActions(tenancyActions.quota, currentTenancy.id),
-            image: bindArgsToActions(tenancyActions.image, currentTenancy.id),
-            size: bindArgsToActions(tenancyActions.size, currentTenancy.id),
-            externalIp: bindArgsToActions(tenancyActions.externalIp, currentTenancy.id),
-            volume: bindArgsToActions(tenancyActions.volume, currentTenancy.id),
-            machine: bindArgsToActions(tenancyActions.machine, currentTenancy.id),
-            kubernetesClusterTemplate: bindArgsToActions(
-                tenancyActions.kubernetesClusterTemplate,
-                currentTenancy.id
-            ),
-            kubernetesCluster: bindArgsToActions(
-                tenancyActions.kubernetesCluster,
-                currentTenancy.id
-            ),
-            kubernetesAppTemplate: bindArgsToActions(
-                tenancyActions.kubernetesAppTemplate,
-                currentTenancy.id
-            ),
-            kubernetesApp: bindArgsToActions(
-                tenancyActions.kubernetesApp,
-                currentTenancy.id
-            ),
-            clusterType: bindArgsToActions(tenancyActions.clusterType, currentTenancy.id),
-            cluster: bindArgsToActions(tenancyActions.cluster, currentTenancy.id)
-        }}
-    />;
+    // Bind the tenancy actions to the current tenancy
+    const boundTenancyActions = {
+        idp: bindArgsToActions(tenancyActions.idp, currentTenancy.id),
+        quota: bindArgsToActions(tenancyActions.quota, currentTenancy.id),
+        image: bindArgsToActions(tenancyActions.image, currentTenancy.id),
+        size: bindArgsToActions(tenancyActions.size, currentTenancy.id),
+        externalIp: bindArgsToActions(tenancyActions.externalIp, currentTenancy.id),
+        volume: bindArgsToActions(tenancyActions.volume, currentTenancy.id),
+        machine: bindArgsToActions(tenancyActions.machine, currentTenancy.id),
+        kubernetesClusterTemplate: bindArgsToActions(
+            tenancyActions.kubernetesClusterTemplate,
+            currentTenancy.id
+        ),
+        kubernetesCluster: bindArgsToActions(
+            tenancyActions.kubernetesCluster,
+            currentTenancy.id
+        ),
+        kubernetesAppTemplate: bindArgsToActions(
+            tenancyActions.kubernetesAppTemplate,
+            currentTenancy.id
+        ),
+        kubernetesApp: bindArgsToActions(
+            tenancyActions.kubernetesApp,
+            currentTenancy.id
+        ),
+        clusterType: bindArgsToActions(tenancyActions.clusterType, currentTenancy.id),
+        cluster: bindArgsToActions(tenancyActions.cluster, currentTenancy.id)
+    };
+
+    // Ensure that we initialise the resources we need to decide if platforms are supported
+    // Platforms are supported if:
+    //   The tenancy has access to at least one cluster type or Kubernetes template
+    //   OR
+    //   There is at least one platform deployed in the tenancy
+    useResourceInitialised(
+        currentTenancy.clusterTypes,
+        boundTenancyActions.clusterType.fetchList
+    );
+    useResourceInitialised(
+        currentTenancy.clusters,
+        boundTenancyActions.cluster.fetchList
+    );
+    useResourceInitialised(
+        currentTenancy.kubernetesClusterTemplates,
+        boundTenancyActions.kubernetesClusterTemplate.fetchList
+    );
+    useResourceInitialised(
+        currentTenancy.kubernetesClusters,
+        boundTenancyActions.kubernetesCluster.fetchList
+    );
+
+    // Decide whether we have enough information yet to decide if platforms are supported
+    let supportsPlatforms;
+    if(
+        Object.keys(currentTenancy.clusterTypes.data || {}).length > 0 ||
+        Object.keys(currentTenancy.kubernetesClusterTemplates.data || {}).length > 0 ||
+        Object.keys(currentTenancy.clusters.data || {}).length > 0 ||
+        Object.keys(currentTenancy.kubernetesClusters.data || {}).length > 0
+    ) {
+        // If one of the resources has some data, platforms are supported
+        supportsPlatforms = true;
+    }
+    else if(
+        currentTenancy.clusterTypes.initialised &&
+        currentTenancy.kubernetesClusterTemplates.initialised &&
+        currentTenancy.clusters.initialised &&
+        currentTenancy.kubernetesClusters.initialised
+    ) {
+        // If none of the resources has any data but they are all initialised, platforms
+        // are not supported
+        supportsPlatforms = false;
+    }
+    else if(
+        currentTenancy.clusterTypes.fetching ||
+        currentTenancy.kubernetesClusterTemplates.fetching ||
+        currentTenancy.clusters.fetching ||
+        currentTenancy.kubernetesClusters.fetching
+    ) {
+        // If one of the resources is still fetching, we can't decide yet
+        return (
+            <Row className="justify-content-center">
+                <Col xs="auto py-5" className="mt-5">
+                    <Loading iconSize="lg" size="lg" message="Loading..." />
+                </Col>
+            </Row>
+        );
+    }
+    else {
+        // If we get to here, we are in one of two states
+        //   1. None of the resources have started fetching yet
+        //   2. At least one resource had an error while fetching
+        const fetchErrors = (
+            [
+                currentTenancy.clusterTypes.fetchError,
+                currentTenancy.kubernetesClusterTemplates.fetchError,
+                currentTenancy.clusters.fetchError,
+                currentTenancy.kubernetesClusters.fetchError
+            ].filter(e => !!e)
+        );
+        if( fetchErrors.length == 0 ) {
+            // If there are no errors, we are yet to begin loading
+            return (
+                <Row className="justify-content-center">
+                    <Col xs="auto py-5" className="mt-5">
+                        <Loading iconSize="lg" size="lg" message="Loading..." />
+                    </Col>
+                </Row>
+            );
+        }
+        else {
+            // If all the errors are 404s, that means platforms are not supported
+            // If at least one error is not a 404, we have to assume they are supported
+            supportsPlatforms = fetchErrors.some(e => e.statusCode !== StatusCodes.NOT_FOUND);
+        }
+    }
+
+    // If there is a matched resource, render the tenancy resource page
+    // If not, redirect to the default resource, which depends on whether platforms are supported
+    if( matchedResource ) {
+        return <TenancyResourcePage
+            {...props}
+            resource={matchedResource}
+            currentTenancy={currentTenancy}
+            tenancyActions={boundTenancyActions}
+            supportsPlatforms={supportsPlatforms}
+        />;
+    }
+    else {
+        const defaultResource = supportsPlatforms ? "platforms" : "machines";
+        return <Navigate to={`/tenancies/${currentTenancy.id}/${defaultResource}`} />;
+    }
 });
 
 
@@ -242,48 +340,6 @@ const EnsureTenancy = connect(
 });
 
 
-const RedirectToDefaultResource = connect(
-    (state) => ({
-        capabilities: state.session.capabilities,
-        tenancies: state.tenancies,
-        tenancyActions: state.tenancyActions,
-    }),
-)(({ capabilities, tenancies: { current: currentTenancy }, dispatch }) => {
-
-    // We need to be able to dispatch calls to ClusterType and Kubernetes template lists
-    // here to decide whether 'platforms' or 'machines' should be default resource.
-    useResourceInitialised(
-        currentTenancy.kubernetesClusterTemplates,
-        () => dispatch(tenancyActions.kubernetesClusterTemplate.fetchList(currentTenancy.id))
-    );
-    useResourceInitialised(
-        currentTenancy.clusterTypes,
-        () => dispatch(tenancyActions.clusterType.fetchList(currentTenancy.id))
-    );
-
-    if (currentTenancy.clusterTypes.initialised && currentTenancy.kubernetesClusterTemplates.initialised) {
-
-        const kubernetesClusterTemplatesAvailable = Object.getOwnPropertyNames(currentTenancy.kubernetesClusterTemplates.data).length > 0;
-        const clusterTypesAvailable = Object.getOwnPropertyNames(currentTenancy.clusterTypes.data).length > 0;
-
-        const defaultResource = (
-            capabilities.supports_clusters || capabilities.supports_kubernetes ?
-                ((kubernetesClusterTemplatesAvailable || clusterTypesAvailable) ? 'platforms' : 'machines') :
-                'quotas'
-        );
-        return <Navigate to={`/tenancies/${currentTenancy.id}/${defaultResource}`} />;
-    } else {
-        return (
-            <Row className="justify-content-center">
-                <Col xs="auto py-5" className="mt-5">
-                    <Loading iconSize="lg" size="lg" message="Loading..." />
-                </Col>
-            </Row>
-        );
-    }
-});
-
-
 export const Application = () => (
     <div className="sticky-footer-wrap">
         <div className="sticky-footer-content d-flex flex-column">
@@ -306,7 +362,7 @@ export const Application = () => (
                     element={
                         <Protected>
                             <EnsureTenancy>
-                                <RedirectToDefaultResource />
+                                <ConnectedTenancyResourcePage />
                             </EnsureTenancy>
                         </Protected>
                     }
