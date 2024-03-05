@@ -18,9 +18,15 @@ import { CreateMachineButton } from './create-modal';
 import { MachinesTable } from './table';
 
 
-const Machines = ({ resourceData, resourceActions, capabilities, ...props }) => (
+const Machines = ({
+    resourceData,
+    resourceActions,
+    capabilities,
+    supportsPlatforms,
+    ...props
+}) => (
     <>
-        {(capabilities.supports_clusters || capabilities.supports_kubernetes) && (
+        {supportsPlatforms && (
             <Row className="justify-content-center">
                 <Col xs="auto">
                     <Alert variant="warning" className="d-flex align-items-center">
@@ -62,7 +68,8 @@ export const TenancyMachinesPanel = ({
         image: imageActions,
         size: sizeActions,
         externalIp: externalIpActions
-    }
+    },
+    supportsPlatforms,
 }) => {
     // Set the page title
     usePageTitle("Machines");
@@ -90,6 +97,7 @@ export const TenancyMachinesPanel = ({
                 sizes={sizes}
                 externalIps={externalIps}
                 externalIpActions={externalIpActions}
+                supportsPlatforms={supportsPlatforms}
             />
         </ResourcePanel>
     );
