@@ -55,6 +55,7 @@ jobs:
         with:
           os-clouds: ${{ secrets.OS_CLOUDS }}
           environment-prefix: api-ci
+          target-cloud: ${{ vars.TARGET_CLOUD }}
           # Use the version of the chart that we just built
           # The workstation + Kubernetes apps tests are sufficient to exercise the API
           extra-vars: |
