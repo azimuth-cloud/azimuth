@@ -32,21 +32,8 @@ jobs:
       ref: ${{ github.event.pull_request.head.sha }}
     secrets: inherit
 
-  # We want jobs to wait in a queue for a slot to run, so as not to overload the test infra
-  # GitHub concurrency _almost_ does this, except the queue length is one :-(
-  # There is a feature request for what we need https://github.com/orgs/community/discussions/12835
-  # Until that is implemented, the only other viable option is a busy wait
-  wait_in_queue:
-    needs: [publish_artifacts]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Wait for an available slot
-        uses: stackhpc/github-actions/workflow-concurrency@master
-        with:
-          max-concurrency: 1
-
   run_azimuth_tests:
-    needs: [publish_artifacts, wait_in_queue]
+    needs: [publish_artifacts]
     runs-on: ubuntu-latest
     steps:
       # Check out the configuration repository
