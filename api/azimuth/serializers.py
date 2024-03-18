@@ -536,6 +536,22 @@ class ClusterSerializer(
         return result
 
 
+class ResourceScheduleSerializer(serializers.Serializer):
+    start = serializers.DateTimeField(write_only=True, required=False)
+    end = serializers.DateTimeField(write_only=True, required=False)
+
+    def validate(self, data):
+        start = data.get("start")
+        end = data.get("end")
+        if start and end and start > end:
+            raise serializers.ValidationError("Start must be before end.")
+        # validate start is in the past
+        now = datetime.datetime.now(datetime.timezone.utc)
+        if start and start <= now:
+            raise serializers.ValidationError("Start must be in the past.")
+        return data
+
+
 class CreateClusterSerializer(serializers.Serializer):
     name = serializers.RegexField("^[a-z0-9-]+$", write_only = True)
     cluster_type = serializers.RegexField(ID_REGEX, write_only = True)

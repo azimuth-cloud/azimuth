@@ -1139,6 +1139,7 @@ def clusters(request, tenant):
                 )
                 return response.Response(output_serializer.data)
             else:
+                # TODO(johngarbutt) add missing resource schedule
                 serializer = serializers.ClusterSerializer(
                     cluster_manager.clusters(),
                     many = True,
