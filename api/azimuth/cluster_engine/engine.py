@@ -3,6 +3,7 @@ This module defines the base class for cluster managers.
 """
 
 import dataclasses
+import datetime
 import typing as t
 
 import jinja2
@@ -263,7 +264,8 @@ class ClusterManager:
         name: str,
         cluster_type: dto.ClusterType,
         params: t.Mapping[str, t.Any],
-        ssh_key: t.Optional[str]
+        ssh_key: t.Optional[str],
+        resource_schedule: t.Mapping[str, datetime.datetime],
     ) -> dto.Cluster:
         """
         Creates a new cluster with the given name, type and parameters.

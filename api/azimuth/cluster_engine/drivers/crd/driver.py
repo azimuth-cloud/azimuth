@@ -139,7 +139,8 @@ def create_cluster(
     name: str,
     cluster_type_name: str,
     params: dict,
-    ctx: dto.Context
+    ctx: dto.Context,
+    end_date: datetime.datetime,
 ):
     safe_name = utils.sanitise(name)
     secret_name = f"{safe_name}-caas-credential"
@@ -177,6 +178,9 @@ def create_cluster(
             "spec": cluster_spec,
         }
     )
+    # TODO(johngarbutt): create schedule resource
+    # adding the correct owner relationship,
+    # if end date is specified
     return get_cluster_dto(cluster)
 
 
@@ -292,13 +296,14 @@ class Driver(base.Driver):
         name: str,
         cluster_type: dto.ClusterType,
         params: t.Mapping[str, t.Any],
-        ctx: dto.Context
+        ctx: dto.Context,
+        resource_schedule: t.Mapping[str, datetime.datetime],
     ) -> dto.Cluster:
         """
         Create a new cluster with the given name, type and parameters.
         """
         client = get_k8s_client(ctx, True)
-        return create_cluster(client, name, cluster_type.name, params, ctx)
+        return create_cluster(client, name, cluster_type.name, params, ctx, resource_schedule.get("end"))
 
     def update_cluster(
         self,

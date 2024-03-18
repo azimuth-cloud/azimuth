@@ -1120,7 +1120,9 @@ def clusters(request, tenant):
                     input_serializer.validated_data["name"],
                     input_serializer.validated_data["cluster_type"],
                     input_serializer.validated_data["parameter_values"],
-                    ssh_key
+                    ssh_key,
+                    # TODO(johngarbutt) do we need a object for this?
+                    input_serializer.validated_data.get("resource_schedule"),
                 )
                 # Set up the identity for the cluster services
                 if cloud_settings.APPS:
@@ -1132,6 +1134,7 @@ def clusters(request, tenant):
                 )
                 return response.Response(output_serializer.data)
             else:
+                # TODO(johngarbutt) add missing resource schedule
                 serializer = serializers.ClusterSerializer(
                     cluster_manager.clusters(),
                     many = True,
