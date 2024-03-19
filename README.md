@@ -5,18 +5,34 @@
 Azimuth provides a self-service portal for managing cloud resources, with a focus on simplifying
 the use of cloud for high-performance computing (HPC) and artificial intelligence (AI) use cases.
 
-It is currently capable of targeting [OpenStack](https://www.openstack.org/) clouds.
+Azimuth is currently capable of targeting [OpenStack](https://www.openstack.org/) clouds, with
+the supported platforms ranging from single-machine workstations with web-based remote console
+and desktop access to entire [Slurm](https://slurm.schedmd.com/) clusters and platforms such
+as [JupyterHub](https://jupyter.org/hub) that run on [Kubernetes](https://kubernetes.io/) clusters.
+
+To run Azimuth on your own cloud, please see:
+
+* https://stackhpc.github.io/azimuth-config/
+
+Developers looking to modify Azimuth, please see:
+
+* https://stackhpc.github.io/azimuth-config/developing/
+* https://github.com/stackhpc/azimuth-sample-appliance
+
+Users of Azimuth wanting to know more, please see:
+
+* https://stackhpc.github.io/azimuth-user-docs/
 
 ## Contents  <!-- omit in toc -->
 
-- [Introduction](#introduction)
+- [What is Azimuth?](#what-is-azimuth)
 - [Try Azimuth](#try-azimuth)
 - [Timeline](#timeline)
 - [Architecture](#architecture)
 - [Deploying Azimuth](#deploying-azimuth)
 - [Setting up a local development environment](#setting-up-a-local-development-environment)
 
-## Introduction
+## What is Azimuth?
 
 Azimuth was originally developed for the [JASMIN Cloud](https://jasmin.ac.uk/) as a simplified
 version of the [OpenStack Horizon](https://docs.openstack.org/horizon/latest/) dashboard, with the
@@ -93,7 +109,7 @@ A demo instance of Azimuth can be deployed on an OpenStack cloud by following
 [these simple instructions](https://stackhpc.github.io/azimuth-config/try/). All that is required is an
 account on an OpenStack cloud and a host that is capable of running [Ansible](https://www.ansible.com/).
 Admin privileges on the target cloud are not normally required.
-      
+
 ## Timeline
 
 This section shows a timeline of the significant events in the development of Azimuth:
