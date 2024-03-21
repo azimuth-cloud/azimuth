@@ -78,3 +78,14 @@ rules:
       - update
       - patch
       - delete
+  - apiGroups:
+      - scheduling.azimuth.stackhpc.com
+    resources:
+      - schedules
+    verbs:
+      - list
+      - get
+      - create
+      - update
+      - patch
+      - delete

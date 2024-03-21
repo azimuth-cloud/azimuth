@@ -296,7 +296,8 @@ class ClusterManager:
             name,
             cluster_type,
             params,
-            ctx
+            ctx,
+            resource_schedule
         )
         return self._cluster_modify(cluster)
 

@@ -534,7 +534,7 @@ class CreateClusterSerializer(serializers.Serializer):
     name = serializers.RegexField("^[a-z0-9-]+$", write_only = True)
     cluster_type = serializers.RegexField(ID_REGEX, write_only = True)
     parameter_values = serializers.JSONField(write_only = True)
-    resource_schedule = ResourceScheduleSerializer(write_only = True)
+    #resource_schedule = ResourceScheduleSerializer(write_only = True)
 
     def validate_cluster_type(self, value):
         # Find the cluster type

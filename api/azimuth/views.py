@@ -6,6 +6,7 @@ import dataclasses
 import functools
 import logging
 import math
+import json
 
 from django.template import Context, Engine
 from django.shortcuts import redirect, render
@@ -1083,6 +1084,8 @@ def clusters(request, tenant):
     with request.auth.scoped_session(tenant) as session:
         with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
             if request.method == "POST":
+                print(request.data)
+                print(request.data.get("resource_schedule"))
                 input_serializer = serializers.CreateClusterSerializer(
                     data = request.data,
                     context = { "session": session, "cluster_manager": cluster_manager }
@@ -1122,7 +1125,7 @@ def clusters(request, tenant):
                     input_serializer.validated_data["parameter_values"],
                     ssh_key,
                     # TODO(johngarbutt) do we need a object for this?
-                    input_serializer.validated_data.get("resource_schedule"),
+                    request.data.get("resource_schedule"),
                 )
                 # Set up the identity for the cluster services
                 if cloud_settings.APPS:

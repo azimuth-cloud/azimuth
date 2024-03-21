@@ -172,6 +172,10 @@ const ClusterStatusCard = ({ cluster, clusterType }) => (
                     <td>{cluster.created_by_username || '-'}</td>
                 </tr>
                 <tr>
+                    <th>Deletes scheduled at:</th>
+                    <td>{cluster.resource_schedule || 'Never'}</td>
+                </tr>
+                <tr>
                     <th>Updated</th>
                     <td>{cluster.updated ? cluster.updated.toRelative() : '-'}</td>
                 </tr>
@@ -463,7 +467,8 @@ export const ClusterCard = ({
             )}
             <Card.Body className="small text-muted">
                 Created {cluster.created.toRelative()}<br/>
-                Created by {cluster.created_by_username || 'unknown'}
+                Created by {cluster.created_by_username || 'unknown'}<br/>
+                Deletes at: {cluster.resource_schedule || 'Never'}
             </Card.Body>
             <Card.Footer>
                 <ClusterDetailsButton

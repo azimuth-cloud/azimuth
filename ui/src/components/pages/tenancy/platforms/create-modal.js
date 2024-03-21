@@ -126,7 +126,8 @@ const ClusterConfigurationForm = ({
                     tenancyActions.cluster.create({
                         name: data.name,
                         cluster_type: clusterType.name,
-                        parameter_values: data.parameterValues
+                        parameter_values: data.parameterValues,
+                        resource_schedule: data.resourceSchedule
                     });
                     onSuccess();
                 }}
