@@ -26,20 +26,23 @@ const useSchedulingData = (tenancyId, formState) => {
         loading: true,
         fits: false,
         quotas: null,
-        error: null
+        error: null,
+        endDate: formState.resourceSchedule
     });
 
     const setData = (fits, data) => setState({
         loading: false,
         fits,
         quotas: data.quotas,
-        error: null
+        error: null,
+        endDate: formState.resourceSchedule
     });
     const setError = error => setState({
         loading: false,
         fits: false,
         quotas: null,
-        error
+        error,
+        endDate: formState.resourceSchedule
     });
 
     useEffect(
@@ -60,10 +63,14 @@ const useSchedulingData = (tenancyId, formState) => {
                         body: JSON.stringify({
                             name: formState.name,
                             cluster_type: formState.clusterType.name,
-                            parameter_values: formState.parameterValues
+                            parameter_values: formState.parameterValues,
+                            resource_schedule: {end: formState.resourceSchedule}
                         })
                     }
                 );
+                // let m = await response.text();
+                // console.log(m)
+                console.log(response)
                 if( response.ok || response.status === 409 ) {
                     const data = await response.json();
                     setData(response.ok, data);
@@ -110,6 +117,8 @@ export const useClusterFormState = (clusterType, cluster) => {
     const [parameterValues, setParameterValues] = useState(
         initialParameterValues(clusterType, cluster)
     );
+    const [resourceSchedule, setResourceSchedule] = useState(0);
+    //console.log(resourceSchedule);
     return [
         {
             clusterType,
@@ -118,11 +127,14 @@ export const useClusterFormState = (clusterType, cluster) => {
             name,
             setName,
             parameterValues,
-            setParameterValues
+            setParameterValues,
+            resourceSchedule,
+            setResourceSchedule
         },
         () => {
             setName(cluster ? cluster.name : "");
             setParameterValues(initialParameterValues(clusterType, cluster));
+            setResourceSchedule(0)
         }
     ]
 };
@@ -136,6 +148,29 @@ export const ClusterForm = ({
     ...props
 }) => {
     const [showScheduling, setShowScheduling] = useState(false);
+
+    const dateOptions = [
+        {
+            days: 0,
+            label: 'End of today'
+        },
+        {
+            days: 1,
+            label: 'End of tomorrow'
+        },
+        {
+            days: 7, 
+            label: 'End of this week'
+        },
+        {
+            days: 14,
+            label: 'End of next week'
+        },
+        {
+            days: Infinity,
+            label: 'Never'
+        }
+    ]
 
     const handleNameChange = evt => formState.setName(evt.target.value);
     const handleParameterValueChange = (name) => (value) => formState.setParameterValues(
@@ -190,6 +225,18 @@ export const ClusterForm = ({
                         onChange={handleParameterValueChange(p.name)}
                     />
                 ))}
+                <Field 
+                    name="schedule"
+                    label="Schedule delete for:"
+                    helpText="To help efficient use of resources, please delete your platform as soon as you are done."
+                >
+                <BSForm.Control as="select" onChange={returnEndDate} >
+                {dateOptions.map(p => (
+                    <option key={p.value} value={p.days}>{p.label}</option>
+                ))}
+                </BSForm.Control>
+                </Field>
+
             </Form>
             {showScheduling && (
                 <PlatformSchedulingModal

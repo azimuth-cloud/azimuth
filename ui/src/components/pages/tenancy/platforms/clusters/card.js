@@ -180,6 +180,10 @@ const ClusterStatusCard = ({ cluster, clusterType }) => (
                     <td>{cluster.created_by_username || '-'}</td>
                 </tr>
                 <tr>
+                    <th>Deletes scheduled at:</th>
+                    <td>{cluster.resource_schedule || 'Never'}</td>
+                </tr>
+                <tr>
                     <th>Updated</th>
                     <td>{cluster.updated ? cluster.updated.toRelative() : '-'}</td>
                 </tr>

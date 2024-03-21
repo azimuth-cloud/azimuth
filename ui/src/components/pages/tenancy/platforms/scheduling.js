@@ -8,6 +8,7 @@ import InputGroup from 'react-bootstrap/InputGroup';
 import Modal from 'react-bootstrap/Modal';
 import ProgressBar from 'react-bootstrap/ProgressBar';
 import Row from 'react-bootstrap/Row';
+import Form from 'react-bootstrap/Form';
 
 import { DateTime } from 'luxon';
 
