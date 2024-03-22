@@ -51,6 +51,10 @@ jobs:
             generate_tests_caas_test_case_repo2docker_enabled: false
             generate_tests_caas_test_case_rstudio_enabled: false
             generate_tests_kubernetes_suite_enabled: false
+        # GitHub terminates jobs after 6 hours
+        # We don't want jobs to acquire the lock then get timed out before they can finish
+        # So wait a maximum of 3 hours to acquire the lock, leaving 3 hours for other tasks in the job
+        timeout-minutes: 180
 
       # Provision Azimuth using the azimuth-ops version under test
       - name: Provision Azimuth
