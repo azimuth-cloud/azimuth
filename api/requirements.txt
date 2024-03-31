@@ -10,7 +10,7 @@ django-flexi-settings @ git+https://github.com/stackhpc/django-flexi-settings.gi
 django-settings-object @ git+https://github.com/cedadev/django-settings-object.git@2b66c0fc5eae92972df5210b4bc43f7d95ad9ceb
 djangorestframework==3.15.1
 docutils==0.20.1
-easykube==0.1.1
+easykube==0.2.0
 easysemver==0.1.0
 gunicorn==21.2.0
 h11==0.14.0
