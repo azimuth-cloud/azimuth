@@ -2,7 +2,6 @@
 Views for the Azimuth auth package.
 """
 
-import json
 import unicodedata
 from urllib.parse import urlparse, urlencode
 
@@ -301,8 +300,8 @@ def token(request, authenticator):
         )
     # Try to pass the authentication data from the request
     try:
-        auth_data = json.loads(request.body)
-    except json.JSONDecodeError:
+        auth_data = request.POST.dict()
+    except Exception:
         return JsonResponse(
             { "message": "Request does not contain valid JSON." },
             status = 400
