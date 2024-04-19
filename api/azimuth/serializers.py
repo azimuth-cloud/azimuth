@@ -448,6 +448,22 @@ class ExternalIPSerializer(make_dto_serializer(dto.ExternalIp)):
 ProjectedQuotaSerializer = make_dto_serializer(scheduling_dto.ProjectedQuota)
 
 
+class PlatformScheduleSerializer(serializers.Serializer):
+    end_time = serializers.DateTimeField(default_timezone = datetime.timezone.utc)
+
+    def validate_end_time(self, value):
+        # Ensure that the end time is in the future
+        now = datetime.datetime.now(tz = datetime.timezone.utc)
+        if value <= now:
+            raise serializers.ValidationError("End time cannot be in the past.")
+        # Ensure that the end time is UTC
+        return value.astimezone(datetime.timezone.utc)
+
+    def to_internal_value(self, data):
+        data = super().to_internal_value(data)
+        return scheduling_dto.PlatformSchedule(**data)
+
+
 ClusterParameterSerializer = make_dto_serializer(clusters_dto.ClusterParameter)
 
 
@@ -471,9 +487,15 @@ class ClusterTypeSerializer(
         return result
 
 
-class ClusterSerializer(make_dto_serializer(clusters_dto.Cluster, exclude = ["services"])):
+class ClusterSerializer(
+    make_dto_serializer(
+        clusters_dto.Cluster,
+        exclude = ["status", "services", "schedule"]
+    )
+):
     status = serializers.ReadOnlyField(source = "status.name")
     services = serializers.SerializerMethodField()
+    schedule = PlatformScheduleSerializer()
 
     def get_services(self, obj):
         request = self.context.get("request")
@@ -514,27 +536,11 @@ class ClusterSerializer(make_dto_serializer(clusters_dto.Cluster, exclude = ["se
         return result
 
 
-class ResourceScheduleSerializer(serializers.Serializer):
-    start = serializers.DateTimeField(write_only=True, required=False)
-    end = serializers.DateTimeField(write_only=True, required=False)
-
-    def validate(self, data):
-        start = data.get("start")
-        end = data.get("end")
-        if start and end and start > end:
-            raise serializers.ValidationError("Start must be before end.")
-        # validate start is in the past
-        now = datetime.datetime.now(datetime.timezone.utc)
-        if start and start <= now:
-            raise serializers.ValidationError("Start must be in the past.")
-        return data
-
-
 class CreateClusterSerializer(serializers.Serializer):
     name = serializers.RegexField("^[a-z0-9-]+$", write_only = True)
     cluster_type = serializers.RegexField(ID_REGEX, write_only = True)
     parameter_values = serializers.JSONField(write_only = True)
-    #resource_schedule = ResourceScheduleSerializer(write_only = True)
+    schedule = PlatformScheduleSerializer(write_only = True, required = False)
 
     def validate_cluster_type(self, value):
         # Find the cluster type

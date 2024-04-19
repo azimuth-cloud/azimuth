@@ -17,12 +17,15 @@ import truncate from 'lodash/truncate';
 
 import ReactMarkdown from 'react-markdown';
 
+import { DateTime } from 'luxon';
+
 import nunjucks from 'nunjucks';
 import { sprintf } from 'sprintf-js';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faExclamationCircle,
+    faExclamationTriangle,
     faPen,
     faQuestionCircle,
     faShieldAlt,
@@ -144,6 +147,21 @@ const ClusterPatched = ({ cluster, clusterType }) => {
 };
 
 
+const ClusterExpires = ({ cluster }) => {
+    // If the cluster is close to expiry (less than one day) highlight this
+    const oneDayFromNow = DateTime.now().plus({ days: 7 });
+    const expires = cluster.schedule.end_time.toRelative();
+    return (
+        cluster.schedule.end_time > oneDayFromNow ?
+            expires :
+            <strong className="text-warning">
+                <FontAwesomeIcon icon={faExclamationTriangle} className="me-2" />
+                {expires}
+            </strong>
+    );
+};
+
+
 const ClusterStatusCard = ({ cluster, clusterType }) => (
     <Card className="mb-3">
         <Card.Header className="text-center">Cluster status</Card.Header>
@@ -172,10 +190,6 @@ const ClusterStatusCard = ({ cluster, clusterType }) => (
                     <td>{cluster.created_by_username || '-'}</td>
                 </tr>
                 <tr>
-                    <th>Deletes scheduled at:</th>
-                    <td>{cluster.resource_schedule || 'Never'}</td>
-                </tr>
-                <tr>
                     <th>Updated</th>
                     <td>{cluster.updated ? cluster.updated.toRelative() : '-'}</td>
                 </tr>
@@ -187,6 +201,12 @@ const ClusterStatusCard = ({ cluster, clusterType }) => (
                     <th>Patched</th>
                     <td><ClusterPatched cluster={cluster} clusterType={clusterType} /></td>
                 </tr>
+                {cluster.schedule && (
+                    <tr>
+                        <th>Expires</th>
+                        <td><ClusterExpires cluster={cluster} /></td>
+                    </tr>
+                )}
             </tbody>
         </Table>
     </Card>
@@ -237,7 +257,10 @@ const ClusterUpdateButton = ({
     const clusterType = get(tenancy.clusterTypes.data, cluster.cluster_type) || clusterTypePlaceholder;
 
     const handleSubmit = data => {
-        onSubmit({ parameter_values: data.parameterValues });
+        onSubmit({
+            parameter_values: data.parameterValues,
+            schedule: data.schedule
+        });
         close();
     };
 
@@ -467,8 +490,13 @@ export const ClusterCard = ({
             )}
             <Card.Body className="small text-muted">
                 Created {cluster.created.toRelative()}<br/>
-                Created by {cluster.created_by_username || 'unknown'}<br/>
-                Deletes at: {cluster.resource_schedule || 'Never'}
+                Created by {cluster.created_by_username || 'unknown'}
+                {cluster.schedule && (
+                    <>
+                        <br/>
+                        Expires {cluster.schedule.end_time.toRelative()}
+                    </>
+                )}
             </Card.Body>
             <Card.Footer>
                 <ClusterDetailsButton

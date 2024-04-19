@@ -1,3 +1,6 @@
+# Postpone evaluation of annotations to prevent circular dependencies
+from __future__ import annotations
+
 import typing as t
 
 from ..provider import base as cloud_provider

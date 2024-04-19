@@ -14,6 +14,7 @@ import yaml
 import requests
 
 from ..provider import dto as cloud_dto
+from ..scheduling import dto as scheduling_dto
 
 
 @dataclass(frozen = True)
@@ -248,3 +249,5 @@ class Cluster:
     updated_by_user_id: Optional[str]
     #: A list of Zenith services enabled for the cluster
     services: Sequence[ClusterService] = field(default_factory = list)
+    #: Scheduling information for the cluster
+    schedule: Optional[scheduling_dto.PlatformSchedule] = None

@@ -1,8 +1,11 @@
+# Postpone evaluation of annotations to prevent circular dependencies
+from __future__ import annotations
+
 import typing as t
 
 from ..cluster_api import dto as capi_dto
 from ..cluster_engine import dto as caas_dto
-from ..provider import base as cloud_provider, dto as cloud_dto
+from ..provider import base as cloud_provider
 from . import dto
 
 

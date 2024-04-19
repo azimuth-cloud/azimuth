@@ -9,6 +9,7 @@ import typing as t
 import jinja2
 
 from ..provider import base as cloud_base
+from ..scheduling import dto as scheduling_dto
 from ..zenith import Zenith
 
 from . import dto, errors
@@ -265,7 +266,7 @@ class ClusterManager:
         cluster_type: dto.ClusterType,
         params: t.Mapping[str, t.Any],
         ssh_key: t.Optional[str],
-        resource_schedule: t.Mapping[str, datetime.datetime],
+        schedule: t.Optional[scheduling_dto.PlatformSchedule]
     ) -> dto.Cluster:
         """
         Creates a new cluster with the given name, type and parameters.
@@ -296,8 +297,8 @@ class ClusterManager:
             name,
             cluster_type,
             params,
-            ctx,
-            resource_schedule
+            schedule,
+            ctx
         )
         return self._cluster_modify(cluster)
 

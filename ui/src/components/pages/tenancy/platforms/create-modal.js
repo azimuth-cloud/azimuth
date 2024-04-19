@@ -16,7 +16,6 @@ import ReactMarkdown from 'react-markdown';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faArrowCircleLeft,
-    faArrowCircleRight,
     faCheckCircle,
     faPlus,
     faSitemap,
@@ -127,7 +126,7 @@ const ClusterConfigurationForm = ({
                         name: data.name,
                         cluster_type: clusterType.name,
                         parameter_values: data.parameterValues,
-                        resource_schedule: data.resourceSchedule
+                        schedule: data.schedule
                     });
                     onSuccess();
                 }}

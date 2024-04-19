@@ -12,8 +12,6 @@ import Tab from 'react-bootstrap/Tab';
 
 import get from 'lodash/get';
 
-import { DateTime } from 'luxon';
-
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faCheck,
