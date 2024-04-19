@@ -19,7 +19,6 @@ from azimuth import utils
 
 
 CAAS_API_VERSION = "caas.azimuth.stackhpc.com/v1alpha1"
-SCHEDULE_API_VERSION = "scheduling.azimuth.stackhpc.com/v1alpha1"
 LOG = logging.getLogger(__name__)
 
 
@@ -114,7 +113,6 @@ def get_cluster_dto(raw_cluster, status_if_ready: t.Optional[dto.ClusterStatus] 
         tags=[],
         outputs=outputs,
         created=created_at,
-        resource_schedule=raw_cluster.spec.resource_schedule,
         updated=updated_at,
         patched=patched_at,
         services=[],
@@ -181,7 +179,6 @@ def create_cluster(
         cluster_spec["extraVars"] = {}
         for key, value in params.items():
             cluster_spec["extraVars"][key] = value
-        cluster_spec["resource_schedule"] = resource_schedule
     cluster_resource = client.api(CAAS_API_VERSION).resource("clusters")
     cluster = cluster_resource.create(
         {

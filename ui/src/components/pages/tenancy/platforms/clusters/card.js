@@ -17,6 +17,8 @@ import truncate from 'lodash/truncate';
 
 import ReactMarkdown from 'react-markdown';
 
+import { DateTime } from 'luxon';
+
 import nunjucks from 'nunjucks';
 import { sprintf } from 'sprintf-js';
 
@@ -152,6 +154,21 @@ const ClusterPatched = ({ cluster, clusterType }) => {
 };
 
 
+const ClusterExpires = ({ cluster }) => {
+    // If the cluster is close to expiry (less than one day) highlight this
+    const oneDayFromNow = DateTime.now().plus({ days: 7 });
+    const expires = cluster.schedule.end_time.toRelative();
+    return (
+        cluster.schedule.end_time > oneDayFromNow ?
+            expires :
+            <strong className="text-warning">
+                <FontAwesomeIcon icon={faExclamationTriangle} className="me-2" />
+                {expires}
+            </strong>
+    );
+};
+
+
 const ClusterStatusCard = ({ cluster, clusterType }) => (
     <Card className="mb-3">
         <Card.Header className="text-center">Cluster status</Card.Header>
@@ -178,10 +195,6 @@ const ClusterStatusCard = ({ cluster, clusterType }) => (
                 <tr>
                     <th>Created by</th>
                     <td>{cluster.created_by_username || '-'}</td>
-                </tr>
-                <tr>
-                    <th>Deletes scheduled at:</th>
-                    <td>{cluster.resource_schedule || 'Never'}</td>
                 </tr>
                 <tr>
                     <th>Updated</th>
