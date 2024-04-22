@@ -17,8 +17,6 @@ import truncate from 'lodash/truncate';
 
 import ReactMarkdown from 'react-markdown';
 
-import { DateTime } from 'luxon';
-
 import nunjucks from 'nunjucks';
 import { sprintf } from 'sprintf-js';
 
@@ -155,16 +153,14 @@ const ClusterPatched = ({ cluster, clusterType }) => {
 
 
 const ClusterExpires = ({ cluster }) => {
-    // If the cluster is close to expiry (less than one day) highlight this
-    const oneDayFromNow = DateTime.now().plus({ days: 7 });
     const expires = cluster.schedule.end_time.toRelative();
     return (
-        cluster.schedule.end_time > oneDayFromNow ?
-            expires :
+        expiresSoon(cluster.schedule) ?
             <strong className="text-warning">
                 <FontAwesomeIcon icon={faExclamationTriangle} className="me-2" />
                 {expires}
-            </strong>
+            </strong> :
+            expires
     );
 };
 
