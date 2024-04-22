@@ -152,19 +152,6 @@ const ClusterPatched = ({ cluster, clusterType }) => {
 };
 
 
-const ClusterExpires = ({ cluster }) => {
-    const expires = cluster.schedule.end_time.toRelative();
-    return (
-        expiresSoon(cluster.schedule) ?
-            <strong className="text-warning">
-                <FontAwesomeIcon icon={faExclamationTriangle} className="me-2" />
-                {expires}
-            </strong> :
-            expires
-    );
-};
-
-
 const ClusterStatusCard = ({ cluster, clusterType }) => (
     <Card className="mb-3">
         <Card.Header className="text-center">Cluster status</Card.Header>
