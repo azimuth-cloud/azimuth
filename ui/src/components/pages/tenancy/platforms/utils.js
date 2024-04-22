@@ -17,6 +17,7 @@ import {
     faBell,
     faBookmark,
     faCheck,
+    faExclamationTriangle,
     faExternalLinkAlt,
     faPaste,
     faStar,
@@ -218,6 +219,31 @@ export const PlatformDeleteButton = ({ name, inFlight, disabled, onConfirm, ...p
                 </Modal.Footer>
             </Modal>
         </>
+    );
+};
+
+
+export const PlatformExpires = ({ schedule }) => {
+    const expires = schedule.end_time.toRelative();
+    return (
+        <OverlayTrigger
+            placement="top"
+            trigger={["hover", "focus"]}
+            rootClose
+            overlay={
+                <Tooltip className="text-nowrap">
+                    {schedule.end_time.toUTC().toISO()}
+                </Tooltip>
+            }
+        >
+            {expiresSoon(schedule) ?
+                <strong className="text-warning">
+                    <FontAwesomeIcon icon={faExclamationTriangle} className="me-2" />
+                    {expires}
+                </strong> :
+                <span>{expires}</span>
+            }
+        </OverlayTrigger>
     );
 };
 

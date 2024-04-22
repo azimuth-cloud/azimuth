@@ -295,7 +295,7 @@
     }
 }
 .platform-card.platform-expiring {
-    border: 2px solid var(--bs-warning);
+    border: 3px solid var(--bs-warning);
 }
 .platform-card > .card-header {
     display: flex;

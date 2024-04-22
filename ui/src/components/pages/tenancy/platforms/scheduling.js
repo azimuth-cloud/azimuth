@@ -9,6 +9,8 @@ import Modal from 'react-bootstrap/Modal';
 import ProgressBar from 'react-bootstrap/ProgressBar';
 import Row from 'react-bootstrap/Row';
 
+import { DateTime } from 'luxon';
+
 import { Error, Field, Form, Loading, Select, formatSize, sortBy } from '../../../utils';
 
 
@@ -77,18 +79,12 @@ const ProjectedQuotas = ({ quotas }) => {
 };
 
 
-// This is an map of the units we allow to the multiplier to get ms
-const PLATFORM_LIFETIME_UNITS = {
-    minutes: 60 * 1000,
-    hours: 60 * 60 * 1000,
-    days: 24 * 60 * 60 * 1000,
-    weeks: 7 * 24 * 60 * 60 * 1000
-};
+const PLATFORM_LIFETIME_UNITS = ["minutes", "hours", "days", "months", "years"];
 
 
 const PlatformLifetimeControl = ({ isInvalid, value, onChange, ...props }) => {
-    const [count, setCount] = useState(value ? value / PLATFORM_LIFETIME_UNITS.days : null);
-    const [multiplier, setMultiplier] = useState(PLATFORM_LIFETIME_UNITS.days);
+    const [count, setCount] = useState(value ? value.count : null);
+    const [units, setUnits] = useState(value ? value.units : "days");
 
     const handleCountChange = evt => {
         const newCount = parseInt(evt.target.value, 10);
@@ -96,8 +92,8 @@ const PlatformLifetimeControl = ({ isInvalid, value, onChange, ...props }) => {
     };
 
     useEffect(
-        () => { onChange(count ? (count * multiplier) : null) },
-        [count, multiplier]
+        () => { onChange(count ? ({count, units}) : null) },
+        [count, units]
     );
 
     return (
@@ -112,17 +108,13 @@ const PlatformLifetimeControl = ({ isInvalid, value, onChange, ...props }) => {
                 {...props}
             />
             <BSForm.Control
-                className="flex-grow-0 w-25"
                 as={Select}
                 required
-                options={
-                    Object.entries(PLATFORM_LIFETIME_UNITS)
-                        .map(([label, value]) => ({label, value}))
-                }
-                // Sort the options by value instead of label
-                sortOptions={opts => sortBy(opts, opt => opt.value)}
-                value={multiplier}
-                onChange={setMultiplier}
+                options={PLATFORM_LIFETIME_UNITS.map(u => ({label: u, value: u}))}
+                // Sort the options by their index in the units
+                sortOptions={opts => sortBy(opts, opt => PLATFORM_LIFETIME_UNITS.indexOf(opt.value))}
+                value={units}
+                onChange={setUnits}
             />
             <InputGroup.Text>from now</InputGroup.Text>
         </InputGroup>
@@ -130,20 +122,29 @@ const PlatformLifetimeControl = ({ isInvalid, value, onChange, ...props }) => {
 };
 
 
-export const PlatformSchedulingModal = ({ useSchedulingData, onCancel, onConfirm }) => {
+export const PlatformSchedulingModal = ({
+    useSchedulingData,
+    isEdit,
+    onCancel,
+    onConfirm
+}) => {
     const { loading, fits, quotas, error } = useSchedulingData();
 
     const [platformLifetime, setPlatformLifetime] = useState(null);
 
     const handleConfirm = () => {
-        // On confirmation, convert the lifetime to an ISO-formatted end time
-        const currentTime = new Date();
-        const endTime = new Date(currentTime.getTime() + platformLifetime);
-        onConfirm({ end_time: endTime.toISOString() });
+        let newSchedule = null;
+        if( platformLifetime ) {
+            // On confirmation, convert the lifetime to an ISO-formatted end time
+            const duration = { [platformLifetime.units]: platformLifetime.count };
+            const endTime = DateTime.now().plus(duration);
+            newSchedule = { end_time: endTime.toUTC().toISO() };
+        }
+        onConfirm(newSchedule);
     };
 
     return (
-        <Modal show={true} backdrop="static" onHide={onCancel} size="lg">
+        <Modal show={true} backdrop="static" onHide={onCancel} size="md">
             <Modal.Header closeButton>
                 <Modal.Title>Platform scheduling</Modal.Title>
             </Modal.Header>
@@ -153,20 +154,22 @@ export const PlatformSchedulingModal = ({ useSchedulingData, onCancel, onConfirm
                     disabled={loading || error || !fits}
                     onSubmit={handleConfirm}
                 >
-                    <Field
-                        name="platform_lifetime"
-                        label="Maximum platform lifetime"
-                        helpText="The platform will be automatically deleted after this time."
-                    >
-                        <PlatformLifetimeControl
-                            required
-                            value={platformLifetime}
-                            onChange={setPlatformLifetime}
-                        />
-                    </Field>
+                    {isEdit ? undefined : (
+                        <Field
+                            name="platform_lifetime"
+                            label="Maximum platform lifetime"
+                            helpText="The platform will be automatically deleted after this time."
+                        >
+                            <PlatformLifetimeControl
+                                required
+                                value={platformLifetime}
+                                onChange={setPlatformLifetime}
+                            />
+                        </Field>
+                    )}
                     <Card>
                         <Card.Header>Platform resource consumption</Card.Header>
-                        <Card.Body>
+                        <Card.Body className="py-2">
                             {(loading || error) ? (
                                 <Row className="justify-content-center">
                                     <Col xs="auto py-3">

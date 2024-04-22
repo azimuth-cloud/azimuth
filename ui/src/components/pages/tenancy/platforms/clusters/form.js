@@ -193,6 +193,7 @@ export const ClusterForm = ({
             {showScheduling && (
                 <PlatformSchedulingModal
                     useSchedulingData={() => useSchedulingData(tenancy.id, formState)}
+                    isEdit={formState.isEdit}
                     onCancel={handleCancel}
                     onConfirm={handleConfirm}
                 />

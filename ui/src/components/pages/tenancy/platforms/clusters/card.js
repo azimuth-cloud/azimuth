@@ -35,6 +35,7 @@ import {
     PlatformCardHeader,
     PlatformServicesListGroup,
     PlatformDeleteButton,
+    PlatformExpires,
     expiresSoon
 } from '../utils';
 import { Error } from '../../../../utils';
@@ -151,19 +152,6 @@ const ClusterPatched = ({ cluster, clusterType }) => {
 };
 
 
-const ClusterExpires = ({ cluster }) => {
-    const expires = cluster.schedule.end_time.toRelative();
-    return (
-        expiresSoon(cluster.schedule) ?
-            <strong className="text-warning">
-                <FontAwesomeIcon icon={faExclamationTriangle} className="me-2" />
-                {expires}
-            </strong> :
-            expires
-    );
-};
-
-
 const ClusterStatusCard = ({ cluster, clusterType }) => (
     <Card className="mb-3">
         <Card.Header className="text-center">Cluster status</Card.Header>
@@ -206,7 +194,7 @@ const ClusterStatusCard = ({ cluster, clusterType }) => (
                 {cluster.schedule && (
                     <tr>
                         <th>Expires</th>
-                        <td><ClusterExpires cluster={cluster} /></td>
+                        <td><PlatformExpires schedule={cluster.schedule} /></td>
                     </tr>
                 )}
             </tbody>
@@ -474,7 +462,6 @@ export const ClusterCard = ({
 
     const clusterExpiresSoon = cluster.schedule ? expiresSoon(cluster.schedule) : false;
 
-    const updatedAt = cluster.updated || cluster.created;
     return (
         <Card className={`platform-card ${clusterExpiresSoon ? "platform-expiring" : ""}`}>
             <PlatformCardHeader
