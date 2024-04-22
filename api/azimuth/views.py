@@ -303,6 +303,7 @@ def session(request):
     Returns information about the current session.
     """
     return response.Response({
+        "user_id": request.auth.user_id(),
         "username": request.auth.username(),
         "token": request.auth.token(),
         # The capability to host apps is determined by the presence of an

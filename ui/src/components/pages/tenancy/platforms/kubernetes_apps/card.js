@@ -29,7 +29,12 @@ import {
 import { sortBy } from '../../../../utils';
 import sadFace from "../../../../../../assets/face-frown-regular.svg";
 
-import { PlatformTypeCard, PlatformServicesListGroup, PlatformDeleteButton } from '../utils';
+import {
+    PlatformTypeCard,
+    PlatformCardHeader,
+    PlatformServicesListGroup,
+    PlatformDeleteButton
+} from '../utils';
 
 import { KubernetesAppModalForm } from './form';
 
@@ -457,12 +462,14 @@ export const KubernetesAppCard = ({
     if( kubernetesAppTemplate ) {
         return (
             <Card className="platform-card">
-                <Card.Header>
+                {/* We don't currently support an owner reference on Kubernetes apps */}
+                {/* They also don't expire in the same way as they don't have their own resource */}
+                <PlatformCardHeader currentUserIsOwner={false} expiresSoon={false}>
                     <StatusBadge
                         kubernetesAppTemplate={kubernetesAppTemplate}
                         kubernetesApp={kubernetesApp}
                     />
-                </Card.Header>
+                </PlatformCardHeader>
                 <Card.Img src={kubernetesAppTemplate.logo} />
                 <Card.Body>
                     <Card.Title>{kubernetesApp.name}</Card.Title>

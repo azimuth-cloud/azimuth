@@ -17,8 +17,6 @@ import truncate from 'lodash/truncate';
 
 import ReactMarkdown from 'react-markdown';
 
-import { DateTime } from 'luxon';
-
 import nunjucks from 'nunjucks';
 import { sprintf } from 'sprintf-js';
 
@@ -32,7 +30,13 @@ import {
     faSyncAlt,
 } from '@fortawesome/free-solid-svg-icons';
 
-import { PlatformTypeCard, PlatformServicesListGroup, PlatformDeleteButton } from '../utils';
+import {
+    PlatformTypeCard,
+    PlatformCardHeader,
+    PlatformServicesListGroup,
+    PlatformDeleteButton,
+    expiresSoon
+} from '../utils';
 import { Error } from '../../../../utils';
 
 
@@ -148,16 +152,14 @@ const ClusterPatched = ({ cluster, clusterType }) => {
 
 
 const ClusterExpires = ({ cluster }) => {
-    // If the cluster is close to expiry (less than one day) highlight this
-    const oneDayFromNow = DateTime.now().plus({ days: 7 });
     const expires = cluster.schedule.end_time.toRelative();
     return (
-        cluster.schedule.end_time > oneDayFromNow ?
-            expires :
+        expiresSoon(cluster.schedule) ?
             <strong className="text-warning">
                 <FontAwesomeIcon icon={faExclamationTriangle} className="me-2" />
                 {expires}
-            </strong>
+            </strong> :
+            expires
     );
 };
 
@@ -457,6 +459,7 @@ export const ClusterCard = ({
     clusterActions,
     tenancy,
     tenancyActions,
+    userId,
     notificationActions
 }) => {
     // If cluster type is no longer available from the API (e.g. due to ACL changes in the tenancy) then use a placeholder.
@@ -469,12 +472,17 @@ export const ClusterCard = ({
         });
     }
 
+    const clusterExpiresSoon = cluster.schedule ? expiresSoon(cluster.schedule) : false;
+
     const updatedAt = cluster.updated || cluster.created;
     return (
-        <Card className="platform-card">
-            <Card.Header>
+        <Card className={`platform-card ${clusterExpiresSoon ? "platform-expiring" : ""}`}>
+            <PlatformCardHeader
+                currentUserIsOwner={userId === cluster.created_by_user_id}
+                expiresSoon={clusterExpiresSoon}
+            >
                 <Badge bg={statusBadgeBg[cluster.status]}>{cluster.status}</Badge>
-            </Card.Header>
+            </PlatformCardHeader>
             <Card.Img src={clusterType.logo} />
             <Card.Body>
                 <Card.Title>{cluster.name}</Card.Title>
@@ -489,8 +497,7 @@ export const ClusterCard = ({
                 </Card.Body>
             )}
             <Card.Body className="small text-muted">
-                Created {cluster.created.toRelative()}<br/>
-                Created by {cluster.created_by_username || 'unknown'}
+                Created {cluster.created.toRelative()}
                 {cluster.schedule && (
                     <>
                         <br/>

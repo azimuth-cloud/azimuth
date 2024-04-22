@@ -25,8 +25,6 @@ import {
     faUsers
 } from '@fortawesome/free-solid-svg-icons';
 
-import { bindArgsToActions } from '../../utils';
-
 import { TenancyIdpPanel } from './idp';
 import { TenancyQuotasPanel } from './quotas';
 import { TenancyMachinesPanel } from './machines';
@@ -34,7 +32,6 @@ import { TenancyVolumesPanel } from './volumes';
 import { TenancyPlatformsPanel } from './platforms';
 
 import { SSHKeyUpdateModal } from '../../ssh-key-update-modal';
-import { useResourceInitialised } from './resource-utils';
 
 
 const SSHKeyUpdateNavLink = ({ sshKey, sshKeyActions }) => {
@@ -216,6 +213,7 @@ const PlatformPanelComponents = {
 
 export const TenancyResourcePage = ({
     resource,
+    userId,
     capabilities,
     supportsPlatforms,
     sshKey,
@@ -275,6 +273,7 @@ export const TenancyResourcePage = ({
                         <code>{currentTenancy.name}</code>
                     </h1>
                     <PanelComponent
+                        userId={userId}
                         sshKey={sshKey}
                         capabilities={capabilities}
                         tenancy={currentTenancy}

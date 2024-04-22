@@ -28,7 +28,11 @@ import { sortBy, Error } from '../../../../utils';
 
 import { MachineSizeLink } from '../../resource-utils';
 
-import { PlatformServicesListGroup, PlatformDeleteButton } from '../utils';
+import {
+    PlatformCardHeader,
+    PlatformServicesListGroup,
+    PlatformDeleteButton
+} from '../utils';
 
 import { UpgradeKubernetesClusterButton } from './upgrade-modal';
 import { KubeconfigButton } from './kubeconfig-modal';
@@ -692,15 +696,20 @@ export const KubernetesCard = ({
     kubernetesCluster,
     kubernetesClusterActions,
     tenancy,
-    tenancyActions
+    tenancyActions,
+    userId
 }) => {
     return (
         <Card className="platform-card">
-            <Card.Header>
+            <PlatformCardHeader
+                currentUserIsOwner={userId === kubernetesCluster.created_by_user_id}
+                // We don't support expiry for Kubernetes yet
+                expiresSoon={false}
+            >
                 <Badge bg={statusBadgeBg[kubernetesCluster.status]}>
                     {kubernetesCluster.status.toUpperCase()}
                 </Badge>
-            </Card.Header>
+            </PlatformCardHeader>
             <Card.Img src={KubernetesIcon} />
             <Card.Body>
                 <Card.Title>{kubernetesCluster.name}</Card.Title>

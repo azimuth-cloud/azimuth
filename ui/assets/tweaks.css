@@ -294,6 +294,29 @@
         width: 270px;
     }
 }
+.platform-card.platform-expiring {
+    border: 2px solid var(--bs-warning);
+}
+.platform-card > .card-header {
+    display: flex;
+    align-items: stretch;
+}
+.platform-card.platform-expiring > .card-header {
+    background-color: rgba(var(--bs-warning-rgb), 0.1);
+    border-bottom-color: var(--bs-warning)
+}
+.platform-card > .card-header > .icons {
+    flex: 1 0 auto;
+    vertical-align: middle;
+    color: var(--bs-gray-600);
+}
+.platform-card > .card-header .icon-expiring {
+    color: var(--bs-warning);
+}
+.platform-card > .card-header > .status {
+    flex: 0 1 auto;
+    vertical-align: middle;
+}
 .platform-card > img, .platform-type-select-card > img {
     padding: 0.5rem 1rem;
     max-height: 120px;
@@ -318,7 +341,7 @@
 .platform-card .card-subtitle, .platform-type-select-card .card-subtitle {
     color: var(--bs-gray-600) !important;
 }
-.platform-card .card-header, .platform-card .card-footer {
+.platform-card .card-footer {
     text-align: right;
 }
 .create-platform-card {

@@ -18,13 +18,21 @@ import { KubernetesCard } from './kubernetes';
 import { KubernetesAppCard } from './kubernetes_apps';
 
 
-const PlatformCard = ({ platform, tenancy, tenancyActions, notificationActions, ...props }) => {
+const PlatformCard = ({
+    platform,
+    userId,
+    tenancy,
+    tenancyActions,
+    notificationActions,
+    ...props
+}) => {
     if( platform.kind === "cluster" ) {
         return (
             <ClusterCard
                 cluster={platform.object}
                 clusterTypes={tenancy.clusterTypes}
                 clusterActions={bindArgsToActions(tenancyActions.cluster, platform.object.id)}
+                userId={userId}
                 tenancy={tenancy}
                 tenancyActions={tenancyActions}
                 notificationActions={notificationActions}
@@ -40,6 +48,7 @@ const PlatformCard = ({ platform, tenancy, tenancyActions, notificationActions, 
                     tenancyActions.kubernetesCluster,
                     platform.object.id
                 )}
+                userId={userId}
                 tenancy={tenancy}
                 tenancyActions={tenancyActions}
             />
@@ -54,6 +63,7 @@ const PlatformCard = ({ platform, tenancy, tenancyActions, notificationActions, 
                     tenancyActions.kubernetesApp,
                     platform.object.id
                 )}
+                userId={userId}
                 tenancy={tenancy}
                 tenancyActions={tenancyActions}
             />
@@ -70,6 +80,7 @@ export const PlatformsGrid = ({
     showCreateModal,
     creating,
     platforms,
+    userId,
     tenancy,
     tenancyActions,
     notificationActions
@@ -119,6 +130,7 @@ export const PlatformsGrid = ({
                         <Col key={platform.id} className="platform-card-wrapper">
                             <PlatformCard
                                 platform={platform}
+                                userId={userId}
                                 tenancy={tenancy}
                                 tenancyActions={tenancyActions}
                                 notificationActions={notificationActions}

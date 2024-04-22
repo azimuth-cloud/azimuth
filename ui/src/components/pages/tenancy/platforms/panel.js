@@ -56,6 +56,7 @@ const clustersWithLinks = tenancy => {
 
 
 export const TenancyPlatformsPanel = ({
+    userId,
     sshKey,
     tenancy,
     tenancyActions,
@@ -201,6 +202,7 @@ export const TenancyPlatformsPanel = ({
             </Row>
             {(resource.initialised && supportsPlatforms) ? (
                 <PlatformsGrid
+                    userId={userId}
                     showCreateModal={() => setCreateModalVisible(true)}
                     creating={resource.creating}
                     platforms={resource.data}
