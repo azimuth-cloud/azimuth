@@ -79,10 +79,10 @@ const ProjectedQuotas = ({ quotas }) => {
 };
 
 
-const PLATFORM_LIFETIME_UNITS = ["minutes", "hours", "days", "months", "years"];
+const PLATFORM_DURATION_UNITS = ["minutes", "hours", "days", "months", "years"];
 
 
-const PlatformLifetimeControl = ({ isInvalid, value, onChange, ...props }) => {
+const PlatformDurationControl = ({ isInvalid, value, onChange, ...props }) => {
     const [count, setCount] = useState(value ? value.count : null);
     const [units, setUnits] = useState(value ? value.units : "days");
 
@@ -110,9 +110,9 @@ const PlatformLifetimeControl = ({ isInvalid, value, onChange, ...props }) => {
             <BSForm.Control
                 as={Select}
                 required
-                options={PLATFORM_LIFETIME_UNITS.map(u => ({label: u, value: u}))}
+                options={PLATFORM_DURATION_UNITS.map(u => ({label: u, value: u}))}
                 // Sort the options by their index in the units
-                sortOptions={opts => sortBy(opts, opt => PLATFORM_LIFETIME_UNITS.indexOf(opt.value))}
+                sortOptions={opts => sortBy(opts, opt => PLATFORM_DURATION_UNITS.indexOf(opt.value))}
                 value={units}
                 onChange={setUnits}
             />
@@ -130,13 +130,13 @@ export const PlatformSchedulingModal = ({
 }) => {
     const { loading, fits, quotas, error } = useSchedulingData();
 
-    const [platformLifetime, setPlatformLifetime] = useState(null);
+    const [platformDuration, setPlatformDuration] = useState(null);
 
     const handleConfirm = () => {
         let newSchedule = null;
-        if( platformLifetime ) {
-            // On confirmation, convert the lifetime to an ISO-formatted end time
-            const duration = { [platformLifetime.units]: platformLifetime.count };
+        if( platformDuration ) {
+            // On confirmation, convert the duration to an ISO-formatted end time
+            const duration = { [platformDuration.units]: platformDuration.count };
             const endTime = DateTime.now().plus(duration);
             newSchedule = { end_time: endTime.toUTC().toISO() };
         }
@@ -156,14 +156,19 @@ export const PlatformSchedulingModal = ({
                 >
                     {isEdit ? undefined : (
                         <Field
-                            name="platform_lifetime"
-                            label="Maximum platform lifetime"
-                            helpText="The platform will be automatically deleted after this time."
+                            name="platform_duration"
+                            label="Platform auto-deletion time"
+                            helpText={
+                                <>
+                                    The platform will be automatically deleted after this time.<br />
+                                    It can still be manually deleted when no longer required.
+                                </>
+                            }
                         >
-                            <PlatformLifetimeControl
+                            <PlatformDurationControl
                                 required
-                                value={platformLifetime}
-                                onChange={setPlatformLifetime}
+                                value={platformDuration}
+                                onChange={setPlatformDuration}
                             />
                         </Field>
                     )}
