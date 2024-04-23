@@ -118,7 +118,9 @@ export const TenancyPlatformsPanel = ({
                         id: `clusters/${key}`,
                         kind: "cluster",
                         name: value.name,
-                        object: value
+                        object: value,
+                        createdByUserId: value.created_by_user_id,
+                        schedule: value.schedule
                     }
                 })
             ),
@@ -128,7 +130,9 @@ export const TenancyPlatformsPanel = ({
                         id: `kubernetesClusters/${key}`,
                         kind: "kubernetesCluster",
                         name: value.name,
-                        object: value
+                        object: value,
+                        createdByUserId: value.created_by_user_id,
+                        schedule: value.schedule
                     }
                 })
             ),

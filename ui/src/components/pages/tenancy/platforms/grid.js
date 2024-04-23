@@ -16,6 +16,7 @@ import { bindArgsToActions, sortBy, Error } from '../../../utils';
 import { ClusterCard } from './clusters';
 import { KubernetesCard } from './kubernetes';
 import { KubernetesAppCard } from './kubernetes_apps';
+import { expiresSoon } from './utils';
 
 
 const PlatformCard = ({
@@ -73,7 +74,18 @@ const PlatformCard = ({
         // This should never happen!
         return <Error message="Unknown cluster kind" />;
     }
-}
+};
+
+
+const sortPlatforms = platforms => sortBy(
+    platforms,
+    platform => [
+        // Put expiring platforms first
+        platform.schedule && expiresSoon(platform.schedule) ? 0 : 1,
+        // Then sort by name
+        platform.name,
+    ]
+);
 
 
 export const PlatformsGrid = ({
@@ -94,7 +106,18 @@ export const PlatformsGrid = ({
         window.localStorage.setItem("azimuth.platforms.infoDismissed", true);
     };
 
-    const sortedPlatforms = sortBy(Object.values(platforms), p => p.name);
+    // Partition the platforms into mine and not mine
+    const [mine, notMine] = Object.values(platforms).reduce(
+        ([mine, notMine], platform) => {
+            if( platform.createdByUserId === userId ) {
+                return [[...mine, platform], notMine];
+            }
+            else {
+                return [mine, [...notMine, platform]];
+            }
+        },
+        [[], []]
+    );
 
     return (
         <>
@@ -124,20 +147,39 @@ export const PlatformsGrid = ({
                     </Col>
                 </Row>
             )}
-            {sortedPlatforms.length > 0 ? (
-                <Row className="g-3">
-                    {sortedPlatforms.map(platform => (
-                        <Col key={platform.id} className="platform-card-wrapper">
-                            <PlatformCard
-                                platform={platform}
-                                userId={userId}
-                                tenancy={tenancy}
-                                tenancyActions={tenancyActions}
-                                notificationActions={notificationActions}
-                            />
-                        </Col>
-                    ))}
-                </Row>
+            {Object.keys(platforms).length > 0 ? (
+                <>
+                    {mine.length === 0 ? undefined : (
+                        <Row className="g-3 mb-3">
+                            {sortPlatforms(mine).map(platform => (
+                                <Col key={platform.id} className="platform-card-wrapper">
+                                    <PlatformCard
+                                        platform={platform}
+                                        userId={userId}
+                                        tenancy={tenancy}
+                                        tenancyActions={tenancyActions}
+                                        notificationActions={notificationActions}
+                                    />
+                                </Col>
+                            ))}
+                        </Row>
+                    )}
+                    {notMine.length === 0 ? undefined : (
+                        <Row className="g-3">
+                            {sortPlatforms(notMine).map(platform => (
+                                <Col key={platform.id} className="platform-card-wrapper">
+                                    <PlatformCard
+                                        platform={platform}
+                                        userId={userId}
+                                        tenancy={tenancy}
+                                        tenancyActions={tenancyActions}
+                                        notificationActions={notificationActions}
+                                    />
+                                </Col>
+                            ))}
+                        </Row>
+                    )}
+                </>
             ) : (
                 <Row className="justify-content-center">
                     <Col xs="auto py-5">
