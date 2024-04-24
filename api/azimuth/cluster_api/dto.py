@@ -2,6 +2,8 @@ import dataclasses
 import datetime
 import typing as t
 
+from ..scheduling import dto as scheduling_dto
+
 
 @dataclasses.dataclass(frozen = True)
 class ClusterTemplate:
@@ -148,6 +150,8 @@ class Cluster:
     created_by_user_id: t.Optional[str]
     updated_by_username: t.Optional[str]
     updated_by_user_id: t.Optional[str]
+    #: Scheduling information for the cluster
+    schedule: t.Optional[scheduling_dto.PlatformSchedule] = None
 
 
 @dataclasses.dataclass(frozen = True)

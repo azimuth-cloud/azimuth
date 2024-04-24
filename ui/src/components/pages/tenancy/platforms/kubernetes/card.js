@@ -31,7 +31,9 @@ import { MachineSizeLink } from '../../resource-utils';
 import {
     PlatformCardHeader,
     PlatformServicesListGroup,
-    PlatformDeleteButton
+    PlatformDeleteButton,
+    PlatformExpires,
+    expiresSoon
 } from '../utils';
 
 import { UpgradeKubernetesClusterButton } from './upgrade-modal';
@@ -308,6 +310,12 @@ const ClusterOverviewCard = ({ kubernetesCluster, kubernetesClusterTemplates }) 
                     <th>Updated by</th>
                     <td>{kubernetesCluster.updated_by_username || '-'}</td>
                 </tr>
+                {kubernetesCluster.schedule && (
+                    <tr>
+                        <th>Expires</th>
+                        <td><PlatformExpires schedule={kubernetesCluster.schedule} /></td>
+                    </tr>
+                )}
             </tbody>
         </Table>
     </Card>
@@ -703,12 +711,17 @@ export const KubernetesCard = ({
     tenancyActions,
     userId
 }) => {
+    const clusterExpiresSoon = (
+        kubernetesCluster.schedule ?
+            expiresSoon(kubernetesCluster.schedule) :
+            false
+    );
+
     return (
-        <Card className="platform-card">
+        <Card className={`platform-card ${clusterExpiresSoon ? "platform-expiring" : ""}`}>
             <PlatformCardHeader
                 currentUserIsOwner={userId === kubernetesCluster.created_by_user_id}
-                // We don't support expiry for Kubernetes yet
-                expiresSoon={false}
+                expiresSoon={clusterExpiresSoon}
             >
                 <Badge bg={statusBadgeBg[kubernetesCluster.status]}>
                     {kubernetesCluster.status.toUpperCase()}
@@ -725,7 +738,13 @@ export const KubernetesCard = ({
                 />
             )}
             <Card.Body className="small text-muted">
-                Created {kubernetesCluster.created_at.toRelative()}<br/>
+                Created {kubernetesCluster.created_at.toRelative()}
+                {kubernetesCluster.schedule && (
+                    <>
+                        <br/>
+                        Expires {kubernetesCluster.schedule.end_time.toRelative()}
+                    </>
+                )}
             </Card.Body>
             <Card.Footer>
                 <KubernetesClusterDetailsButton

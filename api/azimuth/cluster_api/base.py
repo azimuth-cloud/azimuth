@@ -19,6 +19,7 @@ from easykube import (
 )
 
 from ..provider import base as cloud_base, dto as cloud_dto, errors as cloud_errors
+from ..scheduling import dto as scheduling_dto, k8s as scheduling_k8s
 from .. import utils
 
 from . import dto, errors
@@ -195,6 +196,7 @@ class Session:
         """
         cluster_addons = cluster.spec.get("addons", {})
         cluster_status = cluster.get("status", {})
+
         # We want to account for the case where a change has been made but the operator
         # has not yet caught up by tweaking the cluster state against what is reported
         cluster_state = cluster_status.get("phase")
@@ -222,6 +224,16 @@ class Session:
                 cluster_state = "Upgrading"
             elif cluster.spec != last_handled_spec:
                 cluster_state = "Reconciling"
+
+        # If there is a schedule in the annotations, unserialize it
+        annotations = cluster.metadata.get("annotations", {})
+        schedule_json = annotations.get("azimuth.stackhpc.com/schedule")
+        schedule = (
+            scheduling_dto.PlatformSchedule.from_json(schedule_json)
+            if schedule_json
+            else None
+        )
+
         return dto.Cluster(
             cluster.metadata.name,
             cluster.metadata.name,
@@ -295,6 +307,7 @@ class Session:
             cluster.spec.get("createdByUserId"),
             cluster.spec.get("updatedByUsername"),
             cluster.spec.get("updatedByUserId"),
+            schedule
         )
 
     @convert_exceptions
@@ -401,7 +414,8 @@ class Session:
         monitoring_enabled: bool = False,
         monitoring_metrics_volume_size: t.Optional[int] = None,
         monitoring_logs_volume_size: t.Optional[int] = None,
-        zenith_identity_realm_name: t.Optional[str] = None
+        zenith_identity_realm_name: t.Optional[str] = None,
+        schedule: t.Optional[scheduling_dto.PlatformSchedule] = None
     ) -> dto.Cluster:
         """
         Create a new cluster in the tenancy.
@@ -468,9 +482,23 @@ class Session:
                 "labels": {
                     "app.kubernetes.io/managed-by": "azimuth",
                 },
+                # Annotate the cluster with the serialized schedule object
+                # This is to avoid doing an N+1 query when we retrieve clusters
+                "annotations": (
+                    { "azimuth.stackhpc.com/schedule": schedule.to_json() }
+                    if schedule
+                    else {}
+                ),
             },
             "spec": cluster_spec,
         })
+        if schedule:
+            scheduling_k8s.create_schedule(
+                self._client,
+                f"kube-{name}",
+                cluster,
+                schedule
+            )
         # Use the sizes that we already have
         sizes = [control_plane_size] + [ng["machine_size"] for ng in node_groups]
         return self._from_api_cluster(cluster, sizes)

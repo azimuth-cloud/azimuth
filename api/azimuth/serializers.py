@@ -650,6 +650,7 @@ class KubernetesClusterSerializer(
             "nodes",
             "addons",
             "services",
+            "schedule",
         ]
     )
 ):
@@ -659,6 +660,7 @@ class KubernetesClusterSerializer(
     nodes = KubernetesClusterNodeSerializer(many = True, read_only = True)
     addons = KubernetesClusterAddonSerializer(many = True, read_only = True)
     services = serializers.SerializerMethodField()
+    schedule = PlatformScheduleSerializer()
 
     def get_services(self, obj):
         request = self.context.get("request")
@@ -865,6 +867,7 @@ class CreateKubernetesClusterSerializer(
         required = False,
         min_value = 1
     )
+    schedule = PlatformScheduleSerializer(write_only = True, required = False)
 
 
 class UpdateKubernetesClusterSerializer(
