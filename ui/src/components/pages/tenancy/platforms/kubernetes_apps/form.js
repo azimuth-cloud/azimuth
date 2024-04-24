@@ -34,6 +34,7 @@ const KubernetesClusterSelectControlWithCreate = ({
     sizeActions,
     externalIps,
     externalIpActions,
+    tenancy,
     ...props
 }) => {
     const [modalVisible, setModalVisible] = useState(false);
@@ -91,6 +92,7 @@ const KubernetesClusterSelectControlWithCreate = ({
                 sizeActions={sizeActions}
                 externalIps={externalIps}
                 externalIpActions={externalIpActions}
+                tenancy={tenancy}
             />
         </>
     );
@@ -243,6 +245,7 @@ export const KubernetesAppForm = ({
                     sizeActions={sizeActions}
                     externalIps={externalIps}
                     externalIpActions={externalIpActions}
+                    tenancy={tenancy}
                 />
             </Field>
             <Field

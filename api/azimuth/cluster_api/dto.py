@@ -20,6 +20,12 @@ class ClusterTemplate:
     deprecated: bool
     #: The number of control plane nodes that this template will deploy
     control_plane_count: int
+    #: The size of the volumes that will be used for etcd (0 for no separate volume)
+    etcd_volume_size: int
+    #: The size of the volumes used for control plane nodes (0 for ephemeral root disk)
+    control_plane_root_volume_size: int
+    #: The size of the volumes used for worker nodes (0 for ephemeral root disk)
+    node_group_root_volume_size: int
     #: The tags for the template
     tags: t.List[str]
     #: The datetime at which the template was created

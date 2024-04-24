@@ -208,7 +208,7 @@ export const PlatformSchedulingModal = ({
                                                 <Error
                                                     message={
                                                         <>
-                                                            The requested platform does not fit within your quota.<br />
+                                                            The platform does not fit within your quota.<br />
                                                             Revise the selected options and try again.
                                                         </>
                                                     }

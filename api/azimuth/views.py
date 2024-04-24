@@ -1337,6 +1337,133 @@ def kubernetes_cluster_template_details(request, tenant, template):
     return response.Response(serializer.data)
 
 
+def kubernetes_cluster_check_quotas(session, cluster, template, **data):
+    """
+    Check the quotas for a Kubernetes cluster.
+    """
+    calculator = scheduling.KubernetesClusterCalculator(session)
+    # Calculate the resources used by the current cluster
+    if cluster:
+        # Index the sizes that have already been loaded so we don't have to load them again
+        known_sizes = {
+            data["control_plane_size"].id: data["control_plane_size"],
+            **{
+                ng["machine_size"].id: ng["machine_size"]
+                for ng in data["node_groups"]
+            }
+        }
+        current_resources = calculator.calculate(
+            template,
+            (
+                known_sizes[cluster.control_plane_size_id]
+                if cluster.control_plane_size_id in known_sizes
+                else session.find_size(cluster.control_plane_size_id)
+            ),
+            [
+                {
+                    "name": ng.name,
+                    "machine_size": (
+                        known_sizes[ng.machine_size_id]
+                        if ng.machine_size_id in known_sizes
+                        else session.find_size(ng.machine_size_id)
+                    ),
+                    "autoscale": ng.autoscale,
+                    "count": ng.count,
+                    "min_count": ng.min_count,
+                    "max_count": ng.max_count,
+                }
+                for ng in cluster.node_groups
+            ],
+            cluster.monitoring_enabled,
+            cluster.monitoring_metrics_volume_size,
+            cluster.monitoring_logs_volume_size
+        )
+    else:
+        current_resources = None
+    future_resources = calculator.calculate(template, **data)
+    checker = scheduling.QuotaChecker(session)
+    return checker.check(future_resources, current_resources)
+
+
+@provider_api_view(["POST"])
+def kubernetes_cluster_schedule_new(request, tenant):
+    """
+    Returns scheduling information for creating a new Kubernetes cluster.
+    """
+    if not cloud_settings.CLUSTER_API_PROVIDER:
+        return response.Response(
+            {
+                "detail": "Kubernetes clusters are not supported.",
+                "code": "unsupported_operation"
+            },
+            status = status.HTTP_404_NOT_FOUND
+        )
+    with request.auth.scoped_session(tenant) as session:
+        with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
+            input_serializer = serializers.CreateKubernetesClusterSerializer(
+                data = request.data,
+                context = { "session": session, "capi_session": capi_session }
+            )
+            input_serializer.is_valid(raise_exception = True)
+            fits, quotas = kubernetes_cluster_check_quotas(
+                session,
+                None,
+                **input_serializer.validated_data
+            )
+            serializer = serializers.ProjectedQuotaSerializer(quotas, many = True)
+            return response.Response(
+                { "quotas": serializer.data },
+                status = (
+                    status.HTTP_200_OK
+                    if fits
+                    else status.HTTP_409_CONFLICT
+                )
+            )
+
+
+@provider_api_view(["POST"])
+def kubernetes_cluster_schedule_existing(request, tenant, cluster):
+    """
+    Returns scheduling information for updating the specified Kubernetes cluster.
+    """
+    if not cloud_settings.CLUSTER_API_PROVIDER:
+        return response.Response(
+            {
+                "detail": "Kubernetes clusters are not supported.",
+                "code": "unsupported_operation"
+            },
+            status = status.HTTP_404_NOT_FOUND
+        )
+    with request.auth.scoped_session(tenant) as session:
+        with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
+            cluster = capi_session.find_cluster(cluster)
+            input_serializer = serializers.UpdateKubernetesClusterSerializer(
+                instance = cluster,
+                data = request.data,
+                context = { "session": session, "capi_session": capi_session }
+            )
+            input_serializer.is_valid(raise_exception = True)
+            fits, quotas = kubernetes_cluster_check_quotas(
+                session,
+                cluster,
+                capi_session.find_cluster_template(cluster.template_id),
+                **{
+                    k: v
+                    for k, v in input_serializer.validated_data.items()
+                    if k != "template"
+                }
+            )
+            serializer = serializers.ProjectedQuotaSerializer(quotas, many = True)
+            return response.Response(
+                { "quotas": serializer.data },
+                status = (
+                    status.HTTP_200_OK
+                    if fits
+                    else status.HTTP_409_CONFLICT
+                )
+            )
+
+
 @provider_api_view(["GET", "POST"])
 def kubernetes_clusters(request, tenant):
     """
@@ -1360,6 +1487,20 @@ def kubernetes_clusters(request, tenant):
                     context = { "session": session, "capi_session": capi_session }
                 )
                 input_serializer.is_valid(raise_exception = True)
+                # Check that the cluster fits within quota
+                fits, _ = kubernetes_cluster_check_quotas(
+                    session,
+                    None,
+                    **input_serializer.validated_data
+                )
+                if not fits:
+                    return response.Response(
+                        {
+                            "detail": "Cluster exceeds at least one quota.",
+                            "code": "quota_exceeded"
+                        },
+                        status = status.HTTP_409_CONFLICT
+                    )
                 params = dict(input_serializer.validated_data)
                 if cloud_settings.APPS:
                     # Make sure that the identity realm exists
@@ -1403,8 +1544,9 @@ def kubernetes_cluster_details(request, tenant, cluster):
     with request.auth.scoped_session(tenant) as session:
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             if request.method == "PATCH":
+                cluster = capi_session.find_cluster(cluster)
                 input_serializer = serializers.UpdateKubernetesClusterSerializer(
-                    instance = capi_session.find_cluster(cluster),
+                    instance = cluster,
                     data = request.data,
                     context = { "session": session, "capi_session": capi_session }
                 )
@@ -1413,14 +1555,27 @@ def kubernetes_cluster_details(request, tenant, cluster):
                 if template:
                     cluster = capi_session.upgrade_cluster(cluster, template)
                 else:
-                    cluster = capi_session.update_cluster(
+                    data = {
+                        k: v
+                        for k, v in input_serializer.validated_data.items()
+                        if k != "template"
+                    }
+                    # Check that the new size of the cluster fits within quota
+                    fits, _ = kubernetes_cluster_check_quotas(
+                        session,
                         cluster,
-                        **{
-                            k: v
-                            for k, v in input_serializer.validated_data.items()
-                            if k != "template"
-                        }
+                        capi_session.find_cluster_template(cluster.template_id),
+                        **data
                     )
+                    if not fits:
+                        return response.Response(
+                            {
+                                "detail": "Cluster exceeds at least one quota.",
+                                "code": "quota_exceeded"
+                            },
+                            status = status.HTTP_409_CONFLICT
+                        )
+                    cluster = capi_session.update_cluster(cluster, **data)
                 output_serializer = serializers.KubernetesClusterSerializer(
                     cluster,
                     context = { "request": request, "tenant": tenant }

@@ -131,6 +131,11 @@ class Session:
         Converts a cluster template from the Kubernetes API to a DTO.
         """
         values = ct.spec["values"]
+        # We only need to account for the etcd volume if it has type Volume
+        etcd_volume_size = 0
+        etcd_volume = values.get("etcd", {}).get("blockDevice")
+        if etcd_volume and etcd_volume.get("type", "Volume") == "Volume":
+            etcd_volume_size = etcd_volume["size"]
         return dto.ClusterTemplate(
             ct.metadata.name,
             ct.spec.label,
@@ -138,6 +143,9 @@ class Session:
             values["kubernetesVersion"],
             ct.spec.get("deprecated", False),
             values.get("controlPlane", {}).get("machineCount", 3),
+            etcd_volume_size,
+            values.get("controlPlane", {}).get("machineRootVolume", {}).get("diskSize") or 0,
+            values.get("nodeGroupDefaults", {}).get("machineRootVolume", {}).get("diskSize") or 0,
             ct.spec.get("tags", []),
             dateutil.parser.parse(ct.metadata["creationTimestamp"]),
         )
@@ -472,6 +480,8 @@ class Session:
         """
         Update the specified cluster with the given parameters.
         """
+        if isinstance(cluster, dto.Cluster):
+            cluster = cluster.id
         spec = self._build_cluster_spec(**options)
         spec["updatedByUsername"] = self._cloud_session.username()
         spec["updatedByUserId"] = self._cloud_session.user_id()

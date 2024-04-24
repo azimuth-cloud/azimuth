@@ -49,8 +49,8 @@ const useSchedulingData = (tenancyId, formState) => {
                 const csrfToken = Cookies.get('csrftoken');
                 if( csrfToken ) headers['X-CSRFToken'] = csrfToken;
                 const url = formState.id ?
-                    `/api/tenancies/${tenancyId}/clusters/${formState.id}/schedule/` :
-                    `/api/tenancies/${tenancyId}/clusters/schedule/`;
+                    `/api/tenancies/${tenancyId}/clusters/${formState.id}/_schedule/` :
+                    `/api/tenancies/${tenancyId}/clusters/_schedule/`;
                 const response = await fetch(
                     url,
                     {
