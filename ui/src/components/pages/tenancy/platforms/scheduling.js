@@ -79,7 +79,7 @@ const ProjectedQuotas = ({ quotas }) => {
 };
 
 
-const PLATFORM_DURATION_UNITS = ["minutes", "hours", "days", "months", "years"];
+const PLATFORM_DURATION_UNITS = ["hours", "days"];
 
 
 const PlatformDurationControl = ({ isInvalid, value, onChange, ...props }) => {
