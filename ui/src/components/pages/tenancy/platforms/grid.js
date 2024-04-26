@@ -54,6 +54,7 @@ const PlatformCard = ({
                 userId={userId}
                 tenancy={tenancy}
                 tenancyActions={tenancyActions}
+                capabilities={capabilities}
             />
         );
     }
@@ -69,6 +70,7 @@ const PlatformCard = ({
                 userId={userId}
                 tenancy={tenancy}
                 tenancyActions={tenancyActions}
+                capabilities={capabilities}
             />
         );
     }

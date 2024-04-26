@@ -1402,7 +1402,11 @@ def kubernetes_cluster_schedule_new(request, tenant):
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             input_serializer = serializers.CreateKubernetesClusterSerializer(
                 data = request.data,
-                context = { "session": session, "capi_session": capi_session }
+                context = {
+                    "session": session,
+                    "capi_session": capi_session,
+                    "validate_schedule": False,
+                }
             )
             input_serializer.is_valid(raise_exception = True)
             fits, quotas = kubernetes_cluster_check_quotas(

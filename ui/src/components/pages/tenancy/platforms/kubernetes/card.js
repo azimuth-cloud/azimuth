@@ -484,6 +484,7 @@ const UpdateKubernetesClusterButton = ({
     externalIps,
     externalIpActions,
     tenancy,
+    capabilities,
     disabled,
     ...props
 }) => {
@@ -533,6 +534,7 @@ const UpdateKubernetesClusterButton = ({
                 externalIps={externalIps}
                 externalIpActions={externalIpActions}
                 tenancy={tenancy}
+                capabilities={capabilities}
             />
         </>
     );
@@ -548,7 +550,8 @@ const KubernetesClusterDetailsButton = ({
     sizeActions,
     externalIps,
     externalIpActions,
-    tenancy
+    tenancy,
+    capabilities
 }) => {
     const [visible, setVisible] = useState(false);
     const open = () => setVisible(true);
@@ -623,6 +626,7 @@ const KubernetesClusterDetailsButton = ({
                                             externalIps={externalIps}
                                             externalIpActions={externalIpActions}
                                             tenancy={tenancy}
+                                            capabilities={capabilities}
                                             disabled={inFlight || kubernetesCluster.status === "Deleting" || !kubernetesTemplatesAvailable}
                                             className="me-2"
                                         />
@@ -709,6 +713,7 @@ export const KubernetesCard = ({
     kubernetesClusterActions,
     tenancy,
     tenancyActions,
+    capabilities,
     userId
 }) => {
     const clusterExpiresSoon = (
@@ -757,6 +762,7 @@ export const KubernetesCard = ({
                     externalIps={tenancy.externalIps}
                     externalIpActions={tenancyActions.externalIp}
                     tenancy={tenancy}
+                    capabilities={capabilities}
                 />
             </Card.Footer>
         </Card>

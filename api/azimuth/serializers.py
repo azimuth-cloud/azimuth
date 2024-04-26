@@ -867,7 +867,15 @@ class CreateKubernetesClusterSerializer(
         required = False,
         min_value = 1
     )
-    schedule = PlatformScheduleSerializer(write_only = True, required = False)
+    schedule = PlatformScheduleSerializer(write_only = True, allow_null = True, default = None)
+
+    def validate_schedule(self, value):
+        if self.context.get("validate_schedule", True):
+            if cloud_settings.SCHEDULING.ENABLED and not value:
+                raise serializers.ValidationError("This field is required.")
+            elif not cloud_settings.SCHEDULING.ENABLED and value:
+                raise serializers.ValidationError("Scheduling is not supported.")
+        return value
 
 
 class UpdateKubernetesClusterSerializer(

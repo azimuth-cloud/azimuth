@@ -155,7 +155,8 @@ const KubernetesConfigurationForm = ({
     sizeActions,
     externalIps,
     externalIpActions,
-    tenancy
+    tenancy,
+    capabilities
 }) => {
     const [formState, _] = useKubernetesClusterFormState(undefined);
     return (
@@ -173,6 +174,7 @@ const KubernetesConfigurationForm = ({
             externalIps={externalIps}
             externalIpActions={externalIpActions}
             tenancy={tenancy}
+            capabilities={capabilities}
         />
     );
 };
@@ -184,7 +186,8 @@ const KubernetesAppConfigurationForm = ({
     onSuccess,
     kubernetesAppActions,
     tenancy,
-    tenancyActions
+    tenancyActions,
+    capabilities
 }) => {
     const [formState, _] = useKubernetesAppFormState(kubernetesAppTemplate, undefined);
     return (
@@ -202,6 +205,7 @@ const KubernetesAppConfigurationForm = ({
             }}
             tenancy={tenancy}
             tenancyActions={tenancyActions}
+            capabilities={capabilities}
         />
     );
 };
@@ -249,6 +253,7 @@ const PlatformConfigurationForm = ({
                         externalIps={tenancy.externalIps}
                         externalIpActions={tenancyActions.externalIp}
                         tenancy={tenancy}
+                        capabilities={capabilities}
                     />
                 )}
                 {platformType.kind === "kubernetesAppTemplate" && (
@@ -259,6 +264,7 @@ const PlatformConfigurationForm = ({
                         kubernetesAppActions={tenancyActions.kubernetesApp}
                         tenancy={tenancy}
                         tenancyActions={tenancyActions}
+                        capabilities={capabilities}
                     />
                 )}
             </Modal.Body>

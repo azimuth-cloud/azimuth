@@ -389,6 +389,7 @@ export const KubernetesClusterForm = ({
     externalIps,
     externalIpActions,
     tenancy,
+    capabilities,
     ...props
 }) => {
     const [showScheduling, setShowScheduling] = useState(false);
@@ -778,6 +779,7 @@ export const KubernetesClusterForm = ({
             />
             {showScheduling && (
                 <PlatformSchedulingModal
+                    supportsScheduling={capabilities.supports_scheduling}
                     useSchedulingData={() => useSchedulingData(tenancy.id, formState)}
                     isEdit={formState.isEdit}
                     onCancel={handleCancel}
@@ -800,6 +802,7 @@ export const KubernetesClusterModalForm = ({
     externalIps,
     externalIpActions,
     tenancy,
+    capabilities,
     show,
     ...props
 }) => {
@@ -839,6 +842,7 @@ export const KubernetesClusterModalForm = ({
                     externalIps={externalIps}
                     externalIpActions={externalIpActions}
                     tenancy={tenancy}
+                    capabilities={capabilities}
                 />
             </Modal.Body>
             <Modal.Footer>
