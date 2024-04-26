@@ -315,6 +315,7 @@ def session(request):
             # Kubernetes is supported if a Cluster API provider is configured
             supports_kubernetes = bool(cloud_settings.CLUSTER_API_PROVIDER),
             supports_apps = bool(cloud_settings.APPS),
+            supports_scheduling = bool(cloud_settings.SCHEDULING.ENABLED),
         ),
         "links": {
             "ssh_public_key": request.build_absolute_uri(reverse("azimuth:ssh_public_key")),
@@ -994,7 +995,11 @@ def cluster_schedule_new(request, tenant):
         with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
             input_serializer = serializers.CreateClusterSerializer(
                 data = request.data,
-                context = { "session": session, "cluster_manager": cluster_manager }
+                context = {
+                    "session": session,
+                    "cluster_manager": cluster_manager,
+                    "validate_schedule": False,
+                }
             )
             input_serializer.is_valid(raise_exception = True)
             # Get the scheduling information for the cluster

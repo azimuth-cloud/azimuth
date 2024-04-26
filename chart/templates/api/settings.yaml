@@ -31,3 +31,5 @@ data:
     {{- tpl (.Files.Get "files/api/settings/09-awx-passwords.py") . | b64enc | nindent 4 }}
   10-disable-caas.yaml: |
     {{- tpl (.Files.Get "files/api/settings/10-disable-caas.yaml") . | b64enc | nindent 4 }}
+  11-scheduling.yaml: |
+    {{- tpl (.Files.Get "files/api/settings/11-scheduling.yaml") . | b64enc | nindent 4 }}

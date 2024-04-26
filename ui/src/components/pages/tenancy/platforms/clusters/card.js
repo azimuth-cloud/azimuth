@@ -236,6 +236,7 @@ const ClusterUpdateButton = ({
     cluster,
     tenancy,
     tenancyActions,
+    capabilities,
     disabled,
     onSubmit,
     ...props
@@ -277,6 +278,7 @@ const ClusterUpdateButton = ({
                 onCancel={close}
                 tenancy={tenancy}
                 tenancyActions={tenancyActions}
+                capabilities={capabilities}
             />
         </>
     );
@@ -328,6 +330,7 @@ const ClusterDetailsButton = ({
     clusterActions,
     tenancy,
     tenancyActions,
+    capabilities,
     ...props
 }) => {
     const [visible, setVisible] = useState(false);
@@ -375,6 +378,7 @@ const ClusterDetailsButton = ({
                                 cluster={cluster}
                                 tenancy={tenancy}
                                 tenancyActions={tenancyActions}
+                                capabilities={capabilities}
                                 disabled={inFlight || working || missingClusterType}
                                 onSubmit={clusterActions.update}
                                 className="me-2"
@@ -447,6 +451,7 @@ export const ClusterCard = ({
     clusterActions,
     tenancy,
     tenancyActions,
+    capabilities,
     userId,
     notificationActions
 }) => {
@@ -499,6 +504,7 @@ export const ClusterCard = ({
                     clusterActions={clusterActions}
                     tenancy={tenancy}
                     tenancyActions={tenancyActions}
+                    capabilities={capabilities}
                 />
             </Card.Footer>
         </Card>

@@ -132,6 +132,7 @@ export const ClusterForm = ({
     onSubmit,
     tenancy,
     tenancyActions,
+    capabilities,
     ...props
 }) => {
     const [showScheduling, setShowScheduling] = useState(false);
@@ -192,6 +193,7 @@ export const ClusterForm = ({
             </Form>
             {showScheduling && (
                 <PlatformSchedulingModal
+                    supportsScheduling={capabilities.supports_scheduling}
                     useSchedulingData={() => useSchedulingData(tenancy.id, formState)}
                     isEdit={formState.isEdit}
                     onCancel={handleCancel}
@@ -211,6 +213,7 @@ export const ClusterModalForm = ({
     onCancel,
     tenancy,
     tenancyActions,
+    capabilities,
     ...props
 }) => {
     const formId = (
@@ -257,6 +260,7 @@ export const ClusterModalForm = ({
                     onSubmit={onSubmit}
                     tenancy={tenancy}
                     tenancyActions={tenancyActions}
+                    capabilities={capabilities}
                 />
             </Modal.Body>
             <Modal.Footer>

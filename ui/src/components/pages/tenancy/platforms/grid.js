@@ -24,6 +24,7 @@ const PlatformCard = ({
     userId,
     tenancy,
     tenancyActions,
+    capabilities,
     notificationActions,
     ...props
 }) => {
@@ -36,6 +37,7 @@ const PlatformCard = ({
                 userId={userId}
                 tenancy={tenancy}
                 tenancyActions={tenancyActions}
+                capabilities={capabilities}
                 notificationActions={notificationActions}
                 {...props}
             />
@@ -95,6 +97,7 @@ export const PlatformsGrid = ({
     userId,
     tenancy,
     tenancyActions,
+    capabilities,
     notificationActions
 }) => {
     // We record in local storage when the info alert is dismissed so that it is persistent
@@ -158,6 +161,7 @@ export const PlatformsGrid = ({
                                         userId={userId}
                                         tenancy={tenancy}
                                         tenancyActions={tenancyActions}
+                                        capabilities={capabilities}
                                         notificationActions={notificationActions}
                                     />
                                 </Col>
@@ -173,6 +177,7 @@ export const PlatformsGrid = ({
                                         userId={userId}
                                         tenancy={tenancy}
                                         tenancyActions={tenancyActions}
+                                        capabilities={capabilities}
                                         notificationActions={notificationActions}
                                     />
                                 </Col>

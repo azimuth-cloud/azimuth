@@ -60,6 +60,7 @@ export const TenancyPlatformsPanel = ({
     sshKey,
     tenancy,
     tenancyActions,
+    capabilities,
     notificationActions,
     supportsPlatforms,
 }) => {
@@ -187,6 +188,7 @@ export const TenancyPlatformsPanel = ({
                             sshKey={sshKey}
                             tenancy={tenancy}
                             tenancyActions={tenancyActions}
+                            capabilities={capabilities}
                         />
                         <Button
                             variant="primary"
@@ -212,6 +214,7 @@ export const TenancyPlatformsPanel = ({
                     platforms={resource.data}
                     tenancy={tenancy}
                     tenancyActions={tenancyActions}
+                    capabilities={capabilities}
                     notificationActions={notificationActions}
                 />
             ) : (

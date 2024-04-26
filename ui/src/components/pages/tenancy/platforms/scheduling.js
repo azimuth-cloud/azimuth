@@ -123,6 +123,7 @@ const PlatformDurationControl = ({ isInvalid, value, onChange, ...props }) => {
 
 
 export const PlatformSchedulingModal = ({
+    supportsScheduling,
     useSchedulingData,
     isEdit,
     onCancel,
@@ -154,7 +155,7 @@ export const PlatformSchedulingModal = ({
                     disabled={loading || error || !fits}
                     onSubmit={handleConfirm}
                 >
-                    {isEdit ? undefined : (
+                    {(isEdit || !supportsScheduling) ? undefined : (
                         <Field
                             name="platform_duration"
                             label="Platform auto-deletion time"
