@@ -6,7 +6,6 @@ import dateutil.parser
 import logging
 import time
 import typing as t
-import json
 
 import easykube
 

@@ -79,7 +79,7 @@ class KubernetesClusterCalculator:
         **kwargs
     ) -> dto.PlatformResources:
         """
-        Calculates the resources required to make the specified CaaS cluster.
+        Calculates the resources required to make the specified Kubernetes cluster.
         """
         resources = dto.PlatformResources()
         # First, deal with the control plane
