@@ -7,13 +7,13 @@ import logging
 import time
 import typing as t
 
-
 import easykube
 
 from azimuth.acls import allowed_by_acls
 from azimuth.cluster_engine.drivers import base
 from azimuth.cluster_engine import dto
 from azimuth.cluster_engine import errors
+from azimuth.scheduling import dto as scheduling_dto, k8s as scheduling_k8s
 from azimuth import utils
 
 
@@ -50,7 +50,7 @@ def get_cluster_types(client, tenancy) -> t.Iterable[dto.ClusterType]:
     return cluster_types
 
 
-def get_cluster_dto(raw_cluster, status_if_ready: dto.ClusterStatus = None):
+def get_cluster_dto(raw_cluster, status_if_ready: t.Optional[dto.ClusterStatus] = None):
     raw_status = raw_cluster.get("status", {})
     status = dto.ClusterStatus.CONFIGURING
     task = None
@@ -91,6 +91,15 @@ def get_cluster_dto(raw_cluster, status_if_ready: dto.ClusterStatus = None):
         if raw_status.get("patchedTimestamp"):
             patched_at = dateutil.parser.parse(raw_status["patchedTimestamp"])
 
+    # If there is a schedule in the annotations, unserialize it
+    annotations = raw_cluster["metadata"].get("annotations", {})
+    schedule_json = annotations.get("azimuth.stackhpc.com/schedule")
+    schedule = (
+        scheduling_dto.PlatformSchedule.from_json(schedule_json)
+        if schedule_json
+        else None
+    )
+
     return dto.Cluster(
         id=raw_cluster.metadata.uid,
         name=raw_cluster.metadata.name,
@@ -110,6 +119,7 @@ def get_cluster_dto(raw_cluster, status_if_ready: dto.ClusterStatus = None):
         created_by_user_id=raw_cluster.spec.get("createdByUserId"),
         updated_by_username=raw_cluster.spec.get("updatedByUsername"),
         updated_by_user_id=raw_cluster.spec.get("updatedByUserId"),
+        schedule=schedule,
     )
 
 
@@ -139,6 +149,7 @@ def create_cluster(
     name: str,
     cluster_type_name: str,
     params: dict,
+    schedule: t.Optional[scheduling_dto.PlatformSchedule],
     ctx: dto.Context
 ):
     safe_name = utils.sanitise(name)
@@ -173,10 +184,24 @@ def create_cluster(
             "metadata": {
                 "name": safe_name,
                 "labels": {"app.kubernetes.io/managed-by": "azimuth"},
+                # We annotate the cluster with the serialized schedule object
+                # This is to avoid doing an N+1 query
+                "annotations": (
+                    { "azimuth.stackhpc.com/schedule": schedule.to_json() }
+                    if schedule
+                    else {}
+                ),
             },
             "spec": cluster_spec,
         }
     )
+    if schedule:
+        scheduling_k8s.create_schedule(
+            client,
+            f"caas-{safe_name}",
+            cluster,
+            schedule
+        )
     return get_cluster_dto(cluster)
 
 
@@ -217,7 +242,7 @@ def update_cluster(client, name: str, params: t.Mapping[str, t.Any],
     safe_name = utils.sanitise(name)
 
     # trigger updates even when params are same as create or last update
-    now = datetime.datetime.utcnow()
+    now = datetime.datetime.now(tz = datetime.timezone.utc)
     now_string = now.strftime("%Y-%m-%dT%H:%M:%SZ")
     params["azimuth_requested_update_at"] = now_string
 
@@ -292,13 +317,14 @@ class Driver(base.Driver):
         name: str,
         cluster_type: dto.ClusterType,
         params: t.Mapping[str, t.Any],
+        schedule: t.Optional[scheduling_dto.PlatformSchedule],
         ctx: dto.Context
     ) -> dto.Cluster:
         """
         Create a new cluster with the given name, type and parameters.
         """
         client = get_k8s_client(ctx, True)
-        return create_cluster(client, name, cluster_type.name, params, ctx)
+        return create_cluster(client, name, cluster_type.name, params, schedule, ctx)
 
     def update_cluster(
         self,

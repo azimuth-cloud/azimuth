@@ -23,13 +23,21 @@ import { sprintf } from 'sprintf-js';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faExclamationCircle,
+    faExclamationTriangle,
     faPen,
     faQuestionCircle,
     faShieldAlt,
     faSyncAlt,
 } from '@fortawesome/free-solid-svg-icons';
 
-import { PlatformTypeCard, PlatformServicesListGroup, PlatformDeleteButton } from '../utils';
+import {
+    PlatformTypeCard,
+    PlatformCardHeader,
+    PlatformServicesListGroup,
+    PlatformDeleteButton,
+    PlatformExpires,
+    expiresSoon
+} from '../utils';
 import { Error } from '../../../../utils';
 
 
@@ -183,6 +191,12 @@ const ClusterStatusCard = ({ cluster, clusterType }) => (
                     <th>Patched</th>
                     <td><ClusterPatched cluster={cluster} clusterType={clusterType} /></td>
                 </tr>
+                {cluster.schedule && (
+                    <tr>
+                        <th>Expires</th>
+                        <td><PlatformExpires schedule={cluster.schedule} /></td>
+                    </tr>
+                )}
             </tbody>
         </Table>
     </Card>
@@ -222,6 +236,7 @@ const ClusterUpdateButton = ({
     cluster,
     tenancy,
     tenancyActions,
+    capabilities,
     disabled,
     onSubmit,
     ...props
@@ -233,7 +248,10 @@ const ClusterUpdateButton = ({
     const clusterType = get(tenancy.clusterTypes.data, cluster.cluster_type) || clusterTypePlaceholder;
 
     const handleSubmit = data => {
-        onSubmit({ parameter_values: data.parameterValues });
+        onSubmit({
+            parameter_values: data.parameterValues,
+            schedule: data.schedule
+        });
         close();
     };
 
@@ -260,6 +278,7 @@ const ClusterUpdateButton = ({
                 onCancel={close}
                 tenancy={tenancy}
                 tenancyActions={tenancyActions}
+                capabilities={capabilities}
             />
         </>
     );
@@ -311,6 +330,7 @@ const ClusterDetailsButton = ({
     clusterActions,
     tenancy,
     tenancyActions,
+    capabilities,
     ...props
 }) => {
     const [visible, setVisible] = useState(false);
@@ -358,6 +378,7 @@ const ClusterDetailsButton = ({
                                 cluster={cluster}
                                 tenancy={tenancy}
                                 tenancyActions={tenancyActions}
+                                capabilities={capabilities}
                                 disabled={inFlight || working || missingClusterType}
                                 onSubmit={clusterActions.update}
                                 className="me-2"
@@ -430,6 +451,8 @@ export const ClusterCard = ({
     clusterActions,
     tenancy,
     tenancyActions,
+    capabilities,
+    userId,
     notificationActions
 }) => {
     // If cluster type is no longer available from the API (e.g. due to ACL changes in the tenancy) then use a placeholder.
@@ -442,12 +465,16 @@ export const ClusterCard = ({
         });
     }
 
-    const updatedAt = cluster.updated || cluster.created;
+    const clusterExpiresSoon = cluster.schedule ? expiresSoon(cluster.schedule) : false;
+
     return (
-        <Card className="platform-card">
-            <Card.Header>
+        <Card className={`platform-card ${clusterExpiresSoon ? "platform-expiring" : ""}`}>
+            <PlatformCardHeader
+                currentUserIsOwner={userId === cluster.created_by_user_id}
+                expiresSoon={clusterExpiresSoon}
+            >
                 <Badge bg={statusBadgeBg[cluster.status]}>{cluster.status}</Badge>
-            </Card.Header>
+            </PlatformCardHeader>
             <Card.Img src={clusterType.logo} />
             <Card.Body>
                 <Card.Title>{cluster.name}</Card.Title>
@@ -462,8 +489,13 @@ export const ClusterCard = ({
                 </Card.Body>
             )}
             <Card.Body className="small text-muted">
-                Created {cluster.created.toRelative()}<br/>
-                Created by {cluster.created_by_username || 'unknown'}
+                Created {cluster.created.toRelative()}
+                {cluster.schedule && (
+                    <>
+                        <br/>
+                        Expires {cluster.schedule.end_time.toRelative()}
+                    </>
+                )}
             </Card.Body>
             <Card.Footer>
                 <ClusterDetailsButton
@@ -472,6 +504,7 @@ export const ClusterCard = ({
                     clusterActions={clusterActions}
                     tenancy={tenancy}
                     tenancyActions={tenancyActions}
+                    capabilities={capabilities}
                 />
             </Card.Footer>
         </Card>

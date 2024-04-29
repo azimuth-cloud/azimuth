@@ -73,6 +73,7 @@ const ConnectedTenanciesPage = connect(
 
 const ConnectedTenancyResourcePage = connect(
     (state) => ({
+        userId: state.session.user_id,
         capabilities: state.session.capabilities,
         sshKey: state.sshKey,
         tenancies: state.tenancies

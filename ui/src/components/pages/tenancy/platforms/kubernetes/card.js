@@ -12,8 +12,6 @@ import Tab from 'react-bootstrap/Tab';
 
 import get from 'lodash/get';
 
-import { DateTime } from 'luxon';
-
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faCheck,
@@ -30,7 +28,11 @@ import { sortBy, Error } from '../../../../utils';
 
 import { MachineSizeLink } from '../../resource-utils';
 
-import { PlatformServicesListGroup, PlatformDeleteButton } from '../utils';
+import {
+    PlatformCardHeader,
+    PlatformServicesListGroup,
+    PlatformDeleteButton
+} from '../utils';
 
 import { UpgradeKubernetesClusterButton } from './upgrade-modal';
 import { KubeconfigButton } from './kubeconfig-modal';
@@ -694,15 +696,20 @@ export const KubernetesCard = ({
     kubernetesCluster,
     kubernetesClusterActions,
     tenancy,
-    tenancyActions
+    tenancyActions,
+    userId
 }) => {
     return (
         <Card className="platform-card">
-            <Card.Header>
+            <PlatformCardHeader
+                currentUserIsOwner={userId === kubernetesCluster.created_by_user_id}
+                // We don't support expiry for Kubernetes yet
+                expiresSoon={false}
+            >
                 <Badge bg={statusBadgeBg[kubernetesCluster.status]}>
                     {kubernetesCluster.status.toUpperCase()}
                 </Badge>
-            </Card.Header>
+            </PlatformCardHeader>
             <Card.Img src={KubernetesIcon} />
             <Card.Body>
                 <Card.Title>{kubernetesCluster.name}</Card.Title>
@@ -715,7 +722,6 @@ export const KubernetesCard = ({
             )}
             <Card.Body className="small text-muted">
                 Created {kubernetesCluster.created_at.toRelative()}<br/>
-                Created by {kubernetesCluster.created_by_username || 'unknown'}
             </Card.Body>
             <Card.Footer>
                 <KubernetesClusterDetailsButton

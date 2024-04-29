@@ -16,7 +16,6 @@ import ReactMarkdown from 'react-markdown';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faArrowCircleLeft,
-    faArrowCircleRight,
     faCheckCircle,
     faPlus,
     faSitemap,
@@ -107,7 +106,8 @@ const ClusterConfigurationForm = ({
     onCancel,
     sshKey,
     tenancy,
-    tenancyActions
+    tenancyActions,
+    capabilities
 }) => {
     const [formState, _] = useClusterFormState(clusterType, undefined);
 
@@ -126,12 +126,14 @@ const ClusterConfigurationForm = ({
                     tenancyActions.cluster.create({
                         name: data.name,
                         cluster_type: clusterType.name,
-                        parameter_values: data.parameterValues
+                        parameter_values: data.parameterValues,
+                        schedule: data.schedule
                     });
                     onSuccess();
                 }}
                 tenancy={tenancy}
                 tenancyActions={tenancyActions}
+                capabilities={capabilities}
             />
             <ConnectedSSHKeyUpdateModal
                 show={showSSHKeyModal}
@@ -208,6 +210,7 @@ const PlatformConfigurationForm = ({
     sshKey,
     tenancy,
     tenancyActions,
+    capabilities,
     goBack,
     onSuccess,
     onCancel
@@ -229,6 +232,7 @@ const PlatformConfigurationForm = ({
                         sshKey={sshKey}
                         tenancy={tenancy}
                         tenancyActions={tenancyActions}
+                        capabilities={capabilities}
                     />
                 )}
                 {platformType.kind === "kubernetes" && (
@@ -279,7 +283,8 @@ const CreatePlatformModal = ({
     onCancel,
     sshKey,
     tenancy,
-    tenancyActions
+    tenancyActions,
+    capabilities
 }) => {
     const [activeTab, setActiveTab] = useState("platformType");
     const [platformTypeId, setPlatformTypeId] = useState("");
@@ -432,6 +437,7 @@ const CreatePlatformModal = ({
                         sshKey={sshKey}
                         tenancy={tenancy}
                         tenancyActions={tenancyActions}
+                        capabilities={capabilities}
                         goBack={reset}
                         onSuccess={onSuccess}
                         onCancel={onCancel}

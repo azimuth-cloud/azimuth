@@ -182,6 +182,14 @@ class MetricsSetting(SettingsObject):
     TENANT_METRICS_URL_TEMPLATE = Setting(default = None)
 
 
+class SchedulingSettings(SettingsObject):
+    """
+    Settings object for settings related to scheduling.
+    """
+    #: Indicates whether advanced scheduling should be enabled
+    ENABLED = Setting(default = False)
+
+
 class AzimuthSettings(SettingsObject):
     """
     Settings object for the ``AZIMUTH`` setting.
@@ -251,6 +259,9 @@ class AzimuthSettings(SettingsObject):
 
     #: Configuration for cloud metrics dashboards
     METRICS = NestedSetting(MetricsSetting)
+
+    #: Configuration for advanced scheduling
+    SCHEDULING = NestedSetting(SchedulingSettings)
 
     #: URL for documentation
     DOCUMENTATION_URL = Setting(default = "https://stackhpc.github.io/azimuth-user-docs/")
