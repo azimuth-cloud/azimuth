@@ -279,6 +279,7 @@ const KubernetesAppUpdateButton = ({
     kubernetesApp,
     tenancy,
     tenancyActions,
+    capabilities,
     disabled,
     onSubmit,
     ...props
@@ -322,6 +323,7 @@ const KubernetesAppUpdateButton = ({
                     onCancel={close}
                     tenancy={tenancy}
                     tenancyActions={tenancyActions}
+                    capabilities={capabilities}
                 />
             )}
         </>
@@ -335,6 +337,7 @@ const KubernetesAppDetailsButton = ({
     kubernetesAppActions,
     tenancy,
     tenancyActions,
+    capabilities,
     ...props
 }) => {
     const [visible, setVisible] = useState(false);
@@ -374,6 +377,7 @@ const KubernetesAppDetailsButton = ({
                                 kubernetesApp={kubernetesApp}
                                 tenancy={tenancy}
                                 tenancyActions={tenancyActions}
+                                capabilities={capabilities}
                                 disabled={inFlight || working || kubernetesAppTemplate.placeholder}
                                 onSubmit={kubernetesAppActions.update}
                                 className="me-2"
@@ -456,7 +460,8 @@ export const KubernetesAppCard = ({
     kubernetesAppTemplates,
     kubernetesAppActions,
     tenancy,
-    tenancyActions
+    tenancyActions,
+    capabilities
 }) => {
     const kubernetesAppTemplate = get(kubernetesAppTemplates.data, kubernetesApp.template.id, kubernetesAppTemplatePlaceholder);
     if( kubernetesAppTemplate ) {
@@ -490,6 +495,7 @@ export const KubernetesAppCard = ({
                         kubernetesAppActions={kubernetesAppActions}
                         tenancy={tenancy}
                         tenancyActions={tenancyActions}
+                        capabilities={capabilities}
                     />
                 </Card.Footer>
             </Card>

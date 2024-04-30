@@ -20,6 +20,8 @@ import {
     faSave
 } from '@fortawesome/free-solid-svg-icons';
 
+import Cookies from 'js-cookie';
+
 import { Error, Form, Field, withCustomValidity } from '../../../../utils';
 
 import {
@@ -28,6 +30,8 @@ import {
     MachineSizeLink,
     SizeSelectControl
 } from '../../resource-utils';
+
+import { PlatformSchedulingModal } from '../scheduling';
 
 
 const InputWithCustomValidity = withCustomValidity("input");
@@ -316,6 +320,65 @@ const VolumeSizeControl = ({ isInvalid, ...props }) => (
 );
 
 
+const useSchedulingData = (tenancyId, formState) => {
+    const [state, setState] = useState({
+        loading: true,
+        fits: false,
+        quotas: null,
+        error: null
+    });
+
+    const setData = (fits, data) => setState({
+        loading: false,
+        fits,
+        quotas: data.quotas,
+        error: null
+    });
+    const setError = error => setState({
+        loading: false,
+        fits: false,
+        quotas: null,
+        error
+    });
+
+    useEffect(
+        () => {
+            const fetchData = async () => {
+                const headers = { 'Content-Type': 'application/json' };
+                const csrfToken = Cookies.get('csrftoken');
+                if( csrfToken ) headers['X-CSRFToken'] = csrfToken;
+                const clusterId = formState.kubernetesCluster?.id;
+                const url = clusterId ?
+                    `/api/tenancies/${tenancyId}/kubernetes_clusters/${clusterId}/_schedule/` :
+                    `/api/tenancies/${tenancyId}/kubernetes_clusters/_schedule/`;
+                // When querying for an update, don't include the template
+                const { name, template, ...data } = formState.data;
+                const requestData = clusterId ? data : formState.data;
+                const response = await fetch(
+                    url,
+                    {
+                        method: "POST",
+                        headers,
+                        credentials: "same-origin",
+                        body: JSON.stringify(requestData)
+                    }
+                );
+                if( response.ok || response.status === 409 ) {
+                    const data = await response.json();
+                    setData(response.ok, data);
+                }
+                else {
+                    setError(new Error("HTTP request failed"));
+                }
+            };
+            fetchData().catch(setError);
+        },
+        []
+    );
+    return state;
+};
+
+
 export const KubernetesClusterForm = ({
     formState,
     onSubmit,
@@ -325,8 +388,12 @@ export const KubernetesClusterForm = ({
     sizeActions,
     externalIps,
     externalIpActions,
+    tenancy,
+    capabilities,
     ...props
 }) => {
+    const [showScheduling, setShowScheduling] = useState(false);
+
     const getStateKey = key => formState.data[key] || '';
     const setStateKey = key => value => formState.setData(state => ({ ...state, [key]: value }));
     const setStateKeyFromInputEvent = key => evt => setStateKey(key)(evt.target.value);
@@ -382,8 +449,10 @@ export const KubernetesClusterForm = ({
 
     const handleSubmit = (evt) => {
         evt.preventDefault();
-        onSubmit(formState.data);
+        setShowScheduling(true);
     };
+    const handleCancel = () => setShowScheduling(false);
+    const handleConfirm = schedule => onSubmit({ ...formState.data, schedule });
 
     return (
         <>
@@ -708,6 +777,15 @@ export const KubernetesClusterForm = ({
                 sizes={sizes}
                 sizeActions={sizeActions}
             />
+            {showScheduling && (
+                <PlatformSchedulingModal
+                    supportsScheduling={capabilities.supports_scheduling}
+                    useSchedulingData={() => useSchedulingData(tenancy.id, formState)}
+                    isEdit={formState.isEdit}
+                    onCancel={handleCancel}
+                    onConfirm={handleConfirm}
+                />
+            )}
         </>
     );
 };
@@ -723,6 +801,8 @@ export const KubernetesClusterModalForm = ({
     sizeActions,
     externalIps,
     externalIpActions,
+    tenancy,
+    capabilities,
     show,
     ...props
 }) => {
@@ -761,6 +841,8 @@ export const KubernetesClusterModalForm = ({
                     sizeActions={sizeActions}
                     externalIps={externalIps}
                     externalIpActions={externalIpActions}
+                    tenancy={tenancy}
+                    capabilities={capabilities}
                 />
             </Modal.Body>
             <Modal.Footer>

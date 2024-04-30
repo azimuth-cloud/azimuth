@@ -34,6 +34,8 @@ const KubernetesClusterSelectControlWithCreate = ({
     sizeActions,
     externalIps,
     externalIpActions,
+    tenancy,
+    capabilities,
     ...props
 }) => {
     const [modalVisible, setModalVisible] = useState(false);
@@ -91,6 +93,8 @@ const KubernetesClusterSelectControlWithCreate = ({
                 sizeActions={sizeActions}
                 externalIps={externalIps}
                 externalIpActions={externalIpActions}
+                tenancy={tenancy}
+                capabilities={capabilities}
             />
         </>
     );
@@ -168,6 +172,7 @@ export const KubernetesAppForm = ({
     onSubmit,
     tenancy,
     tenancyActions,
+    capabilities,
     ...props
 }) => {
     const handleNameChange = evt => formState.setName(evt.target.value);
@@ -243,6 +248,8 @@ export const KubernetesAppForm = ({
                     sizeActions={sizeActions}
                     externalIps={externalIps}
                     externalIpActions={externalIpActions}
+                    tenancy={tenancy}
+                    capabilities={capabilities}
                 />
             </Field>
             <Field
@@ -314,6 +321,7 @@ export const KubernetesAppModalForm = ({
     onCancel,
     tenancy,
     tenancyActions,
+    capabilities,
     ...props
 }) => {
     const formId = (
@@ -360,6 +368,7 @@ export const KubernetesAppModalForm = ({
                     onSubmit={onSubmit}
                     tenancy={tenancy}
                     tenancyActions={tenancyActions}
+                    capabilities={capabilities}
                 />
             </Modal.Body>
             <Modal.Footer>

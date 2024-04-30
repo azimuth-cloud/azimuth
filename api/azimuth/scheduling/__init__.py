@@ -1,2 +1,2 @@
-from .calculator import CaaSClusterCalculator
+from .calculator import CaaSClusterCalculator, KubernetesClusterCalculator
 from .quota import QuotaChecker

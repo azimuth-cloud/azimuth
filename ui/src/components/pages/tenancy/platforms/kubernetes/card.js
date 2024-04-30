@@ -31,7 +31,9 @@ import { MachineSizeLink } from '../../resource-utils';
 import {
     PlatformCardHeader,
     PlatformServicesListGroup,
-    PlatformDeleteButton
+    PlatformDeleteButton,
+    PlatformExpires,
+    expiresSoon
 } from '../utils';
 
 import { UpgradeKubernetesClusterButton } from './upgrade-modal';
@@ -308,6 +310,12 @@ const ClusterOverviewCard = ({ kubernetesCluster, kubernetesClusterTemplates }) 
                     <th>Updated by</th>
                     <td>{kubernetesCluster.updated_by_username || '-'}</td>
                 </tr>
+                {kubernetesCluster.schedule && (
+                    <tr>
+                        <th>Expires</th>
+                        <td><PlatformExpires schedule={kubernetesCluster.schedule} /></td>
+                    </tr>
+                )}
             </tbody>
         </Table>
     </Card>
@@ -475,6 +483,8 @@ const UpdateKubernetesClusterButton = ({
     sizeActions,
     externalIps,
     externalIpActions,
+    tenancy,
+    capabilities,
     disabled,
     ...props
 }) => {
@@ -523,6 +533,8 @@ const UpdateKubernetesClusterButton = ({
                 sizeActions={sizeActions}
                 externalIps={externalIps}
                 externalIpActions={externalIpActions}
+                tenancy={tenancy}
+                capabilities={capabilities}
             />
         </>
     );
@@ -537,7 +549,9 @@ const KubernetesClusterDetailsButton = ({
     sizes,
     sizeActions,
     externalIps,
-    externalIpActions
+    externalIpActions,
+    tenancy,
+    capabilities
 }) => {
     const [visible, setVisible] = useState(false);
     const open = () => setVisible(true);
@@ -611,6 +625,8 @@ const KubernetesClusterDetailsButton = ({
                                             sizeActions={sizeActions}
                                             externalIps={externalIps}
                                             externalIpActions={externalIpActions}
+                                            tenancy={tenancy}
+                                            capabilities={capabilities}
                                             disabled={inFlight || kubernetesCluster.status === "Deleting" || !kubernetesTemplatesAvailable}
                                             className="me-2"
                                         />
@@ -697,14 +713,20 @@ export const KubernetesCard = ({
     kubernetesClusterActions,
     tenancy,
     tenancyActions,
+    capabilities,
     userId
 }) => {
+    const clusterExpiresSoon = (
+        kubernetesCluster.schedule ?
+            expiresSoon(kubernetesCluster.schedule) :
+            false
+    );
+
     return (
-        <Card className="platform-card">
+        <Card className={`platform-card ${clusterExpiresSoon ? "platform-expiring" : ""}`}>
             <PlatformCardHeader
                 currentUserIsOwner={userId === kubernetesCluster.created_by_user_id}
-                // We don't support expiry for Kubernetes yet
-                expiresSoon={false}
+                expiresSoon={clusterExpiresSoon}
             >
                 <Badge bg={statusBadgeBg[kubernetesCluster.status]}>
                     {kubernetesCluster.status.toUpperCase()}
@@ -721,7 +743,13 @@ export const KubernetesCard = ({
                 />
             )}
             <Card.Body className="small text-muted">
-                Created {kubernetesCluster.created_at.toRelative()}<br/>
+                Created {kubernetesCluster.created_at.toRelative()}
+                {kubernetesCluster.schedule && (
+                    <>
+                        <br/>
+                        Expires {kubernetesCluster.schedule.end_time.toRelative()}
+                    </>
+                )}
             </Card.Body>
             <Card.Footer>
                 <KubernetesClusterDetailsButton
@@ -733,6 +761,8 @@ export const KubernetesCard = ({
                     sizeActions={tenancyActions.size}
                     externalIps={tenancy.externalIps}
                     externalIpActions={tenancyActions.externalIp}
+                    tenancy={tenancy}
+                    capabilities={capabilities}
                 />
             </Card.Footer>
         </Card>

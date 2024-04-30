@@ -23,7 +23,6 @@ import { sprintf } from 'sprintf-js';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faExclamationCircle,
-    faExclamationTriangle,
     faPen,
     faQuestionCircle,
     faShieldAlt,

@@ -12,7 +12,7 @@ class IdConverter(StringConverter):
     """
     URL converter for an id of an Azimuth resource.
     """
-    regex = "[-a-zA-Z0-9_.]+"
+    regex = "[-a-zA-Z0-9.]+"
 
 
 register_converter(IdConverter, 'id')
@@ -72,11 +72,21 @@ urlpatterns = [
         ])),
         path("kubernetes_clusters/", include([
             path("", views.kubernetes_clusters, name = "kubernetes_clusters"),
+            path(
+                "_schedule/",
+                views.kubernetes_cluster_schedule_new,
+                name = "kubernetes_cluster_schedule_new"
+            ),
             path("<id:cluster>/", include([
                 path(
                     "",
                     views.kubernetes_cluster_details,
                     name = "kubernetes_cluster_details"
+                ),
+                path(
+                    "_schedule/",
+                    views.kubernetes_cluster_schedule_existing,
+                    name = "kubernetes_cluster_schedule_existing"
                 ),
                 path(
                     "kubeconfig/",
@@ -123,10 +133,10 @@ urlpatterns = [
         ])),
         path("clusters/", include([
             path("", views.clusters, name = "clusters"),
-            path("schedule/", views.cluster_schedule_new, name = "cluster_schedule_new"),
+            path("_schedule/", views.cluster_schedule_new, name = "cluster_schedule_new"),
             path("<id:cluster>/", include([
                 path("", views.cluster_details, name = "cluster_details"),
-                path("schedule/", views.cluster_schedule_existing, name = "cluster_schedule_existing"),
+                path("_schedule/", views.cluster_schedule_existing, name = "cluster_schedule_existing"),
                 path("patch/", views.cluster_patch, name = "cluster_patch"),
                 path(
                     "services/<id:service>/",
