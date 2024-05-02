@@ -74,8 +74,8 @@ class KubernetesClusterCalculator:
         control_plane_size: provider_dto.Size,
         node_groups: t.List[KubernetesNodeGroupSpec],
         monitoring_enabled: bool,
-        monitoring_metrics_volume_size: t.Optional[int] = None,
-        monitoring_logs_volume_size: t.Optional[int] = None,
+        monitoring_metrics_volume_size: int,
+        monitoring_logs_volume_size: int,
         **kwargs
     ) -> dto.PlatformResources:
         """

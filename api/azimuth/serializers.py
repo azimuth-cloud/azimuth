@@ -856,18 +856,18 @@ class CreateKubernetesClusterSerializer(
     ingress_controller_load_balancer_ip = serializers.IPAddressField(
         protocol = "IPv4",
         allow_null = True,
-        required = False
+        default = None
     )
     monitoring_enabled = serializers.BooleanField(default = False)
     monitoring_metrics_volume_size = serializers.IntegerField(
-        required = False,
-        min_value = 1
+        min_value = 1,
+        default = 10
     )
     monitoring_logs_volume_size = serializers.IntegerField(
-        required = False,
-        min_value = 1
+        min_value = 1,
+        default = 10
     )
-    schedule = PlatformScheduleSerializer(write_only = True, allow_null = True, default = None)
+    schedule = PlatformScheduleSerializer(allow_null = True, default = None)
 
     def validate_schedule(self, value):
         if self.context.get("validate_schedule", True):
