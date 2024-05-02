@@ -1345,21 +1345,19 @@ def kubernetes_cluster_check_quotas(session, cluster, template, **data):
     # Calculate the resources used by the current cluster
     if cluster:
         # Index the sizes that have already been loaded so we don't have to load them again
-        known_sizes = {
-            data["control_plane_size"].id: data["control_plane_size"],
-            **{
-                ng["machine_size"].id: ng["machine_size"]
-                for ng in data["node_groups"]
-            }
-        }
-        current_resources = calculator.calculate(
-            template,
-            (
+        known_sizes = {}
+        if "control_plane_size" in data:
+            known_sizes[data["control_plane_size"].id] = data["control_plane_size"]
+        for ng in data.get("node_groups", []):
+            known_sizes[ng["machine_size"].id] = ng["machine_size"]
+        # Calculate the data for the current state of the cluster
+        current_data = {
+            "control_plane_size": (
                 known_sizes[cluster.control_plane_size_id]
                 if cluster.control_plane_size_id in known_sizes
                 else session.find_size(cluster.control_plane_size_id)
             ),
-            [
+            "node_groups": [
                 {
                     "name": ng.name,
                     "machine_size": (
@@ -1374,10 +1372,14 @@ def kubernetes_cluster_check_quotas(session, cluster, template, **data):
                 }
                 for ng in cluster.node_groups
             ],
-            cluster.monitoring_enabled,
-            cluster.monitoring_metrics_volume_size,
-            cluster.monitoring_logs_volume_size
-        )
+            "monitoring_enabled": cluster.monitoring_enabled,
+            "monitoring_metrics_volume_size": cluster.monitoring_metrics_volume_size,
+            "monitoring_logs_volume_size": cluster.monitoring_logs_volume_size,
+        }
+        # Calculate the resources for the current state of the cluster
+        current_resources = calculator.calculate(template, **current_data)
+        # Overwrite with any changes from the incoming data
+        data = { **current_data, **data }
     else:
         current_resources = None
     future_resources = calculator.calculate(template, **data)
