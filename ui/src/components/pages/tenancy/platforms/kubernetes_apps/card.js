@@ -226,7 +226,7 @@ const StatusCard = ({ kubernetesAppTemplate, kubernetesCluster, kubernetesApp })
                 </tr>
                 <tr>
                     <th>Kubernetes cluster</th>
-                    <td>{kubernetesCluster.name}</td>
+                    <td>{kubernetesCluster?.name || '-'}</td>
                 </tr>
                 <tr>
                     <th>Template</th>
@@ -259,7 +259,7 @@ const StatusCard = ({ kubernetesAppTemplate, kubernetesCluster, kubernetesApp })
                     <th>Updated by</th>
                     <td>{kubernetesApp.updated_by_username || '-'}</td>
                 </tr>
-                {kubernetesCluster.schedule && (
+                {kubernetesCluster?.schedule && (
                     <tr>
                         <th>Expires</th>
                         <td><PlatformExpires schedule={kubernetesCluster.schedule} /></td>
@@ -495,7 +495,7 @@ export const KubernetesAppCard = ({
 
     // Kubernetes apps expire at the same time as the underlying cluster
     const appExpiresSoon = (
-        kubernetesCluster.schedule ?
+        kubernetesCluster?.schedule ?
             expiresSoon(kubernetesCluster.schedule) :
             false
     );
@@ -523,7 +523,7 @@ export const KubernetesAppCard = ({
             )}
             <Card.Body className="small text-muted">
                 Created {kubernetesApp.created_at.toRelative()}
-                {kubernetesCluster.schedule && (
+                {kubernetesCluster?.schedule && (
                     <>
                         <br/>
                         Expires {kubernetesCluster.schedule.end_time.toRelative()}
