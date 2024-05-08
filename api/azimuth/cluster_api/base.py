@@ -704,12 +704,8 @@ class Session:
             last_handled_spec = last_handled_configuration.get("spec")
             if last_handled_spec and helm_release.spec != last_handled_spec:
                 app_state = "Upgrading"
-        services_annotation = (
-            helm_release
-                .metadata
-                .get("annotations", {})
-                .get("azimuth.stackhpc.com/services")
-        )
+        annotations = helm_release.metadata.get("annotations", {})
+        services_annotation = annotations.get("azimuth.stackhpc.com/services")
         services = json.loads(services_annotation) if services_annotation else {}
         return dto.App(
             helm_release.metadata.name,
@@ -738,7 +734,11 @@ class Session:
                 )
                 for name, service in services.items()
             ],
-            dateutil.parser.parse(helm_release.metadata["creationTimestamp"])
+            dateutil.parser.parse(helm_release.metadata["creationTimestamp"]),
+            annotations.get("azimuth.stackhpc.com/created-by-username"),
+            annotations.get("azimuth.stackhpc.com/created-by-user-id"),
+            annotations.get("azimuth.stackhpc.com/updated-by-username"),
+            annotations.get("azimuth.stackhpc.com/updated-by-user-id")
         )
 
     @convert_exceptions
@@ -798,6 +798,11 @@ class Session:
                     "app.kubernetes.io/managed-by": "azimuth",
                     "azimuth.stackhpc.com/app-template": template.id
                 },
+                # Use annotations to indicate who created the app
+                "annotations": {
+                    "azimuth.stackhpc.com/created-by-username": self._cloud_session.username(),
+                    "azimuth.stackhpc.com/created-by-user-id": self._cloud_session.user_id(),
+                },
             },
             "spec": {
                 "clusterName": kubernetes_cluster.id,
@@ -838,6 +843,17 @@ class Session:
                 .patch(
                     app.id,
                     {
+                        # Add/update the annotations that record the user doing the update
+                        "metadata": {
+                            "annotations": {
+                                "azimuth.stackhpc.com/updated-by-username": (
+                                    self._cloud_session.username()
+                                ),
+                                "azimuth.stackhpc.com/updated-by-user-id": (
+                                    self._cloud_session.user_id()
+                                ),
+                            },
+                        },
                         "spec": {
                             "chart": {
                                 "version": version.name,

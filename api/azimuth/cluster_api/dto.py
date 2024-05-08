@@ -227,3 +227,8 @@ class App:
     services: t.List[Service]
     #: The time at which the app was created
     created_at: datetime.datetime
+    #: Details about the users interacting with the app
+    created_by_username: t.Optional[str]
+    created_by_user_id: t.Optional[str]
+    updated_by_username: t.Optional[str]
+    updated_by_user_id: t.Optional[str]

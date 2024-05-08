@@ -143,7 +143,8 @@ export const TenancyPlatformsPanel = ({
                         id: `kubernetesApps/${key}`,
                         kind: "kubernetesApp",
                         name: value.name,
-                        object: value
+                        object: value,
+                        createdByUserId: value.created_by_user_id
                     }
                 })
             )

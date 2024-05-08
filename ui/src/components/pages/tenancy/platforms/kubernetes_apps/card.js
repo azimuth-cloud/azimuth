@@ -249,6 +249,14 @@ const StatusCard = ({ kubernetesAppTemplate, kubernetesApp }) => (
                     <th>Created</th>
                     <td>{kubernetesApp.created_at.toRelative()}</td>
                 </tr>
+                <tr>
+                    <th>Created by</th>
+                    <td>{kubernetesApp.created_by_username || '-'}</td>
+                </tr>
+                <tr>
+                    <th>Updated by</th>
+                    <td>{kubernetesApp.updated_by_username || '-'}</td>
+                </tr>
             </tbody>
         </Table>
     </Card>
@@ -461,15 +469,18 @@ export const KubernetesAppCard = ({
     kubernetesAppActions,
     tenancy,
     tenancyActions,
-    capabilities
+    capabilities,
+    userId
 }) => {
     const kubernetesAppTemplate = get(kubernetesAppTemplates.data, kubernetesApp.template.id, kubernetesAppTemplatePlaceholder);
     if( kubernetesAppTemplate ) {
         return (
             <Card className="platform-card">
-                {/* We don't currently support an owner reference on Kubernetes apps */}
                 {/* They also don't expire in the same way as they don't have their own resource */}
-                <PlatformCardHeader currentUserIsOwner={false} expiresSoon={false}>
+                <PlatformCardHeader
+                    currentUserIsOwner={userId === kubernetesApp.created_by_user_id}
+                    expiresSoon={false}
+                >
                     <StatusBadge
                         kubernetesAppTemplate={kubernetesAppTemplate}
                         kubernetesApp={kubernetesApp}
