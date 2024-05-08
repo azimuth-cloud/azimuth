@@ -33,7 +33,9 @@ import {
     PlatformTypeCard,
     PlatformCardHeader,
     PlatformServicesListGroup,
-    PlatformDeleteButton
+    PlatformDeleteButton,
+    PlatformExpires,
+    expiresSoon
 } from '../utils';
 
 import { KubernetesAppModalForm } from './form';
@@ -42,7 +44,7 @@ import { KubernetesAppModalForm } from './form';
 // Placeholder object which holds the minimum set of fields required for a successful UI render
 const kubernetesAppTemplatePlaceholder = {
     logo: sadFace,
-    label: "App type unavailable",
+    label: "Platform type unavailable",
     description: "",
     versions: [{
         name: "deprecated"
@@ -213,7 +215,7 @@ const StatusText = ({ kubernetesApp }) => {
 };
 
 
-const StatusCard = ({ kubernetesAppTemplate, kubernetesApp }) => (
+const StatusCard = ({ kubernetesAppTemplate, kubernetesCluster, kubernetesApp }) => (
     <Card className="mb-3">
         <Card.Header className="text-center">App status</Card.Header>
         <Table borderless className="details-table">
@@ -224,7 +226,7 @@ const StatusCard = ({ kubernetesAppTemplate, kubernetesApp }) => (
                 </tr>
                 <tr>
                     <th>Kubernetes cluster</th>
-                    <td>{kubernetesApp.kubernetes_cluster.id}</td>
+                    <td>{kubernetesCluster.name}</td>
                 </tr>
                 <tr>
                     <th>Template</th>
@@ -257,6 +259,12 @@ const StatusCard = ({ kubernetesAppTemplate, kubernetesApp }) => (
                     <th>Updated by</th>
                     <td>{kubernetesApp.updated_by_username || '-'}</td>
                 </tr>
+                {kubernetesCluster.schedule && (
+                    <tr>
+                        <th>Expires</th>
+                        <td><PlatformExpires schedule={kubernetesCluster.schedule} /></td>
+                    </tr>
+                )}
             </tbody>
         </Table>
     </Card>
@@ -341,6 +349,7 @@ const KubernetesAppUpdateButton = ({
 
 const KubernetesAppDetailsButton = ({
     kubernetesApp,
+    kubernetesCluster,
     kubernetesAppTemplate,
     kubernetesAppActions,
     tenancy,
@@ -407,11 +416,12 @@ const KubernetesAppDetailsButton = ({
                                     description: kubernetesAppTemplate.description
                                 }}
                             />
-                            {!kubernetesAppTemplate.placeholder && <Usage kubernetesApp={kubernetesApp} />}
+                            <Usage kubernetesApp={kubernetesApp} />
                         </Col>
                         <Col xl={5}>
                             <StatusCard
                                 kubernetesApp={kubernetesApp}
+                                kubernetesCluster={kubernetesCluster}
                                 kubernetesAppTemplate={kubernetesAppTemplate}
                             />
                             <ServicesCard kubernetesApp={kubernetesApp} />
@@ -472,47 +482,65 @@ export const KubernetesAppCard = ({
     capabilities,
     userId
 }) => {
-    const kubernetesAppTemplate = get(kubernetesAppTemplates.data, kubernetesApp.template.id, kubernetesAppTemplatePlaceholder);
-    if( kubernetesAppTemplate ) {
-        return (
-            <Card className="platform-card">
-                {/* They also don't expire in the same way as they don't have their own resource */}
-                <PlatformCardHeader
-                    currentUserIsOwner={userId === kubernetesApp.created_by_user_id}
-                    expiresSoon={false}
-                >
-                    <StatusBadge
-                        kubernetesAppTemplate={kubernetesAppTemplate}
-                        kubernetesApp={kubernetesApp}
-                    />
-                </PlatformCardHeader>
-                <Card.Img src={kubernetesAppTemplate.logo} />
-                <Card.Body>
-                    <Card.Title>{kubernetesApp.name}</Card.Title>
-                    <Card.Subtitle>{kubernetesAppTemplate.label}</Card.Subtitle>
-                </Card.Body>
-                {kubernetesApp.services.length > 0 && (
-                    <PlatformServicesListGroup
-                        services={sortBy(kubernetesApp.services, s => s.label)}
-                    />
+    const kubernetesAppTemplate = get(
+        kubernetesAppTemplates.data,
+        kubernetesApp.template.id,
+        kubernetesAppTemplatePlaceholder
+    );
+
+    const kubernetesCluster = get(
+        tenancy.kubernetesClusters.data,
+        kubernetesApp.kubernetes_cluster.id
+    );
+
+    // Kubernetes apps expire at the same time as the underlying cluster
+    const appExpiresSoon = (
+        kubernetesCluster.schedule ?
+            expiresSoon(kubernetesCluster.schedule) :
+            false
+    );
+
+    return (
+        <Card className={`platform-card ${appExpiresSoon ? "platform-expiring" : ""}`}>
+            <PlatformCardHeader
+                currentUserIsOwner={userId === kubernetesApp.created_by_user_id}
+                expiresSoon={appExpiresSoon}
+            >
+                <StatusBadge
+                    kubernetesAppTemplate={kubernetesAppTemplate}
+                    kubernetesApp={kubernetesApp}
+                />
+            </PlatformCardHeader>
+            <Card.Img src={kubernetesAppTemplate.logo} />
+            <Card.Body>
+                <Card.Title>{kubernetesApp.name}</Card.Title>
+                <Card.Subtitle>{kubernetesAppTemplate.label}</Card.Subtitle>
+            </Card.Body>
+            {kubernetesApp.services.length > 0 && (
+                <PlatformServicesListGroup
+                    services={sortBy(kubernetesApp.services, s => s.label)}
+                />
+            )}
+            <Card.Body className="small text-muted">
+                Created {kubernetesApp.created_at.toRelative()}
+                {kubernetesCluster.schedule && (
+                    <>
+                        <br/>
+                        Expires {kubernetesCluster.schedule.end_time.toRelative()}
+                    </>
                 )}
-                <Card.Body className="small text-muted">
-                    Created {kubernetesApp.created_at.toRelative()}
-                </Card.Body>
-                <Card.Footer>
-                    <KubernetesAppDetailsButton
-                        kubernetesApp={kubernetesApp}
-                        kubernetesAppTemplate={kubernetesAppTemplate}
-                        kubernetesAppActions={kubernetesAppActions}
-                        tenancy={tenancy}
-                        tenancyActions={tenancyActions}
-                        capabilities={capabilities}
-                    />
-                </Card.Footer>
-            </Card>
-        );
-    }
-    else {
-        return null;
-    }
+            </Card.Body>
+            <Card.Footer>
+                <KubernetesAppDetailsButton
+                    kubernetesApp={kubernetesApp}
+                    kubernetesCluster={kubernetesCluster}
+                    kubernetesAppTemplate={kubernetesAppTemplate}
+                    kubernetesAppActions={kubernetesAppActions}
+                    tenancy={tenancy}
+                    tenancyActions={tenancyActions}
+                    capabilities={capabilities}
+                />
+            </Card.Footer>
+        </Card>
+    );
 };
