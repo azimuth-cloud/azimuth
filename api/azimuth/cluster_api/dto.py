@@ -2,6 +2,8 @@ import dataclasses
 import datetime
 import typing as t
 
+from ..scheduling import dto as scheduling_dto
+
 
 @dataclasses.dataclass(frozen = True)
 class ClusterTemplate:
@@ -20,6 +22,12 @@ class ClusterTemplate:
     deprecated: bool
     #: The number of control plane nodes that this template will deploy
     control_plane_count: int
+    #: The size of the volumes that will be used for etcd (0 for no separate volume)
+    etcd_volume_size: int
+    #: The size of the volumes used for control plane nodes (0 for ephemeral root disk)
+    control_plane_root_volume_size: int
+    #: The size of the volumes used for worker nodes (0 for ephemeral root disk)
+    node_group_root_volume_size: int
     #: The tags for the template
     tags: t.List[str]
     #: The datetime at which the template was created
@@ -142,6 +150,8 @@ class Cluster:
     created_by_user_id: t.Optional[str]
     updated_by_username: t.Optional[str]
     updated_by_user_id: t.Optional[str]
+    #: Scheduling information for the cluster
+    schedule: t.Optional[scheduling_dto.PlatformSchedule] = None
 
 
 @dataclasses.dataclass(frozen = True)
@@ -217,3 +227,8 @@ class App:
     services: t.List[Service]
     #: The time at which the app was created
     created_at: datetime.datetime
+    #: Details about the users interacting with the app
+    created_by_username: t.Optional[str]
+    created_by_user_id: t.Optional[str]
+    updated_by_username: t.Optional[str]
+    updated_by_user_id: t.Optional[str]

@@ -1,8 +1,8 @@
 """
 Django REST framework serializers for objects from the :py:mod:`~.cloud.dto` package.
 """
-
 import collections
+import datetime
 import dataclasses
 import ipaddress
 
@@ -448,6 +448,22 @@ class ExternalIPSerializer(make_dto_serializer(dto.ExternalIp)):
 ProjectedQuotaSerializer = make_dto_serializer(scheduling_dto.ProjectedQuota)
 
 
+class PlatformScheduleSerializer(serializers.Serializer):
+    end_time = serializers.DateTimeField(default_timezone = datetime.timezone.utc)
+
+    def validate_end_time(self, value):
+        # Ensure that the end time is in the future
+        now = datetime.datetime.now(tz = datetime.timezone.utc)
+        if value <= now:
+            raise serializers.ValidationError("End time cannot be in the past.")
+        # Ensure that the end time is UTC
+        return value.astimezone(datetime.timezone.utc)
+
+    def to_internal_value(self, data):
+        data = super().to_internal_value(data)
+        return scheduling_dto.PlatformSchedule(**data)
+
+
 ClusterParameterSerializer = make_dto_serializer(clusters_dto.ClusterParameter)
 
 
@@ -471,9 +487,15 @@ class ClusterTypeSerializer(
         return result
 
 
-class ClusterSerializer(make_dto_serializer(clusters_dto.Cluster, exclude = ["services"])):
+class ClusterSerializer(
+    make_dto_serializer(
+        clusters_dto.Cluster,
+        exclude = ["status", "services", "schedule"]
+    )
+):
     status = serializers.ReadOnlyField(source = "status.name")
     services = serializers.SerializerMethodField()
+    schedule = PlatformScheduleSerializer()
 
     def get_services(self, obj):
         request = self.context.get("request")
@@ -518,6 +540,7 @@ class CreateClusterSerializer(serializers.Serializer):
     name = serializers.RegexField("^[a-z0-9-]+$", write_only = True)
     cluster_type = serializers.RegexField(ID_REGEX, write_only = True)
     parameter_values = serializers.JSONField(write_only = True)
+    schedule = PlatformScheduleSerializer(write_only = True, allow_null = True, default = None)
 
     def validate_cluster_type(self, value):
         # Find the cluster type
@@ -527,6 +550,14 @@ class CreateClusterSerializer(serializers.Serializer):
             return cluster_manager.find_cluster_type(value)
         except clusters_errors.ObjectNotFoundError as exc:
             raise serializers.ValidationError(str(exc))
+
+    def validate_schedule(self, value):
+        if self.context.get("validate_schedule", True):
+            if cloud_settings.SCHEDULING.ENABLED and not value:
+                raise serializers.ValidationError("This field is required.")
+            elif not cloud_settings.SCHEDULING.ENABLED and value:
+                raise serializers.ValidationError("Scheduling is not supported.")
+        return value
 
     def validate(self, data):
         # Force a validation of the parameter values for the cluster type
@@ -619,6 +650,7 @@ class KubernetesClusterSerializer(
             "nodes",
             "addons",
             "services",
+            "schedule",
         ]
     )
 ):
@@ -628,6 +660,7 @@ class KubernetesClusterSerializer(
     nodes = KubernetesClusterNodeSerializer(many = True, read_only = True)
     addons = KubernetesClusterAddonSerializer(many = True, read_only = True)
     services = serializers.SerializerMethodField()
+    schedule = PlatformScheduleSerializer()
 
     def get_services(self, obj):
         request = self.context.get("request")
@@ -823,17 +856,26 @@ class CreateKubernetesClusterSerializer(
     ingress_controller_load_balancer_ip = serializers.IPAddressField(
         protocol = "IPv4",
         allow_null = True,
-        required = False
+        default = None
     )
     monitoring_enabled = serializers.BooleanField(default = False)
     monitoring_metrics_volume_size = serializers.IntegerField(
-        required = False,
-        min_value = 1
+        min_value = 1,
+        default = 10
     )
     monitoring_logs_volume_size = serializers.IntegerField(
-        required = False,
-        min_value = 1
+        min_value = 1,
+        default = 10
     )
+    schedule = PlatformScheduleSerializer(allow_null = True, default = None)
+
+    def validate_schedule(self, value):
+        if self.context.get("validate_schedule", True):
+            if cloud_settings.SCHEDULING.ENABLED and not value:
+                raise serializers.ValidationError("This field is required.")
+            elif not cloud_settings.SCHEDULING.ENABLED and value:
+                raise serializers.ValidationError("Scheduling is not supported.")
+        return value
 
 
 class UpdateKubernetesClusterSerializer(

@@ -398,6 +398,11 @@ sshKeyStore:
     # The base DN where users exist
     baseDn: OU=Users,DC=example,DC=com
 
+# Scheduling settings
+scheduling:
+  # Indicates whether scheduling should be enabled
+  enabled: false
+
 # Properties for applying themes
 theme:
   # The URL of the Bootstrap CSS to use (must be Bootstrap 5)

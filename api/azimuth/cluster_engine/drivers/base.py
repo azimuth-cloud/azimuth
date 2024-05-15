@@ -4,6 +4,8 @@ This module defines the base class for cluster managers.
 
 import typing as t
 
+from ...scheduling import dto as scheduling_dto
+
 from .. import dto
 
 
@@ -43,6 +45,7 @@ class Driver:
         name: str,
         cluster_type: dto.ClusterType,
         params: t.Mapping[str, t.Any],
+        schedule: t.Optional[scheduling_dto.PlatformSchedule],
         ctx: dto.Context
     ):
         """

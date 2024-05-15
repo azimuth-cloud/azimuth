@@ -56,9 +56,11 @@ const clustersWithLinks = tenancy => {
 
 
 export const TenancyPlatformsPanel = ({
+    userId,
     sshKey,
     tenancy,
     tenancyActions,
+    capabilities,
     notificationActions,
     supportsPlatforms,
 }) => {
@@ -117,7 +119,9 @@ export const TenancyPlatformsPanel = ({
                         id: `clusters/${key}`,
                         kind: "cluster",
                         name: value.name,
-                        object: value
+                        object: value,
+                        createdByUserId: value.created_by_user_id,
+                        schedule: value.schedule
                     }
                 })
             ),
@@ -127,7 +131,9 @@ export const TenancyPlatformsPanel = ({
                         id: `kubernetesClusters/${key}`,
                         kind: "kubernetesCluster",
                         name: value.name,
-                        object: value
+                        object: value,
+                        createdByUserId: value.created_by_user_id,
+                        schedule: value.schedule
                     }
                 })
             ),
@@ -137,7 +143,8 @@ export const TenancyPlatformsPanel = ({
                         id: `kubernetesApps/${key}`,
                         kind: "kubernetesApp",
                         name: value.name,
-                        object: value
+                        object: value,
+                        createdByUserId: value.created_by_user_id
                     }
                 })
             )
@@ -182,6 +189,7 @@ export const TenancyPlatformsPanel = ({
                             sshKey={sshKey}
                             tenancy={tenancy}
                             tenancyActions={tenancyActions}
+                            capabilities={capabilities}
                         />
                         <Button
                             variant="primary"
@@ -201,11 +209,13 @@ export const TenancyPlatformsPanel = ({
             </Row>
             {(resource.initialised && supportsPlatforms) ? (
                 <PlatformsGrid
+                    userId={userId}
                     showCreateModal={() => setCreateModalVisible(true)}
                     creating={resource.creating}
                     platforms={resource.data}
                     tenancy={tenancy}
                     tenancyActions={tenancyActions}
+                    capabilities={capabilities}
                     notificationActions={notificationActions}
                 />
             ) : (

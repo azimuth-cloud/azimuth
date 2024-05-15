@@ -49,8 +49,8 @@ const useSchedulingData = (tenancyId, formState) => {
                 const csrfToken = Cookies.get('csrftoken');
                 if( csrfToken ) headers['X-CSRFToken'] = csrfToken;
                 const url = formState.id ?
-                    `/api/tenancies/${tenancyId}/clusters/${formState.id}/schedule/` :
-                    `/api/tenancies/${tenancyId}/clusters/schedule/`;
+                    `/api/tenancies/${tenancyId}/clusters/${formState.id}/_schedule/` :
+                    `/api/tenancies/${tenancyId}/clusters/_schedule/`;
                 const response = await fetch(
                     url,
                     {
@@ -76,7 +76,6 @@ const useSchedulingData = (tenancyId, formState) => {
         },
         []
     );
-
     return state;
 };
 
@@ -128,13 +127,12 @@ export const useClusterFormState = (clusterType, cluster) => {
     ]
 };
 
-
-
 export const ClusterForm = ({
     formState,
     onSubmit,
     tenancy,
     tenancyActions,
+    capabilities,
     ...props
 }) => {
     const [showScheduling, setShowScheduling] = useState(false);
@@ -156,11 +154,11 @@ export const ClusterForm = ({
         setShowScheduling(true);
     };
     const handleCancel = () => setShowScheduling(false);
-    const handleConfirm = () => onSubmit({
+    const handleConfirm = schedule => onSubmit({
         name: formState.name,
-        parameterValues: formState.parameterValues
+        parameterValues: formState.parameterValues,
+        schedule
     });
-
     return (
         <>
             <Form {...props} onSubmit={handleSubmit}>
@@ -195,7 +193,9 @@ export const ClusterForm = ({
             </Form>
             {showScheduling && (
                 <PlatformSchedulingModal
+                    supportsScheduling={capabilities.supports_scheduling}
                     useSchedulingData={() => useSchedulingData(tenancy.id, formState)}
+                    isEdit={formState.isEdit}
                     onCancel={handleCancel}
                     onConfirm={handleConfirm}
                 />
@@ -213,6 +213,7 @@ export const ClusterModalForm = ({
     onCancel,
     tenancy,
     tenancyActions,
+    capabilities,
     ...props
 }) => {
     const formId = (
@@ -259,6 +260,7 @@ export const ClusterModalForm = ({
                     onSubmit={onSubmit}
                     tenancy={tenancy}
                     tenancyActions={tenancyActions}
+                    capabilities={capabilities}
                 />
             </Modal.Body>
             <Modal.Footer>

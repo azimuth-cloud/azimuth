@@ -3,11 +3,13 @@ This module defines the base class for cluster managers.
 """
 
 import dataclasses
+import datetime
 import typing as t
 
 import jinja2
 
 from ..provider import base as cloud_base
+from ..scheduling import dto as scheduling_dto
 from ..zenith import Zenith
 
 from . import dto, errors
@@ -263,7 +265,8 @@ class ClusterManager:
         name: str,
         cluster_type: dto.ClusterType,
         params: t.Mapping[str, t.Any],
-        ssh_key: t.Optional[str]
+        ssh_key: t.Optional[str],
+        schedule: t.Optional[scheduling_dto.PlatformSchedule]
     ) -> dto.Cluster:
         """
         Creates a new cluster with the given name, type and parameters.
@@ -294,6 +297,7 @@ class ClusterManager:
             name,
             cluster_type,
             params,
+            schedule,
             ctx
         )
         return self._cluster_modify(cluster)

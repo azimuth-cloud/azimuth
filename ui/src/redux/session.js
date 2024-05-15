@@ -38,6 +38,7 @@ export const actionCreators = {
 
 const initialState = {
     initialising: true,
+    user_id: null,
     username: null,
     capabilities: {}
 };
