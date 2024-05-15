@@ -496,13 +496,13 @@ export const KubernetesClusterForm = ({
                 <Field
                     name="control_plane_size"
                     label="Control plane size"
-                    helpText="The size to use for the Kubernetes control plane node(s)."
+                    helpText="The size to use for the Kubernetes control plane node(s). (Hint: A size with 4GB RAM is usually sufficient)"
                 >
                     <SizeSelectControl
                         resource={sizes}
                         resourceActions={sizeActions}
                         // Kubernetes can only use sizes with at least 2 CPUs and 20GB disk
-                        resourceFilter={size => size.cpus >= 2 && size.disk >= 20 && size.ram >= 4096 && size.ram <= 32768}
+                        resourceFilter={size => size.cpus >= 2 && size.disk >= 20 && size.ram >= 4096}
                         required
                         value={getStateKey('control_plane_size')}
                         onChange={setStateKey('control_plane_size')}
