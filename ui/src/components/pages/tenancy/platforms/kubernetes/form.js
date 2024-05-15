@@ -496,7 +496,7 @@ export const KubernetesClusterForm = ({
                 <Field
                     name="control_plane_size"
                     label="Control plane size"
-                    helpText="The size to use for the Kubernetes control plane node(s). (Hint: A size with 4GB RAM is usually sufficient)"
+                    helpText="The size to use for the Kubernetes control plane node(s)."
                 >
                     <SizeSelectControl
                         resource={sizes}
