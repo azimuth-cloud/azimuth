@@ -502,7 +502,7 @@ export const KubernetesClusterForm = ({
                         resource={sizes}
                         resourceActions={sizeActions}
                         // Kubernetes can only use sizes with at least 2 CPUs and 20GB disk
-                        resourceFilter={size => size.cpus >= 2 && size.disk >= 20}
+                        resourceFilter={size => size.cpus >= 2 && size.disk >= 20 && size.ram >= 4096}
                         required
                         value={getStateKey('control_plane_size')}
                         onChange={setStateKey('control_plane_size')}
@@ -571,7 +571,7 @@ export const KubernetesClusterForm = ({
                                 {formState.data.node_groups.length === 0 && (
                                     <tr>
                                         <td className="p-3 text-muted text-center" colSpan="4">
-                                            No node groups configured yet.    
+                                            No node groups configured yet.
                                         </td>
                                     </tr>
                                 )}
