@@ -837,9 +837,9 @@ class ScopedSession(base.ScopedSession):
         else:
             raise errors.InvalidOperationError("Could not find external network.")
     
-    def _storage_network(self):
+    def _storage_direct_network(self):
         """
-        Returns the storage network.
+        Returns the direct storage network.
         """
         # Try to find a network that is tagged as the portal storage direct network
         tagged_network = self._tagged_network("storage-direct")
@@ -1524,9 +1524,10 @@ class ScopedSession(base.ScopedSession):
         )
 
         # Inject storage direct network, if exists
-        storage_network = self._storage_network()
+        storage_network = self._storage_direct_network()
         if storage_network:
             params['cluster_storage_network'] = storage_network.name
+            params['cluster_storage_network_vnic_type'] = "direct"
 
         # If configured to, find if we can have a project share
         project_share = self._project_share(True)
