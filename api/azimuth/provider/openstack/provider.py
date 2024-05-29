@@ -841,8 +841,8 @@ class ScopedSession(base.ScopedSession):
         """
         Returns the direct storage network.
         """
-        # Try to find a network that is tagged as the portal storage direct network
-        tagged_network = self._tagged_network("storage-direct")
+        # Try to find a network that is tagged as the portal storage network
+        tagged_network = self._tagged_network("storage")
         
         return tagged_network
 
