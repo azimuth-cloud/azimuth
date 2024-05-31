@@ -621,12 +621,8 @@ class ScopedSession(base.ScopedSession):
         """
         tag = "portal-{}".format(net_type)
         # Only consider networks that belong to the project unless specifically told otherwise
-        networks = self._connection.network.networks.all(tags = tag)
-        if net_type == "external":
-            networks = itertools.chain(
-                networks,
-                self._connection.network.networks.all(tags = tag, project_id = None)
-            )
+        kwargs = {} if net_type == "internal" else {"project_id": None}
+        networks = self._connection.network.networks.all(tags = tag, **kwargs)
         network = next(networks, None)
         if network:
             self._log("Using tagged %s network '%s'", net_type, network.name)
