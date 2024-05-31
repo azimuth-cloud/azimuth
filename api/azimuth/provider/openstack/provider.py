@@ -266,8 +266,11 @@ class UnscopedSession(base.UnscopedSession):
         """
         See :py:meth:`.base.UnscopedSession.user_email`.
         """
-        # Return a fake email address consisting of the username and domain
-        return f"{self._connection.username}@{self._connection.domain_name.lower()}"
+        # If the username looks like an email address, just return that
+        if "@" in self._connection.username:
+            return self._connection.username
+        # Otherwise, return a fake email address consisting of the username and domain
+        return f"{self._connection.username}@{self._connection.domain_name.lower()}.openstack"
 
     def _log(self, message, *args, level = logging.INFO, **kwargs):
         logger.log(level, "[%s] " + message, self.username(), *args, **kwargs)
