@@ -836,6 +836,15 @@ class ScopedSession(base.ScopedSession):
             raise errors.InvalidOperationError("Multiple external networks found.")
         else:
             raise errors.InvalidOperationError("Could not find external network.")
+    
+    def _storage_network(self):
+        """
+        Returns the direct storage network.
+        """
+        # Try to find a network that is tagged as the portal storage network
+        tagged_network = self._tagged_network("storage")
+        
+        return tagged_network
 
     def _get_or_create_keypair(self, ssh_key):
         """
@@ -1513,6 +1522,11 @@ class ScopedSession(base.ScopedSession):
             cluster_external_network = external_network,
             cluster_network = self._tenant_network(True).name
         )
+
+        # Inject storage direct network, if exists
+        storage_network = self._storage_network()
+        if storage_network:
+            params['cluster_storage_network'] = storage_network.name
 
         # If configured to, find if we can have a project share
         project_share = self._project_share(True)
