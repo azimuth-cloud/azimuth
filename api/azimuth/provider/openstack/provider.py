@@ -620,7 +620,10 @@ class ScopedSession(base.ScopedSession):
         Returns the first network with the given tag, or None if there is not one.
         """
         tag = "portal-{}".format(net_type)
-        # Only consider networks that belong to the project unless specifically told otherwise
+        # By default, networks.all() will only return networks that belong to the project
+        # For the internal network this is what we want, but for all other types of network
+        # (e.g. external, storage) we want to allow shared networks from other projects to
+        # be selected - setting "project_id = None" allows this to happen
         kwargs = {} if net_type == "internal" else {"project_id": None}
         networks = self._connection.network.networks.all(tags = tag, **kwargs)
         network = next(networks, None)
