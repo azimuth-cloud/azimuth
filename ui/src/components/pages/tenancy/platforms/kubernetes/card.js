@@ -341,7 +341,7 @@ const ControlPlaneCard = ({ kubernetesCluster, sizes }) => (
                     <td>
                         <MachineSizeLink
                             sizes={sizes}
-                            sizeId={kubernetesCluster.control_plane_size.id}
+                            size={kubernetesCluster.control_plane_size}
                         />
                     </td>
                 </tr>
@@ -461,7 +461,7 @@ const NodesTable = ({ kubernetesCluster, sizes }) => {
                             />
                         </td>
                         <td>
-                            <MachineSizeLink sizes={sizes} sizeId={node.size.id} />
+                            <MachineSizeLink sizes={sizes} size={node.size} />
                         </td>
                         <td>{node.kubelet_version || '-'}</td>
                         <td>{node.ip || '-'}</td>
