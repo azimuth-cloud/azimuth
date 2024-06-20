@@ -4,7 +4,7 @@ attrs==23.2.0
 certifi==2024.6.2
 cffi==1.16.0
 charset-normalizer==3.3.2
-cryptography==42.0.7
+cryptography==42.0.8
 Django==5.0.6
 django-flexi-settings @ git+https://github.com/stackhpc/django-flexi-settings.git@079359cc1e2d380a15ae6149ebffbcdae8094276
 django-settings-object @ git+https://github.com/cedadev/django-settings-object.git@2b66c0fc5eae92972df5210b4bc43f7d95ad9ceb
