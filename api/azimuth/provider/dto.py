@@ -269,6 +269,8 @@ class ExternalIp:
     id: str
     #: The externally visible IP address
     external_ip: str
+    #: Indicates if the floating IP is available
+    available: bool
     #: The ID of the machine to which the external IP address is mapped,
     #: or None if it is not mapped
     machine_id: Optional[str]

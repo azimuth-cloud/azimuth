@@ -1214,13 +1214,14 @@ class ScopedSession(base.ScopedSession):
                 port = ports[api_floatingip.port_id]
             else:
                 port = self._connection.network.ports.get(api_floatingip.port_id)
-            machine_id = port.device_id
         else:
-            machine_id = None
+            port = None
+
         return dto.ExternalIp(
             api_floatingip.id,
             api_floatingip.floating_ip_address,
-            machine_id
+            not port,
+            getattr(port, "device_id", "") or None
         )
 
     @convert_exceptions
