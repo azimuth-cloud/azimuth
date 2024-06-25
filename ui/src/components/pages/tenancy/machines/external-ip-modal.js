@@ -35,7 +35,7 @@ export const AttachExternalIpMenuItem = ({
     };
 
     const availableIps = Object.values(externalIps.data || {})
-        .filter(ip => !ip.updating && !ip.machine);
+        .filter(ip => !ip.updating && ip.available);
     return (
         <>
             <DropdownItem onClick={open} disabled={disabled}>

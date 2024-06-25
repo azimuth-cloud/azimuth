@@ -757,7 +757,7 @@ class KubernetesClusterValidationMixin:
                     "ingress_controller_load_balancer_ip": str(exc),
                 })
             else:
-                if ip.machine_id:
+                if not ip.available:
                     raise serializers.ValidationError({
                         "ingress_controller_load_balancer_ip": (
                             f"{ip_address} is already associated with "

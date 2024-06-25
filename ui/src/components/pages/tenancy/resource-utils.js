@@ -281,7 +281,7 @@ export const ExternalIpSelectControl = ({
             sortResources={(ips) => sortBy(ips, ip => ip.external_ip)}
             // The currently selected IP should be permitted, regardless of state
             resourceFilter={
-                (ip) => (getOptionValue(ip) === value) || (!ip.updating && !ip.machine)
+                (ip) => (getOptionValue(ip) === value) || (!ip.updating && ip.available)
             }
             value={value}
             isInvalid={isInvalid}
