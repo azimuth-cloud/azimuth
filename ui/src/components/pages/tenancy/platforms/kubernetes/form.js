@@ -228,10 +228,10 @@ const initialState = kubernetesCluster => {
         return {
             name: kubernetesCluster.name,
             template: kubernetesCluster.template.id,
-            control_plane_size: kubernetesCluster.control_plane_size.id,
+            control_plane_size: kubernetesCluster.control_plane_size ? kubernetesCluster.control_plane_size.id : "",
             node_groups: kubernetesCluster.node_groups.map(ng => ({
                 name: ng.name,
-                machine_size: ng.machine_size.id,
+                machine_size: ng.machine_size ? ng.machine_size.id : "",
                 autoscale: ng.autoscale,
                 count: ng.count,
                 min_count: ng.min_count,
@@ -536,7 +536,7 @@ export const KubernetesClusterForm = ({
                                             {ng.name}
                                         </td>
                                         <td className="align-middle">
-                                            <MachineSizeLink sizes={sizes} sizeId={ng.machine_size} />
+                                            <MachineSizeLink sizes={sizes} size={ng.machine_size} />
                                         </td>
                                         <td className="align-middle">
                                             {ng.autoscale ? (

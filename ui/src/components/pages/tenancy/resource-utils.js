@@ -150,12 +150,13 @@ const MachineSizePopover = ({ children, size, ...props }) => (
 );
 
 
-export const MachineSizeLink = ({ sizes, sizeId }) => {
-    const size = get(sizes.data, sizeId);
-    if( size ) {
+export const MachineSizeLink = ({ sizes, size }) => {
+    const sizeId = size ? size.id : ""
+    const _size = get(sizes.data, sizeId);
+    if( _size ) {
         return (
-            <MachineSizePopover size={size} placement="top">
-                <Button variant="link">{size.name}</Button>
+            <MachineSizePopover size={_size} placement="top">
+                <Button variant="link">{_size.name}</Button>
             </MachineSizePopover>
         );
     }
