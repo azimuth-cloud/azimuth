@@ -636,7 +636,9 @@ class ScopedSession(base.ScopedSession):
             self._log("Multiple tagged %s networks found.", net_type, level = logging.ERROR)
             # Raise here to avoid creating multiple portal-internal networks
             raise errors.InvalidOperationError(f"Multiple networks tagged {net_type} found.")
-        return networks[0]
+        network = networks[0]
+        self._log("Using tagged %s network '%s'", net_type, network.name)
+        return network
 
     def _templated_network(self, template, net_type):
         """
