@@ -628,13 +628,15 @@ class ScopedSession(base.ScopedSession):
         # (e.g. external, storage) we want to allow shared networks from other projects to
         # be selected - setting "project_id = None" allows this to happen
         kwargs = {} if net_type == "internal" else {"project_id": None}
-        networks = self._connection.network.networks.all(tags = tag, **kwargs)
-        network = next(networks, None)
-        if network:
-            self._log("Using tagged %s network '%s'", net_type, network.name)
-        else:
+        networks = list(self._connection.network.networks.all(tags = tag, **kwargs))
+        if len(networks) == 0:
             self._log("Failed to find tagged %s network.", net_type, level = logging.WARN)
-        return network
+            return None
+        if len(networks) > 1:
+            self._log("Multiple tagged %s networks found.", net_type, level = logging.ERROR)
+            # Raise here to avoid creating multiple portal-internal networks
+            raise errors.InvalidOperationError(f"Multiple networks tagged {net_type} found.")
+        return networks[0]
 
     def _templated_network(self, template, net_type):
         """
