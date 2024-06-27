@@ -6,7 +6,6 @@ import base64
 import dataclasses
 import functools
 import hashlib
-import itertools
 import logging
 import random
 import re
@@ -628,13 +627,16 @@ class ScopedSession(base.ScopedSession):
         # (e.g. external, storage) we want to allow shared networks from other projects to
         # be selected - setting "project_id = None" allows this to happen
         kwargs = {} if net_type == "internal" else {"project_id": None}
-        networks = self._connection.network.networks.all(tags = tag, **kwargs)
-        network = next(networks, None)
-        if network:
-            self._log("Using tagged %s network '%s'", net_type, network.name)
+        networks = list(self._connection.network.networks.all(tags = tag, **kwargs))
+        if len(networks) == 1:
+            self._log("Using tagged %s network '%s'", net_type, networks[0].name)
+            return networks[0]
+        elif len(networks) > 1:
+            self._log("Found multiple networks with tag '%s'.", tag, level = logging.ERROR)
+            raise errors.InvalidOperationError(f"Found multiple networks with tag '{tag}'.")
         else:
             self._log("Failed to find tagged %s network.", net_type, level = logging.WARN)
-        return network
+            return None
 
     def _templated_network(self, template, net_type):
         """
@@ -643,17 +645,18 @@ class ScopedSession(base.ScopedSession):
         If the network does not exist, that is a config error and an exception is raised.
         """
         net_name = template.format(tenant_name = self._tenancy.name)
-        # Only consider networks that belong to the project unless specifically told otherwise
-        networks = self._connection.network.networks.all(name = net_name)
-        if net_type == "external":
-            networks = itertools.chain(
-                networks,
-                self._connection.network.networks.all(name = net_name, project_id = None)
-            )
-        network = next(networks, None)
-        if network:
-            self._log("Found %s network '%s' using template.", net_type, network.name)
-            return network
+        # By default, networks.all() will only return networks that belong to the project
+        # For the internal network this is what we want, but for all other types of network
+        # (e.g. external, storage) we want to allow shared networks from other projects to
+        # be selected - setting "project_id = None" allows this to happen
+        kwargs = {} if net_type == "internal" else {"project_id": None}
+        networks = list(self._connection.network.networks.all(name = net_name, **kwargs))
+        if len(networks) == 1:
+            self._log("Found %s network '%s' using template.", net_type, networks[0].name)
+            return networks[0]
+        elif len(networks) > 1:
+            self._log("Found multiple networks named '%s'.", net_name, level = logging.ERROR)
+            raise errors.InvalidOperationError(f"Found multiple networks named '{net_name}'.")
         else:
             self._log(
                 "Failed to find %s network '%s' from template.",
