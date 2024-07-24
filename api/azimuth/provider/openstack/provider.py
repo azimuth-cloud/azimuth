@@ -7,9 +7,12 @@ import dataclasses
 import functools
 import hashlib
 import logging
+import os
 import random
 import re
 import time
+
+import certifi
 
 import dateutil.parser
 
@@ -1483,37 +1486,42 @@ class ScopedSession(base.ScopedSession):
             # either via policy or code changes depending on what is possible
             unrestricted = True
         )
-        return dto.Credential(
-            "openstack_application_credential",
-            {
-                "clouds.yaml": yaml.safe_dump(
-                    {
-                        "clouds": {
-                            "openstack": {
-                                "identity_api_version": 3,
-                                "interface": "public",
-                                "auth_type": "v3applicationcredential",
-                                "auth": {
-                                    "auth_url": self._connection.endpoints["identity"],
-                                    "application_credential_id": app_cred.id,
-                                    "application_credential_secret": app_cred.secret,
-                                },
-                                # Disable SSL verification for now
-                                "verify": False,
-                            }
+        # Create the data for the credential object
+        data = {
+            "clouds.yaml": yaml.safe_dump(
+                {
+                    "clouds": {
+                        "openstack": {
+                            "identity_api_version": 3,
+                            "interface": "public",
+                            "auth_type": "v3applicationcredential",
+                            "auth": {
+                                "auth_url": self._connection.endpoints["identity"],
+                                "application_credential_id": app_cred.id,
+                                "application_credential_secret": app_cred.secret,
+                            },
+                            "verify": self._connection.verify,
                         }
                     }
-                ),
-                "user_info.yaml": yaml.safe_dump(
-                    {
-                        "project_id": self._connection.project_id,
-                        "project_name": self._connection.project_name,
-                        "username": self._connection.username,
-                        "user_id": self._connection.user_id,
-                    }
-                ),
-            }
-        )
+                }
+            ),
+            "user_info.yaml": yaml.safe_dump(
+                {
+                    "project_id": self._connection.project_id,
+                    "project_name": self._connection.project_name,
+                    "username": self._connection.username,
+                    "user_id": self._connection.user_id,
+                }
+            ),
+        }
+        # Decide if we need to add any CA certs to the data
+        if self._connection.verify:
+            # Use the cert file set by azimuth-entrypoint, which may contain custom certs
+            # If the envvar is not set, just use the certs provided by certifi
+            cacert_path = os.environ.get("SSL_CERT_FILE", certifi.where())
+            with open(cacert_path, "r") as cacert_fh:
+                data["cacert"] = cacert_fh.read()
+        return dto.Credential("openstack_application_credential", data)
 
     def cluster_parameters(self):
         """
