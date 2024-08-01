@@ -202,6 +202,7 @@ def create_cluster(
             cluster,
             schedule
         )
+        # TODO (johngarbutt): create lease here
     return get_cluster_dto(cluster)
 
 
