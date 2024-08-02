@@ -77,12 +77,12 @@ def create_lease(
                 ],
             },
             "spec": {
-                "cloud_credentials_secret_name": cloud_credentials_secret_name,
-                "ends_at": ends_at,
+                "cloudCredentialsSecretName": cloud_credentials_secret_name,
+                "endsAt": ends_at,
                 "resources": {
-                    "virtual_machines": [
+                    "virtualMachines": [
                         {
-                            "flavor_id": flavor,
+                            "flavorId": flavor,
                             "count": count,
                         }
                         for flavor, count in flavor_id_counts.items()

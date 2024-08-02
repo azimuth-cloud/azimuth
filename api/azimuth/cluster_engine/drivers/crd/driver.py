@@ -1,6 +1,7 @@
 """
 This module contains the cluster engine implementation for azimuth-caas-crd.
 """
+import collections
 import datetime
 import dateutil.parser
 import logging
@@ -147,7 +148,7 @@ def _get_cluster_type(client, cluster_type_name: str, tenancy):
 def create_cluster(
     client,
     name: str,
-    cluster_type_name: str,
+    cluster_type: dto.ClusterType,
     params: dict,
     schedule: t.Optional[scheduling_dto.PlatformSchedule],
     ctx: dto.Context
@@ -165,6 +166,7 @@ def create_cluster(
             "stringData": string_data,
         }
     )
+    cluster_type_name = cluster_type.name
 
     cluster_type = _get_cluster_type(client, cluster_type_name, ctx.tenancy)
     cluster_spec = {
@@ -196,13 +198,23 @@ def create_cluster(
         }
     )
     if schedule:
-        scheduling_k8s.create_schedule(
+        flavor_id_counts = collections.defaultdict(int)
+        for parameter in cluster_type.parameters:
+            if parameter.kind == "cloud.size":
+                count = 1
+                count_parameter = parameter.options.get("count_parameter")
+                if count_parameter:
+                    count = cluster_type.parameters.get(count_parameter, 1)
+                flavor_id = params[parameter.name]
+                flavor_id_counts[flavor_id] += count
+        scheduling_k8s.create_lease(
             client,
             f"caas-{safe_name}",
             cluster,
-            schedule
+            schedule,
+            flavor_id_counts,
+            secret_name
         )
-        # TODO (johngarbutt): create lease here
     return get_cluster_dto(cluster)
 
 
@@ -325,7 +337,7 @@ class Driver(base.Driver):
         Create a new cluster with the given name, type and parameters.
         """
         client = get_k8s_client(ctx, True)
-        return create_cluster(client, name, cluster_type.name, params, schedule, ctx)
+        return create_cluster(client, name, cluster_type, params, schedule, ctx)
 
     def update_cluster(
         self,

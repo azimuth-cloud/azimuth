@@ -1,3 +1,3 @@
 AZIMUTH:
   SCHEDULING:
-    ENABLED: {{ ternary "true" "false" .Values.scheduling.enabled }}
+    ENABLED: "true"
