@@ -180,6 +180,10 @@ def create_cluster(
         cluster_spec["extraVars"] = {}
         for key, value in params.items():
             cluster_spec["extraVars"][key] = value
+    if schedule:
+        # tell cluster to wait for lease to be active
+        cluster_spec["leaseName"] = f"caas-{safe_name}"
+
     cluster_resource = client.api(CAAS_API_VERSION).resource("clusters")
     cluster = cluster_resource.create(
         {
@@ -197,6 +201,9 @@ def create_cluster(
             "spec": cluster_spec,
         }
     )
+
+    # Create these second,
+    # so we can cascade delete via owner ref
     if schedule:
         flavor_id_counts = collections.defaultdict(int)
         for parameter in cluster_type.parameters:
@@ -207,6 +214,7 @@ def create_cluster(
                     count = cluster_type.parameters.get(count_parameter, 1)
                 flavor_id = params[parameter.name]
                 flavor_id_counts[flavor_id] += count
+        # might create blazar reservation for us
         scheduling_k8s.create_lease(
             client,
             f"caas-{safe_name}",
@@ -215,6 +223,13 @@ def create_cluster(
             flavor_id_counts,
             secret_name
         )
+        # make sure we trigger delete
+        # before the lease runs out
+        scheduling_k8s.create_schedule(
+            client,
+            f"caas-{safe_name}",
+            cluster,
+            schedule)
     return get_cluster_dto(cluster)
 
 
