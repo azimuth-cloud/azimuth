@@ -1,7 +1,7 @@
 # Azimuth Architecture  <!-- omit in toc -->
 
 This document describes the architecture of Azimuth in detail, including the integration with
-the [Zenith application proxy](https://github.com/stackhpc/zenith),
+the [Zenith application proxy](https://github.com/azimuth-cloud/zenith),
 [Kubernetes](https://kubernetes.io/) support using [Cluster API](https://cluster-api.sigs.k8s.io/)
 and the Cluster-as-a-Service (CaaS) subsystem.
 
@@ -18,7 +18,7 @@ in more detail.
 > **NOTE**
 >
 > Before reading this document, please make sure you are familiar with the
-> [Zenith Architecture](https://github.com/stackhpc/zenith/blob/main/docs/architecture.md).
+> [Zenith Architecture](https://github.com/azimuth-cloud/zenith/blob/main/docs/architecture.md).
 >
 > This document treats Zenith as a black box, focusing on Azimuth's integration points.
 
@@ -86,13 +86,13 @@ Coming soon!
 
 ## Zenith integrations
 
-Azimuth optionally integrates with the [Zenith proxy](https://github.com/stackhpc/zenith).
+Azimuth optionally integrates with the [Zenith proxy](https://github.com/azimuth-cloud/zenith).
 When enabled, Azimuth will use Zenith to provide authenticated access to platform services
 such as web-based consoles + desktops, monitoring dashboards and Jupyter Notebooks without
 the need to consume a floating IP.
 
 Azimuth integrates with Zenith in two places, which are shown as "External components" in the
-[Zenith architecture diagram](https://github.com/stackhpc/zenith/blob/main/docs/architecture.md#architecture-diagram):
+[Zenith architecture diagram](https://github.com/azimuth-cloud/zenith/blob/main/docs/architecture.md#architecture-diagram):
 
   * **External auth service**: Azimuth provides authentication and authorization for proxied
     services by implementing Zenith's authentication callout.
@@ -113,7 +113,7 @@ the cookie would be set with the domain `.apps.example-cloud.org`.
 
 Zenith allows external auth services to respect additional headers that can be specified by
 Zenith clients using the `auth_params` option (see the
-[Zenith client docs](https://github.com/stackhpc/zenith/blob/main/docs/client.md) for more
+[Zenith client docs](https://github.com/azimuth-cloud/zenith/blob/main/docs/client.md) for more
 information). Zenith imposes no contraints on these headers - they are just forwarded to the
 external auth service as specified by the client as headers with the prefix `X-Auth-`.
 

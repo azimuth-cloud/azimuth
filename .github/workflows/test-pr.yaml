@@ -22,8 +22,8 @@ jobs:
   fail_on_remote:
     runs-on: ubuntu-latest
     steps:
-      - name: PR must be from a branch in the stackhpc/azimuth repo
-        run: exit ${{ github.event.pull_request.head.repo.full_name == 'stackhpc/azimuth' && '0' || '1' }}
+      - name: PR must be from a branch in the azimuth-cloud/azimuth repo
+        run: exit ${{ github.event.pull_request.head.repo.full_name == 'azimuth-cloud/azimuth' && '0' || '1' }}
 
   publish_artifacts:
     needs: [fail_on_remote]
@@ -46,6 +46,7 @@ jobs:
           # Use the version of the chart that we just built
           # The workstation + Kubernetes apps tests are sufficient to exercise the API
           extra-vars: |
+            azimuth_chart_repo: https://azimuth-cloud.github.io/azimuth
             azimuth_chart_version: ${{ needs.publish_artifacts.outputs.chart-version }}
             generate_tests_caas_test_case_slurm_enabled: false
             generate_tests_caas_test_case_repo2docker_enabled: false

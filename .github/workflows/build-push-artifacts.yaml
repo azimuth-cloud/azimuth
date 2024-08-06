@@ -53,13 +53,13 @@ jobs:
 
       - name: Get SemVer version for current commit
         id: semver
-        uses: stackhpc/github-actions/semver@master
+        uses: azimuth-cloud/github-actions/semver@master
 
       - name: Calculate metadata for image
         id: image-meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/stackhpc/azimuth-${{ matrix.component }}
+          images: ghcr.io/azimuth-cloud/azimuth-${{ matrix.component }}
           # Produce the branch name or tag and the SHA as tags
           tags: |
             type=ref,event=branch
@@ -67,7 +67,7 @@ jobs:
             type=raw,value=${{ steps.semver.outputs.short-sha }}
 
       - name: Build and push image
-        uses: stackhpc/github-actions/docker-multiarch-build-push@master
+        uses: azimuth-cloud/github-actions/docker-multiarch-build-push@master
         with:
           cache-key: ${{ matrix.component }}
           context: ./${{ matrix.component }}
@@ -94,10 +94,10 @@ jobs:
 
       - name: Get SemVer version for current commit
         id: semver
-        uses: stackhpc/github-actions/semver@master
+        uses: azimuth-cloud/github-actions/semver@master
 
       - name: Publish Helm charts
-        uses: stackhpc/github-actions/helm-publish@master
+        uses: azimuth-cloud/github-actions/helm-publish@master
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           version: ${{ steps.semver.outputs.version }}
