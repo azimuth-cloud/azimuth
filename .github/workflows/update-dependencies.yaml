@@ -35,25 +35,25 @@ jobs:
 
       - name: Check for most recent GitHub release
         id: next
-        uses: stackhpc/github-actions/github-latest-release@master
+        uses: azimuth-cloud/github-actions/github-latest-release@master
         with:
           repository: ${{ matrix.repository }}
           tags: ${{ matrix.tags || 'no' }}
 
       - name: Update dependency key
-        uses: stackhpc/github-actions/config-update@master
+        uses: azimuth-cloud/github-actions/config-update@master
         with:
           path: ${{ matrix.path }}
           updates: |
             ${{ matrix.version_jsonpath }}=${{ steps.next.outputs.version }}
 
       - name: Generate app token for PR
-        uses: stackhpc/github-actions/generate-app-token@master
+        uses: azimuth-cloud/github-actions/generate-app-token@master
         id: generate-app-token
         with:
           repository: ${{ github.repository }}
-          app-id: ${{ secrets.APP_ID }}
-          app-private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          app-id: ${{ secrets.AUTOMATION_APP_ID }}
+          app-private-key: ${{ secrets.AUTOMATION_APP_PRIVATE_KEY }}
 
       - name: Propose changes via PR if required
         uses: peter-evans/create-pull-request@v6

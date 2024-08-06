@@ -3,7 +3,7 @@
 First, check out the code:
 
 ```sh
-git clone https://github.com/stackhpc/azimuth.git
+git clone https://github.com/azimuth-cloud/azimuth.git
 cd azimuth
 # Switch to the required branch
 ```
@@ -18,7 +18,7 @@ Then create and activate a new virtual environment and install the API project:
 python -m venv ./venv
 source ./venv/bin/activate
 pip install git+https://github.com/cedadev/django-settings-object.git
-pip install git+https://github.com/stackhpc/easykube.git
+pip install git+https://github.com/azimuth-cloud/easykube.git
 pip install git+https://github.com/cedadev/jasmin-ldap.git
 pip install git+https://github.com/stackhpc/rackit.git
 pip install -e ./api

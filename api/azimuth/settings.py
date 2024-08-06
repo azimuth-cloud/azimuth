@@ -264,7 +264,7 @@ class AzimuthSettings(SettingsObject):
     SCHEDULING = NestedSetting(SchedulingSettings)
 
     #: URL for documentation
-    DOCUMENTATION_URL = Setting(default = "https://stackhpc.github.io/azimuth-user-docs/")
+    DOCUMENTATION_URL = Setting(default = "https://azimuth-cloud.github.io/azimuth-user-docs/")
 
 
 cloud_settings = AzimuthSettings("AZIMUTH")

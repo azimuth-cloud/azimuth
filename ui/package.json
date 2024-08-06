@@ -6,14 +6,14 @@
     "serve": "webpack-dev-server --mode development --progress --config webpack.dev.js",
     "build": "webpack --mode production --progress --config webpack.prod.js"
   },
-  "repository": "git+https://github.com/stackhpc/azimuth.git",
+  "repository": "git+https://github.com/azimuth-cloud/azimuth.git",
   "keywords": [],
   "author": "Matt Pryor",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/stackhpc/azimuth/issues"
+    "url": "https://github.com/azimuth-cloud/azimuth/issues"
   },
-  "homepage": "https://github.com/stackhpc/azimuth",
+  "homepage": "https://github.com/azimuth-cloud/azimuth",
   "devDependencies": {
     "@babel/core": "^7.19.6",
     "@babel/plugin-proposal-class-properties": "^7.18.6",

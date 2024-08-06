@@ -12,16 +12,16 @@ as [JupyterHub](https://jupyter.org/hub) that run on [Kubernetes](https://kubern
 
 To run Azimuth on your own cloud, please see:
 
-* https://stackhpc.github.io/azimuth-config/
+* https://azimuth-cloud.github.io/azimuth-config/
 
 Developers looking to modify Azimuth, please see:
 
-* https://stackhpc.github.io/azimuth-config/developing/
-* https://github.com/stackhpc/azimuth-sample-appliance
+* https://azimuth-cloud.github.io/azimuth-config/developing/
+* https://github.com/azimuth-cloud/azimuth-sample-appliance
 
 Users of Azimuth wanting to know more, please see:
 
-* https://stackhpc.github.io/azimuth-user-docs/
+* https://azimuth-cloud.github.io/azimuth-user-docs/
 
 ## Contents  <!-- omit in toc -->
 
@@ -45,7 +45,7 @@ and desktop access to entire [Slurm](https://slurm.schedmd.com/) clusters and pl
 as [JupyterHub](https://jupyter.org/hub) that run on [Kubernetes](https://kubernetes.io/) clusters.
 
 Services are exposed to users without consuming floating IPs or requiring SSH keys using the
-[Zenith](https://github.com/stackhpc/zenith) application proxy.
+[Zenith](https://github.com/azimuth-cloud/zenith) application proxy.
 
 Here, you can see Stig Telfer (CTO) and Matt Pryor (Senior Tech Lead and Azimuth project lead) from
 [StackHPC](https://www.stackhpc.com/) presenting Azimuth at the
@@ -106,7 +106,7 @@ Key features of Azimuth include:
 If you have access to a project on an OpenStack cloud, you can try Azimuth!
 
 A demo instance of Azimuth can be deployed on an OpenStack cloud by following
-[these simple instructions](https://stackhpc.github.io/azimuth-config/try/). All that is required is an
+[these simple instructions](https://azimuth-cloud.github.io/azimuth-config/try/). All that is required is an
 account on an OpenStack cloud and a host that is capable of running [Ansible](https://www.ansible.com/).
 Admin privileges on the target cloud are not normally required.
 
@@ -126,7 +126,7 @@ This section shows a timeline of the significant events in the development of Az
     * Production system presented at [UKRI Cloud Workshop](https://cloud.ac.uk/workshops/mar2020/).
   * **Summer 2020**: Production rollout of JASMIN CaaS.
   * **Spring 2021**: StackHPC fork JASMIN Cloud Portal to develop it for [IRIS](https://www.iris.ac.uk/).
-  * **Summer 2021**: [Zenith application proxy](https://github.com/stackhpc/zenith) developed and used
+  * **Summer 2021**: [Zenith application proxy](https://github.com/azimuth-cloud/zenith) developed and used
     to provide web consoles in Azimuth.
   * **November 2021**: StackHPC fork detached and rebranded to Azimuth.
   * **December 2021**: StackHPC Slurm appliance integrated into CaaS.
@@ -171,7 +171,7 @@ is much more complex and has many dependencies:
 
 To manage this complexity, we use [Ansible](https://www.ansible.com/) to deploy Azimuth
 and all of it's dependencies. See the
-[Azimuth Deployment Documentation](https://stackhpc.github.io/azimuth-config/) for
+[Azimuth Deployment Documentation](https://azimuth-cloud.github.io/azimuth-config/) for
 more details.
 
 ## Setting up a local development environment

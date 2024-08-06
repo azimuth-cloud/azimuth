@@ -11,7 +11,7 @@ tags:
 api:
   # The image to use for the api component
   image:
-    repository: ghcr.io/stackhpc/azimuth-api
+    repository: ghcr.io/azimuth-cloud/azimuth-api
     pullPolicy: IfNotPresent
     tag: # Defaults to the chart appVersion
   imagePullSecrets: []
@@ -83,7 +83,7 @@ api:
 ui:
   # The image to use for the ui component
   image:
-    repository: ghcr.io/stackhpc/azimuth-ui
+    repository: ghcr.io/azimuth-cloud/azimuth-ui
     pullPolicy: IfNotPresent
     tag: # Defaults to the chart appVersion
   imagePullSecrets: []
