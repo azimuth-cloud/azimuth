@@ -11,7 +11,7 @@ django-settings-object @ git+https://github.com/cedadev/django-settings-object.g
 djangorestframework==3.15.2
 docutils==0.21.2
 easykube==0.3.3
-easysemver==0.1.0
+easysemver==0.2.0
 gunicorn==22.0.0
 h11==0.14.0
 httpcore==1.0.5
