@@ -569,7 +569,10 @@ class Session:
                 },
             }
         )
-        self._client.api(AZIMUTH_API_VERSION).resource("clusters").delete(cluster)
+        self._client.api(AZIMUTH_API_VERSION).resource("clusters").delete(
+            cluster,
+            propagation_policy = "Foreground"
+        )
         return self.find_cluster(cluster)
 
     @convert_exceptions

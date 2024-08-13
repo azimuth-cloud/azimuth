@@ -150,6 +150,7 @@ def create_cluster(
     name: str,
     cluster_type: dto.ClusterType,
     params: dict,
+    resources: scheduling_dto.PlatformResources,
     schedule: t.Optional[scheduling_dto.PlatformSchedule],
     ctx: dto.Context
 ):
@@ -173,6 +174,8 @@ def create_cluster(
         "clusterTypeName": cluster_type_name,
         "clusterTypeVersion": cluster_type.version,
         "cloudCredentialsSecretName": secret_name,
+        # Tell the cluster which lease it should wait for
+        "leaseName": f"caas-{safe_name}",
         "createdByUsername": ctx.username,
         "createdByUserId": ctx.user_id,
     }
@@ -180,9 +183,6 @@ def create_cluster(
         cluster_spec["extraVars"] = {}
         for key, value in params.items():
             cluster_spec["extraVars"][key] = value
-    if schedule:
-        # tell cluster to wait for lease to be active
-        cluster_spec["leaseName"] = f"caas-{safe_name}"
 
     cluster_resource = client.api(CAAS_API_VERSION).resource("clusters")
     cluster = cluster_resource.create(
@@ -191,7 +191,7 @@ def create_cluster(
                 "name": safe_name,
                 "labels": {"app.kubernetes.io/managed-by": "azimuth"},
                 # We annotate the cluster with the serialized schedule object
-                # This is to avoid doing an N+1 query
+                # This is to avoid doing an N+1 query to recover the schedules when listing
                 "annotations": (
                     { "azimuth.stackhpc.com/schedule": schedule.to_json() }
                     if schedule
@@ -202,34 +202,17 @@ def create_cluster(
         }
     )
 
-    # Create these second,
-    # so we can cascade delete via owner ref
-    if schedule:
-        flavor_id_counts = collections.defaultdict(int)
-        for parameter in cluster_type.parameters:
-            if parameter.kind == "cloud.size":
-                count = 1
-                count_parameter = parameter.options.get("count_parameter")
-                if count_parameter:
-                    count = cluster_type.parameters.get(count_parameter, 1)
-                flavor_id = params[parameter.name]
-                flavor_id_counts[flavor_id] += count
-        # might create blazar reservation for us
-        scheduling_k8s.create_lease(
-            client,
-            f"caas-{safe_name}",
-            cluster,
-            schedule,
-            flavor_id_counts,
-            secret_name
-        )
-        # make sure we trigger delete
-        # before the lease runs out
-        scheduling_k8s.create_schedule(
-            client,
-            f"caas-{safe_name}",
-            cluster,
-            schedule)
+    # Create the lease that will account for the resources for the platform
+    # This may or may not create a Blazar lease to reserve the resources for the platform
+    scheduling_k8s.create_lease(
+        client,
+        f"caas-{safe_name}",
+        cluster,
+        secret_name,
+        resources,
+        schedule
+    )
+
     return get_cluster_dto(cluster)
 
 
@@ -238,7 +221,7 @@ def delete_cluster(client, name: str):
 
     # TODO(johngarbutt) should we be refreshing the application cred here?
     cluster_resource = client.api(CAAS_API_VERSION).resource("clusters")
-    cluster_resource.delete(safe_name)
+    cluster_resource.delete(safe_name, propagation_policy = "Foreground")
 
     # NOTE(johngarbutt) we are racing the operator here,
     # returning the ready state will confuse people
@@ -345,6 +328,7 @@ class Driver(base.Driver):
         name: str,
         cluster_type: dto.ClusterType,
         params: t.Mapping[str, t.Any],
+        resources: scheduling_dto.PlatformResources,
         schedule: t.Optional[scheduling_dto.PlatformSchedule],
         ctx: dto.Context
     ) -> dto.Cluster:
@@ -352,7 +336,7 @@ class Driver(base.Driver):
         Create a new cluster with the given name, type and parameters.
         """
         client = get_k8s_client(ctx, True)
-        return create_cluster(client, name, cluster_type, params, schedule, ctx)
+        return create_cluster(client, name, cluster_type, params, resources, schedule, ctx)
 
     def update_cluster(
         self,

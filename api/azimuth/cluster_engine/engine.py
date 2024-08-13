@@ -266,6 +266,7 @@ class ClusterManager:
         cluster_type: dto.ClusterType,
         params: t.Mapping[str, t.Any],
         ssh_key: t.Optional[str],
+        resources: scheduling_dto.PlatformResources,
         schedule: t.Optional[scheduling_dto.PlatformSchedule]
     ) -> dto.Cluster:
         """
@@ -297,6 +298,7 @@ class ClusterManager:
             name,
             cluster_type,
             params,
+            resources,
             schedule,
             ctx
         )

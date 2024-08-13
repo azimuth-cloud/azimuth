@@ -1127,6 +1127,7 @@ def clusters(request, tenant):
                     input_serializer.validated_data["cluster_type"],
                     input_serializer.validated_data["parameter_values"],
                     ssh_key,
+                    resources,
                     input_serializer.validated_data.get("schedule")
                 )
                 # Set up the identity for the cluster services

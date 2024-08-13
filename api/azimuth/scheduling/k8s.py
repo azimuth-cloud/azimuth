@@ -10,7 +10,7 @@ SCHEDULE_API_VERSION = "scheduling.azimuth.stackhpc.com/v1alpha1"
 def create_schedule(
     ekclient,
     name: str,
-    k8s_obj: t.Dict[str, t.Any],
+    owner: t.Dict[str, t.Any],
     schedule: dto.PlatformSchedule
 ):
     """
@@ -27,18 +27,18 @@ def create_schedule(
                 "name": name,
                 "ownerReferences": [
                     {
-                        "apiVersion": k8s_obj["apiVersion"],
-                        "kind": k8s_obj["kind"],
-                        "name": k8s_obj["metadata"]["name"],
-                        "uid": k8s_obj["metadata"]["uid"],
+                        "apiVersion": owner["apiVersion"],
+                        "kind": owner["kind"],
+                        "name": owner["metadata"]["name"],
+                        "uid": owner["metadata"]["uid"],
                     },
                 ],
             },
             "spec": {
                 "ref": {
-                    "apiVersion": k8s_obj["apiVersion"],
-                    "kind": k8s_obj["kind"],
-                    "name": k8s_obj["metadata"]["name"],
+                    "apiVersion": owner["apiVersion"],
+                    "kind": owner["kind"],
+                    "name": owner["metadata"]["name"],
                 },
                 "notAfter": not_after,
             },
@@ -47,32 +47,36 @@ def create_schedule(
 
 
 def create_lease(
-        ekclient,
-        name: str,
-        k8s_obj: t.Dict[str, t.Any],
-        schedule: dto.PlatformSchedule,
-        flavor_id_counts: t.Dict[str, int],
-        cloud_credentials_secret_name: str,
+    ekclient,
+    name: str,
+    owner: t.Dict[str, t.Any],
+    cloud_credentials_secret_name: str,
+    resources: dto.PlatformResources,
+    schedule: t.Optional[dto.PlatformSchedule]
 ):
     """
     Creates a lease resource for the given Kubernetes object.
     """
     ekresource = ekclient.api(SCHEDULE_API_VERSION).resource("leases")
-    # Convert the start and end times from the lease to UTC and format them
-    end_time_utc = schedule.end_time.astimezone(datetime.timezone.utc)
-    ends_at = end_time_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
+    if schedule is not None:
+        # Convert the start and end times from the schedule to UTC and format them
+        end_time_utc = schedule.end_time.astimezone(datetime.timezone.utc)
+        ends_at = end_time_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
+    else:
+        ends_at = None
     _ = ekresource.create(
         {
             "metadata": {
                 "name": name,
-                # ensure we delete the lease
-                # when the cluster is deleted
+                "labels": {"app.kubernetes.io/managed-by": "azimuth"},
+                # ensure we delete the lease when the cluster is deleted
                 "ownerReferences": [
                     {
-                        "apiVersion": k8s_obj["apiVersion"],
-                        "kind": k8s_obj["kind"],
-                        "name": k8s_obj["metadata"]["name"],
-                        "uid": k8s_obj["metadata"]["uid"],
+                        "apiVersion": owner["apiVersion"],
+                        "kind": owner["kind"],
+                        "name": owner["metadata"]["name"],
+                        "uid": owner["metadata"]["uid"],
+                        "blockOwnerDeletion": True,
                     },
                 ],
             },
@@ -80,14 +84,14 @@ def create_lease(
                 "cloudCredentialsSecretName": cloud_credentials_secret_name,
                 "endsAt": ends_at,
                 "resources": {
-                    "virtualMachines": [
+                    "machines": [
                         {
-                            "flavorId": flavor,
-                            "count": count,
+                            "sizeId": req.size.id,
+                            "count": req.count
                         }
-                        for flavor, count in flavor_id_counts.items()
-                    ]
-                }
+                        for req in resources.machines()
+                    ],
+                },
             },
         }
     )

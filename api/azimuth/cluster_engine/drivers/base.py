@@ -45,6 +45,7 @@ class Driver:
         name: str,
         cluster_type: dto.ClusterType,
         params: t.Mapping[str, t.Any],
+        resources: scheduling_dto.PlatformResources,
         schedule: t.Optional[scheduling_dto.PlatformSchedule],
         ctx: dto.Context
     ):
