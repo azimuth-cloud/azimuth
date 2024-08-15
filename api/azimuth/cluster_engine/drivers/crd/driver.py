@@ -174,11 +174,12 @@ def create_cluster(
         "clusterTypeName": cluster_type_name,
         "clusterTypeVersion": cluster_type.version,
         "cloudCredentialsSecretName": secret_name,
-        # Tell the cluster which lease it should wait for
-        "leaseName": f"caas-{safe_name}",
         "createdByUsername": ctx.username,
         "createdByUserId": ctx.user_id,
     }
+    # Tell the cluster which lease it should wait for
+    if scheduling_k8s.leases_available(client):
+        cluster_spec["leaseName"] = f"caas-{safe_name}"
     if params:
         cluster_spec["extraVars"] = {}
         for key, value in params.items():
@@ -202,9 +203,9 @@ def create_cluster(
         }
     )
 
-    # Create the lease that will account for the resources for the platform
+    # Create the scheduling resources for the platform
     # This may or may not create a Blazar lease to reserve the resources for the platform
-    scheduling_k8s.create_lease(
+    scheduling_k8s.create_scheduling_resources(
         client,
         f"caas-{safe_name}",
         cluster,

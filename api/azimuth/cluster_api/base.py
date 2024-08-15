@@ -407,6 +407,7 @@ class Session:
         template: dto.ClusterTemplate,
         control_plane_size: cloud_dto.Size,
         node_groups: t.List[NodeGroupSpec],
+        resources: scheduling_dto.PlatformResources,
         autohealing_enabled: bool = True,
         dashboard_enabled: bool = False,
         ingress_enabled: bool = False,
@@ -428,6 +429,8 @@ class Session:
         )
         # Make sure any shared resources exist
         self._ensure_shared_resources()
+        # Determine if leases are available on the target cluster
+        leases_available = scheduling_k8s.leases_available(self._client)
         try:
             credential = self._create_credential(name)
         except cloud_errors.InvalidOperationError:
@@ -441,10 +444,13 @@ class Session:
                     "labels": {
                         "app.kubernetes.io/managed-by": "azimuth",
                     },
-                    "annotations": {
-                        # Add the annotation that permits the janitor to delete this appcred
-                        "janitor.capi.stackhpc.com/credential-policy": "delete",
-                    },
+                    # If we are using leases, the lease will delete the appcred
+                    # If not, we want the janitor to delete it
+                    "annotations": (
+                        {"janitor.capi.stackhpc.com/credential-policy": "delete"}
+                        if not leases_available
+                        else {}
+                    ),
                 },
                 "stringData": credential,
             }
@@ -472,6 +478,8 @@ class Session:
             "createdByUsername": self._cloud_session.username(),
             "createdByUserId": self._cloud_session.user_id(),
         })
+        if leases_available:
+            cluster_spec["leaseName"] = f"kube-{name}"
         if zenith_identity_realm_name:
             cluster_spec["zenithIdentityRealmName"] = zenith_identity_realm_name
         # Create the cluster
@@ -492,13 +500,16 @@ class Session:
             },
             "spec": cluster_spec,
         })
-        if schedule:
-            scheduling_k8s.create_schedule(
-                self._client,
-                f"kube-{name}",
-                cluster,
-                schedule
-            )
+        # Create the scheduling resources for the cluster
+        # This may or may not create a Blazar lease to reserve the resources
+        scheduling_k8s.create_scheduling_resources(
+            self._client,
+            f"kube-{name}",
+            cluster,
+            cluster.spec["cloudCredentialsSecretName"],
+            resources,
+            schedule
+        )
         # Use the sizes that we already have
         sizes = [control_plane_size] + [ng["machine_size"] for ng in node_groups]
         return self._from_api_cluster(cluster, sizes)

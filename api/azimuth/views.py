@@ -1385,7 +1385,7 @@ def kubernetes_cluster_check_quotas(session, cluster, template, **data):
         current_resources = None
     future_resources = calculator.calculate(template, **data)
     checker = scheduling.QuotaChecker(session)
-    return checker.check(future_resources, current_resources)
+    return [future_resources, *checker.check(future_resources, current_resources)]
 
 
 @provider_api_view(["POST"])
@@ -1412,7 +1412,7 @@ def kubernetes_cluster_schedule_new(request, tenant):
                 }
             )
             input_serializer.is_valid(raise_exception = True)
-            fits, quotas = kubernetes_cluster_check_quotas(
+            _, fits, quotas = kubernetes_cluster_check_quotas(
                 session,
                 None,
                 **input_serializer.validated_data
@@ -1450,7 +1450,7 @@ def kubernetes_cluster_schedule_existing(request, tenant, cluster):
                 context = { "session": session, "capi_session": capi_session }
             )
             input_serializer.is_valid(raise_exception = True)
-            fits, quotas = kubernetes_cluster_check_quotas(
+            _, fits, quotas = kubernetes_cluster_check_quotas(
                 session,
                 cluster,
                 capi_session.find_cluster_template(cluster.template_id),
@@ -1495,7 +1495,7 @@ def kubernetes_clusters(request, tenant):
                 )
                 input_serializer.is_valid(raise_exception = True)
                 # Check that the cluster fits within quota
-                fits, _ = kubernetes_cluster_check_quotas(
+                resources, fits, _ = kubernetes_cluster_check_quotas(
                     session,
                     None,
                     **input_serializer.validated_data
@@ -1513,7 +1513,7 @@ def kubernetes_clusters(request, tenant):
                     # Make sure that the identity realm exists
                     realm = identity.ensure_realm(session.tenancy())
                     params["zenith_identity_realm_name"] = realm.name
-                cluster = capi_session.create_cluster(**params)
+                cluster = capi_session.create_cluster(resources = resources, **params)
                 output_serializer = serializers.KubernetesClusterSerializer(
                     cluster,
                     context = { "request": request, "tenant": tenant }
@@ -1568,7 +1568,7 @@ def kubernetes_cluster_details(request, tenant, cluster):
                         if k != "template"
                     }
                     # Check that the new size of the cluster fits within quota
-                    fits, _ = kubernetes_cluster_check_quotas(
+                    _, fits, _ = kubernetes_cluster_check_quotas(
                         session,
                         cluster,
                         capi_session.find_cluster_template(cluster.template_id),
