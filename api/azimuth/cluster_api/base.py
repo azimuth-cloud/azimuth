@@ -444,13 +444,15 @@ class Session:
                     "labels": {
                         "app.kubernetes.io/managed-by": "azimuth",
                     },
-                    # If we are using leases, the lease will delete the appcred
-                    # If not, we want the janitor to delete it
-                    "annotations": (
-                        {"janitor.capi.stackhpc.com/credential-policy": "delete"}
-                        if not leases_available
-                        else {}
-                    ),
+                    "annotations": {
+                        # If we are using leases, the lease will delete the appcred
+                        # If not, we want the janitor to delete it
+                        "janitor.capi.stackhpc.com/credential-policy": (
+                            "keep"
+                            if leases_available
+                            else "delete"
+                        ),
+                    },
                 },
                 "stringData": credential,
             }
@@ -568,18 +570,28 @@ class Session:
         """
         if isinstance(cluster, dto.Cluster):
             cluster = cluster.id
-        # Before deleting the cluster, patch the credential secret with the annotation
-        # that permits the janitor to remove the appcred
-        self._client.api("v1").resource("secrets").patch(
-            f"{cluster}-cloud-credentials",
-            {
-                "metadata": {
-                    "annotations": {
-                        "janitor.capi.stackhpc.com/credential-policy": "delete",
-                    },
-                },
-            }
-        )
+        # Before deleting the cluster, check if the credential secret has a janitor annotation
+        # If it doesn't then it is a very old cluster from before the leases or janitor
+        # integration, and we add the annotation so that the janitor removes the appcred
+        secrets = self._client.api("v1").resource("secrets")
+        try:
+            secret = secrets.fetch(f"{cluster}-cloud-credentials")
+        except ApiError as exc:
+            if exc.status_code != 404:
+                raise
+        else:
+            annotations = secret.metadata.get("annotations", {})
+            if "janitor.capi.stackhpc.com/credential-policy" not in annotations:
+                _ = secrets.patch(
+                    secret.metadata.name,
+                    {
+                        "metadata": {
+                            "annotations": {
+                                "janitor.capi.stackhpc.com/credential-policy": "delete",
+                            },
+                        },
+                    }
+                )
         self._client.api(AZIMUTH_API_VERSION).resource("clusters").delete(
             cluster,
             propagation_policy = "Foreground"
