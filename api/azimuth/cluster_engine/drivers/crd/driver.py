@@ -1,6 +1,7 @@
 """
 This module contains the cluster engine implementation for azimuth-caas-crd.
 """
+import collections
 import datetime
 import dateutil.parser
 import logging
@@ -147,8 +148,9 @@ def _get_cluster_type(client, cluster_type_name: str, tenancy):
 def create_cluster(
     client,
     name: str,
-    cluster_type_name: str,
+    cluster_type: dto.ClusterType,
     params: dict,
+    resources: scheduling_dto.PlatformResources,
     schedule: t.Optional[scheduling_dto.PlatformSchedule],
     ctx: dto.Context
 ):
@@ -165,6 +167,7 @@ def create_cluster(
             "stringData": string_data,
         }
     )
+    cluster_type_name = cluster_type.name
 
     cluster_type = _get_cluster_type(client, cluster_type_name, ctx.tenancy)
     cluster_spec = {
@@ -174,10 +177,14 @@ def create_cluster(
         "createdByUsername": ctx.username,
         "createdByUserId": ctx.user_id,
     }
+    # Tell the cluster which lease it should wait for
+    if scheduling_k8s.leases_available(client):
+        cluster_spec["leaseName"] = f"caas-{safe_name}"
     if params:
         cluster_spec["extraVars"] = {}
         for key, value in params.items():
             cluster_spec["extraVars"][key] = value
+
     cluster_resource = client.api(CAAS_API_VERSION).resource("clusters")
     cluster = cluster_resource.create(
         {
@@ -185,7 +192,7 @@ def create_cluster(
                 "name": safe_name,
                 "labels": {"app.kubernetes.io/managed-by": "azimuth"},
                 # We annotate the cluster with the serialized schedule object
-                # This is to avoid doing an N+1 query
+                # This is to avoid doing an N+1 query to recover the schedules when listing
                 "annotations": (
                     { "azimuth.stackhpc.com/schedule": schedule.to_json() }
                     if schedule
@@ -195,13 +202,18 @@ def create_cluster(
             "spec": cluster_spec,
         }
     )
-    if schedule:
-        scheduling_k8s.create_schedule(
-            client,
-            f"caas-{safe_name}",
-            cluster,
-            schedule
-        )
+
+    # Create the scheduling resources for the platform
+    # This may or may not create a Blazar lease to reserve the resources for the platform
+    scheduling_k8s.create_scheduling_resources(
+        client,
+        f"caas-{safe_name}",
+        cluster,
+        secret_name,
+        resources,
+        schedule
+    )
+
     return get_cluster_dto(cluster)
 
 
@@ -210,7 +222,7 @@ def delete_cluster(client, name: str):
 
     # TODO(johngarbutt) should we be refreshing the application cred here?
     cluster_resource = client.api(CAAS_API_VERSION).resource("clusters")
-    cluster_resource.delete(safe_name)
+    cluster_resource.delete(safe_name, propagation_policy = "Foreground")
 
     # NOTE(johngarbutt) we are racing the operator here,
     # returning the ready state will confuse people
@@ -317,6 +329,7 @@ class Driver(base.Driver):
         name: str,
         cluster_type: dto.ClusterType,
         params: t.Mapping[str, t.Any],
+        resources: scheduling_dto.PlatformResources,
         schedule: t.Optional[scheduling_dto.PlatformSchedule],
         ctx: dto.Context
     ) -> dto.Cluster:
@@ -324,7 +337,7 @@ class Driver(base.Driver):
         Create a new cluster with the given name, type and parameters.
         """
         client = get_k8s_client(ctx, True)
-        return create_cluster(client, name, cluster_type.name, params, schedule, ctx)
+        return create_cluster(client, name, cluster_type, params, resources, schedule, ctx)
 
     def update_cluster(
         self,

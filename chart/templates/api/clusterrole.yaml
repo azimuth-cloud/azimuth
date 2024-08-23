@@ -82,6 +82,7 @@ rules:
       - scheduling.azimuth.stackhpc.com
     resources:
       - schedules
+      - leases
     verbs:
       - list
       - get
