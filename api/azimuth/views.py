@@ -1779,6 +1779,7 @@ def kubernetes_app_details(request, tenant, app):
                 output_serializer = serializers.KubernetesAppSerializer(
                     capi_session.update_app(
                         app,
+                        app_template,
                         **input_serializer.validated_data
                     ),
                     context = { "request": request, "tenant": tenant }

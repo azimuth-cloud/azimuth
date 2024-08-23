@@ -853,6 +853,7 @@ class Session:
     def update_app(
         self,
         app: t.Union[dto.App, str],
+        template: dto.AppTemplate,
         version: dto.Version,
         values: t.Dict[str, t.Any]
     ) -> dto.App:
@@ -882,6 +883,8 @@ class Session:
                         },
                         "spec": {
                             "chart": {
+                                "repo": template.chart.repo,
+                                "name": template.chart.name,
                                 "version": version.name,
                             },
                             "valuesSources": [
