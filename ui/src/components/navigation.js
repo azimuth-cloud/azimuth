@@ -19,6 +19,7 @@ import {
     faCloud,
     faSignOutAlt,
     faTachometerAlt,
+    faLifeRing,
 } from '@fortawesome/free-solid-svg-icons';
 
 import { sortBy, Loading } from './utils';
@@ -34,6 +35,8 @@ export const Navigation = ({
     links
 }) => {
     const currentCloud = get(clouds, currentCloudName);
+    // add this
+    const supportLink = "https://support-link.com";
     const sortedClouds = sortBy(
         Object.entries(clouds || {})
             .map(([name, cloud]) => ({ name, ...cloud }))
@@ -89,6 +92,21 @@ export const Navigation = ({
                                 Documentation
                             </Nav.Link>
                         )}
+
+
+                {/* add support link here */}
+                {supportLink && (
+                    <Nav.Link href={supportLink} target="_blank" active={false}>
+                        <FontAwesomeIcon icon={faLifeRing} className="me-2" />
+                        Support
+                    </Nav.Link>
+                )}
+
+                {/* end of support link */}
+
+
+
+
                         {username ? (
                             <Nav.Link href={`/auth/logout/?next=/`} active={false}>
                                 <FontAwesomeIcon icon={faSignOutAlt} className="me-2" />
