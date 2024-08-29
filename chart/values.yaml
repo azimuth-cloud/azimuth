@@ -166,7 +166,7 @@ settings:
   # The URL for documentation
   # By default, the standard Azimuth user documentation will be used
   documentationUrl:
-  supportUrl: "https://confluence.skatelescope.org/display/SRCSC/Azimuth+Support+on+Cambridge+Arcus"
+  supportUrl:
   # The name of the CSRF cookie
   csrfCookieName:
   # The name of the session cookie
