@@ -22,6 +22,9 @@ AZIMUTH:
   {{- with .Values.settings.documentationUrl }}
   DOCUMENTATION_URL: {{ quote . }}
   {{- end }}
+  {{- with .Values.settings.supportUrl }}
+  SUPPORT_URL: {{ quote . }}
+  {{- end }}
   {{- with .Values.settings.curatedSizes }}
   CURATED_SIZES: {{ toYaml . | nindent 8 }}
   {{- end }}

@@ -35,8 +35,7 @@ export const Navigation = ({
     links
 }) => {
     const currentCloud = get(clouds, currentCloudName);
-    // add this
-    const supportLink = "https://support-link.com";
+    console.log(links);
     const sortedClouds = sortBy(
         Object.entries(clouds || {})
             .map(([name, cloud]) => ({ name, ...cloud }))
@@ -93,19 +92,12 @@ export const Navigation = ({
                             </Nav.Link>
                         )}
 
-
-                {/* add support link here */}
-                {supportLink && (
-                    <Nav.Link href={supportLink} target="_blank" active={false}>
-                        <FontAwesomeIcon icon={faLifeRing} className="me-2" />
-                        Support
-                    </Nav.Link>
-                )}
-
-                {/* end of support link */}
-
-
-
+                        {links && links.support && (
+                            <Nav.Link href={links.support} target="_blank" active={false}>
+                                <FontAwesomeIcon icon={faLifeRing} className="me-2" />
+                                Support
+                            </Nav.Link>
+                        )}
 
                         {username ? (
                             <Nav.Link href={`/auth/logout/?next=/`} active={false}>
