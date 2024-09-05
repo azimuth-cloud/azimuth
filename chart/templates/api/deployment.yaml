@@ -92,7 +92,7 @@ spec:
               readOnly: true
             {{- if .Values.trustBundleConfigMapName }}
             - name: trust-bundle
-              mountPath: /etc/azimuth/trust
+              mountPath: /etc/ssl/certs
               readOnly: true
             {{- end }}
             - name: tmp
