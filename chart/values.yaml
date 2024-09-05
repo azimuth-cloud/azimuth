@@ -137,9 +137,8 @@ ingress:
     # TLS-specific ingress annotations, e.g. for cert-manager configuration
     annotations: {}
 
-# The name of a configmap containing additional trusted CAs
-# These will be merged with the default trusted CAs from certifi
-trustBundleConfigMapName:
+# A bundle of trusted CAs to use instead of the defaults
+trustBundle:
 
 settings:
   # The Django secret key

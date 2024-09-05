@@ -90,7 +90,7 @@ spec:
               mountPath: /var/azimuth/staticfiles/bootstrap.css
               subPath: bootstrap.css
               readOnly: true
-            {{- if .Values.trustBundleConfigMapName }}
+            {{- if .Values.trustBundle }}
             - name: trust-bundle
               mountPath: /etc/ssl/certs
               readOnly: true
@@ -113,10 +113,10 @@ spec:
         - name: theme-css
           configMap:
             name: {{ include "azimuth.componentname" (list . "theme") }}
-        {{- if .Values.trustBundleConfigMapName }}
+        {{- if .Values.trustBundle }}
         - name: trust-bundle
           configMap:
-            name: {{ .Values.trustBundleConfigMapName }}
+            name: {{ include "azimuth.componentname" (list . $component) }}-trust-bundle
         {{- end }}
         - name: tmp
           emptyDir: {}

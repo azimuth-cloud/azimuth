@@ -45,7 +45,7 @@ spec:
             - name: runtime-settings
               mountPath: /etc/azimuth/settings.d
               readOnly: true
-            {{- if .Values.trustBundleConfigMapName }}
+            {{- if .Values.trustBundle }}
             - name: trust-bundle
               mountPath: /etc/ssl/certs
               readOnly: true
@@ -65,10 +65,10 @@ spec:
         - name: runtime-settings
           secret:
             secretName: {{ include "azimuth.componentname" (list . "api") }}
-        {{- if .Values.trustBundleConfigMapName }}
+        {{- if .Values.trustBundle }}
         - name: trust-bundle
           configMap:
-            name: {{ .Values.trustBundleConfigMapName }}
+            name: {{ include "azimuth.componentname" (list . "api") }}-trust-bundle
         {{- end }}
         - name: tmp
           emptyDir: {}
