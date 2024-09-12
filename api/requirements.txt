@@ -23,7 +23,7 @@ jsonschema==4.23.0
 jsonschema-specifications==2023.12.1
 ldap3==2.9.1
 MarkupSafe==2.1.5
-pyasn1==0.6.0
+pyasn1==0.6.1
 pycparser==2.22
 pyrsistent==0.20.0
 python-dateutil==2.9.0.post0
