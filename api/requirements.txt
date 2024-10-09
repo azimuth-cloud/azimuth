@@ -3,7 +3,7 @@ asgiref==3.8.1
 attrs==24.2.0
 certifi==2024.8.30
 cffi==1.17.1
-charset-normalizer==3.3.2
+charset-normalizer==3.4.0
 cryptography==43.0.1
 Django==5.1.1
 django-flexi-settings @ git+https://github.com/cedadev/django-flexi-settings.git@68eb74b00e28448279e7d800889d6e39466bf0ce
