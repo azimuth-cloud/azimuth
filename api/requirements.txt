@@ -20,7 +20,7 @@ idna==3.10
 jasmin-ldap @ git+https://github.com/cedadev/jasmin-ldap.git@3e1d2659731e9e1a65e8723b4e72c776ae7f7b25
 Jinja2==3.1.4
 jsonschema==4.23.0
-jsonschema-specifications==2023.12.1
+jsonschema-specifications==2024.10.1
 ldap3==2.9.1
 MarkupSafe==2.1.5
 pyasn1==0.6.1
