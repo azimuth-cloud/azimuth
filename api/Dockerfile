@@ -21,6 +21,11 @@ FROM ubuntu:jammy
 # Don't buffer stdout and stderr as it breaks realtime logging
 ENV PYTHONUNBUFFERED 1
 
+# Make httpx and requests use the system trust roots
+# By default, this means we use the roots baked into the image
+ENV SSL_CERT_FILE /etc/ssl/certs/ca-certificates.crt
+ENV REQUESTS_CA_BUNDLE /etc/ssl/certs/ca-certificates.crt
+
 # Create the user that will be used to run the app
 ENV APP_UID 1001
 ENV APP_GID 1001
@@ -54,11 +59,8 @@ RUN mkdir -p /etc/azimuth/settings.d
 # Collect the static files
 RUN /venv/bin/django-admin collectstatic
 
-# Install the scripts
-COPY ./bin /usr/local/bin
-
 # By default, serve the app on port 8080 using the app user
 EXPOSE 8080
 USER $APP_UID
-ENTRYPOINT ["tini", "-g", "--", "azimuth-entrypoint"]
+ENTRYPOINT ["tini", "-g", "--"]
 CMD ["/venv/bin/gunicorn", "--config", "/etc/gunicorn/conf.py", "azimuth_site.wsgi:application"]

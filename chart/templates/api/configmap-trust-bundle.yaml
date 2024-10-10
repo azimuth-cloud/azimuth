@@ -1,0 +1,10 @@
+{{- if .Values.trustBundle }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "azimuth.componentname" (list . "api") }}-trust-bundle
+  labels: {{ include "azimuth.componentLabels" (list . "api") | nindent 4 }}
+data:
+  ca-certificates.crt: |
+    {{- nindent 4 .Values.trustBundle }}
+{{- end }}
