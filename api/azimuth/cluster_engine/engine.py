@@ -28,16 +28,6 @@ ZENITH_INTERNAL_FQDN_VAR_TPL = "zenith_internal_fqdn_{}"
 ZENITH_TOKEN_VAR_TPL = "zenith_token_{}"
 
 
-def index_or_len(items, value):
-    """
-    Returns the index of the given value in items, or the length of the list if not present.
-    """
-    try:
-        return items.index(value)
-    except ValueError:
-        return len(items)
-
-
 class Engine:
     """
     Class for the cluster engine.
