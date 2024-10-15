@@ -208,6 +208,8 @@ class Session:
             # If there is no state, then the operator has not caught up after a create
             # So use Reconciling as the state in this case
             cluster_state = "Reconciling"
+        elif cluster_state == "Unhealthy":
+            cluster_state = "Unhealthy"
         else:
             # Otherwise, we can compare the spec to the last handled configuration
             # If the template has changed, we have an upgrade
