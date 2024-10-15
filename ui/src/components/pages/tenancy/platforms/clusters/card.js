@@ -139,7 +139,7 @@ const ClusterPatched = ({ cluster, clusterType }) => {
         patched :
         <OverlayTrigger
             placement="top"
-            overlay={<Tooltip>A new version is available, please patch this cluster.</Tooltip>}
+            overlay={<Tooltip>A new version is available, please patch this cluster!</Tooltip>}
             trigger="click"
             rootClose
         >
@@ -465,12 +465,14 @@ export const ClusterCard = ({
     }
 
     const clusterExpiresSoon = cluster.schedule ? expiresSoon(cluster.schedule) : false;
+    const patchAvailable = cluster.cluster_type_version && (cluster.cluster_type_version != clusterType.version);
 
     return (
-        <Card className={`platform-card ${clusterExpiresSoon ? "platform-expiring" : ""}`}>
+        <Card className={`platform-card ${patchAvailable ? "platform-patch-needed" : clusterExpiresSoon ? "platform-expiring" : ""} `}>
             <PlatformCardHeader
                 currentUserIsOwner={userId === cluster.created_by_user_id}
                 expiresSoon={clusterExpiresSoon}
+                patchAvailable={patchAvailable}
             >
                 <Badge bg={statusBadgeBg[cluster.status]}>{cluster.status}</Badge>
             </PlatformCardHeader>

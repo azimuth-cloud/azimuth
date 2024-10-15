@@ -499,12 +499,18 @@ export const KubernetesAppCard = ({
             expiresSoon(kubernetesCluster.schedule) :
             false
     );
+    const version = kubernetesAppTemplate.versions.find(v => v.name === kubernetesApp.version);
+    const versionIsLatest = (
+        version &&
+        version.name === kubernetesAppTemplate.versions[0].name
+    );
 
     return (
         <Card className={`platform-card ${appExpiresSoon ? "platform-expiring" : ""}`}>
             <PlatformCardHeader
                 currentUserIsOwner={userId === kubernetesApp.created_by_user_id}
                 expiresSoon={appExpiresSoon}
+                patchAvailable={!versionIsLatest}
             >
                 <StatusBadge
                     kubernetesAppTemplate={kubernetesAppTemplate}

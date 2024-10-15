@@ -722,11 +722,14 @@ export const KubernetesCard = ({
             false
     );
 
+    const clusterTemplate = get(tenancy.kubernetesClusterTemplates.data, kubernetesCluster.template.id);
+
     return (
         <Card className={`platform-card ${clusterExpiresSoon ? "platform-expiring" : ""}`}>
             <PlatformCardHeader
                 currentUserIsOwner={userId === kubernetesCluster.created_by_user_id}
                 expiresSoon={clusterExpiresSoon}
+                patchAvailable={clusterTemplate.deprecated}
             >
                 <Badge bg={statusBadgeBg[kubernetesCluster.status]}>
                     {kubernetesCluster.status.toUpperCase()}
