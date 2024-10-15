@@ -310,6 +310,15 @@ const ClusterPatchButton = ({ name, inFlight, disabled, onConfirm, ...props }) =
                             workloads on the platform. Once started, it cannot be stopped.
                         </strong>
                     </p>
+                    <p><strong>There is a risk of data loss!</strong></p>
+                    <p>
+                        <strong>
+                            Only data stored in explcitly documented
+                            persistent locations will be retained.
+                            All other platform data and any platform
+                            modifications will be lost.
+                        </strong>
+                    </p>
                 </Modal.Body>
                 <Modal.Footer>
                     <Button variant="secondary" onClick={close}>Cancel</Button>
