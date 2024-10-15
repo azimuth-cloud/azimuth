@@ -257,6 +257,10 @@ def update_cluster(client, name: str, params: t.Mapping[str, t.Any],
     now = datetime.datetime.now(tz = datetime.timezone.utc)
     now_string = now.strftime("%Y-%m-%dT%H:%M:%SZ")
     params["azimuth_requested_update_at"] = now_string
+    params["azimuth_update_reason"] = "unknown"
+    if version:
+        # used to force a rebuild of the cluster
+        params["azimuth_update_reason"] = "patch"
 
     # NOTE(johngarbutt): we assume no parameters are being removed here
     spec = dict(
