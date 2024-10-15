@@ -16,8 +16,10 @@ class ZenithReservation:
     """
     #: The subdomain that was reserved
     subdomain: str
-    #: The FQDN that was reserved
+    #: The FQDN for the reserved subdomain
     fqdn: str
+    #: The internal FQDN for the reserved subdomain
+    internal_fqdn: t.Optional[str]
     #: The token that can be used to associate public keys
     token: str
 
@@ -74,5 +76,6 @@ class Zenith:
         return ZenithReservation(
             response_data["subdomain"],
             response_data["fqdn"],
+            response_data.get("internal_fqdn"),
             response_data["token"]
         )

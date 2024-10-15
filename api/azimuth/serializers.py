@@ -490,7 +490,7 @@ class ClusterTypeSerializer(
 class ClusterSerializer(
     make_dto_serializer(
         clusters_dto.Cluster,
-        exclude = ["status", "services", "schedule"]
+        exclude = ["status", "services", "schedule", "raw_parameter_values"]
     )
 ):
     status = serializers.ReadOnlyField(source = "status.name")

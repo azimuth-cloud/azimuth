@@ -3,7 +3,6 @@ This module defines the base class for cluster managers.
 """
 
 import dataclasses
-import datetime
 import typing as t
 
 import jinja2
@@ -21,11 +20,11 @@ ZENITH_REGISTRAR_VERIFY_SSL_VAR = "zenith_registrar_verify_ssl"
 ZENITH_SSHD_HOST_VAR = "zenith_sshd_host"
 ZENITH_SSHD_PORT_VAR = "zenith_sshd_port"
 
-ZENITH_SUBDOMAIN_VAR_PREFIX = "zenith_subdomain_"
 ZENITH_LABEL_VAR_TPL = "zenith_label_{}"
 ZENITH_ICON_URL_VAR_TPL = "zenith_icon_url_{}"
-ZENITH_SUBDOMAIN_VAR_TPL = ZENITH_SUBDOMAIN_VAR_PREFIX + "{}"
+ZENITH_SUBDOMAIN_VAR_TPL = "zenith_subdomain_{}"
 ZENITH_FQDN_VAR_TPL = "zenith_fqdn_{}"
+ZENITH_INTERNAL_FQDN_VAR_TPL = "zenith_internal_fqdn_{}"
 ZENITH_TOKEN_VAR_TPL = "zenith_token_{}"
 
 
@@ -94,40 +93,11 @@ class ClusterManager:
         """
         Modifies a cluster returned from a driver before returning it.
 
-        Used to add additional, driver-agnostic functionality.
+        Used to add additional, driver-agnostic functionality and remove any injected parameters.
         """
-        # Process the parameters to remove Zenith variables and convert them to services
-        params = dict(cluster.parameter_values)
-        services = []
-        # Throw away the Zenith connection information
-        params.pop(ZENITH_REGISTRAR_URL_VAR, None)
-        params.pop(ZENITH_REGISTRAR_VERIFY_SSL_VAR, None)
-        params.pop(ZENITH_SSHD_HOST_VAR, None)
-        params.pop(ZENITH_SSHD_PORT_VAR, None)
-        zenith_service_names = [
-            k.removeprefix(ZENITH_SUBDOMAIN_VAR_PREFIX)
-            for k in params.keys()
-            if k.startswith(ZENITH_SUBDOMAIN_VAR_PREFIX)
-        ]
-        for service_name in zenith_service_names:
-            label_variable = ZENITH_LABEL_VAR_TPL.format(service_name)
-            icon_url_variable = ZENITH_ICON_URL_VAR_TPL.format(service_name)
-            subdomain_variable = ZENITH_SUBDOMAIN_VAR_TPL.format(service_name)
-            fqdn_variable = ZENITH_FQDN_VAR_TPL.format(service_name)
-            token_variable = ZENITH_TOKEN_VAR_TPL.format(service_name)
-            # Throw away the token
-            params.pop(token_variable, None)
-            # Extract the other variables and use them to build a service
-            services.append(
-                dto.ClusterService(
-                    service_name,
-                    params.pop(label_variable, service_name),
-                    params.pop(icon_url_variable, None),
-                    params.pop(fqdn_variable),
-                    params.pop(subdomain_variable)
-                )
-            )
-        # Try to order the services according to the cluster type
+        # First, allow the cloud provider to modify the cluster if required
+        cluster = self._cloud_session.cluster_modify(cluster)
+        # Get the services as specified in the cluster type
         if cluster_types is not None:
             cluster_type = cluster_types.get(cluster.cluster_type)
         else:
@@ -135,19 +105,34 @@ class ClusterManager:
                 cluster_type = self.find_cluster_type(cluster.cluster_type)
             except errors.ObjectNotFoundError:
                 cluster_type = None
-        cluster_type_service_names = [
-            s.name
-            for s in getattr(cluster_type, "services", [])
-        ]
-        cluster = dataclasses.replace(
+        # Limit the parameters to only those specified in the cluster type
+        ct_params = { p.name for p in cluster_type.parameters }
+        params = { k: v for k, v in cluster.raw_parameter_values.items() if k in ct_params }
+        # Populate the Zenith services for the cluster from the cluster type
+        services = []
+        if cluster_type:
+            for service in cluster_type.services:
+                if service.internal:
+                    continue
+                subdomain_variable = ZENITH_SUBDOMAIN_VAR_TPL.format(service.name)
+                if subdomain_variable not in cluster.raw_parameter_values:
+                    continue
+                fqdn_variable = ZENITH_FQDN_VAR_TPL.format(service.name)
+                services.append(
+                    dto.ClusterService(
+                        service.name,
+                        service.label,
+                        service.icon_url,
+                        cluster.raw_parameter_values[fqdn_variable],
+                        cluster.raw_parameter_values[subdomain_variable]
+                    )
+                )
+        # Build and return the new cluster object
+        return dataclasses.replace(
             cluster,
             parameter_values = params,
-            services = sorted(
-                services,
-                key = lambda s: (index_or_len(cluster_type_service_names, s.name), s.label)
-            )
+            services = services
         )
-        return self._cloud_session.cluster_modify(cluster)
 
     def clusters(self) -> t.Iterable[dto.Cluster]:
         """
@@ -158,10 +143,7 @@ class ClusterManager:
         for cluster in self._driver.clusters(ctx):
             # cluster_types is lazily initialised once we know there is a cluster
             if not cluster_types:
-                cluster_types = {
-                    ct.name: ct
-                    for ct in self.cluster_types()
-                }
+                cluster_types = { ct.name: ct for ct in self.cluster_types() }
             yield self._cluster_modify(cluster, cluster_types)
 
     def find_cluster(self, id: str) -> dto.Cluster:
@@ -204,11 +186,12 @@ class ClusterManager:
         Returns a new set of parameters that have the required Zenith parameters
         added or removed depending on the enabled services.
         """
+        # Create a copy of the parameters that we can modify
         zenith_params = params.copy()
-        # next_params represents the next state of the cluster before any
-        # modifications for Zenith services that need to be enabled or disabled
-        next_params = getattr(cluster, "parameter_values", {}).copy()
-        next_params.update(params)
+        # Get the current parameters for the cluster
+        current_params = getattr(cluster, "raw_parameter_values", {})
+        # Get the future state of the cluster parameters after the changes
+        next_params = dict(current_params, **params)
         # Add the connection information for Zenith services
         zenith_params.update({
             ZENITH_REGISTRAR_URL_VAR: self._zenith.registrar_external_url,
@@ -216,46 +199,46 @@ class ClusterManager:
             ZENITH_SSHD_HOST_VAR: self._zenith.sshd_host,
             ZENITH_SSHD_PORT_VAR: self._zenith.sshd_port,
         })
-        # Determine the existing services
-        existing_services = { s.name for s in getattr(cluster, "services", []) }
-        # Update the parameters based on the services for the cluster type
+        # Make sure each service in the cluster type has variables
         for service in cluster_type.services:
-            # Check if the service is enabled
+            # Check if the service is enabled based on the future params
             if service.when:
                 expr = self._jinja_env.compile_expression(service.when)
                 service_enabled = expr(**next_params)
             else:
                 service_enabled = True
+            # Get the names of the variables for the service
             label_variable = ZENITH_LABEL_VAR_TPL.format(service.name)
             icon_url_variable = ZENITH_ICON_URL_VAR_TPL.format(service.name)
             subdomain_variable = ZENITH_SUBDOMAIN_VAR_TPL.format(service.name)
             fqdn_variable = ZENITH_FQDN_VAR_TPL.format(service.name)
+            internal_fqdn_variable = ZENITH_INTERNAL_FQDN_VAR_TPL.format(service.name)
             token_variable = ZENITH_TOKEN_VAR_TPL.format(service.name)
-            # If the service is enabled but already exists, there is nothing to do
-            # If the service is enabled but doesn't exist, we need to reserve a subdomain
-            # and inject the parameters for it
-            # If the service is not enabled, make sure the variables are removed
+            # Update the variables for the service
             if service_enabled:
-                if service.name not in existing_services:
+                # If the subdomain variable is not present, reserve a new subdomain
+                if subdomain_variable not in current_params:
                     reservation = self._zenith.reserve_subdomain()
                     zenith_params.update({
                         subdomain_variable: reservation.subdomain,
                         fqdn_variable: reservation.fqdn,
                         token_variable: reservation.token,
                     })
-                # Always make sure the label and icon URL are up to date
+                    if reservation.internal_fqdn:
+                        zenith_params[internal_fqdn_variable] = reservation.internal_fqdn
+                # Always make sure that the icon URL and label are up to date
                 zenith_params.update({
                     label_variable: service.label,
                     icon_url_variable: service.icon_url,
                 })
             else:
-                # When the service is disabled, remove all the Zenith variables for the service
-                # To do this, they should be set to None
+                # If the service is disabled, unset all the variables
                 zenith_params.update({
                     label_variable: None,
                     icon_url_variable: None,
                     subdomain_variable: None,
                     fqdn_variable: None,
+                    internal_fqdn_variable: None,
                     token_variable: None,
                 })
         return zenith_params
@@ -351,12 +334,12 @@ class ClusterManager:
             raise errors.InvalidOperationError(
                 'Cannot patch cluster with status {}'.format(cluster.status.name)
             )
+        params = self._cloud_session.cluster_parameters()
+        if self._zenith:
+            cluster_type = self.find_cluster_type(cluster.cluster_type)
+            params = self._with_zenith_params(params, cluster_type, cluster)
         ctx = dto.Context(self._username, self._user_id, self._tenancy)
-        cluster = self._driver.patch_cluster(
-            cluster,
-            self._cloud_session.cluster_parameters(),
-            ctx
-        )
+        cluster = self._driver.patch_cluster(cluster, params, ctx)
         return self._cluster_modify(cluster)
 
     def delete_cluster(

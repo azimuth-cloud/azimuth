@@ -1562,7 +1562,15 @@ class ScopedSession(base.ScopedSession):
         params = {
             k: v
             for k, v in cluster.parameter_values.items()
-            if k not in {"cluster_floating_network", "cluster_network"}
+            if k not in {
+                "cluster_floating_network",
+                "cluster_external_network",
+                "cluster_network",
+                "cluster_storage_network",
+                "cluster_project_manila_share",
+                "cluster_project_manila_share_name",
+                "cluster_project_manila_share_user",
+            }
         }
         original_error = (cluster.error_message or "").lower()
         # Convert quota-related error messages based on known OpenStack errors

@@ -71,6 +71,8 @@ class ClusterServiceSpec:
     icon_url: Optional[str]
     #: An expression indicating when the service is available
     when: Optional[str]
+    #: Indicates whether the service is an internal-only service
+    internal: bool
 
 
 @dataclass(frozen = True)
@@ -135,7 +137,8 @@ class ClusterType:
                     service['name'],
                     service.get('label', service['name']),
                     service.get('icon_url', service.get('iconUrl')),
-                    service.get('when')
+                    service.get('when'),
+                    service.get('internal', False)
                 )
                 for service in spec.get('services', [])
             ),
@@ -251,3 +254,9 @@ class Cluster:
     services: Sequence[ClusterService] = field(default_factory = list)
     #: Scheduling information for the cluster
     schedule: Optional[scheduling_dto.PlatformSchedule] = None
+    #: The raw parameter values as reported by the driver
+    raw_parameter_values: Optional[Mapping[str, Any]] = None
+
+    def __post_init__(self):
+        if self.raw_parameter_values is None:
+            object.__setattr__(self, "raw_parameter_values", dict(self.parameter_values))
