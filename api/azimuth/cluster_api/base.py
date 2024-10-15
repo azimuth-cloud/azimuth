@@ -209,6 +209,11 @@ class Session:
             # So use Reconciling as the state in this case
             cluster_state = "Reconciling"
         elif cluster_state == "Unhealthy":
+            # If the cluster is unhealthy, always expose this state
+            # regardless of what upgrading/reconciling might decide
+            # Note, this unfortunately hides the case where a change
+            # has been made, but we don't jump to the reconciling case
+            # because it looks the same as the  afsince it was marked unhealthy
             cluster_state = "Unhealthy"
         else:
             # Otherwise, we can compare the spec to the last handled configuration
