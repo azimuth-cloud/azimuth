@@ -483,8 +483,15 @@ export const KubernetesAppCard = ({
         version.name === kubernetesAppTemplate.versions[0].name
     );
 
+    // Decide if we need to apply a notification class to the card
+    const notifyClass = (
+        versionIsLatest ?
+            (appExpiresSoon ? "platform-expiring" : "") :
+            "platform-patch-needed"
+    );
+
     return (
-        <Card className={`platform-card ${appExpiresSoon ? "platform-expiring" : ""}`}>
+        <Card className={`platform-card ${notifyClass}`}>
             <PlatformCardHeader
                 currentUserIsOwner={userId === kubernetesApp.created_by_user_id}
                 expiresSoon={appExpiresSoon}

@@ -730,8 +730,15 @@ export const KubernetesCard = ({
 
     const clusterTemplate = get(tenancy.kubernetesClusterTemplates.data, kubernetesCluster.template.id);
 
+    // Decide if we need to apply a notification class to the card
+    const notifyClass = (
+        clusterTemplate && clusterTemplate.deprecated ?
+            "platform-patch-needed" :
+            (clusterExpiresSoon ? "platform-expiring" : "")
+    );
+
     return (
-        <Card className={`platform-card ${clusterExpiresSoon ? "platform-expiring" : ""}`}>
+        <Card className={`platform-card ${notifyClass}`}>
             <PlatformCardHeader
                 currentUserIsOwner={userId === kubernetesCluster.created_by_user_id}
                 expiresSoon={clusterExpiresSoon}
