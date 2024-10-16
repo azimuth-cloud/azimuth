@@ -297,6 +297,9 @@
 .platform-card.platform-expiring {
     border: 3px solid var(--bs-warning);
 }
+.platform-card.platform-patch-needed {
+    border: 3px solid var(--bs-danger);
+}
 .platform-card > .card-header {
     display: flex;
     align-items: stretch;
@@ -305,6 +308,10 @@
     background-color: rgba(var(--bs-warning-rgb), 0.1);
     border-bottom-color: var(--bs-warning)
 }
+.platform-card.platform-patch-needed > .card-header {
+    background-color: rgba(var(--bs-danger-rgb), 0.1);
+    border-bottom-color: var(--bs-danger)
+}
 .platform-card > .card-header > .icons {
     flex: 1 0 auto;
     vertical-align: middle;
@@ -312,6 +319,9 @@
 }
 .platform-card > .card-header .icon-expiring {
     color: var(--bs-warning);
+}
+.platform-card > .card-header .icon-patch-available {
+    color: var(--bs-danger);
 }
 .platform-card > .card-header > .status {
     flex: 0 1 auto;

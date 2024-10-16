@@ -558,7 +558,10 @@ const KubernetesClusterDetailsButton = ({
     const close = () => setVisible(false);
 
     const inFlight = !!kubernetesCluster.updating || !!kubernetesCluster.deleting;
-    const kubernetesTemplatesAvailable = (kubernetesClusterTemplates.initialised && Object.getOwnPropertyNames(kubernetesClusterTemplates.data).length > 0)
+    const kubernetesTemplatesAvailable = (
+        kubernetesClusterTemplates.initialised &&
+        Object.getOwnPropertyNames(kubernetesClusterTemplates.data).length > 0
+    );
 
     return (
         <>
@@ -571,7 +574,10 @@ const KubernetesClusterDetailsButton = ({
                     { kubernetesTemplatesAvailable ||
                         <Row className="justify-content-center">
                             <Col xs="auto">
-                                <Error className="text-center" message={"WARNING: Kubernetes functionality is no longer available in this tenancy."} />
+                                <Error
+                                    className="text-center"
+                                    message="WARNING: Kubernetes functionality is no longer available in this tenancy."
+                                />
                             </Col>
                         </Row>
                     }
@@ -722,11 +728,21 @@ export const KubernetesCard = ({
             false
     );
 
+    const clusterTemplate = get(tenancy.kubernetesClusterTemplates.data, kubernetesCluster.template.id);
+
+    // Decide if we need to apply a notification class to the card
+    const notifyClass = (
+        clusterTemplate && clusterTemplate.deprecated ?
+            "platform-patch-needed" :
+            (clusterExpiresSoon ? "platform-expiring" : "")
+    );
+
     return (
-        <Card className={`platform-card ${clusterExpiresSoon ? "platform-expiring" : ""}`}>
+        <Card className={`platform-card ${notifyClass}`}>
             <PlatformCardHeader
                 currentUserIsOwner={userId === kubernetesCluster.created_by_user_id}
                 expiresSoon={clusterExpiresSoon}
+                patchAvailable={clusterTemplate && clusterTemplate.deprecated}
             >
                 <Badge bg={statusBadgeBg[kubernetesCluster.status]}>
                     {kubernetesCluster.status.toUpperCase()}

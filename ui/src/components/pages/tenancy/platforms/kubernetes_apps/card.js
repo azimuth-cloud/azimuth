@@ -451,28 +451,6 @@ const statusBadgeBg = {
 };
 
 
-const StatusBadge = ({ kubernetesAppTemplate, kubernetesApp }) => {
-    // Indicate if the deployed version is unsupported or updates are available
-    const version = kubernetesAppTemplate.versions.find(v => v.name === kubernetesApp.version);
-    const versionIsLatest = (
-        version &&
-        version.name === kubernetesAppTemplate.versions[0].name
-    );
-    let statusText = kubernetesApp.status, statusBg = statusBadgeBg[kubernetesApp.status];
-    if( kubernetesApp.status === "Deployed" ) {
-        if( !version ) {
-            statusText = "Unsupported";
-            statusBg = "danger";
-        }
-        else if( !versionIsLatest ) {
-            statusText = "Upgrade available";
-            statusBg = "warning";
-        }
-    }
-    return <Badge bg={statusBg}>{statusText.toUpperCase()}</Badge>;
-};
-
-
 export const KubernetesAppCard = ({
     kubernetesApp,
     kubernetesAppTemplates,
@@ -499,17 +477,29 @@ export const KubernetesAppCard = ({
             expiresSoon(kubernetesCluster.schedule) :
             false
     );
+    const version = kubernetesAppTemplate.versions.find(v => v.name === kubernetesApp.version);
+    const versionIsLatest = (
+        version &&
+        version.name === kubernetesAppTemplate.versions[0].name
+    );
+
+    // Decide if we need to apply a notification class to the card
+    const notifyClass = (
+        versionIsLatest ?
+            (appExpiresSoon ? "platform-expiring" : "") :
+            "platform-patch-needed"
+    );
 
     return (
-        <Card className={`platform-card ${appExpiresSoon ? "platform-expiring" : ""}`}>
+        <Card className={`platform-card ${notifyClass}`}>
             <PlatformCardHeader
                 currentUserIsOwner={userId === kubernetesApp.created_by_user_id}
                 expiresSoon={appExpiresSoon}
+                patchAvailable={!versionIsLatest}
             >
-                <StatusBadge
-                    kubernetesAppTemplate={kubernetesAppTemplate}
-                    kubernetesApp={kubernetesApp}
-                />
+                <Badge bg={statusBadgeBg[kubernetesApp.status]}>
+                    {kubernetesApp.status.toUpperCase()}
+                </Badge>
             </PlatformCardHeader>
             <Card.Img src={kubernetesAppTemplate.logo} />
             <Card.Body>

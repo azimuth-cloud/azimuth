@@ -22,7 +22,8 @@ import {
     faPaste,
     faStar,
     faSyncAlt,
-    faTrash
+    faTrash,
+    faRedo
 } from '@fortawesome/free-solid-svg-icons';
 import {
     faStar as farStar
@@ -73,7 +74,8 @@ const PlatformCardHeaderIcon = ({ icon, tooltip, ...props }) => (
 export const PlatformCardHeader = ({
     children,
     currentUserIsOwner,
-    expiresSoon
+    expiresSoon,
+    patchAvailable
 }) => (
     <Card.Header>
         <div className="icons">
@@ -88,9 +90,16 @@ export const PlatformCardHeader = ({
             />
             {expiresSoon && (
                 <PlatformCardHeaderIcon
-                    className="icon-expiring"
+                    className="icon-expiring me-3"
                     icon={faBell}
                     tooltip="This platform will be deleted soon."
+                />
+            )}
+            {patchAvailable && (
+                <PlatformCardHeaderIcon
+                    className="icon-patch-available"
+                    icon={faRedo}
+                    tooltip="An update is available for this platform."
                 />
             )}
         </div>
