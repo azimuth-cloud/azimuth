@@ -209,11 +209,21 @@ class Session:
             # So use Reconciling as the state in this case
             cluster_state = "Reconciling"
         elif cluster_state == "Unhealthy":
-            # If the cluster is unhealthy, always expose this state
-            # regardless of what upgrading/reconciling might decide
-            # Note, this unfortunately hides the case where a change
-            # has been made, but we don't jump to the reconciling case
-            # because it looks the same as the  afsince it was marked unhealthy
+            # TODO(mkjpryor) find a better way to make sure unhealthy and reconciling
+            #                are displayed as appropriate
+            #
+            # If the cluster is unhealthy, always expose this state regardless of what
+            # the else clause below would decide to do
+            #
+            # This is because the last-handled-configuration is only updated when the
+            # create/update handler executes successfully, meaning that if an error occurs
+            # in the handler the cluster will stay reconciling forever if using the logic
+            # from the else clause, even when the operator has moved it into the unhealthy
+            # state due to the timeout
+            #
+            # This has the undesired effect that when a change is made to an unhealthy
+            # cluster, it will not move to reconciling until the operator catches up
+            # and starts making changes
             cluster_state = "Unhealthy"
         else:
             # Otherwise, we can compare the spec to the last handled configuration
