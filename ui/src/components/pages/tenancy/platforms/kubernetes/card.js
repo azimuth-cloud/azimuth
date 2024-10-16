@@ -558,7 +558,10 @@ const KubernetesClusterDetailsButton = ({
     const close = () => setVisible(false);
 
     const inFlight = !!kubernetesCluster.updating || !!kubernetesCluster.deleting;
-    const kubernetesTemplatesAvailable = (kubernetesClusterTemplates.initialised && Object.getOwnPropertyNames(kubernetesClusterTemplates.data).length > 0)
+    const kubernetesTemplatesAvailable = (
+        kubernetesClusterTemplates.initialised &&
+        Object.getOwnPropertyNames(kubernetesClusterTemplates.data).length > 0
+    );
 
     return (
         <>
@@ -571,7 +574,10 @@ const KubernetesClusterDetailsButton = ({
                     { kubernetesTemplatesAvailable ||
                         <Row className="justify-content-center">
                             <Col xs="auto">
-                                <Error className="text-center" message={"WARNING: Kubernetes functionality is no longer available in this tenancy."} />
+                                <Error
+                                    className="text-center"
+                                    message="WARNING: Kubernetes functionality is no longer available in this tenancy."
+                                />
                             </Col>
                         </Row>
                     }
@@ -729,7 +735,7 @@ export const KubernetesCard = ({
             <PlatformCardHeader
                 currentUserIsOwner={userId === kubernetesCluster.created_by_user_id}
                 expiresSoon={clusterExpiresSoon}
-                patchAvailable={clusterTemplate.deprecated}
+                patchAvailable={clusterTemplate && clusterTemplate.deprecated}
             >
                 <Badge bg={statusBadgeBg[kubernetesCluster.status]}>
                     {kubernetesCluster.status.toUpperCase()}

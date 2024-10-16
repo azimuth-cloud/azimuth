@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 
+import Alert from 'react-bootstrap/Alert';
 import Badge from 'react-bootstrap/Badge';
 import Button from 'react-bootstrap/Button';
 import Card from 'react-bootstrap/Card';
@@ -139,7 +140,7 @@ const ClusterPatched = ({ cluster, clusterType }) => {
         patched :
         <OverlayTrigger
             placement="top"
-            overlay={<Tooltip>A new version is available, please patch this cluster!</Tooltip>}
+            overlay={<Tooltip>A new version is available, please patch this cluster.</Tooltip>}
             trigger="click"
             rootClose
         >
@@ -310,15 +311,14 @@ const ClusterPatchButton = ({ name, inFlight, disabled, onConfirm, ...props }) =
                             workloads on the platform. Once started, it cannot be stopped.
                         </strong>
                     </p>
-                    <p><strong>There is a risk of data loss.</strong></p>
-                    <p>
-                        <strong>
-                            Only data stored in explcitly documented
-                            persistent locations will be retained.
-                            All other platform data and any platform
-                            modifications will be lost.
-                        </strong>
-                    </p>
+                    <Alert variant="warning">
+                        <p><strong>There is a risk of data loss with this operation.</strong></p>
+                        <p className="mb-0">
+                            Only data stored in explicitly documented persistent locations will
+                            be retained. All other platform data and any platform modifications,
+                            e.g. packages installed using the package manager, will be lost.
+                        </p>
+                    </Alert>
                 </Modal.Body>
                 <Modal.Footer>
                     <Button variant="secondary" onClick={close}>Cancel</Button>
@@ -465,19 +465,33 @@ export const ClusterCard = ({
 }) => {
     // If cluster type is no longer available from the API (e.g. due to ACL changes in the tenancy) then use a placeholder.
     // NOTE(sd109) We set the placeholder's version to match the current cluster version so that users do not get prompted to patch their cluster.
-    const clusterType = clusterTypes.data[cluster.cluster_type] || {...clusterTypePlaceholder, version: cluster.cluster_type_version};
+    const clusterType = (
+        clusterTypes.data[cluster.cluster_type] ||
+        {...clusterTypePlaceholder, version: cluster.cluster_type_version}
+    );
     if (!clusterType.version) {
         notificationActions.error({
-                title: 'Cluster type not found',
-                message: `Unable to load cluster type '${cluster.cluster_type}' for cluster '${cluster.name}'`
+            title: 'Cluster type not found',
+            message: `Unable to load cluster type '${cluster.cluster_type}' for cluster '${cluster.name}'`
         });
     }
 
-    const clusterExpiresSoon = cluster.schedule ? expiresSoon(cluster.schedule) : false;
-    const patchAvailable = cluster.cluster_type_version && (cluster.cluster_type_version != clusterType.version);
+    // const clusterExpiresSoon = cluster.schedule ? expiresSoon(cluster.schedule) : false;
+    // const patchAvailable = (
+    //     cluster.cluster_type_version &&
+    //     cluster.cluster_type_version != clusterType.version
+    // );
+    const clusterExpiresSoon = true;
+    const patchAvailable = true;
+    // Decide if we need to apply a notification class to the card
+    const notifyClass = (
+        patchAvailable ?
+            "platform-patch-needed" :
+            (clusterExpiresSoon ? "platform-expiring" : "")
+    );
 
     return (
-        <Card className={`platform-card ${patchAvailable ? "platform-patch-needed" : clusterExpiresSoon ? "platform-expiring" : ""} `}>
+        <Card className={`platform-card ${notifyClass}`}>
             <PlatformCardHeader
                 currentUserIsOwner={userId === cluster.created_by_user_id}
                 expiresSoon={clusterExpiresSoon}

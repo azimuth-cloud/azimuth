@@ -90,16 +90,16 @@ export const PlatformCardHeader = ({
             />
             {expiresSoon && (
                 <PlatformCardHeaderIcon
-                    className="icon-expiring"
+                    className="icon-expiring me-3"
                     icon={faBell}
                     tooltip="This platform will be deleted soon."
                 />
             )}
             {patchAvailable && (
                 <PlatformCardHeaderIcon
-                className="icon-patch-available"
-                icon={faRedo}
-                tooltip="Please update this platform."
+                    className="icon-patch-available"
+                    icon={faRedo}
+                    tooltip="An update is available for this platform."
                 />
             )}
         </div>

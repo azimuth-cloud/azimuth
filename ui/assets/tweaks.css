@@ -319,11 +319,9 @@
 }
 .platform-card > .card-header .icon-expiring {
     color: var(--bs-warning);
-    margin-right: 1rem;
 }
 .platform-card > .card-header .icon-patch-available {
     color: var(--bs-danger);
-    margin-right: 1rem;
 }
 .platform-card > .card-header > .status {
     flex: 0 1 auto;
