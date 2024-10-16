@@ -476,13 +476,11 @@ export const ClusterCard = ({
         });
     }
 
-    // const clusterExpiresSoon = cluster.schedule ? expiresSoon(cluster.schedule) : false;
-    // const patchAvailable = (
-    //     cluster.cluster_type_version &&
-    //     cluster.cluster_type_version != clusterType.version
-    // );
-    const clusterExpiresSoon = true;
-    const patchAvailable = true;
+    const clusterExpiresSoon = cluster.schedule ? expiresSoon(cluster.schedule) : false;
+    const patchAvailable = (
+        cluster.cluster_type_version &&
+        cluster.cluster_type_version != clusterType.version
+    );
     // Decide if we need to apply a notification class to the card
     const notifyClass = (
         patchAvailable ?
