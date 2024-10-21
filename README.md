@@ -12,11 +12,11 @@ as [JupyterHub](https://jupyter.org/hub) that run on [Kubernetes](https://kubern
 
 To run Azimuth on your own cloud, please see:
 
-* https://azimuth-cloud.github.io/azimuth-config/
+* https://azimuth-config.readthedocs.io/en/stable/
 
 Developers looking to modify Azimuth, please see:
 
-* https://azimuth-cloud.github.io/azimuth-config/developing/
+* https://azimuth-config.readthedocs.io/en/stable/developing/
 * https://github.com/azimuth-cloud/azimuth-sample-appliance
 
 Users of Azimuth wanting to know more, please see:
@@ -171,7 +171,7 @@ is much more complex and has many dependencies:
 
 To manage this complexity, we use [Ansible](https://www.ansible.com/) to deploy Azimuth
 and all of it's dependencies. See the
-[Azimuth Deployment Documentation](https://azimuth-cloud.github.io/azimuth-config/) for
+[Azimuth Deployment Documentation](https://azimuth-config.readthedocs.io/en/stable/) for
 more details.
 
 ## Setting up a local development environment
