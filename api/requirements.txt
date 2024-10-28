@@ -40,4 +40,4 @@ sqlparse==0.5.1
 tzdata==2024.2
 urllib3==2.2.3
 voluptuous==0.15.2
-whitenoise==6.7.0
+whitenoise==6.8.1
