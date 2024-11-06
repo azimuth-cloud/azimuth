@@ -267,8 +267,6 @@ class AzimuthSettings(SettingsObject):
     DOCUMENTATION_URL = Setting(default = "https://azimuth-cloud.github.io/azimuth-user-docs/")
 
     #: URL for Support
-    # SUPPORT_URL = Setting(default = None)
-    SUPPORT_URL = Setting(default = "https://confluence.skatelescope.org/display/SRCSC/Azimuth+Support+on+Cambridge+Arcus")
-
-
+    SUPPORT_URL = Setting(default = None)
+    
 cloud_settings = AzimuthSettings("AZIMUTH")
