@@ -19,6 +19,7 @@ import {
     faCloud,
     faSignOutAlt,
     faTachometerAlt,
+    faLifeRing,
 } from '@fortawesome/free-solid-svg-icons';
 
 import { sortBy, Loading } from './utils';
@@ -87,6 +88,12 @@ export const Navigation = ({
                             <Nav.Link href={links.documentation} target="_blank" active={false}>
                                 <FontAwesomeIcon icon={faBook} className="me-2" />
                                 Documentation
+                            </Nav.Link>
+                        )}
+                        {links && links.support && (
+                            <Nav.Link href={links.support} target="_blank" active={false}>
+                                <FontAwesomeIcon icon={faLifeRing} className="me-2" />
+                                Support
                             </Nav.Link>
                         )}
                         {username ? (

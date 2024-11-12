@@ -290,6 +290,7 @@ def cloud_info(request):
         "links": {
             "session": request.build_absolute_uri(reverse("azimuth:session")),
             "documentation": cloud_settings.DOCUMENTATION_URL,
+            "support": cloud_settings.SUPPORT_URL,
         }
     }
     if cloud_settings.METRICS.CLOUD_METRICS_URL:

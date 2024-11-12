@@ -266,5 +266,7 @@ class AzimuthSettings(SettingsObject):
     #: URL for documentation
     DOCUMENTATION_URL = Setting(default = "https://azimuth-cloud.github.io/azimuth-user-docs/")
 
-
+    #: URL for Support
+    SUPPORT_URL = Setting(default = None)
+    
 cloud_settings = AzimuthSettings("AZIMUTH")
