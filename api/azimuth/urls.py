@@ -26,6 +26,7 @@ urlpatterns = [
     path("ssh_public_key/", views.ssh_public_key, name = "ssh_public_key"),
     path("tenancies/", views.tenancies, name = "tenancies"),
     path("tenancies/<id:tenant>/", include([
+        path("capabilities/", views.capabilities, name = "capabilities"),
         path("quotas/", views.quotas, name = "quotas"),
         path("identity_provider/", views.identity_provider, name = "identity_provider"),
         path("images/", include([
