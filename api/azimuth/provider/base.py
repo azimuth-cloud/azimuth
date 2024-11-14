@@ -53,12 +53,6 @@ class UnscopedSession:
         """
         raise NotImplementedError
 
-    def capabilities(self) -> dto.Capabilities:
-        """
-        Returns an object describing the capabilities of the cloud.
-        """
-        raise NotImplementedError
-
     def ssh_public_key(self, key_name: str) -> str:
         """
         Return a named SSH public key.
@@ -135,6 +129,12 @@ class ScopedSession:
     def tenancy(self) -> dto.Tenancy:
         """
         Returns the tenancy for this session.
+        """
+        raise NotImplementedError
+
+    def capabilities(self) -> dto.Capabilities:
+        """
+        Returns an object describing the capabilities available in the tenancy.
         """
         raise NotImplementedError
 

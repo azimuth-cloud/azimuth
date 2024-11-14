@@ -126,6 +126,11 @@ class TenancySerializer(make_dto_serializer(dto.Tenancy)):
         request = self.context.get("request")
         if request:
             result.setdefault("links", {}).update({
+                "capabilities": request.build_absolute_uri(
+                    reverse("azimuth:capabilities", kwargs = {
+                        "tenant": obj.id,
+                    })
+                ),
                 "quotas": request.build_absolute_uri(
                     reverse("azimuth:quotas", kwargs = {
                         "tenant": obj.id,

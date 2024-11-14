@@ -307,17 +307,6 @@ def session(request):
         "user_id": request.auth.user_id(),
         "username": request.auth.username(),
         "token": request.auth.token(),
-        # The capability to host apps is determined by the presence of an
-        # app proxy for the portal, not the cloud itself
-        "capabilities": dict(
-            dataclasses.asdict(request.auth.capabilities()),
-            # Clusters are supported if a cluster engine is configured
-            supports_clusters = bool(cloud_settings.CLUSTER_ENGINE),
-            # Kubernetes is supported if a Cluster API provider is configured
-            supports_kubernetes = bool(cloud_settings.CLUSTER_API_PROVIDER),
-            supports_apps = bool(cloud_settings.APPS),
-            supports_scheduling = bool(cloud_settings.SCHEDULING.ENABLED),
-        ),
         "links": {
             "ssh_public_key": request.build_absolute_uri(reverse("azimuth:ssh_public_key")),
             "tenancies": request.build_absolute_uri(reverse("azimuth:tenancies")),
@@ -422,6 +411,27 @@ def tenancies(request):
         context = { "request": request }
     )
     return response.Response(serializer.data)
+
+
+@provider_api_view(["GET"])
+def capabilities(request, tenant):
+    """
+    Returns the capabilities for the tenant.
+    """
+    with request.auth.scoped_session(tenant) as session:
+        response_data = dict(
+            dataclasses.asdict(session.capabilities()),
+            # Clusters are supported if a cluster engine is configured
+            supports_clusters = bool(cloud_settings.CLUSTER_ENGINE),
+            # Kubernetes is supported if a Cluster API provider is configured
+            supports_kubernetes = bool(cloud_settings.CLUSTER_API_PROVIDER),
+            # Apps are supported if Zenith is enabled
+            supports_apps = bool(cloud_settings.APPS),
+            # Scheduling must be specifically enabled
+            supports_scheduling = bool(cloud_settings.SCHEDULING.ENABLED),
+        )
+    response_data["links"] = { "self": request.build_absolute_uri() }
+    return response.Response(response_data)
 
 
 @provider_api_view(["GET"])
