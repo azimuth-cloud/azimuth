@@ -74,12 +74,12 @@ const ConnectedTenanciesPage = connect(
 const ConnectedTenancyResourcePage = connect(
     (state) => ({
         userId: state.session.user_id,
-        capabilities: state.session.capabilities,
         sshKey: state.sshKey,
         tenancies: state.tenancies
     }),
     (dispatch) => ({
         tenancyActions: {
+            capabilities: bindActionCreators(tenancyActions.capabilities, dispatch),
             idp: bindActionCreators(tenancyActions.idp, dispatch),
             quota: bindActionCreators(tenancyActions.quota, dispatch),
             image: bindActionCreators(tenancyActions.image, dispatch),
@@ -110,6 +110,7 @@ const ConnectedTenancyResourcePage = connect(
 
     // Bind the tenancy actions to the current tenancy
     const boundTenancyActions = {
+        capabilities: bindArgsToActions(tenancyActions.capabilities, currentTenancy.id),
         idp: bindArgsToActions(tenancyActions.idp, currentTenancy.id),
         quota: bindArgsToActions(tenancyActions.quota, currentTenancy.id),
         image: bindArgsToActions(tenancyActions.image, currentTenancy.id),
