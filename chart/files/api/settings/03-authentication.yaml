@@ -1,0 +1,47 @@
+{{- with .Values.authentication -}}
+AZIMUTH_AUTH:
+  AUTH_TYPE: {{ .type }}
+  {{- if eq .type "openstack" }}
+  {{- with .openstack }}
+  OPENSTACK:
+    AUTH_URL: {{ required "OpenStack auth URL is required" .authUrl | quote }}
+    REGION: {{ quote .region }}
+    INTERFACE: {{ quote .interface }}
+    VERIFY_SSL: {{ ternary "true" "false" .verifySsl }}
+    APPCRED_HIDDEN: {{ ternary "true" "false" .appcred.hidden }}
+    {{- if .password.enabled }}
+    PASSWORD_ENABLED: true
+    {{- if empty .password.domains }}
+    {{- fail "At least one OpenStack authentication domain must be specified" }}
+    {{- else }}
+    PASSWORD_DOMAINS:
+      {{- range .password.domains }}
+      - name: {{ required "domain name is required" .name | quote }}
+        {{- with .label }}
+        label: {{ quote . }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+    {{- end }}
+    {{- if .federated.enabled }}
+    FEDERATED_ENABLED: true
+    {{- if empty .federated.identityProviders }}
+    {{- fail "At least one OpenStack federated IDP must be specified" }}
+    {{- else }}
+    FEDERATED_IDENTITY_PROVIDERS:
+      {{- range .federated.identityProviders }}
+      - protocol: {{ required "IDP protocol is required" .protocol | quote }}
+        {{- with .provider }}
+        provider: {{ quote . }}
+        {{- end }}
+        {{- with .label }}
+        label: {{ quote . }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+    {{- end }}
+  {{- end }}
+  {{- else }}
+  {{- printf "Unrecognised authentication type - %s" .type | fail }}
+  {{- end }}
+{{- end }}
