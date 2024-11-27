@@ -165,43 +165,46 @@ def login(request):
     """
     Begin the authentication flow by selecting an authenticator.
     """
-    # Get the list of valid authenticator choices
-    valid_authenticator_choices = [choice for choice, _ in authenticator_choices()]
-    # Get the remembered authenticator choice from the cookie
-    authenticator_choice = request.get_signed_cookie(
-        auth_settings.AUTHENTICATOR_COOKIE_NAME,
-        None
-    )
-    if (
-        authenticator_choice and
-        authenticator_choice in valid_authenticator_choices and
-        request.GET.get(auth_settings.CHANGE_METHOD_PARAM, "0") == "0"
-    ):
-        response = redirect_to_start(authenticator_choice)
-    elif len(valid_authenticator_choices) > 1:
-        # If there are multiple authenticator choices, render the selection form
-        if request.method == "POST":
-            form = AuthenticatorSelectForm(request.POST)
-            if form.is_valid():
-                authenticator = form.cleaned_data["authenticator"]
-                remember = form.cleaned_data.get("remember", False)
-                response = redirect_to_start(authenticator)
-                if remember:
-                    response.set_signed_cookie(
-                        auth_settings.AUTHENTICATOR_COOKIE_NAME,
-                        authenticator,
-                        httponly = True,
-                        secure = request.is_secure()
-                    )
-                else:
-                    response.delete_cookie(auth_settings.AUTHENTICATOR_COOKIE_NAME)
-                return response
+    # For POST requests, process the authenticator selection form
+    if request.method == "POST":
+        form = AuthenticatorSelectForm(request.POST)
+        if form.is_valid():
+            authenticator = form.cleaned_data["authenticator"]
+            remember = form.cleaned_data.get("remember", False)
+            response = redirect_to_start(authenticator)
+            if remember:
+                response.set_signed_cookie(
+                    auth_settings.AUTHENTICATOR_COOKIE_NAME,
+                    authenticator,
+                    httponly = True,
+                    secure = request.is_secure()
+                )
+            else:
+                response.delete_cookie(auth_settings.AUTHENTICATOR_COOKIE_NAME)
+        else:
+            response = render(request, "azimuth_auth/select.html", {"form": form})
+    # For GET requests, decide if we can redirect or whether we need to show the form
+    #   * If there is a remembered choice and no change was requested, use that
+    #   * If there is exactly one authenticator, use that
+    #   * Otherwise show the selection form
+    else:
+        valid_authenticator_choices = [choice for choice, _ in authenticator_choices()]
+        authenticator_choice = request.get_signed_cookie(
+            auth_settings.AUTHENTICATOR_COOKIE_NAME,
+            None
+        )
+        if (
+            authenticator_choice and
+            authenticator_choice in valid_authenticator_choices and
+            request.GET.get(auth_settings.CHANGE_METHOD_PARAM, "0") == "0"
+        ):
+            response = redirect_to_start(authenticator_choice)
+        elif len(valid_authenticator_choices) == 1:
+            response = redirect_to_start(valid_authenticator_choices[0])
         else:
             form = AuthenticatorSelectForm()
-        response = render(request, "azimuth_auth/select.html", { "form": form })
-    else:
-        # If there is only one authenticator, redirect straight to it
-        response = redirect_to_start(valid_authenticator_choices[0])
+            response = render(request, "azimuth_auth/select.html", { "form": form })
+    # Whatever our response, make sure we set the next URL cookie
     return set_next_url_cookie(response, get_next_url(request), request.is_secure())
 
 
@@ -231,6 +234,12 @@ def start(request, authenticator):
             return redirect_to_login("invalid_authentication_method", True)
     else:
         option = None
+    # Stash the selected option in the session
+    if option:
+        request.session[auth_settings.SELECTED_OPTION_SESSION_KEY] = option
+    else:
+        request.session.pop(auth_settings.SELECTED_OPTION_SESSION_KEY, None)
+    # Ask the authenticator to begin the authentication process
     return authenticator_obj.auth_start(
         request,
         request.build_absolute_uri(
@@ -258,12 +267,24 @@ def complete(request, authenticator):
     except StopIteration:
         return redirect_to_login("invalid_authentication_method", True)
     def handle_request(request):
-        # The auth_complete method of the authenticator should return a token or null
-        # depending on whether authentication was successful
-        token = authenticator_obj.auth_complete(request)
+        # If the authenticator provides options, make sure we have a valid selection
+        valid_options = set(opt for opt, _ in authenticator_obj.get_options())
+        if valid_options:
+            try:
+                option = request.session[auth_settings.SELECTED_OPTION_SESSION_KEY]
+            except KeyError:
+                return redirect_to_login("invalid_authentication_method", True)
+            if option not in valid_options:
+                return redirect_to_login("invalid_authentication_method", True)
+        else:
+            option = None
+        # Ask the authenticator to produce a token from the request
+        token = authenticator_obj.auth_complete(request, option)
         if token:
             # On a successful authentication, store the token in the session
             request.session[auth_settings.TOKEN_SESSION_KEY] = token
+            # Unset the stored option
+            request.session.pop(auth_settings.SELECTED_OPTION_SESSION_KEY, None)
             # Either redirect or return to the next URL
             next_url = get_next_url(request)
             if next_url:
@@ -273,8 +294,12 @@ def complete(request, authenticator):
             # On a successful authentication, we also want to clear the next URL cookie
             return set_next_url_cookie(response, None, request.is_secure())
         else:
-            # On a failed authentication, redirect to login but indicate that the auth failed
-            return redirect_to_start(authenticator, authenticator_obj.failure_code)
+            # On a failed authentication redirect back to the start for the authenticator,
+            # but indicate that the authentication failed
+            return redirect_to_start(
+                f"{authenticator}/{option}" if option else authenticator,
+                authenticator_obj.failure_code
+            )
     # Enable CSRF protection unless it will break the authenticator
     if not authenticator_obj.uses_crossdomain_post_requests:
         handle_request = csrf_protect(handle_request)
@@ -307,14 +332,32 @@ def token(request, authenticator):
             { "message": "Request does not contain valid JSON." },
             status = 400
         )
+    # If the authenticator has options, a valid option should be given
+    valid_options = set(opt for opt, _ in authenticator_obj.get_options())
+    if valid_options:
+        try:
+            option = auth_data.pop("authenticator_option")
+        except KeyError:
+            return JsonResponse(
+                { "message": "Authenticator option is required." },
+                status = 400
+            )
+        if option not in valid_options:
+            return JsonResponse(
+                { "message": "Given authenticator option is not valid." },
+                status = 400
+            )
+    else:
+        option = None
     # The auth_token method of the authenticator should return a token or null
     # depending on whether the given auth data is valid or not
-    token = authenticator_obj.auth_token(auth_data)
+    token = authenticator_obj.auth_token(auth_data, option)
     if token:
         return JsonResponse(
             {
                 "authenticator_type": authenticator_obj.authenticator_type,
                 "authenticator": authenticator,
+                "authenticator_option": option,
                 "token": token,
             },
             status = 201

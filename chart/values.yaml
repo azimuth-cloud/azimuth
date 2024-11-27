@@ -184,59 +184,59 @@ settings:
     #   description: >-
     #     {{ cpus }} CPUs, {{ ram }} RAM, {{ disk }} disk, {{ ephemeral_disk }} ephemeral disk
 
-# The authenticators to use
-# The parameters for the provider will be re-used where appropriate, e.g. the auth URL
-# The authenticators appear to the user in the order they are defined here, so the
-# first authenticator will be selected by default
-authenticators: []
-  # - # The name of the authenticator
-  #   name: password
-  #   # The human-readable name for the authenticator (defaults to name if not given)
-  #   label: Username + Password
-  #   # Indicates whether the authenticator should be hidden from users
-  #   hidden: true
-  #   # The type of authenticator to use
-  #   # Currently only openstack-{password,application-credential,federation} are supported
-  #   type: openstack-password
-  #   # Parameters for the OpenStack password authenticator
-  #   openstackPassword:
-  #     # The Keystone auth URL
-  #     # By default, the auth URL from the provider will be used
-  #     authUrl:
-  #     # The domain to use
-  #     # By default, the domain from the provider will be used
-  #     domain:
-  #     # Whether or not to verify SSL
-  #     # By default, the setting from the provider will used
-  #     verifySsl:
-  #   # Parameters for the OpenStack application credential authenticator
-  #   openstackApplicationCredential:
-  #     # The Keystone auth URL
-  #     # By default, the auth URL from the provider will be used
-  #     authUrl:
-  #     # Whether or not to verify SSL
-  #     # By default, the setting from the provider will used
-  #     verifySsl:
-  #   # Parameters for the OpenStack federation authenticator
-  #   openstackFederation:
-  #     # The Keystone auth URL
-  #     # By default, the auth URL from the provider will be used
-  #     authUrl:
-  #     # A list of identity providers to make available
-  #     identityProviders:
-  #       - # The name of the IDP that identifies the IDP in code
-  #         name: azuread
-  #         # The human-readble name for the IDP in the selection form
-  #         label: Azure AD
-  #         # The Keystone identity provider and protocol to use
-  #         # The provider is optional, and if it IS NOT given, URLs will be of the form:
-  #         #   <auth url>/auth/OS-FEDERATION/websso/<protocol>
-  #         # If a provider IS given, URLs will be of the following form:
-  #         #   <auth_url>/auth/OS-FEDERATION/identity_providers/<provider>/protocols/<protocol>/websso
-  #         # It is recommended to specify a provider if known, as it redirects straight to the IdP
-  #         # instead of via the ugly Keystone splash page
-  #         provider: azure
-  #         protocol: oidc
+# Configuration for authentication
+authentication:
+  # The type of authentication to use (valid options are openstack, oidc)
+  type: openstack
+  # Parameters for OpenStack authentication
+  openstack:
+    # The OpenStack auth URL to use
+    authUrl:
+    # The region to use when discovering OpenStack services
+    region: RegionOne
+    # The interface to use for communicating with OpenStack
+    interface: public
+    # Indicates whether or not to verify SSL when interacting with OpenStack
+    verifySsl: true
+    # Configuration for appcred authentication
+    appcred:
+      # Indicates if the appcred authentication should be hidden from users
+      hidden: true
+    # Configuration for username/password authentication
+    password:
+      # Indicates if password authentication should be enabled
+      enabled: true
+      # The list of domains to make available in Azimuth
+      domains:
+        - # The name of the domain
+          name: default
+          # The human-readable name for the domain in the auth selection form
+          label: Username + Password
+    # Configuration for federated authentication
+    federated:
+      # Indicates if federated authentication should be enabled
+      enabled: false
+      # A list of Keystone identity providers to make available in Azimuth
+      identityProviders:
+        - # The Keystone identity protocol and provider to use
+          # The provider is optional, and if it IS NOT given, URLs will be of the form:
+          #   <auth url>/auth/OS-FEDERATION/websso/<protocol>
+          # If a provider IS given, URLs will be of the following form:
+          #   <auth_url>/auth/OS-FEDERATION/identity_providers/<provider>/protocols/<protocol>/websso
+          # It is recommended to specify a provider if known, as it redirects straight to the IdP
+          # instead of via the Keystone selection page
+          protocol: oidc
+          # provider:
+          # The human-readble name for the IDP in the auth selection form
+          label: OpenID Connect
+  # Parameters for OIDC authentication
+  oidc:
+    # The URL of the issuer
+    # Azimuth will use OIDC discovery to discover the rest of the configuration
+    issuerUrl:
+    # The client ID and secret for Azimuth to use
+    clientID:
+    clientSecret:
 
 # The cloud provider to use
 provider:
