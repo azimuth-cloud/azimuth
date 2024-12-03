@@ -282,7 +282,7 @@ class UnscopedSession(base.UnscopedSession):
         Returns a scoped connection for the user's first project.
         """
         try:
-            project = next(self._connection.projects.all())
+            project = next(p for p in self._connection.projects.all() if p.enabled)
         except StopIteration:
             raise errors.InvalidOperationError("User does not belong to any projects.")
         return self._connection.scoped_connection(project)
