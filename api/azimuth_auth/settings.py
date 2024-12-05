@@ -37,7 +37,7 @@ class OpenStackSettings(SettingsObject):
     #: The auth URL for the target OpenStack
     AUTH_URL = Setting()
     #: The region to use
-    REGION = Setting(default = "RegionOne")
+    REGION = Setting(default = None)
     #: The interface to use when interacting with OpenStack
     INTERFACE = Setting(default = "public")
     #: Indicates whether to verify SSL when talking to OpenStack
@@ -129,6 +129,25 @@ class AuthenticatorsSetting(ObjectFactorySetting):
         return authenticators
 
 
+class SessionProviderSetting(ObjectFactorySetting):
+    """
+    Custom setting for configuring the session provider based on other settings.
+    """
+    def _get_default(self, instance):
+        if instance.AUTH_TYPE == "openstack":
+            return {
+                "FACTORY": "azimuth_auth.session.openstack.Provider",
+                "PARAMS": {
+                    "AUTH_URL": instance.OPENSTACK.AUTH_URL,
+                    "REGION": instance.OPENSTACK.REGION,
+                    "INTERFACE": instance.OPENSTACK.INTERFACE,
+                    "VERIFY_SSL": instance.OPENSTACK.VERIFY_SSL,
+                },
+            }
+        else:
+            raise ImproperlyConfigured("unrecognised auth type")
+
+
 class AzimuthAuthSettings(SettingsObject):
     """
     Settings object for the ``AZIMUTH_AUTH`` setting.
@@ -141,6 +160,9 @@ class AzimuthAuthSettings(SettingsObject):
     #: The authenticators to use
     AUTHENTICATORS = AuthenticatorsSetting()
 
+    #: The session provider to use
+    SESSION_PROVIDER = SessionProviderSetting()
+
     #: The HTTP parameter to pass the selected option to the start URL
     SELECTED_OPTION_PARAM = Setting(default = "option")
     #: The session key used to preserve the selected option across redirections
@@ -149,9 +171,6 @@ class AzimuthAuthSettings(SettingsObject):
     #: The name of the cookie to store the remembered authenticator
     #: This cookie does not have an expiry date, so the selection persists beyond the session
     AUTHENTICATOR_COOKIE_NAME = Setting(default = "azimuth-authenticator")
-
-    #: The name of the header in which to place the token for downstream code
-    DOWNSTREAM_TOKEN_HEADER = Setting(default = "HTTP_X_CLOUD_TOKEN")
 
     #: For the bearer token middleware, this is the name of the header that the token will be in
     BEARER_TOKEN_HEADER = Setting(default = "HTTP_AUTHORIZATION")

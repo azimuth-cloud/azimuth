@@ -5,7 +5,9 @@ AZIMUTH_AUTH:
   {{- with .openstack }}
   OPENSTACK:
     AUTH_URL: {{ required "OpenStack auth URL is required" .authUrl | quote }}
-    REGION: {{ quote .region }}
+    {{- with .region }}
+    REGION: {{ quote . }}
+    {{- end }}
     INTERFACE: {{ quote .interface }}
     VERIFY_SSL: {{ ternary "true" "false" .verifySsl }}
     APPCRED_HIDDEN: {{ ternary "true" "false" .appcred.hidden }}

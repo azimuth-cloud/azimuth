@@ -16,7 +16,7 @@ def normalize_auth_url(auth_url):
     """
     Given an auth URL, return the normalized representation.
     """
-    return auth_url.removesuffix("/").removesuffix("/v3") + "/v3"
+    return auth_url.rstrip("/").removesuffix("/v3") + "/v3"
 
 
 class OpenStackFormAuthenticator(FormAuthenticator):

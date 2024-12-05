@@ -193,7 +193,7 @@ authentication:
     # The OpenStack auth URL to use
     authUrl:
     # The region to use when discovering OpenStack services
-    region: RegionOne
+    region:
     # The interface to use for communicating with OpenStack
     interface: public
     # Indicates whether or not to verify SSL when interacting with OpenStack
@@ -244,15 +244,6 @@ provider:
   type: openstack
   # Parameters for the openstack provider
   openstack:
-    # The Keystone authentication URL
-    authUrl:
-    # The domain to use
-    domain: default
-    # The OpenStack interface to use
-    # Should rarely need to be changed from the default
-    interface:
-    # Whether or not to verify SSL
-    verifySsl: true
     # The template to use for the name of the internal network
     # If this is given, then auto-created tenant internal networks are disabled
     # The fragment '{tenant_name}' is replaced with the current tenancy name, e.g.:

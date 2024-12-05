@@ -8,7 +8,6 @@ import functools
 import hashlib
 import logging
 import os
-import random
 import re
 import time
 
@@ -129,9 +128,6 @@ class Provider(base.Provider):
     Provider implementation for OpenStack.
 
     Args:
-        auth_url: The Keystone v3 authentication URL.
-        domain: The domain to authenticate with (default ``Default``).
-        interface: The OpenStack interface to connect using (default ``public``).
         metadata_prefix: The prefix to use for all Azimuth-related metadata (default ``azimuth_``).
         internal_net_template: Template for the name of the internal network to use
                                (default ``None``).
@@ -149,35 +145,19 @@ class Provider(base.Provider):
                            auto-created (default ``192.168.3.0/24``).
         internal_net_dns_nameservers: The DNS nameservers for the internal network when it is
                            auto-created (default ``None``).
-        az_backdoor_net_map: Mapping of availability zone to the UUID of the backdoor network
-                             for that availability zone (default ``None``).
-                             The backdoor network will only be attached if the image specifically
-                             requests it. At that point, an availability zone will be randomly
-                             selected, and if the network is not available an error will be raised.
-        backdoor_vnic_type: The ``binding:vnic_type`` for the backdoor network. If not given,
-                            no vNIC type will be specified (default ``None``).
-        verify_ssl: If ``True`` (the default), verify SSL certificates. If ``False``
-                    SSL certificates are not verified.
     """
     provider_name = "openstack"
 
-    def __init__(self, auth_url,
-                       domain = "Default",
-                       interface = "public",
-                       metadata_prefix = "azimuth_",
-                       internal_net_template = None,
-                       external_net_template = None,
-                       create_internal_net = True,
-                       manila_project_share_gb = 0,
-                       internal_net_cidr = "192.168.3.0/24",
-                       internal_net_dns_nameservers = None,
-                       az_backdoor_net_map = None,
-                       backdoor_vnic_type = None,
-                       verify_ssl = True):
-        # Strip any trailing slashes from the auth URL
-        self._auth_url = auth_url.rstrip("/")
-        self._domain = domain
-        self._interface = interface
+    def __init__(
+        self,
+        metadata_prefix = "azimuth_",
+        internal_net_template = None,
+        external_net_template = None,
+        create_internal_net = True,
+        manila_project_share_gb = 0,
+        internal_net_cidr = "192.168.3.0/24",
+        internal_net_dns_nameservers = None
+    ):
         self._metadata_prefix = metadata_prefix
         self._internal_net_template = internal_net_template
         self._external_net_template = external_net_template
@@ -187,36 +167,19 @@ class Provider(base.Provider):
             self._manila_project_share_gb = int(manila_project_share_gb)
         self._internal_net_cidr = internal_net_cidr
         self._internal_net_dns_nameservers = internal_net_dns_nameservers
-        self._az_backdoor_net_map = az_backdoor_net_map or dict()
-        self._backdoor_vnic_type = backdoor_vnic_type
-        self._verify_ssl = verify_ssl
 
-    @convert_exceptions
-    def from_token(self, token):
-        """
-        See :py:meth:`.base.Provider.from_token`.
-        """
-        logger.info("Authenticating token with OpenStack")
-        try:
-            conn = api.Connection(self._auth_url, token, self._interface, self._verify_ssl)
-        except (rackit.Unauthorized, rackit.NotFound):
-            logger.info("Authentication failed for token")
-            # Failing to validate a token is a 404 for some reason
-            raise errors.AuthenticationError("Your session has expired.")
-        else:
-            logger.info("Successfully authenticated user '%s'", conn.username)
-            return UnscopedSession(
-                conn,
-                metadata_prefix = self._metadata_prefix,
-                internal_net_template = self._internal_net_template,
-                external_net_template = self._external_net_template,
-                create_internal_net = self._create_internal_net,
-                manila_project_share_gb = self._manila_project_share_gb,
-                internal_net_cidr = self._internal_net_cidr,
-                internal_net_dns_nameservers = self._internal_net_dns_nameservers,
-                az_backdoor_net_map = self._az_backdoor_net_map,
-                backdoor_vnic_type = self._backdoor_vnic_type
-            )
+    def _from_auth_session(self, auth_session, auth_user):
+        return UnscopedSession(
+            auth_session,
+            auth_user,
+            self._metadata_prefix,
+            self._internal_net_template,
+            self._external_net_template,
+            self._create_internal_net,
+            self._manila_project_share_gb,
+            self._internal_net_cidr,
+            self._internal_net_dns_nameservers
+        )
 
 
 class UnscopedSession(base.UnscopedSession):
@@ -225,17 +188,19 @@ class UnscopedSession(base.UnscopedSession):
     """
     provider_name = "openstack"
 
-    def __init__(self, connection,
-                       metadata_prefix = "azimuth_",
-                       internal_net_template = None,
-                       external_net_template = None,
-                       create_internal_net = True,
-                       manila_project_share_gb = 0,
-                       internal_net_cidr = "192.168.3.0/24",
-                       internal_net_dns_nameservers = None,
-                       az_backdoor_net_map = None,
-                       backdoor_vnic_type = None):
-        self._connection = connection
+    def __init__(
+        self,
+        auth_session,
+        auth_user,
+        metadata_prefix = "azimuth_",
+        internal_net_template = None,
+        external_net_template = None,
+        create_internal_net = True,
+        manila_project_share_gb = 0,
+        internal_net_cidr = "192.168.3.0/24",
+        internal_net_dns_nameservers = None
+    ):
+        super().__init__(auth_session, auth_user)
         self._metadata_prefix = metadata_prefix
         self._internal_net_template = internal_net_template
         self._external_net_template = external_net_template
@@ -243,142 +208,21 @@ class UnscopedSession(base.UnscopedSession):
         self._manila_project_share_gb = manila_project_share_gb
         self._internal_net_cidr = internal_net_cidr
         self._internal_net_dns_nameservers = internal_net_dns_nameservers
-        self._az_backdoor_net_map = az_backdoor_net_map or dict()
-        self._backdoor_vnic_type = backdoor_vnic_type
-
-    def token(self):
-        """
-        See :py:meth:`.base.UnscopedSession.token`.
-        """
-        return self._connection.token
-
-    def user_id(self) -> str:
-        """
-        See :py:meth:`.base.UnscopedSession.user_id`.
-        """
-        return self._connection.user_id
-
-    def username(self):
-        """
-        See :py:meth:`.base.UnscopedSession.username`.
-        """
-        return self._connection.username
-
-    def user_email(self):
-        """
-        See :py:meth:`.base.UnscopedSession.user_email`.
-        """
-        # If the username looks like an email address, just return that
-        if "@" in self._connection.username:
-            return self._connection.username
-        # Otherwise, return a fake email address consisting of the username and domain
-        return f"{self._connection.username}@{self._connection.domain_name.lower()}.openstack"
-
-    def _log(self, message, *args, level = logging.INFO, **kwargs):
-        logger.log(level, "[%s] " + message, self.username(), *args, **kwargs)
-
-    def _scoped_connection_for_first_project(self):
-        """
-        Returns a scoped connection for the user's first project.
-        """
-        try:
-            project = next(p for p in self._connection.projects.all() if p.enabled)
-        except StopIteration:
-            raise errors.InvalidOperationError("User does not belong to any projects.")
-        return self._connection.scoped_connection(project)
 
     @convert_exceptions
-    def ssh_public_key(self, key_name):
-        """
-        See :py:meth:`.base.UnscopedSession.ssh_public_key`.
-        """
-        # Sanitise the requested name and try to find a keypair with that name
-        keypair_name = sanitise_username(key_name)
-        self._log("Attempting to locate keypair '%s'", keypair_name)
-        # In OpenStack, SSH keys are shared between projects
-        # So get a scoped connection for the user's first project to use
-        connection = self._scoped_connection_for_first_project()
-        keypair = connection.compute.keypairs.get(keypair_name)
-        # Return the public key associated with that key
-        return keypair.public_key
-
-    @convert_exceptions
-    def update_ssh_public_key(self, key_name, public_key):
-        """
-        See :py:meth:`.base.UnscopedSession.update_ssh_public_key`.
-        """
-        # Use the sanitised username as the keypair name
-        keypair_name = sanitise_username(key_name)
-        # In OpenStack, SSH keys are shared between projects
-        # So get a scoped connection for the user's first project to use
-        connection = self._scoped_connection_for_first_project()
-        # Keypairs are immutable in OpenStack, so we first remove the existing keypair
-        # If it doesn't exist, we can ignore that
-        try:
-            connection.compute.keypairs.delete(keypair_name)
-        except rackit.NotFound:
-            pass
-        else:
-            self._log("Deleted previous keypair '%s'", keypair_name)
-        # Create a new keypair with the same name but the new key
-        self._log("Creating keypair '%s'", keypair_name)
-        keypair = connection.compute.keypairs.create(
-            name = keypair_name,
-            public_key = public_key
+    def _scoped_session(self, auth_user, tenancy, credential_data):
+        return ScopedSession(
+            auth_user,
+            tenancy,
+            api.Connection.from_clouds(credential_data),
+            self._metadata_prefix,
+            self._internal_net_template,
+            self._external_net_template,
+            self._create_internal_net,
+            self._manila_project_share_gb,
+            self._internal_net_cidr,
+            self._internal_net_dns_nameservers
         )
-        return keypair.public_key
-
-    @convert_exceptions
-    def tenancies(self):
-        """
-        See :py:meth:`.base.UnscopedSession.tenancies`.
-        """
-        self._log("Fetching available tenancies")
-        projects = tuple(self._connection.projects.all())
-        self._log("Found %s projects", len(projects))
-        return tuple(dto.Tenancy(p.id, p.name) for p in projects if p.enabled)
-
-    @convert_exceptions
-    def scoped_session(self, tenancy):
-        """
-        See :py:meth:`.base.UnscopedSession.scoped_session`.
-        """
-        # Make sure we have a tenancy id
-        if not isinstance(tenancy, dto.Tenancy):
-            # There is no (obvious) way to list individual auth projects, so traverse the list
-            try:
-                tenancy = next(t for t in self.tenancies() if t.id == tenancy)
-            except StopIteration:
-                raise errors.ObjectNotFoundError(
-                    "Could not find tenancy with ID {}.".format(tenancy)
-                )
-        self._log("Creating scoped session for project '%s'", tenancy.name)
-        try:
-            return ScopedSession(
-                self.username(),
-                tenancy,
-                self._connection.scoped_connection(tenancy.id),
-                metadata_prefix = self._metadata_prefix,
-                internal_net_template = self._internal_net_template,
-                external_net_template = self._external_net_template,
-                create_internal_net = self._create_internal_net,
-                manila_project_share_gb = self._manila_project_share_gb,
-                internal_net_cidr = self._internal_net_cidr,
-                internal_net_dns_nameservers = self._internal_net_dns_nameservers,
-                az_backdoor_net_map = self._az_backdoor_net_map,
-                backdoor_vnic_type = self._backdoor_vnic_type
-            )
-        except (rackit.Unauthorized, rackit.Forbidden):
-            raise errors.ObjectNotFoundError(
-                "Could not find tenancy with ID {}.".format(tenancy.id)
-            )
-
-    def close(self):
-        """
-        See :py:meth:`.base.UnscopedSession.close`.
-        """
-        # Just close the underlying connection
-        self._connection.close()
 
 
 class ScopedSession(base.ScopedSession):
@@ -387,20 +231,20 @@ class ScopedSession(base.ScopedSession):
     """
     provider_name = "openstack"
 
-    def __init__(self, username,
-                       tenancy,
-                       connection,
-                       metadata_prefix = "azimuth_",
-                       internal_net_template = None,
-                       external_net_template = None,
-                       create_internal_net = True,
-                       manila_project_share_gb = 0,
-                       internal_net_cidr = "192.168.3.0/24",
-                       internal_net_dns_nameservers = None,
-                       az_backdoor_net_map = None,
-                       backdoor_vnic_type = None):
-        self._username = username
-        self._tenancy = tenancy
+    def __init__(
+        self,
+        auth_user,
+        tenancy,
+        connection,
+        metadata_prefix = "azimuth_",
+        internal_net_template = None,
+        external_net_template = None,
+        create_internal_net = True,
+        manila_project_share_gb = 0,
+        internal_net_cidr = "192.168.3.0/24",
+        internal_net_dns_nameservers = None
+    ):
+        super().__init__(auth_user, tenancy)
         self._connection = connection
         self._metadata_prefix = metadata_prefix
         self._internal_net_template = internal_net_template
@@ -409,8 +253,6 @@ class ScopedSession(base.ScopedSession):
         self._manila_project_share_gb = manila_project_share_gb
         self._internal_net_cidr = internal_net_cidr
         self._internal_net_dns_nameservers = internal_net_dns_nameservers
-        self._az_backdoor_net_map = az_backdoor_net_map or dict()
-        self._backdoor_vnic_type = backdoor_vnic_type
 
         # TODO(johngarbutt): consider moving some of this to config
         # and/or hopefully having this feature on by default
@@ -425,26 +267,8 @@ class ScopedSession(base.ScopedSession):
         logger.log(
             level,
             "[%s] [%s] " + message,
-            self._username, self._tenancy.name, *args, **kwargs
+            self.username(), self.tenancy().name, *args, **kwargs
         )
-
-    def user_id(self) -> str:
-        """
-        See :py:meth:`.base.ScopedSession.user_id`.
-        """
-        return self._connection.user_id
-
-    def username(self):
-        """
-        See :py:meth:`.base.ScopedSession.username`.
-        """
-        return self._username
-
-    def tenancy(self):
-        """
-        See :py:meth:`.base.ScopedSession.tenancy`.
-        """
-        return self._tenancy
 
     def capabilities(self):
         """
@@ -641,7 +465,7 @@ class ScopedSession(base.ScopedSession):
 
         If the network does not exist, that is a config error and an exception is raised.
         """
-        net_name = template.format(tenant_name = self._tenancy.name)
+        net_name = template.format(tenant_name = self.tenancy().name)
         # By default, networks.all() will only return networks that belong to the project
         # For the internal network this is what we want, but for all other types of network
         # (e.g. external, storage) we want to allow shared networks from other projects to
@@ -859,7 +683,7 @@ class ScopedSession(base.ScopedSession):
         fingerprint = hashlib.md5(base64.b64decode(ssh_key.split()[1])).hexdigest()
         key_name = "{username}-{fingerprint}".format(
             # Sanitise the username by replacing non-alphanumerics with -
-            username = sanitise_username(self._username),
+            username = sanitise_username(self.username()),
             # Truncate the fingerprint to 8 characters
             fingerprint = fingerprint[:8]
         )
@@ -994,33 +818,12 @@ class ScopedSession(base.ScopedSession):
         # Get the networks to use
         # Always use the tenant network, creating it if required
         params.update(networks = [{ "uuid": self._tenant_network(True).id }])
-        # If the image asks for the backdoor network, attach it
-        if image.metadata.get(self._metadata_prefix + "private_if"):
-            if not self._az_backdoor_net_map:
-                raise errors.ImproperlyConfiguredError(
-                    "Backdoor network required by image but not configured."
-                )
-            # Pick an availability zone at random
-            #   random.choice needs something that supports indexing
-            choices = list(self._az_backdoor_net_map.items())
-            availability_zone, backdoor_net = random.choice(choices)
-            # If the availability zone is "nova" don't specify it, as per the advice
-            # in the OpenStack API documentation
-            if availability_zone != "nova":
-                params.update(availability_zone = availability_zone)
-            # Create a port on the backdoor network
-            port_params = dict(network_id = backdoor_net)
-            # If a vNIC type is specified, add it to the port parameters
-            if self._backdoor_vnic_type:
-                port_params["binding:vnic_type"] = self._backdoor_vnic_type
-            port = self._connection.network.ports.create(port_params)
-            params["networks"].append({ "port": port.id })
         # Get the keypair to inject
         if ssh_key:
             keypair = self._get_or_create_keypair(ssh_key)
             params.update(key_name = keypair.name)
         # Build the machine metadata, starting with the tenant name
-        machine_metadata = { self._metadata_prefix + "tenant_name": self._tenancy.name }
+        machine_metadata = { self._metadata_prefix + "tenant_name": self.tenancy().name }
         # Copy metadata from the image
         machine_metadata.update({
             self._metadata_prefix + key: value
@@ -1460,18 +1263,16 @@ class ScopedSession(base.ScopedSession):
         """
         See :py:meth:`.base.ScopedSession.cloud_credential`.
         """
-        # Create an app cred and return a clouds.yaml for it
-        # If an app cred already exists with the same name, delete it
-        user = self._connection.identity.current_user
-        app_cred_roles = [
-            {"name": role["name"]}
-            for role in self._connection.roles
-            if role["name"] != "admin"
-        ]
-        app_cred = user.application_credentials.create(
+        # Create a new appcred for the current user
+        app_cred = self._connection.identity.current_user.application_credentials.create(
             name = name,
             description = description,
-            roles = app_cred_roles,
+            # If the user is an admin, don't include that role in the appcred
+            roles = [
+                {"name": role["name"]}
+                for role in self._connection.roles
+                if role["name"] != "admin"
+            ],
             # TODO(mkjpryor)
             # This is currently required to allow app creds to delete themselves
             # However it also allows the app cred to make and delete other app creds
@@ -1481,24 +1282,21 @@ class ScopedSession(base.ScopedSession):
             unrestricted = True
         )
         # Create the data for the credential object
+        cloud_data = {
+            "identity_api_version": 3,
+            "interface": self._connection.interface,
+            "auth_type": "v3applicationcredential",
+            "auth": {
+                "auth_url": self._connection.auth_url,
+                "application_credential_id": app_cred.id,
+                "application_credential_secret": app_cred.secret,
+            },
+            "verify": self._connection.verify,
+        }
+        if self._connection.region:
+            cloud_data["region_name"] = self._connection.region
         data = {
-            "clouds.yaml": yaml.safe_dump(
-                {
-                    "clouds": {
-                        "openstack": {
-                            "identity_api_version": 3,
-                            "interface": "public",
-                            "auth_type": "v3applicationcredential",
-                            "auth": {
-                                "auth_url": self._connection.endpoints["identity"],
-                                "application_credential_id": app_cred.id,
-                                "application_credential_secret": app_cred.secret,
-                            },
-                            "verify": self._connection.verify,
-                        }
-                    }
-                }
-            ),
+            "clouds.yaml": yaml.safe_dump({"clouds": {"openstack": cloud_data}}),
             "user_info.yaml": yaml.safe_dump(
                 {
                     "project_id": self._connection.project_id,
