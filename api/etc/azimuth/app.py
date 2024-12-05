@@ -30,10 +30,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'azimuth_auth.middleware.BearerTokenMiddleware',
-    # Include the session middleware after the bearer token middleware
-    # so that the session takes precedence when it is available
-    'azimuth_auth.middleware.SessionTokenMiddleware',
+    'azimuth_auth.middleware.Middleware',
     'azimuth.middleware.CleanupProviderMiddleware',
 ]
 
@@ -46,7 +43,7 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
 
 REST_FRAMEWORK = {
     'VIEW_DESCRIPTION_FUNCTION': 'azimuth.views.get_view_description',
-    'DEFAULT_AUTHENTICATION_CLASSES': ['azimuth.authentication.TokenHeaderAuthentication'],
+    'DEFAULT_AUTHENTICATION_CLASSES': ['azimuth.authentication.AuthSessionAuthentication'],
     'UNAUTHENTICATED_USER': None,
 }
 
