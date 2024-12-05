@@ -263,12 +263,21 @@ class Connection(rackit.Connection):
         if cloud_data["auth_type"] == "v3token":
             token = cloud_data["auth"]["token"]
             project_id = cloud_data["auth"]["project_id"]
-            request_data = dict(
-                auth = dict(
-                    identity = dict(methods = ["token"], token = dict(id = token)),
-                    scope = dict(project = dict(id = project_id))
-                )
-            )
+            request_data = {
+                "auth": {
+                    "identity": {
+                        "methods": ["token"],
+                        "token": {
+                            "id": token,
+                        },
+                    },
+                    "scope": {
+                        "project": {
+                            "id": project_id,
+                        },
+                    },
+                },
+            }
         else:
             raise UnsupportedAuthType(cloud_data["auth_type"])
         # Exchange the possibly unscoped token for a scoped one using the request data

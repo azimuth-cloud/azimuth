@@ -23,6 +23,14 @@ def convert_auth_session_errors(f):
             return f(*args, **kwargs)
         except auth_errors.AuthenticationError as exc:
             raise errors.AuthenticationError(str(exc))
+        except auth_errors.PermissionDeniedError as exc:
+            raise errors.PermissionDeniedError(str(exc))
+        except auth_errors.BadInputError as exc:
+            raise errors.BadInputError(str(exc))
+        except auth_errors.ObjectNotFoundError as exc:
+            raise errors.ObjectNotFoundError(str(exc))
+        except auth_errors.InvalidOperationError as exc:
+            raise errors.InvalidOperationError(str(exc))
         except auth_errors.CommunicationError as exc:
             raise errors.CommunicationError(str(exc)) from exc
         except auth_errors.Error as exc:

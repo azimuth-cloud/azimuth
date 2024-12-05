@@ -15,6 +15,30 @@ class AuthenticationError(Error, RuntimeError):
     """
 
 
+class PermissionDeniedError(Error, RuntimeError):
+    """
+    Raised when permission is denied while accessing a resource.
+    """
+
+
+class BadInputError(Error, RuntimeError):
+    """
+    Raised when the input to a create or update is invalid.
+    """
+
+
+class ObjectNotFoundError(Error, RuntimeError):
+    """
+    Raised when an object is not found.
+    """
+
+
+class InvalidOperationError(Error, RuntimeError):
+    """
+    Raised when an invalid operation is attempted.
+    """
+
+
 class CommunicationError(Error, RuntimeError):
     """
     Raised when an unexpected communication problem occurs.
