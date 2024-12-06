@@ -2,30 +2,80 @@
 This module defines the interface for a cloud provider.
 """
 
+import functools
 from typing import Any, Iterable, Mapping, Optional, Union
+
+from azimuth_auth.session.base import Session as AuthSession
+from azimuth_auth.session import dto as auth_dto, errors as auth_errors
 
 from ..cluster_engine import dto as clusters_dto
 
 from . import dto, errors
 
 
+def convert_auth_session_errors(f):
+    """
+    Decorator that converts errors from the auth session into provider errors.
+    """
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except auth_errors.AuthenticationError as exc:
+            raise errors.AuthenticationError(str(exc))
+        except auth_errors.PermissionDeniedError as exc:
+            raise errors.PermissionDeniedError(str(exc))
+        except auth_errors.BadInputError as exc:
+            raise errors.BadInputError(str(exc))
+        except auth_errors.ObjectNotFoundError as exc:
+            raise errors.ObjectNotFoundError(str(exc))
+        except auth_errors.InvalidOperationError as exc:
+            raise errors.InvalidOperationError(str(exc))
+        except auth_errors.CommunicationError as exc:
+            raise errors.CommunicationError(str(exc)) from exc
+        except auth_errors.Error as exc:
+            raise errors.Error(str(exc)) from exc
+    return wrapper
+
+
 class Provider:
     """
     Class for a cloud provider.
     """
-    def from_token(self, token: str) -> 'UnscopedSession':
+    def _from_auth_session(
+        self,
+        auth_session: AuthSession,
+        auth_user: auth_dto.User
+    ) -> 'UnscopedSession':
         """
-        Creates an unscoped session from the given token as returned from the
-        ``token`` method of the corresponding :py:class:`UnscopedSession`.
+        Private method that creates an unscoped session from the given auth session and user.
+
+        This method should be overridden in subclasses to create unscoped sessions.
+        Subclasses can assume that the parent class will handle error conditions.
         """
         raise NotImplementedError
+
+    @convert_auth_session_errors
+    def from_auth_session(self, auth_session: AuthSession) -> 'UnscopedSession':
+        """
+        Creates an unscoped session for the given auth session.
+        """
+        return self._from_auth_session(auth_session, auth_session.user())
 
 
 class UnscopedSession:
     """
-    Class for an authenticated session with a cloud provider. It is unscoped in
+    Base class for an authenticated session with a cloud provider. It is unscoped in
     the sense that is not bound to a particular tenancy.
+
+    By default, an unscoped session wraps an auth session, with only creation of the
+    scoped session from the credential provided by the auth session being overridden.
     """
+    def __init__(self, auth_session: AuthSession, auth_user: auth_dto.User):
+        self.auth_session = auth_session
+        self.auth_user = auth_user
+
+    @convert_auth_session_errors
     def token(self) -> str:
         """
         Returns the token for this session.
@@ -33,57 +83,81 @@ class UnscopedSession:
         The returned token should be consumable by the ``from_token`` method of the
         corresponding :py:class:`Provider`.
         """
-        raise NotImplementedError
+        return self.auth_session.token()
 
     def user_id(self) -> str:
         """
         Returns the user ID for this session.
         """
-        raise NotImplementedError
+        return self.auth_user.id
 
     def username(self) -> str:
         """
         Returns the username for this session.
         """
-        raise NotImplementedError
+        return self.auth_user.username
 
     def user_email(self) -> Optional[str]:
         """
         Returns the email for the user who started the session.
         """
-        raise NotImplementedError
+        return self.auth_user.email
 
-    def ssh_public_key(self, key_name: str) -> str:
+    @convert_auth_session_errors
+    def ssh_public_key(self) -> str:
         """
-        Return a named SSH public key.
+        Return the current SSH public key for the authenticated user.
         """
-        raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
-        )
+        return self.auth_session.ssh_public_key()
 
-    def update_ssh_public_key(self, key_name: str, public_key: str) -> str:
+    @convert_auth_session_errors
+    def update_ssh_public_key(self, public_key: str) -> str:
         """
-        Update a stored SSH public key and returns the new SSH key.
+        Update the stored SSH public key for the authenticated user and returns the new SSH key.
         """
-        raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
-        )
+        return self.auth_session.update_ssh_public_key(public_key)
 
+    @convert_auth_session_errors
     def tenancies(self) -> Iterable[dto.Tenancy]:
         """
         Get the tenancies available to the authenticated user.
         """
-        raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
-        )
+        # Convert the tenancies from the auth DTO to the provider DTO
+        return [dto.Tenancy(t.id, t.name) for t in self.auth_session.tenancies()]
 
+    def _scoped_session(
+        self,
+        auth_user: auth_dto.User,
+        tenancy: dto.Tenancy,
+        credential_data: Any
+    ) -> 'ScopedSession':
+        """
+        Private method that creates a scoped session for the given tenancy.
+
+        This method should be overridden in subclasses to create scoped sessions.
+        Subclasses can assume that the parent class will handle error conditions.
+        """
+        raise NotImplementedError
+
+    @convert_auth_session_errors
     def scoped_session(self, tenancy: Union[dto.Tenancy, str]) -> 'ScopedSession':
         """
         Get a scoped session for the given tenancy.
         """
-        raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
-        )
+        # Make sure we have a tenancy object
+        if not isinstance(tenancy, dto.Tenancy):
+            try:
+                tenancy = next(t for t in self.tenancies() if t.id == tenancy)
+            except StopIteration:
+                raise errors.ObjectNotFoundError(
+                    "Could not find tenancy with ID {}.".format(tenancy)
+                )
+        # Get the credential from the auth session
+        credential = self.auth_session.credential(tenancy.id)
+        # Verify that the provider matches this provider
+        if credential.provider != self.provider_name:
+            raise errors.InvalidOperationError("credential is for a different provider")
+        return self._scoped_session(self.auth_user, tenancy, credential.data)
 
     def close(self):
         """
@@ -114,23 +188,27 @@ class ScopedSession:
     """
     Class for a tenancy-scoped session.
     """
+    def __init__(self, auth_user: auth_dto.User, tenancy: dto.Tenancy):
+        self._auth_user = auth_user
+        self._tenancy = tenancy
+
     def user_id(self) -> str:
         """
         Returns the username for this session.
         """
-        raise NotImplementedError
+        return self._auth_user.id
 
     def username(self) -> str:
         """
         Returns the username for this session.
         """
-        raise NotImplementedError
+        return self._auth_user.username
 
     def tenancy(self) -> dto.Tenancy:
         """
         Returns the tenancy for this session.
         """
-        raise NotImplementedError
+        return self._tenancy
 
     def capabilities(self) -> dto.Capabilities:
         """
