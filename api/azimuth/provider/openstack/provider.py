@@ -465,7 +465,7 @@ class ScopedSession(base.ScopedSession):
 
         If the network does not exist, that is a config error and an exception is raised.
         """
-        net_name = template.format(tenant_name = self.tenancy().name)
+        net_name = template.format(tenant_name = self._connection.project_name)
         # By default, networks.all() will only return networks that belong to the project
         # For the internal network this is what we want, but for all other types of network
         # (e.g. external, storage) we want to allow shared networks from other projects to
