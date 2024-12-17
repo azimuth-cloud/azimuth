@@ -46,8 +46,6 @@ class BaseAuthenticator:
 
         If an empty list is returned, the authenticator just contributes itself to the
         selection dropdown, i.e. it has a single parameterisation.
-
-        The selected option is made available to the auth_start method as selected_option.
         """
         return []
 
@@ -63,7 +61,7 @@ class BaseAuthenticator:
         """
         raise NotImplementedError
 
-    def auth_complete(self, request):
+    def auth_complete(self, request, selected_option = None):
         """
         Process a request to complete the authentication flow for this authenticator.
 
@@ -74,7 +72,7 @@ class BaseAuthenticator:
         """
         raise NotImplementedError
 
-    def auth_token(self, auth_data):
+    def auth_token(self, auth_data, selected_option = None):
         """
         Use the given auth data to attempt to obtain a token.
 

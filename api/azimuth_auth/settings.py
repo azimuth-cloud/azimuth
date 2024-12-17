@@ -2,20 +2,175 @@
 Settings for the Azimuth auth package.
 """
 
-from settings_object import SettingsObject, Setting, MergedDictSetting, ObjectFactorySetting
+from django.core.exceptions import ImproperlyConfigured
+
+from settings_object import (
+    SettingsObject,
+    Setting,
+    MergedDictSetting,
+    NestedSetting,
+    ObjectFactorySetting
+)
+
+
+class ChoiceSetting(Setting):
+    """
+    Setting that allows choosing from a fixed set of choices.
+    """
+    def __init__(self, choices, *args, **kwargs):
+        self.choices = choices
+        super().__init__(*args, **kwargs)
+
+    def __get__(self, instance, owner):
+        value = super().__get__(instance, owner)
+        if value in self.choices:
+            return value
+        else:
+            choices = ",".join(str(choice) for choice in self.choices)
+            raise ImproperlyConfigured(f"{instance.name}.{self.name} must be one of {choices}")
+
+
+class OpenStackSettings(SettingsObject):
+    """
+    Settings for OpenStack authentication.
+    """
+    #: The auth URL for the target OpenStack
+    AUTH_URL = Setting()
+    #: The region to use
+    REGION = Setting(default = None)
+    #: The interface to use when interacting with OpenStack
+    INTERFACE = Setting(default = "public")
+    #: Indicates whether to verify SSL when talking to OpenStack
+    VERIFY_SSL = Setting(default = True)
+
+    #: Indicates if the appcred authenticator should be hidden
+    APPCRED_HIDDEN = Setting(default = True)
+
+    #: Indicates if password authentication is enabled
+    PASSWORD_ENABLED = Setting(default = False)
+    #: The domains to enable password authentication for
+    PASSWORD_DOMAINS = Setting(default = list)
+
+    #: Indicates if federated authentication is enabled
+    FEDERATED_ENABLED = Setting(default = False)
+    #: The federated identity providers
+    FEDERATED_IDENTITY_PROVIDERS = Setting(default = list)
+
+
+class AuthenticatorsSetting(ObjectFactorySetting):
+    """
+    Custom setting for providing the default authenticators based on other settings.
+    """
+    def _get_default(self, instance):
+        authenticators = []
+        if instance.AUTH_TYPE == "openstack":
+            # Always include the appcred authenticator
+            authenticators.append(
+                {
+                    "NAME": "appcred",
+                    "LABEL": "Application Credential",
+                    "HIDDEN": instance.OPENSTACK.APPCRED_HIDDEN,
+                    "AUTHENTICATOR": {
+                        "FACTORY": "azimuth_auth.authenticator.openstack.ApplicationCredentialAuthenticator",
+                        "PARAMS": {
+                            "AUTH_URL": instance.OPENSTACK.AUTH_URL,
+                            "VERIFY_SSL": instance.OPENSTACK.VERIFY_SSL,
+                        },
+                    },
+                }
+            )
+            if instance.OPENSTACK.FEDERATED_ENABLED:
+                identity_providers = []
+                for idp in instance.OPENSTACK.FEDERATED_IDENTITY_PROVIDERS:
+                    protocol = idp["protocol"]
+                    provider = idp.get("provider")
+                    name = f"{provider}_{protocol}" if provider else protocol
+                    label = idp.get("label") or name
+                    identity_providers.append(
+                        {
+                            "protocol": protocol,
+                            "provider": provider,
+                            "name": name,
+                            "label": label,
+                        }
+                    )
+                authenticators.append(
+                    {
+                        "NAME": "federated",
+                        "AUTHENTICATOR": {
+                            "FACTORY": "azimuth_auth.authenticator.openstack.FederatedAuthenticator",
+                            "PARAMS": {
+                                "AUTH_URL": instance.OPENSTACK.AUTH_URL,
+                                "IDENTITY_PROVIDERS": identity_providers,
+                            },
+                        },
+                    }
+                )
+            if instance.OPENSTACK.PASSWORD_ENABLED:
+                authenticators.append(
+                    {
+                        "NAME": "password",
+                        "AUTHENTICATOR": {
+                            "FACTORY": "azimuth_auth.authenticator.openstack.PasswordAuthenticator",
+                            "PARAMS": {
+                                "AUTH_URL": instance.OPENSTACK.AUTH_URL,
+                                "DOMAINS": [
+                                    {
+                                        "name": domain["name"],
+                                        "label": domain.get("label") or domain["name"],
+                                    }
+                                    for domain in instance.OPENSTACK.PASSWORD_DOMAINS
+                                ],
+                                "VERIFY_SSL": instance.OPENSTACK.VERIFY_SSL,
+                            },
+                        },
+                    }
+                )
+        return authenticators
+
+
+class SessionProviderSetting(ObjectFactorySetting):
+    """
+    Custom setting for configuring the session provider based on other settings.
+    """
+    def _get_default(self, instance):
+        if instance.AUTH_TYPE == "openstack":
+            return {
+                "FACTORY": "azimuth_auth.session.openstack.Provider",
+                "PARAMS": {
+                    "AUTH_URL": instance.OPENSTACK.AUTH_URL,
+                    "REGION": instance.OPENSTACK.REGION,
+                    "INTERFACE": instance.OPENSTACK.INTERFACE,
+                    "VERIFY_SSL": instance.OPENSTACK.VERIFY_SSL,
+                },
+            }
+        else:
+            raise ImproperlyConfigured("unrecognised auth type")
 
 
 class AzimuthAuthSettings(SettingsObject):
     """
     Settings object for the ``AZIMUTH_AUTH`` setting.
     """
-    #: The authenticators to use
-    AUTHENTICATORS = ObjectFactorySetting()
-    #: The name of the cookie to store the remembered authenticator in
-    AUTHENTICATOR_COOKIE_NAME = Setting(default = "azimuth-authenticator")
+    #: The type of authentication to use
+    AUTH_TYPE = ChoiceSetting(["openstack"])
+    #: Settings for OpenStack authentication
+    OPENSTACK = NestedSetting(OpenStackSettings)
 
-    #: The name of the header in which to place the token for downstream code
-    DOWNSTREAM_TOKEN_HEADER = Setting(default = "HTTP_X_CLOUD_TOKEN")
+    #: The authenticators to use
+    AUTHENTICATORS = AuthenticatorsSetting()
+
+    #: The session provider to use
+    SESSION_PROVIDER = SessionProviderSetting()
+
+    #: The HTTP parameter to pass the selected option to the start URL
+    SELECTED_OPTION_PARAM = Setting(default = "option")
+    #: The session key used to preserve the selected option across redirections
+    SELECTED_OPTION_SESSION_KEY = Setting(default = "option")
+    
+    #: The name of the cookie to store the remembered authenticator
+    #: This cookie does not have an expiry date, so the selection persists beyond the session
+    AUTHENTICATOR_COOKIE_NAME = Setting(default = "azimuth-authenticator")
 
     #: For the bearer token middleware, this is the name of the header that the token will be in
     BEARER_TOKEN_HEADER = Setting(default = "HTTP_AUTHORIZATION")
@@ -34,8 +189,6 @@ class AzimuthAuthSettings(SettingsObject):
     #: The default next URL if the user-supplied URL is not given or not permitted
     NEXT_URL_DEFAULT_URL = Setting(default = "/tenancies")
 
-    #: The HTTP parameter to pass the selected option in
-    SELECTED_OPTION_PARAM = Setting(default = "option")
     #: The HTTP parameter used to specify that the method should be changed
     CHANGE_METHOD_PARAM = Setting(default = "change_method")
 

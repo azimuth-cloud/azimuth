@@ -26,27 +26,26 @@ class AuthenticatedUser:
         return self.username
 
 
-class TokenHeaderAuthentication(BaseAuthentication):
+class AuthSessionAuthentication(BaseAuthentication):
     """
-    Authentication backend that uses a token set by Azimuth auth for authentication.
+    Authentication backend that looks for an auth session attached to the request.
     """
     def authenticate(self, request):
-        # First, see if the token header is set
-        token = request.META.get(cloud_settings.TOKEN_HEADER)
-        # If it is not, we are done
-        if not token:
+        auth_session = getattr(request, "auth_session", None)
+        # If there is no auth session present, the request is not authenticated
+        if not auth_session:
             return None
-        # If there is a token, try to resolve a session with the configured provider
-        # This session will be returned as the auth object
+        # Otherwise, try to initialise a provider session from the auth session
+        # This session will be returned as the auth object for DRF
         try:
-            session = cloud_settings.PROVIDER.from_token(token)
+            session = cloud_settings.PROVIDER.from_auth_session(auth_session)
         except errors.AuthenticationError as exc:
             # If a session cannot be resolved from the token, then it has expired
             logger.exception('Authentication failed: %s', str(exc))
             raise AuthenticationFailed(str(exc))
         else:
             # If the token resolved, return an authenticated user
-            logger.info('[%s] Authenticated user from token', session.username())
+            logger.info('[%s] Found authenticated user', session.username())
             return (AuthenticatedUser(session.username()), session)
 
     def authenticate_header(self, request):

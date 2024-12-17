@@ -9,14 +9,14 @@ metadata:
   labels: {{ include "azimuth.componentLabels" (list . "api") | nindent 4 }}
 type: Opaque
 # Use data because of https://github.com/helm/helm/issues/10010
-# Not doing so means that AWX-related keys are not removed on transition to the CRD
+# Not doing so means that secret keys are never removed
 data:
   01-django.yaml: |
     {{- tpl (.Files.Get "files/api/settings/01-django.yaml") . | b64enc | nindent 4 }}
   02-cloud-common.yaml: |
     {{- tpl (.Files.Get "files/api/settings/02-cloud-common.yaml") . | b64enc | nindent 4 }}
-  03-cloud-authenticators.yaml: |
-    {{- tpl (.Files.Get "files/api/settings/03-cloud-authenticators.yaml") . | b64enc | nindent 4 }}
+  03-authentication.yaml: |
+    {{- tpl (.Files.Get "files/api/settings/03-authentication.yaml") . | b64enc | nindent 4 }}
   04-cloud-provider.yaml: |
     {{- tpl (.Files.Get "files/api/settings/04-cloud-provider.yaml") . | b64enc | nindent 4 }}
   05-apps.yaml: |
