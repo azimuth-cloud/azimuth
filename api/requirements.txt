@@ -30,7 +30,7 @@ python-dateutil==2.9.0.post0
 pytz==2024.2
 PyYAML==6.0.2
 rackit @ git+https://github.com/stackhpc/rackit.git@cb2da480f9fc99f36cc777d58dfbccec33434879
-referencing==0.35.1
+referencing==0.36.0
 requests==2.32.3
 rfc3986==2.0.0
 rpds-py==0.22.3
