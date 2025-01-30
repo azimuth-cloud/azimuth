@@ -115,6 +115,22 @@ class ClusterApiProviderSetting(ObjectFactorySetting):
             return None
 
 
+class AppsProviderSetting(ObjectFactorySetting):
+    """
+    Custom setting for the Kubernetes app provider.
+    """
+    def _get_default(self, instance):
+        # For now, apps are only available if a Kubernetes provider is configured
+        if instance.CLUSTER_API_PROVIDER:
+            # By default, we use the HelmRelease provider (for now)
+            return {
+                "FACTORY": "azimuth.apps.helmrelease.Provider",
+                "PARAMS": {},
+            }
+        else:
+            return None
+
+
 class AppsSettings(SettingsObject):
     """
     Settings for the target Zenith app proxy.
@@ -209,6 +225,9 @@ class AzimuthSettings(SettingsObject):
 
     #: Cluster API configuration
     CLUSTER_API_PROVIDER = ClusterApiProviderSetting()
+
+    #: The apps provider
+    APPS_PROVIDER = AppsProviderSetting()
 
     #: Configuration for curated sizes
     #: If given, should be a list of dictionaries

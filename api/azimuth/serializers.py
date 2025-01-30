@@ -17,6 +17,7 @@ import jsonschema
 
 import easysemver
 
+from .apps import dto as apps_dto
 from .cluster_api import dto as capi_dto
 from .cluster_engine import dto as clusters_dto, errors as clusters_errors
 from .provider import dto, errors
@@ -960,21 +961,21 @@ class KubernetesAppTemplateRefSerializer(RefSerializer):
 
 KubernetesAppTemplateVersionSerializer = type(
     "KubernetesAppTemplateVersionSerializer",
-    (make_dto_serializer(capi_dto.Version), ),
+    (make_dto_serializer(apps_dto.Version), ),
     {}
 )
 
 
 class KubernetesAppTemplateSerializer(
     KubernetesAppTemplateRefSerializer,
-    make_dto_serializer(capi_dto.AppTemplate, exclude = ["chart", "default_values"])
+    make_dto_serializer(apps_dto.AppTemplate, exclude = ["chart", "default_values"])
 ):
     versions = KubernetesAppTemplateVersionSerializer(many = True)
 
 
 class KubernetesAppSerializer(
     make_dto_serializer(
-        capi_dto.App,
+        apps_dto.App,
         exclude = [
             "template_id",
             "kubernetes_cluster_id",
@@ -1048,22 +1049,30 @@ def get_full_values(app_template, user_values):
 class CreateKubernetesAppSerializer(serializers.Serializer):
     name = serializers.RegexField("^[a-z][a-z0-9-]+[a-z0-9]$", write_only = True)
     template = serializers.RegexField("^[a-z0-9-]+$", write_only = True)
-    kubernetes_cluster = serializers.RegexField("^[a-z0-9-]+$", write_only = True)
+    kubernetes_cluster = serializers.RegexField(
+        "^[a-z0-9-]+$",
+        write_only = True,
+        # The apps driver decides whether the cluster is required or not
+        required = False
+    )
     values = serializers.JSONField(write_only = True)
 
     def validate_template(self, value):
-        capi_session = self.context["capi_session"]
+        apps_session = self.context["apps_session"]
         try:
-            return capi_session.find_app_template(value)
+            return apps_session.find_app_template(value)
         except errors.ObjectNotFoundError as exc:
             raise serializers.ValidationError(str(exc))
 
     def validate_kubernetes_cluster(self, value):
-        capi_session = self.context["capi_session"]
-        try:
-            return capi_session.find_cluster(value)
-        except errors.ObjectNotFoundError as exc:
-            raise serializers.ValidationError(str(exc))
+        capi_session = self.context.get("capi_session")
+        if capi_session and value:
+            try:
+                return capi_session.find_cluster(value)
+            except errors.ObjectNotFoundError as exc:
+                raise serializers.ValidationError(str(exc))
+        else:
+            return None
 
     def validate(self, data):
         # Use the JSON schema defined by the template to validate the values

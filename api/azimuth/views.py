@@ -2,6 +2,7 @@
 Django views for interacting with the configured cloud provider.
 """
 
+import contextlib
 import dataclasses
 import functools
 import logging
@@ -21,6 +22,7 @@ from rest_framework.utils import formatting
 from azimuth_auth.settings import auth_settings
 
 from . import identity, scheduling, serializers
+from .apps import errors as apps_errors
 from .cluster_api import errors as cluster_api_errors
 from .cluster_engine import errors as cluster_engine_errors
 from .keystore import errors as keystore_errors
@@ -94,7 +96,7 @@ def convert_provider_exceptions(view):
         except provider_errors.ObjectNotFoundError as exc:
             raise drf_exceptions.NotFound(str(exc))
         except provider_errors.Error as exc:
-            log.exception("Unexpected provider error occurred")
+            log.exception("Unexpected provider error")
             return response.Response(
                 { "detail": str(exc) },
                 status = status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -122,7 +124,7 @@ def convert_key_store_exceptions(view):
                 status = status.HTTP_405_METHOD_NOT_ALLOWED
             )
         except keystore_errors.Error as exc:
-            log.exception("Unexpected key store error occurred")
+            log.exception("Unexpected key store error")
             return response.Response(
                 { "detail": str(exc) },
                 status = status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -164,7 +166,7 @@ def convert_cluster_engine_exceptions(view):
         except cluster_engine_errors.ObjectNotFoundError as exc:
             raise drf_exceptions.NotFound(str(exc))
         except cluster_engine_errors.Error as exc:
-            log.exception("Unexpected cluster engine error occurred")
+            log.exception("Unexpected cluster engine error")
             return response.Response(
                 { "detail": str(exc) },
                 status = status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -201,7 +203,44 @@ def convert_cluster_api_exceptions(view):
         except cluster_api_errors.ObjectNotFoundError as exc:
             raise drf_exceptions.NotFound(str(exc))
         except cluster_api_errors.Error as exc:
-            log.exception("Unexpected Cluster API provider error occurred")
+            log.exception("Unexpected Cluster API provider error")
+            return response.Response(
+                { "detail": str(exc) },
+                status = status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    return wrapper
+
+
+def convert_apps_exceptions(view):
+    """
+    Decorator that converts errors from :py:mod:`.apps.errors` into appropriate
+    HTTP responses or Django REST framework errors.
+    """
+    @functools.wraps(view)
+    def wrapper(*args, **kwargs):
+        try:
+            return view(*args, **kwargs)
+        # For provider errors that don't map to authentication/not found errors,
+        # return suitable responses
+        except apps_errors.UnsupportedOperationError as exc:
+            return response.Response(
+                { "detail": str(exc), "code": "unsupported_operation"},
+                status = status.HTTP_404_NOT_FOUND
+            )
+        except apps_errors.InvalidOperationError as exc:
+            return response.Response(
+                { "detail": str(exc), "code": "invalid_operation"},
+                status = status.HTTP_409_CONFLICT
+            )
+        except apps_errors.BadInputError as exc:
+            return response.Response(
+                { "detail": str(exc), "code": "bad_input"},
+                status = status.HTTP_400_BAD_REQUEST
+            )
+        except apps_errors.ObjectNotFoundError as exc:
+            raise drf_exceptions.NotFound(str(exc))
+        except apps_errors.Error as exc:
+            log.exception("Unexpected apps provider error")
             return response.Response(
                 { "detail": str(exc) },
                 status = status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -218,6 +257,7 @@ def provider_api_view(methods):
         view = convert_key_store_exceptions(view)
         view = convert_cluster_api_exceptions(view)
         view = convert_cluster_engine_exceptions(view)
+        view = convert_apps_exceptions(view)
         view = decorators.permission_classes([permissions.IsAuthenticated])(view)
         view = decorators.api_view(methods)(view)
         return view
@@ -425,8 +465,8 @@ def capabilities(request, tenant):
             supports_clusters = bool(cloud_settings.CLUSTER_ENGINE),
             # Kubernetes is supported if a Cluster API provider is configured
             supports_kubernetes = bool(cloud_settings.CLUSTER_API_PROVIDER),
-            # Apps are supported if Zenith is enabled
-            supports_apps = bool(cloud_settings.APPS),
+            # Kubernetes apps are supported if an apps provider is configured
+            supports_apps = bool(cloud_settings.APPS_PROVIDER),
             # Scheduling must be specifically enabled
             supports_scheduling = bool(cloud_settings.SCHEDULING.ENABLED),
         )
@@ -1676,7 +1716,7 @@ def kubernetes_app_templates(request, tenant):
     """
     Return a list of the available Kubernetes app templates for the tenancy.
     """
-    if not cloud_settings.CLUSTER_API_PROVIDER:
+    if not cloud_settings.APPS_PROVIDER:
         return response.Response(
             {
                 "detail": "Kubernetes apps are not supported.",
@@ -1685,9 +1725,9 @@ def kubernetes_app_templates(request, tenant):
             status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
-        with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
+        with cloud_settings.APPS_PROVIDER.session(session) as apps_session:
             serializer = serializers.KubernetesAppTemplateSerializer(
-                capi_session.app_templates(),
+                apps_session.app_templates(),
                 many = True,
                 context = { "request": request, "tenant": tenant }
             )
@@ -1699,7 +1739,7 @@ def kubernetes_app_template_details(request, tenant, template):
     """
     Return the details for the specified Kubernetes app template.
     """
-    if not cloud_settings.CLUSTER_API_PROVIDER:
+    if not cloud_settings.APPS_PROVIDER:
         return response.Response(
             {
                 "detail": "Kubernetes apps are not supported.",
@@ -1708,12 +1748,23 @@ def kubernetes_app_template_details(request, tenant, template):
             status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
-        with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
+        with cloud_settings.APPS_PROVIDER.session(session) as apps_session:
             serializer = serializers.KubernetesAppTemplateSerializer(
-                capi_session.find_app_template(template),
+                apps_session.find_app_template(template),
                 context = { "request": request, "tenant": tenant }
             )
     return response.Response(serializer.data)
+
+
+def optional_capi_session(cloud_session):
+    """
+    Returns a context manager that yields either a CAPI session or None.
+    """
+    # If a CAPI provider is available, get a session
+    if cloud_settings.CLUSTER_API_PROVIDER:
+        return cloud_settings.CLUSTER_API_PROVIDER.session(cloud_session)
+    else:
+        return contextlib.nullcontext()
 
 
 @provider_api_view(["GET", "POST"])
@@ -1723,31 +1774,36 @@ def kubernetes_apps(request, tenant):
 
     On ``POST`` requests, create a new Kubernetes app.
     """
-    if not cloud_settings.CLUSTER_API_PROVIDER:
+    if not cloud_settings.APPS_PROVIDER:
         return response.Response(
             {
-                "detail": "Kubernetes clusters are not supported.",
+                "detail": "Kubernetes apps are not supported.",
                 "code": "unsupported_operation"
             },
             status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
-        with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
+        with cloud_settings.APPS_PROVIDER.session(session) as apps_session:
             if request.method == "POST":
-                input_serializer = serializers.CreateKubernetesAppSerializer(
-                    data = request.data,
-                    context = { "session": session, "capi_session": capi_session }
-                )
-                input_serializer.is_valid(raise_exception = True)
-                app = capi_session.create_app(**input_serializer.validated_data)
-                output_serializer = serializers.KubernetesAppSerializer(
-                    app,
-                    context = { "request": request, "tenant": tenant }
-                )
-                return response.Response(output_serializer.data)
+                with optional_capi_session(session) as capi_session:
+                    input_serializer = serializers.CreateKubernetesAppSerializer(
+                        data = request.data,
+                        context = {
+                            "session": session,
+                            "apps_session": apps_session,
+                            "capi_session": capi_session,
+                        }
+                    )
+                    input_serializer.is_valid(raise_exception = True)
+                    app = apps_session.create_app(**input_serializer.validated_data)
+                    output_serializer = serializers.KubernetesAppSerializer(
+                        app,
+                        context = { "request": request, "tenant": tenant }
+                    )
+                    return response.Response(output_serializer.data)
             else:
                 serializer = serializers.KubernetesAppSerializer(
-                    capi_session.apps(),
+                    apps_session.apps(),
                     many = True,
                     context = { "request": request, "tenant": tenant }
                 )
@@ -1764,31 +1820,31 @@ def kubernetes_app_details(request, tenant, app):
 
     On ``DELETE`` requests, delete the specified Kubernetes app.
     """
-    if not cloud_settings.CLUSTER_API_PROVIDER:
+    if not cloud_settings.APPS_PROVIDER:
         return response.Response(
             {
-                "detail": "Kubernetes clusters are not supported.",
+                "detail": "Kubernetes apps are not supported.",
                 "code": "unsupported_operation"
             },
             status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
-        with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
+        with cloud_settings.APPS_PROVIDER.session(session) as apps_session:
             if request.method == "PATCH":
-                app = capi_session.find_app(app)
-                app_template = capi_session.find_app_template(app.template_id)
+                app = apps_session.find_app(app)
+                app_template = apps_session.find_app_template(app.template_id)
                 input_serializer = serializers.UpdateKubernetesAppSerializer(
                     data = request.data,
                     context = dict(
                         session = session,
-                        capi_session = capi_session,
+                        apps_session = apps_session,
                         app_template = app_template,
                         app = app
                     )
                 )
                 input_serializer.is_valid(raise_exception = True)
                 output_serializer = serializers.KubernetesAppSerializer(
-                    capi_session.update_app(
+                    apps_session.update_app(
                         app,
                         app_template,
                         **input_serializer.validated_data
@@ -1797,7 +1853,7 @@ def kubernetes_app_details(request, tenant, app):
                 )
                 return response.Response(output_serializer.data)
             elif request.method == "DELETE":
-                deleted = capi_session.delete_app(app)
+                deleted = apps_session.delete_app(app)
                 if deleted:
                     serializer = serializers.KubernetesAppSerializer(
                         deleted,
@@ -1808,7 +1864,7 @@ def kubernetes_app_details(request, tenant, app):
                     return response.Response()
             else:
                 serializer = serializers.KubernetesAppSerializer(
-                    capi_session.find_app(app),
+                    apps_session.find_app(app),
                     context = { "request": request, "tenant": tenant }
                 )
                 return response.Response(serializer.data)
@@ -1820,10 +1876,10 @@ def kubernetes_app_service(request, tenant, app, service):
     """
     Redirects the user to the specified service for the specified Kubernetes app.
     """
-    if not cloud_settings.CLUSTER_API_PROVIDER:
+    if not cloud_settings.APPS_PROVIDER:
         return response.Response(
             {
-                "detail": "Kubernetes clusters are not supported.",
+                "detail": "Kubernetes apps are not supported.",
                 "code": "unsupported_operation"
             },
             status = status.HTTP_404_NOT_FOUND
@@ -1831,10 +1887,9 @@ def kubernetes_app_service(request, tenant, app, service):
     service_fqdn = None
     service_label = None
     try:
-        if cloud_settings.CLUSTER_API_PROVIDER:
-            with request.auth.scoped_session(tenant) as session:
-                with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
-                    app = capi_session.find_app(app)
+        with request.auth.scoped_session(tenant) as session:
+            with cloud_settings.APPS_PROVIDER.session(session) as apps_session:
+                app = apps_session.find_app(app)
         service_obj = next(s for s in app.services if s.name == service)
         service_fqdn = service_obj.fqdn
         service_label = service_obj.label
