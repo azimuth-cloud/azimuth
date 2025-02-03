@@ -1,4 +1,13 @@
+{{-
+  if (
+    or
+      (ne .Values.authentication.type "openstack")
+      .Values.authentication.openstack.authUrl
+  )
+}}
 {{- with .Values.authentication -}}
+# New-style authentication configuration
+# Authentication is defined by cloud type and reused by components as needed
 AZIMUTH_AUTH:
   AUTH_TYPE: {{ .type }}
   {{- if eq .type "openstack" }}
@@ -46,4 +55,67 @@ AZIMUTH_AUTH:
   {{- else }}
   {{- printf "Unrecognised authentication type - %s" .type | fail }}
   {{- end }}
+{{- end }}
+{{- else if .Values.authenticators }}
+# Legacy authentication configuration
+# Authenticators and session provider are specified separately
+AZIMUTH_AUTH:
+  AUTHENTICATORS:
+    {{- range .Values.authenticators }}
+    - NAME: {{ quote .name }}
+      {{- with .label }}
+      LABEL: {{ quote . }}
+      {{- end }}
+      {{- with .hidden }}
+      HIDDEN: true
+      {{- end }}
+      AUTHENTICATOR:
+        {{- if (eq .type "openstack-password") }}
+        FACTORY: azimuth_auth.authenticator.openstack.PasswordAuthenticator
+        PARAMS:
+          AUTH_URL: {{ default $.Values.provider.openstack.authUrl .openstackPassword.authUrl }}
+          DOMAINS:
+            - name: {{ default $.Values.provider.openstack.domain .openstackPassword.domain }}
+          VERIFY_SSL: {{ default $.Values.provider.openstack.verifySsl .openstackPassword.verifySsl }}
+        {{- else if (eq .type "openstack-application-credential") }}
+        FACTORY: azimuth_auth.authenticator.openstack.ApplicationCredentialAuthenticator
+        PARAMS:
+          AUTH_URL: {{ default $.Values.provider.openstack.authUrl .openstackApplicationCredential.authUrl }}
+          VERIFY_SSL: {{ default $.Values.provider.openstack.verifySsl .openstackApplicationCredential.verifySsl }}
+        {{- else if (eq .type "openstack-federation") }}
+        FACTORY: azimuth_auth.authenticator.openstack.FederatedAuthenticator
+        PARAMS:
+          AUTH_URL: {{ default $.Values.provider.openstack.authUrl .openstackFederation.authUrl }}
+          {{- if empty .openstackFederation.identityProviders }}
+          {{- fail "No IDPs are defined" }}
+          {{- end }}
+          IDENTITY_PROVIDERS:
+            {{- range .openstackFederation.identityProviders }}
+            - name: {{ required "name is required for federated IDPs" .name | quote }}
+              {{- with .label }}
+              label: {{ quote . }}
+              {{- end }}
+              {{- with .provider }}
+              provider: {{ quote . }}
+              {{- end }}
+              protocol: {{ required "protocol is required for federated IDPs" .protocol | quote }}
+            {{- end }}
+        {{- else }}
+        {{- fail (printf "Unrecognised authenticator '%s'" .type) }}
+        {{- end }}
+    {{- end }}
+  {{- if (eq .Values.provider.type "openstack") }}
+  SESSION_PROVIDER:
+    FACTORY: azimuth_auth.session.openstack.Provider
+    PARAMS:
+      AUTH_URL: {{ required "provider.openstack.authUrl is required" .Values.provider.openstack.authUrl }}
+      {{- with .Values.provider.openstack.interface }}
+      INTERFACE: {{ . }}
+      {{- end }}
+      VERIFY_SSL: {{ .Values.provider.openstack.verifySsl }}
+  {{- else }}
+  {{- fail (printf "Unrecognised cloud provider '%s'" .Values.provider.type) }}
+  {{- end }}
+{{- else }}
+{{- fail "No authentication is defined" }}
 {{- end }}
