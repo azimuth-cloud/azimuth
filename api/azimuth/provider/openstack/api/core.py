@@ -258,34 +258,21 @@ class Connection(rackit.Connection):
         region = cloud_data.get("region_name")
         interface = cloud_data.get("interface", "public")
         verify = cloud_data.get("verify", True)
-        # Get the data for the token request, which depends on the auth type
-        # We only support v3token right now
+        # Get a token and the token information from the credential
         if cloud_data["auth_type"] == "v3token":
+            # If we already have a token, assume it is scoped for the target project
+            # We just retrieve the token information, including the service catalog
             token = cloud_data["auth"]["token"]
-            project_id = cloud_data["auth"]["project_id"]
-            request_data = {
-                "auth": {
-                    "identity": {
-                        "methods": ["token"],
-                        "token": {
-                            "id": token,
-                        },
-                    },
-                    "scope": {
-                        "project": {
-                            "id": project_id,
-                        },
-                    },
-                },
-            }
+            response = requests.get(
+                f"{auth_url}/auth/tokens",
+                headers = {"X-Auth-Token": token, "X-Subject-Token": token}
+            )
+            response.raise_for_status()
+            token_data = response.json()["token"]
         else:
+            # TODO(mkjpryor)
+            # For other credential types, exchange the credential for a token
             raise UnsupportedAuthType(cloud_data["auth_type"])
-        # Exchange the possibly unscoped token for a scoped one using the request data
-        response = requests.post(f"{auth_url}/auth/tokens", json = request_data, verify = verify)
-        response.raise_for_status()
-        # Extract the token from the response
-        token = response.headers["X-Subject-Token"]
-        token_data = response.json()["token"]
         # Extract the endpoints from the catalog for the correct interface and region
         endpoints = {}
         for entry in token_data["catalog"]:

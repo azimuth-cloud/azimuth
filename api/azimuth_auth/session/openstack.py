@@ -86,22 +86,29 @@ class Session(base.Session):
         self.region = region
         self.interface = interface
         self.verify_ssl = verify_ssl
+        # Cached information about the token
+        self._token_data = None
 
     def token(self):
         return self.client.auth.token
 
+    def _get_token_data(self):
+        if not self._token_data:
+            response = self.client.get(
+                "/auth/tokens",
+                headers = {"X-Subject-Token": self.token()}
+            )
+            # A 401 or a 404 indicates a failure to validate the token
+            if response.status_code in {401, 404}:
+                raise errors.AuthenticationError("Your session has expired.")
+            response.raise_for_status()
+            self._token_data = response.json()["token"]
+        return self._token_data
+
     @convert_httpx_exceptions
     def user(self):
-        response = self.client.get(
-            "/auth/tokens",
-            headers = {"X-Subject-Token": self.client.auth.token},
-            params = {"nocatalog": "1"}
-        )
-        # A 401 or a 404 indicates a failure to validate the token
-        if response.status_code in {401, 404}:
-            raise errors.AuthenticationError("Your session has expired.")
-        response.raise_for_status()
-        user_data = response.json()["token"]["user"]
+        token_data = self._get_token_data()
+        user_data = token_data["user"]
         username = user_data["name"]
         # If the username "looks like" an email address, just use that as the email
         # Otherwise construct a fake email from the username + domain
@@ -110,6 +117,60 @@ class Session(base.Session):
         else:
             user_email = f"{username}@{user_data['domain']['name'].lower()}.openstack"
         return dto.User(user_data["id"], username, user_email)
+
+    @convert_httpx_exceptions
+    def tenancies(self):
+        response = self.client.get("/auth/projects")
+        response.raise_for_status()
+        # NOTE(mkjpryor)
+        # If the token was issued for an appcred, return only the project that the appcred is for
+        # This is a because tokens issued for appcreds are able to list all the projects that the
+        # owner belongs to but cannot be rescoped to any of the other projects
+        token_data = self._get_token_data()
+        is_app_cred = token_data["methods"][0] == "application_credential"
+        project_id = token_data.get("project", {}).get("id")
+        return [
+            dto.Tenancy(project["id"], project["name"])
+            for project in response.json()["projects"]
+            if project["enabled"] and (not is_app_cred or project["id"] == project_id)
+        ]
+
+    def _scoped_token(self, project_id = None):
+        """
+        Returns a scoped token for the specified project, or any project if not specified.
+        """
+        # If we already have a scoped token for the correct project, we are done
+        token_data = self._get_token_data()
+        token_project_id = token_data.get("project", {}).get("id")
+        if token_project_id and (not project_id or token_project_id == project_id):
+            return self.token(), token_data
+        # If not, attempt to obtain a new token with the correct scope
+        # If no project is specified, we use the first project
+        if not project_id:
+            try:
+                project_id = next(t.id for t in self.tenancies())
+            except StopIteration:
+                raise errors.InvalidOperationError("User does not belong to any tenancies.")
+        response = self.client.post(
+            "/auth/tokens",
+            json = {
+                "auth": {
+                    "identity": {
+                        "methods": ["token"],
+                        "token": {
+                            "id": self.token(),
+                        },
+                    },
+                    "scope": {
+                        "project": {
+                            "id": project_id,
+                        },
+                    },
+                },
+            }
+        )
+        response.raise_for_status()
+        return response.headers["X-Subject-Token"], response.json()["token"]
 
     def _compute_client(self):
         """
@@ -120,34 +181,7 @@ class Session(base.Session):
         Returns a tuple of (client, keypair_name) so that we don't need a separate HTTP
         request to get the username to build the keypair name.
         """
-        # Get the first tenancy from the users tenancies
-        try:
-            tenancy = next(iter(self.tenancies()))
-        except StopIteration:
-            raise errors.InvalidOperationError("User does not belong to any tenancies.")
-        # Exchange our unscoped token for a token that is scoped to the discovered tenancy
-        response = self.client.post(
-            "/auth/tokens",
-            json = {
-                "auth": {
-                    "identity": {
-                        "methods": ["token"],
-                        "token": {
-                            "id": self.client.auth.token,
-                        },
-                    },
-                    "scope": {
-                        "project": {
-                            "id": tenancy.id,
-                        },
-                    },
-                },
-            }
-        )
-        response.raise_for_status()
-        # Extract the token and the URL of the compute service from the response
-        token = response.headers["X-Subject-Token"]
-        token_data = response.json()["token"]
+        token, token_data = self._scoped_token()
         try:
             compute_url = next(
                 ep["url"]
@@ -197,19 +231,10 @@ class Session(base.Session):
         response.raise_for_status()
         return response.json()["keypair"]["public_key"]
 
-    @convert_httpx_exceptions
-    def tenancies(self):
-        response = self.client.get("/auth/projects")
-        response.raise_for_status()
-        return [
-            dto.Tenancy(project["id"], project["name"])
-            for project in response.json()["projects"]
-            # Only include enabled projects
-            if project["enabled"]
-        ]
-
     def credential(self, tenancy_id):
-        # Return the contents of a clouds.yaml configured to use a token
+        # Get a scoped token for the specified tenancy
+        token, _ = self._scoped_token(tenancy_id)
+        # Return the contents of a clouds.yaml configured to use the token
         data = {
             "clouds": {
                 "openstack": {
@@ -217,8 +242,7 @@ class Session(base.Session):
                     "auth_type": "v3token",
                     "auth": {
                         "auth_url": self.auth_url,
-                        "token": self.client.auth.token,
-                        "project_id": tenancy_id,
+                        "token": token,
                     },
                     "interface": self.interface,
                     "verify": self.verify_ssl,
