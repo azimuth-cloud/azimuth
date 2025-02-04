@@ -17,10 +17,14 @@
                     <div class="modal-body">
                         {% auth_message %}
                         {% for field in form %}
+                        {% if field.is_hidden %}
+                        {{ field }}
+                        {% else %}
                         <div {% if not forloop.last %}class="mb-3"{% endif %}>
                             <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
                             {% field_with_classes field "form-control" %}
                         </div>
+                        {% endif %}
                         {% endfor %}
                     </div>
                     <div class="modal-footer">

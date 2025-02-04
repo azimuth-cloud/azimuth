@@ -3,12 +3,6 @@ AZIMUTH:
     {{- if (eq .Values.provider.type "openstack") }}
     FACTORY: azimuth.provider.openstack.Provider
     PARAMS:
-      AUTH_URL: {{ required "provider.openstack.authUrl is required" .Values.provider.openstack.authUrl }}
-      DOMAIN: {{ .Values.provider.openstack.domain }}
-      VERIFY_SSL: {{ .Values.provider.openstack.verifySsl }}
-      {{- with .Values.provider.openstack.interface }}
-      INTERFACE: {{ . }}
-      {{- end }}
       {{- with .Values.provider.openstack.internalNetTemplate }}
       INTERNAL_NET_TEMPLATE: {{ . | quote }}
       {{- end }}

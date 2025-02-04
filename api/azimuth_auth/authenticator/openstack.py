@@ -12,26 +12,33 @@ from .form import FormAuthenticator
 from .redirect import RedirectAuthenticator
 
 
+def normalize_auth_url(auth_url):
+    """
+    Given an auth URL, return the normalized representation.
+    """
+    return auth_url.rstrip("/").removesuffix("/v3") + "/v3"
+
+
 class OpenStackFormAuthenticator(FormAuthenticator):
     """
     Base class for OpenStack authenticators that use a form to authenticate.
     """
     def __init__(self, auth_url, verify_ssl = True):
-        self.auth_url = auth_url.rstrip('/')
+        self.auth_url = normalize_auth_url(auth_url)
         self.token_url = f"{self.auth_url}/auth/tokens"
         self.verify_ssl = verify_ssl
 
-    def get_identity(self, auth_data):
+    def get_identity(self, auth_data, selected_option = None):
         """
         Returns the identity to use for the token request, derived from the form data.
         """
         raise NotImplementedError
 
-    def auth_token(self, auth_data):
+    def auth_token(self, auth_data, selected_option = None):
         # Try to get the identity data from the provided auth data
         # If the required data is not present, a KeyError will be raised
         try:
-            identity = self.get_identity(auth_data)
+            identity = self.get_identity(auth_data, selected_option)
         except KeyError:
             return None
         # Authenticate the user by submitting an appropriate request to the token URL
@@ -57,18 +64,24 @@ class PasswordAuthenticator(OpenStackFormAuthenticator):
     """
     authenticator_type = "openstack_password"
 
-    def __init__(self, auth_url, domain = 'default', verify_ssl = True):
+    def __init__(self, auth_url, domains, verify_ssl = True):
         super().__init__(auth_url, verify_ssl)
-        self.domain = domain
+        self.domains = domains
 
-    def get_identity(self, auth_data):
+    def get_options(self):
+        return [
+            (domain["name"], domain.get("label") or domain["name"])
+            for domain in self.domains
+        ]
+
+    def get_identity(self, auth_data, selected_option = None):
         return dict(
-            methods = ['password'],
+            methods = ["password"],
             password = dict(
                 user = dict(
-                    domain = dict(name = self.domain),
-                    name = auth_data['username'],
-                    password = auth_data['password']
+                    domain = dict(name = selected_option),
+                    name = auth_data["username"],
+                    password = auth_data["password"]
                 )
             )
         )
@@ -90,7 +103,7 @@ class ApplicationCredentialAuthenticator(OpenStackFormAuthenticator):
 
     form_class = ApplicationCredentialForm
 
-    def get_identity(self, auth_data):
+    def get_identity(self, auth_data, selected_option = None):
         return dict(
             methods = ['application_credential'],
             application_credential = dict(
@@ -120,12 +133,12 @@ class FederatedAuthenticator(RedirectAuthenticator):
     uses_crossdomain_post_requests = True
 
     def __init__(self, auth_url, identity_providers):
-        self.auth_url = auth_url
+        self.auth_url = normalize_auth_url(auth_url)
         self.identity_providers = identity_providers
 
     def get_options(self):
         return [
-            (provider["name"], provider.get("label", provider["name"]))
+            (provider["name"], provider.get("label") or provider["name"])
             for provider in self.identity_providers
         ]
 
@@ -143,6 +156,6 @@ class FederatedAuthenticator(RedirectAuthenticator):
         )
         return "{}?{}".format(self.federation_url, urlencode({ 'origin': auth_complete_url }))
 
-    def auth_complete(self, request):
+    def auth_complete(self, request, selected_option = None):
         # The token should be in the POST data
         return request.POST.get('token')

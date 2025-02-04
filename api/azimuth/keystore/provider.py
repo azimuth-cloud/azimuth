@@ -18,10 +18,10 @@ class ProviderKeyStore(KeyStore):
     def get_key(self, username, *, unscoped_session, **kwargs):
         # Just return the SSH public key from the provider session
         try:
-            return unscoped_session.ssh_public_key(username)
+            return unscoped_session.ssh_public_key()
         except ObjectNotFoundError:
             raise KeyNotFound(username)
 
     def update_key(self, username, public_key, *, unscoped_session, **kwargs):
         # Just use the provider session to update the public key
-        return unscoped_session.update_ssh_public_key(username, public_key)
+        return unscoped_session.update_ssh_public_key(public_key)

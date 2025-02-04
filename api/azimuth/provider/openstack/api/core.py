@@ -181,6 +181,14 @@ class AuthProject(Resource):
         resource_list_key = 'projects'
 
 
+class UnsupportedAuthType(RuntimeError):
+    """
+    Raised when an authentication type is not supported by the connection.
+    """
+    def __init__(self, auth_type, *args, **kwargs):
+        super().__init__(f"Auth type not supported: {auth_type}", *args, **kwargs)
+
+
 class Connection(rackit.Connection):
     """
     Class for a connection to an OpenStack API, which handles the authentication,
@@ -190,57 +198,44 @@ class Connection(rackit.Connection):
     """
     projects = rackit.RootResource(AuthProject)
 
-    def __init__(self, auth_url, token, interface = 'public', verify = True):
+    def __init__(
+        self,
+        auth_url,
+        token,
+        region,
+        interface,
+        verify,
+        auth_method,
+        user_id,
+        username,
+        domain_id,
+        domain_name,
+        project_id,
+        project_name,
+        roles,
+        endpoints
+    ):
         # Store the given parameters, as it is sometimes useful to be able to query them later
-        self.auth_url = auth_url.rstrip('/')
+        self.auth_url = auth_url
         self.token = token
+        self.region = region
         self.interface = interface
         self.verify = verify
-
-        # Configure the session
-        session = requests.Session()
+        self.auth_method = auth_method
+        self.user_id = user_id
+        self.username = username
+        self.domain_id = domain_id
+        self.domain_name = domain_name
+        self.project_id = project_id
+        self.project_name = project_name
+        self.roles = roles
+        self.endpoints = endpoints
         # This object is the auth object for the session
+        session = requests.Session()
         session.auth = self
-        session.verify = verify
-
+        session.verify = self.verify
         # Once the superclass init is called, we can use the api_{} methods
         super().__init__(auth_url, session)
-
-        # Confirm whether the token is still valid
-        # If this returns anything other than a 200, close the session
-        try:
-            response = self.api_get('/auth/tokens', headers = { 'X-Subject-Token': token })
-        except rackit.ApiError:
-            session.close()
-            raise
-
-        # Extract information about the user and project from the response
-        json = response.json()
-        self.auth_method = json['token']['methods'][0]
-        user = json['token']['user']
-        self.user_id = user['id']
-        self.username = user['name']
-        self.domain_id = user['domain']['id']
-        self.domain_name = user['domain']['name']
-        project = json['token'].get('project', {})
-        self.project_id = project.get('id')
-        self.project_name = project.get('name')
-        self.roles = json['token'].get('roles', [])
-
-        # Extract the endpoints from the catalog on the correct interface
-        self.endpoints = {}
-        for entry in json['token'].get('catalog', []):
-            # Find the endpoint on the specified interface
-            try:
-                endpoint = next(
-                    ep['url']
-                    for ep in entry['endpoints']
-                    if ep['interface'] == self.interface
-                )
-            except StopIteration:
-                continue
-            # Strip any path component from the endpoint
-            self.endpoints[entry['type']] = urlsplit(endpoint)._replace(path = '').geturl()
 
     def __call__(self, request):
         # This is what allows the connection to be used as a requests auth
@@ -251,30 +246,67 @@ class Connection(rackit.Connection):
             pass
         return request
 
-    def scoped_connection(self, project_or_id):
+    @classmethod
+    def from_clouds(cls, data):
         """
-        Return a new connection that is scoped to the given project.
+        Initialise a connection using data from a clouds.yaml file.
         """
-        # Extract the project id from a resource if required
-        if isinstance(project_or_id, Resource):
-            project_id = project_or_id.id
+        # Use the first cloud that we find in the clouds data
+        cloud_data = next(iter(data["clouds"].values()))
+        # Extract the common data from the auth request
+        auth_url = cloud_data["auth"]["auth_url"].rstrip("/").removesuffix("/v3") + "/v3"
+        region = cloud_data.get("region_name")
+        interface = cloud_data.get("interface", "public")
+        verify = cloud_data.get("verify", True)
+        # Get a token and the token information from the credential
+        if cloud_data["auth_type"] == "v3token":
+            # If we already have a token, assume it is scoped for the target project
+            # We just retrieve the token information, including the service catalog
+            token = cloud_data["auth"]["token"]
+            response = requests.get(
+                f"{auth_url}/auth/tokens",
+                headers = {"X-Auth-Token": token, "X-Subject-Token": token}
+            )
+            response.raise_for_status()
+            token_data = response.json()["token"]
         else:
-            project_id = project_or_id
-        if project_id == self.project_id:
-            return self
-        else:
-            # Obtain a new token with the requested scope
-            response = self.api_post(
-                '/auth/tokens',
-                json = dict(
-                    auth = dict(
-                        identity = dict(methods = ['token'], token = dict(id = self.token)),
-                        scope = dict(project = dict(id = project_id))
+            # TODO(mkjpryor)
+            # For other credential types, exchange the credential for a token
+            raise UnsupportedAuthType(cloud_data["auth_type"])
+        # Extract the endpoints from the catalog for the correct interface and region
+        endpoints = {}
+        for entry in token_data["catalog"]:
+            try:
+                endpoint = next(
+                    ep["url"]
+                    for ep in entry["endpoints"]
+                    # If no region is given, use the first one that we find
+                    if (
+                        ep["interface"] == interface and
+                        (not region or ep["region"] == region)
                     )
                 )
-            )
-            token = response.headers['X-Subject-Token']
-            return self.__class__(self.auth_url, token, self.interface, self.verify)
+            except StopIteration:
+                continue
+            # Strip any path component from the endpoint
+            endpoints[entry["type"]] = urlsplit(endpoint)._replace(path = "").geturl()
+        # Create and return the connection
+        return cls(
+            auth_url,
+            token,
+            region,
+            interface,
+            verify,
+            token_data["methods"][0],
+            token_data["user"]["id"],
+            token_data["user"]["name"],
+            token_data["user"]["domain"]["id"],
+            token_data["user"]["domain"]["name"],
+            token_data["project"]["id"],
+            token_data["project"]["name"],
+            token_data["roles"],
+            endpoints
+        )
 
 
 class ServiceNotSupported(RuntimeError):
