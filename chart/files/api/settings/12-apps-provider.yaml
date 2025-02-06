@@ -1,0 +1,8 @@
+AZIMUTH:
+  {{- if .Values.appsProvider.enabled }}
+  APPS_PROVIDER:
+    FACTORY: azimuth.apps.{{ .Values.appsProvider.type }}.Provider
+    PARAMS: {}
+  {{- else }}
+  APPS_PROVIDER: null
+  {{- end }}

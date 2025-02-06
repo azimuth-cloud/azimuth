@@ -27,8 +27,7 @@ from . import base, dto, errors
 logger = logging.getLogger(__name__)
 
 
-CAPI_ADDONS_API_VERSION = "addons.stackhpc.com/v1alpha1"
-AZIMUTH_API_VERSION = "azimuth.stackhpc.com/v1alpha1"
+APPS_API_VERSION = "apps.azimuth-cloud.io/v1alpha1"
 
 
 def convert_exceptions(f):
@@ -44,8 +43,8 @@ def convert_exceptions(f):
             status_code = exc.response.status_code
             message = (
                 str(exc)
-                    .replace("apptemplates.azimuth.stackhpc.com", "Kubernetes app template")
-                    .replace("helmreleases.addons.stackhpc.com", "Kubernetes app")
+                    .replace("apptemplates.apps.azimuth-cloud.io", "Kubernetes app template")
+                    .replace("apps.apps.azimuth-cloud.io", "Kubernetes app")
             )
             if status_code == 400:
                 raise errors.BadInputError(message)
@@ -131,12 +130,7 @@ class Session(base.Session):
         Lists the app templates currently available to the tenancy.
         """
         self._log("Fetching available app templates")
-        templates = list(
-            self._client
-                .api(AZIMUTH_API_VERSION)
-                .resource("apptemplates")
-                .list()
-        )
+        templates = list(self._client.api(APPS_API_VERSION).resource("apptemplates").list())
         self._log("Found %s app templates", len(templates))
 
         # Filter templates based on ACL annotations
@@ -156,68 +150,53 @@ class Session(base.Session):
         Finds an app template by id.
         """
         self._log("Fetching app template with id '%s'", id)
-        template = (
-            self._client
-                .api(AZIMUTH_API_VERSION)
-                .resource("apptemplates")
-                .fetch(id)
-        )
-        
+        template = self._client.api(APPS_API_VERSION).resource("apptemplates").fetch(id)
+
         tenancy =  self._cloud_session.tenancy()
         if not allowed_by_acls(template, tenancy):
             raise errors.ObjectNotFoundError(f"Cannot find app template {id}")
-        
+
         # Don't return app templates with no versions
         if template.get("status", {}).get("versions"):
             return self._from_api_app_template(template)
         else:
             raise errors.ObjectNotFoundError(f"Kubernetes app template '{id}' not found")
 
-    def _from_helm_release(self, helm_release):
+    def _from_api_app(self, app):
         """
         Converts a Helm release to an app DTO.
         """
         # We want to account for the case where a change has been made but the operator
-        # has not yet caught up by tweaking the release state
-        app_state = helm_release.get("status", {}).get("phase")
-        if helm_release.metadata.get("deletionTimestamp"):
-            # If the release has a deletion timestamp, flag it as uninstalling even if
+        # has not yet caught up by tweaking the status
+        app_phase = app.get("status", {}).get("phase")
+        if app.metadata.get("deletionTimestamp"):
+            # If the app has a deletion timestamp, flag it as uninstalling even if
             # the operator hasn't yet updated the status
-            app_state = "Uninstalling"
-        elif not app_state:
-            # If there is no state, then the operator has not caught up after a create
-            app_state = "Pending"
+            app_phase = "Uninstalling"
+        elif not app_phase:
+            # If there is no status, then the operator has not caught up after a create
+            app_phase = "Pending"
         else:
             # Otherwise, we can compare the spec to the last handled configuration
             last_handled_configuration = json.loads(
-                helm_release.metadata
+                app.metadata
                     .get("annotations", {})
-                    .get("addons.stackhpc.com/last-handled-configuration", "{}")
+                    .get("apps.azimuth-cloud.io/last-handled-configuration", "{}")
             )
             last_handled_spec = last_handled_configuration.get("spec")
-            if last_handled_spec and helm_release.spec != last_handled_spec:
-                app_state = "Upgrading"
-        annotations = helm_release.metadata.get("annotations", {})
-        services_annotation = annotations.get("azimuth.stackhpc.com/services")
-        services = json.loads(services_annotation) if services_annotation else {}
+            if last_handled_spec and app.spec != last_handled_spec:
+                app_phase = "Upgrading"
+        app_status = app.get("status", {})
         return dto.App(
-            helm_release.metadata.name,
-            helm_release.metadata.name,
-            helm_release.spec["clusterName"],
-            helm_release.metadata.labels["azimuth.stackhpc.com/app-template"],
-            helm_release.spec.chart.version,
-            # Just pull the values out of the first template source
-            next(
-                (
-                    yaml.safe_load(source["template"])
-                    for source in helm_release.spec.get("valuesSources", [])
-                    if "template" in source
-                ),
-                {}
-            ),
-            app_state,
-            helm_release.get("status", {}).get("notes") or None,
-            helm_release.get("status", {}).get("failureMessage") or None,
+            app.metadata.name,
+            app.metadata.name,
+            app.metadata.get("annotations", {}).get("azimuth.stackhpc.com/cluster"),
+            app.spec.template.name,
+            app.spec.template.version,
+            app.spec.get("values", {}),
+            app_phase,
+            app_status.get("usage") or None,
+            app_status.get("failureMessage") or None,
             [
                 dto.Service(
                     name,
@@ -225,13 +204,13 @@ class Session(base.Session):
                     service["fqdn"],
                     service.get("iconUrl")
                 )
-                for name, service in services.items()
+                for name, service in app_status.get("services", {}).items()
             ],
-            dateutil.parser.parse(helm_release.metadata["creationTimestamp"]),
-            annotations.get("azimuth.stackhpc.com/created-by-username"),
-            annotations.get("azimuth.stackhpc.com/created-by-user-id"),
-            annotations.get("azimuth.stackhpc.com/updated-by-username"),
-            annotations.get("azimuth.stackhpc.com/updated-by-user-id")
+            dateutil.parser.parse(app.metadata["creationTimestamp"]),
+            app.spec["createdByUsername"],
+            app.spec["createdByUserId"],
+            app.spec.get("updatedByUsername"),
+            app.spec.get("updatedByUserId"),
         )
 
     @convert_exceptions
@@ -241,18 +220,9 @@ class Session(base.Session):
         """
         self._log("Fetching available apps")
         # The apps are the HelmReleases that reference an Azimuth app template
-        apps = list(
-            self._client
-                .api(CAPI_ADDONS_API_VERSION)
-                .resource("helmreleases")
-                .list(
-                    labels = {
-                        "azimuth.stackhpc.com/app-template": PRESENT,
-                    }
-                )
-        )
+        apps = list(self._client.api(APPS_API_VERSION).resource("apps").list())
         self._log("Found %s apps", len(apps))
-        return tuple(self._from_helm_release(app) for app in apps)
+        return tuple(self._from_api_app(app) for app in apps)
 
     @convert_exceptions
     def find_app(self, id: str) -> dto.App:
@@ -261,15 +231,8 @@ class Session(base.Session):
         """
         self._log("Fetching app with id '%s'", id)
         # We only want to include apps with the app-template label
-        app = (
-            self._client
-                .api(CAPI_ADDONS_API_VERSION)
-                .resource("helmreleases")
-                .fetch(id)
-        )
-        if "azimuth.stackhpc.com/app-template" not in app.metadata.labels:
-            raise errors.ObjectNotFoundError(f"Kubernetes app \"{id}\" not found")
-        return self._from_helm_release(app)
+        app = self._client.api(APPS_API_VERSION).resource("apps").fetch(id)
+        return self._from_api_app(app)
 
     @convert_exceptions
     def create_app(
@@ -283,42 +246,43 @@ class Session(base.Session):
         """
         Create a new app in the tenancy.
         """
-        # A Kubernetes cluster is required for the helm release driver
+        # For now, we require a Kubernetes cluster
         if not kubernetes_cluster:
             raise errors.BadInputError("No Kubernetes cluster specified.")
-        # We know that the cluster exists, which means that the namespace exists
-        ekapps = self._client.api(CAPI_ADDONS_API_VERSION).resource("helmreleases")
-        app = ekapps.create({
-            "metadata": {
-                "name": name,
-                "labels": {
-                    "app.kubernetes.io/managed-by": "azimuth",
-                    "azimuth.stackhpc.com/app-template": template.id
-                },
-                # Use annotations to indicate who created the app
-                "annotations": {
-                    "azimuth.stackhpc.com/created-by-username": self._cloud_session.username(),
-                    "azimuth.stackhpc.com/created-by-user-id": self._cloud_session.user_id(),
-                },
-            },
-            "spec": {
-                "clusterName": kubernetes_cluster.id,
-                "targetNamespace": name,
-                "releaseName": name,
-                "chart": {
-                    "repo": template.chart.repo,
-                    "name": template.chart.name,
-                    # Use the first version when creating an app
-                    "version": template.versions[0].name,
-                },
-                "valuesSources": [
-                    {
-                        "template": yaml.safe_dump(values),
+        # NOTE(mkjpryor)
+        # We know that the target namespace exists because it has a cluster in
+        return self._from_api_app(
+            self._client
+                .api(APPS_API_VERSION)
+                .resource("apps")
+                .create({
+                    "metadata": {
+                        "name": name,
+                        "labels": {
+                            "app.kubernetes.io/managed-by": "azimuth",
+                        },
+                        "annotations": {
+                            # If the app belongs to a cluster, store that in an annotation
+                            "azimuth.stackhpc.com/cluster": kubernetes_cluster.id,
+                        },
                     },
-                ],
-            },
-        })
-        return self._from_helm_release(app)
+                    "spec": {
+                        "template": {
+                            "name": template.id,
+                            # Use the most recent version when creating an app
+                            "version": template.versions[0].name,
+                        },
+                        "kubeconfigSecret": {
+                            # Use the kubeconfig for the cluster
+                            "name": f"{kubernetes_cluster.id}-kubeconfig",
+                            "key": "value",
+                        },
+                        "values": values,
+                        "createdByUsername": self._cloud_session.username(),
+                        "createdByUserId": self._cloud_session.user_id(),
+                    },
+                })
+        )
 
     @convert_exceptions
     def update_app(
@@ -331,38 +295,23 @@ class Session(base.Session):
         """
         Update the specified cluster with the given parameters.
         """
-        # First, fetch the app to verify that it is actually an app, not a cluster addon
-        if not isinstance(app, dto.App):
-            app = self.find_app(app)
-        return self._from_helm_release(
+        if isinstance(app, dto.App):
+            app = app.id
+        return self._from_api_app(
             self._client
-                .api(CAPI_ADDONS_API_VERSION)
-                .resource("helmreleases")
+                .api(APPS_API_VERSION)
+                .resource("apps")
                 .patch(
-                    app.id,
+                    app,
                     {
-                        # Add/update the annotations that record the user doing the update
-                        "metadata": {
-                            "annotations": {
-                                "azimuth.stackhpc.com/updated-by-username": (
-                                    self._cloud_session.username()
-                                ),
-                                "azimuth.stackhpc.com/updated-by-user-id": (
-                                    self._cloud_session.user_id()
-                                ),
-                            },
-                        },
                         "spec": {
-                            "chart": {
-                                "repo": template.chart.repo,
-                                "name": template.chart.name,
+                            "template": {
+                                "name": template.id,
                                 "version": version.name,
                             },
-                            "valuesSources": [
-                                {
-                                    "template": yaml.safe_dump(values),
-                                },
-                            ],
+                            "values": values,
+                            "updatedByUsername": self._cloud_session.username(),
+                            "updatedByUserId": self._cloud_session.user_id(),
                         },
                     },
                 )
@@ -374,10 +323,10 @@ class Session(base.Session):
         Delete the specified app.
         """
         # Check if the specified id is actually an app before deleting it
-        if not isinstance(app, dto.App):
-            app = self.find_app(app)
-        self._client.api(CAPI_ADDONS_API_VERSION).resource("helmreleases").delete(app.id)
-        return self.find_app(app.id)
+        if isinstance(app, dto.App):
+            app = app.id
+        self._client.api(APPS_API_VERSION).resource("apps").delete(app)
+        return self.find_app(app)
 
     def close(self):
         """
