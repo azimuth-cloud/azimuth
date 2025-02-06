@@ -404,6 +404,13 @@ scheduling:
   # Indicates whether scheduling should be enabled
   enabled: false
 
+# Settings for the Kubernetes apps provider
+appsProvider:
+  # Indicates whether the apps provider should be enabled
+  enabled: true
+  # The type of provider to use, one of "helmrelease" or "app"
+  type: helmrelease
+
 # Properties for applying themes
 theme:
   # The URL of the Bootstrap CSS to use (must be Bootstrap 5)
