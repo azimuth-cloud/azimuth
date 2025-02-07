@@ -325,7 +325,10 @@ class Session(base.Session):
         # Check if the specified id is actually an app before deleting it
         if isinstance(app, dto.App):
             app = app.id
-        self._client.api(APPS_API_VERSION).resource("apps").delete(app)
+        self._client.api(APPS_API_VERSION).resource("apps").delete(
+            app,
+            propagation_policy = "Foreground"
+        )
         return self.find_app(app)
 
     def close(self):
