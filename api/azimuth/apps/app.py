@@ -241,7 +241,8 @@ class Session(base.Session):
         template: dto.AppTemplate,
         values: t.Dict[str, t.Any],
         *,
-        kubernetes_cluster: t.Optional[capi_dto.Cluster] = None
+        kubernetes_cluster: t.Optional[capi_dto.Cluster] = None,
+        zenith_identity_realm_name: t.Optional[str] = None
     ) -> dto.App:
         """
         Create a new app in the tenancy.
@@ -249,6 +250,9 @@ class Session(base.Session):
         # For now, we require a Kubernetes cluster
         if not kubernetes_cluster:
             raise errors.BadInputError("No Kubernetes cluster specified.")
+        # This driver requires the Zenith identity realm to be specified
+        if not zenith_identity_realm_name:
+            raise errors.BadInputError("No Zenith identity realm specified.")
         # NOTE(mkjpryor)
         # We know that the target namespace exists because it has a cluster in
         return self._from_api_app(
@@ -261,8 +265,8 @@ class Session(base.Session):
                         "labels": {
                             "app.kubernetes.io/managed-by": "azimuth",
                         },
+                        # If the app belongs to a cluster, store that in an annotation
                         "annotations": {
-                            # If the app belongs to a cluster, store that in an annotation
                             "azimuth.stackhpc.com/cluster": kubernetes_cluster.id,
                         },
                     },
@@ -277,6 +281,7 @@ class Session(base.Session):
                             "name": f"{kubernetes_cluster.id}-kubeconfig",
                             "key": "value",
                         },
+                        "zenithIdentityRealmName": zenith_identity_realm_name,
                         "values": values,
                         "createdByUsername": self._cloud_session.username(),
                         "createdByUserId": self._cloud_session.user_id(),
