@@ -278,7 +278,9 @@ class Session(base.Session):
         template: dto.AppTemplate,
         values: t.Dict[str, t.Any],
         *,
-        kubernetes_cluster: t.Optional[capi_dto.Cluster] = None
+        kubernetes_cluster: t.Optional[capi_dto.Cluster] = None,
+        # This is ignored for the HelmRelease driver - the realm for the target cluster is used
+        zenith_identity_realm_name: t.Optional[str] = None
     ) -> dto.App:
         """
         Create a new app in the tenancy.
