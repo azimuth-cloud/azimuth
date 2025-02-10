@@ -1798,7 +1798,12 @@ def kubernetes_apps(request, tenant):
                         }
                     )
                     input_serializer.is_valid(raise_exception = True)
-                    app = apps_session.create_app(**input_serializer.validated_data)
+                    params = dict(input_serializer.validated_data)
+                    if cloud_settings.APPS:
+                        # Make sure that the identity realm exists
+                        realm = identity.ensure_realm(session.tenancy())
+                        params["zenith_identity_realm_name"] = realm.name
+                    app = apps_session.create_app(**params)
                     output_serializer = serializers.KubernetesAppSerializer(
                         app,
                         context = { "request": request, "tenant": tenant }
