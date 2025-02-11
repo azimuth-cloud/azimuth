@@ -17,6 +17,9 @@ AZIMUTH:
       {{- with .Values.provider.openstack.internalNetDNSNameservers }}
       INTERNAL_NET_DNS_NAMESERVERS: {{ toYaml . | nindent 8 }}
       {{- end }}
+    {{- else if (eq .Values.provider.type "null")}}
+    FACTORY: azimuth.provider.null.Provider
+    PARAMS: {}
     {{- else }}
     {{- fail (printf "Unrecognised cloud provider '%s'" .Values.provider.type) }}
     {{- end }}
