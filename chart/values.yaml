@@ -250,7 +250,9 @@ authentication:
 
 # The cloud provider to use
 provider:
-  # The type of provider to use (currently only openstack is supported)
+  # The type of provider to use - openstack and null are supported
+  # The null provider does not support any cloud functionality, but does support deploying
+  # apps on a pre-configured Kubernetes cluster
   type: openstack
   # Parameters for the openstack provider
   openstack:
