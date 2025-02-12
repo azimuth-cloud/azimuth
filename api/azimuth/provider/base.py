@@ -125,6 +125,13 @@ class UnscopedSession:
         # Convert the tenancies from the auth DTO to the provider DTO
         return [dto.Tenancy(t.id, t.name) for t in self.auth_session.tenancies()]
 
+    def _can_use_credential(self, credential: auth_dto.Credential) -> bool:
+        """
+        Verifies whether this provider is able to use the given credential.
+        """
+        # By default, the credential provider must match the provider name
+        return credential.provider == self.provider_name
+
     def _scoped_session(
         self,
         auth_user: auth_dto.User,
@@ -154,9 +161,9 @@ class UnscopedSession:
                 )
         # Get the credential from the auth session
         credential = self.auth_session.credential(tenancy.id)
-        # Verify that the provider matches this provider
-        if credential.provider != self.provider_name:
-            raise errors.InvalidOperationError("credential is for a different provider")
+        # Verify that this provider can use the credential
+        if not self._can_use_credential(credential):
+            raise errors.InvalidOperationError("provider is not able to use credential")
         return self._scoped_session(self.auth_user, tenancy, credential.data)
 
     def close(self):
