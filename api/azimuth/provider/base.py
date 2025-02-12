@@ -127,6 +127,13 @@ class UnscopedSession:
         # Convert the tenancies from the auth DTO to the provider DTO
         return [dto.Tenancy(t.id, t.name) for t in self.auth_session.tenancies()]
 
+    def _requires_credential(self) -> bool:
+        """
+        Indicates whether the provider requires a credential.
+        """
+        # By default, we always require a credential
+        return True
+
     def _scoped_session(
         self,
         auth_user: auth_dto.User,
@@ -154,13 +161,21 @@ class UnscopedSession:
                 raise errors.ObjectNotFoundError(
                     "Could not find tenancy with ID {}.".format(tenancy)
                 )
-        # Get the credential from the auth session for this provider
-        credential = self.auth_session.credential(tenancy.id, self.provider_name)
-        # If the auth session is unable to supply a credential for the provider, bail
-        if not credential:
-            msg = f"no credentials available for {self.provider_name} provider"
-            raise errors.InvalidOperationError(msg)
-        return self._scoped_session(self.auth_user, tenancy, credential.data)
+        # If the provider requires a credential, try to find one
+        if self._requires_credential():
+            # Get the credential from the auth session for this provider
+            credential = self.auth_session.credential(tenancy.id, self.provider_name)
+            # If a credential is available, extract the data
+            # If the auth session is unable to supply a credential, bail
+            if credential:
+                credential_data = credential.data
+            else:
+                msg = f"no credentials available for {self.provider_name} provider"
+                raise errors.InvalidOperationError(msg)
+        else:
+            # If the provider does not require a credential, just pass empty data
+            credential_data = ""
+        return self._scoped_session(self.auth_user, tenancy, credential_data)
 
     def close(self):
         """
