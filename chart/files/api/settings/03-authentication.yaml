@@ -52,6 +52,12 @@ AZIMUTH_AUTH:
     {{- end }}
     {{- end }}
   {{- end }}
+  {{- else if eq .type "external" }}
+  {{- with .external }}
+  EXTERNAL:
+    USER_HEADER: {{ tpl .userHeader $ }}
+    GROUPS_HEADER: {{ tpl .groupsHeader $ }}
+  {{- end }}
   {{- else }}
   {{- printf "Unrecognised authentication type - %s" .type | fail }}
   {{- end }}

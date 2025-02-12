@@ -30,6 +30,16 @@ class ChoiceSetting(Setting):
             raise ImproperlyConfigured(f"{instance.name}.{self.name} must be one of {choices}")
 
 
+class ExternalAuthSettings(SettingsObject):
+    """
+    Settings for external authentication.
+    """
+    #: The name of the header containing the username of the authenticated user
+    USER_HEADER = Setting(default = "X_REMOTE_USER")
+    #: The name of the header containing a comma-separated list of the authenticated user's groups
+    GROUPS_HEADER = Setting(default = "X_REMOTE_GROUP")
+
+
 class OpenStackSettings(SettingsObject):
     """
     Settings for OpenStack authentication.
@@ -134,7 +144,15 @@ class SessionProviderSetting(ObjectFactorySetting):
     Custom setting for configuring the session provider based on other settings.
     """
     def _get_default(self, instance):
-        if instance.AUTH_TYPE == "openstack":
+        if instance.AUTH_TYPE == "external":
+            return {
+                "FACTORY": "azimuth_auth.session.external.Provider",
+                "PARAMS": {
+                    "USER_HEADER": instance.EXTERNAL.USER_HEADER,
+                    "GROUPS_HEADER": instance.EXTERNAL.GROUPS_HEADER,
+                },
+            }
+        elif instance.AUTH_TYPE == "openstack":
             return {
                 "FACTORY": "azimuth_auth.session.openstack.Provider",
                 "PARAMS": {
@@ -153,7 +171,9 @@ class AzimuthAuthSettings(SettingsObject):
     Settings object for the ``AZIMUTH_AUTH`` setting.
     """
     #: The type of authentication to use
-    AUTH_TYPE = ChoiceSetting(["openstack"])
+    AUTH_TYPE = ChoiceSetting(["external", "openstack"])
+    #: Settings for external authentication
+    EXTERNAL = NestedSetting(ExternalAuthSettings)
     #: Settings for OpenStack authentication
     OPENSTACK = NestedSetting(OpenStackSettings)
 

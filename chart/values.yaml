@@ -186,8 +186,14 @@ settings:
 
 # Configuration for authentication
 authentication:
-  # The type of authentication to use (valid options are openstack, oidc)
+  # The type of authentication to use (valid options are openstack, external)
   type: openstack
+  # Parameters for external authentication
+  external:
+    # The header containing the username
+    userHeader: X_REMOTE_USER
+    # The header containing the groups
+    groupsHeader: X_REMOTE_GROUP
   # Parameters for OpenStack authentication
   openstack:
     # The OpenStack auth URL to use
@@ -229,14 +235,6 @@ authentication:
           # provider:
           # The human-readble name for the IDP in the auth selection form
           label: OpenID Connect
-  # Parameters for OIDC authentication
-  oidc:
-    # The URL of the issuer
-    # Azimuth will use OIDC discovery to discover the rest of the configuration
-    issuerUrl:
-    # The client ID and secret for Azimuth to use
-    clientID:
-    clientSecret:
 
 # The cloud provider to use
 provider:
