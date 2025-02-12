@@ -459,6 +459,9 @@ oidc:
         - name: X-Remote-Group
           values:
             - claim: groups
+        - name: X-Auth-ID-Token
+          values:
+            - claim: id_token
       # Just configure a "null" upstream as we are using it as an auth request
       upstreamConfig:
         upstreams:
@@ -491,7 +494,7 @@ oidc:
     #   i.e. the length of time that a user *who already has a valid cookie* will be
     #   able to continue using the service after their access has been removed at the
     #   OIDC provider
-    cookie-refresh: 1h
+    cookie-refresh: 5m
     # If the ingress is not using TLS, we have to allow the cookie on insecure connections
     cookie-secure: "{{ ternary \"true\" \"false\" .Values.global.ingress.tls.enabled }}"
     # Allow redirections to the service domain only
