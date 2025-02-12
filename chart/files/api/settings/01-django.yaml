@@ -1,10 +1,11 @@
+{{- $ingress := mergeOverwrite .Values.global.ingress .Values.ingress }}
 SECRET_KEY: {{ .Values.settings.secretKey | default (randAlphaNum 64) }}
 DEBUG: {{ .Values.settings.debug }}
-CSRF_COOKIE_SECURE: {{ .Values.ingress.tls.enabled }}
+CSRF_COOKIE_SECURE: {{ $ingress.tls.enabled }}
 {{- with .Values.settings.csrfCookieName }}
 CSRF_COOKIE_NAME: {{ . }}
 {{- end }}
-SESSION_COOKIE_SECURE: {{ .Values.ingress.tls.enabled }}
+SESSION_COOKIE_SECURE: {{ $ingress.tls.enabled }}
 {{- with .Values.settings.sessionCookieName }}
 SESSION_COOKIE_NAME: {{ . }}
 {{- end }}

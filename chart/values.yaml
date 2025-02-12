@@ -8,6 +8,24 @@ tags:
   # Setting this tag to false disables the Kubernetes support
   kubernetes: true
 
+# Global configuration is shared between Azimuth and oauth2-proxy
+global:
+  ingress:
+    # The hostname to use for the portal
+    host:
+    # The ingress class to use
+    className: nginx
+    # Annotations for the portal ingress
+    annotations: {}
+    # TLS configuration for the portal ingress
+    tls:
+      # Indicates if TLS should be enabled
+      enabled: true
+      # The secret to use for the TLS certificate and key
+      secretName:
+      # TLS-specific ingress annotations, e.g. for cert-manager configuration
+      annotations: {}
+
 api:
   # The image to use for the api component
   image:
@@ -121,21 +139,9 @@ ui:
   # Affinity rules for ui pods
   affinity: {}
 
-ingress:
-  # The hostname to use for the portal
-  host:
-  # The ingress class to use
-  className: nginx
-  # Annotations for the portal ingress
-  annotations: {}
-  # TLS configuration for the portal ingress
-  tls:
-    # Indicates if TLS should be enabled
-    enabled: true
-    # The secret to use for the TLS certificate and key
-    secretName:
-    # TLS-specific ingress annotations, e.g. for cert-manager configuration
-    annotations: {}
+# Can be used instead of global.ingress when OIDC is not enabled
+# For backwards compatibility
+ingress: {}
 
 # A bundle of trusted CAs to use instead of the defaults
 trustBundle:
@@ -409,3 +415,93 @@ theme:
   #       text-overflow: hidden;
   #       color: rgb(0, 0, 0, 0) !important;
   #   }
+
+# Configuration for OIDC authentication
+oidc:
+  # Indicates if OIDC authentication should be enabled
+  enabled: false
+  # Configuration for the OIDC provider
+  provider:
+    # The ID of the provider
+    id: oidc
+    # The type of the provider
+    provider: oidc
+    # The OIDC client ID
+    clientID:
+    # The OIDC client secret
+    clientSecret:
+    # List of groups to restrict access to
+    allowedGroups: []
+    # Parameters that will be forwarded from the OIDC start URL to the IdP login URL
+    loginURLParameters: []
+    oidcConfig:
+      # The OIDC issuer URL
+      issuerURL:
+      # By default, we don't require an email claim to be present
+      # To do this, we use a claim that is always present as the email address
+      emailClaim: email
+      # We also allow unverified email addresses
+      insecureAllowUnverifiedEmail: true
+      groupsClaim: groups
+      audienceClaims: ["aud"]
+  # We use the alpha config in order to be able to use loginURLParameters
+  alphaConfig:
+    enabled: true
+    # Static parts of the configuration
+    configData:
+      # This is the claims to return as headers from the response
+      injectResponseHeaders:
+        - name: X-Remote-User
+          values:
+            - claim: preferred_username
+        - name: X-Remote-Group
+          values:
+            - claim: groups
+      # Just configure a "null" upstream as we are using it as an auth request
+      upstreamConfig:
+        upstreams:
+          - id: static
+            path: "/"
+            static: true
+    # We template the provider so that we can move the provider configuration
+    # to a higher level and get the nice merging behaviour
+    configFile: |
+      providers:
+        - {{ toYaml .Values.provider | nindent 6 }}
+  # Disable the standard config
+  config:
+    configFile: ""
+  proxyVarsAsSecrets: false
+  # Some settings are only available as arguments
+  extraArgs:
+    # The path prefix to use for OAuth2 proxy endpoints
+    proxy-prefix: /_oidc
+    cookie-secret: "{{ fail \"cookie secret is required\" }}"
+    # The length of time for which OAuth2 proxy cookies should last
+    #   This determines the length of time until a user is forced to reauthenticate
+    cookie-expire: 24h
+    # The length of time after which an OAuth2 proxy cookie should be refreshed
+    #   This determines the length of time until a user's permissions are re-checked,
+    #   i.e. the length of time that a user *who already has a valid cookie* will be
+    #   able to continue using the service after their access has been removed at the
+    #   OIDC provider
+    cookie-refresh: 1h
+    # If the ingress is not using TLS, we have to allow the cookie on insecure connections
+    cookie-secure: "{{ ternary \"true\" \"false\" .Values.global.ingress.tls.enabled }}"
+    # Allow redirections to the service domain only
+    whitelist-domain: "{{ .Values.global.ingress.host }}"
+    # We redirect to the callback endpoint on the service domain
+    redirect-url: >-
+      {{- $scheme := ternary "https" "http" .Values.global.ingress.tls.enabled -}}
+      {{- $host := .Values.global.ingress.host -}}
+      {{- $prefix := tpl (index .Values.extraArgs "proxy-prefix") . -}}
+      {{- printf "%s://%s%s/callback" $scheme $host $prefix -}}
+    # Allow any email address
+    email-domain: "*"
+    # Suppress access logs for the health check
+    silence-ping-logging: "true"
+    # Skip the "proceed to provider" screen on a re-authenticate
+    skip-provider-button: "true"
+  # We will always manage our own ingress for the _oidc path
+  ingress:
+    enabled: false

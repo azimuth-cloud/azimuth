@@ -1,9 +1,10 @@
+{{- $ingress := mergeOverwrite .Values.global.ingress .Values.ingress }}
 AZIMUTH:
   AVAILABLE_CLOUDS:
     {{ .Values.settings.currentCloud.name }}:
       label: {{ .Values.settings.currentCloud.label }}
-      {{- $proto := .Values.ingress.tls.enabled | ternary "https" "http" }}
-      url: {{ printf "%s://%s/tenancies" $proto .Values.ingress.host }}
+      {{- $proto := $ingress.tls.enabled | ternary "https" "http" }}
+      url: {{ printf "%s://%s/tenancies" $proto $ingress.host }}
     {{- range .Values.settings.availableClouds }}
     {{ .name }}:
       label: {{ .label | quote }}

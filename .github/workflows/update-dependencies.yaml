@@ -72,3 +72,69 @@ jobs:
             automation
             dependency-update
             ${{ matrix.component }}
+
+  propose_helm_chart_updates:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - key: oauth2-proxy
+            component: oauth2-proxy
+            path: ./chart/Chart.yaml
+            chart_name_jsonpath: dependencies[0].name
+            chart_repo_jsonpath: dependencies[0].repository
+            chart_version_jsonpath: dependencies[0].version
+
+    name: ${{ matrix.key }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract repo and chart
+        id: chart-info
+        uses: azimuth-cloud/github-actions/config-extract@master
+        with:
+          path: ${{ matrix.path }}
+          outputs: |
+            repo=${{ matrix.chart_repo_jsonpath }}
+            name=${{ matrix.chart_name_jsonpath }}
+
+      - name: Check for updates
+        id: next
+        uses: azimuth-cloud/github-actions/helm-latest-version@master
+        with:
+          repository: ${{ steps.chart-info.outputs.repo }}
+          chart: ${{ steps.chart-info.outputs.name }}
+
+      - name: Update chart version
+        uses: azimuth-cloud/github-actions/config-update@master
+        with:
+          path: ${{ matrix.path }}
+          updates: |
+            ${{ matrix.chart_version_jsonpath }}=${{ steps.next.outputs.version }}
+
+      - name: Generate app token for PR
+        uses: azimuth-cloud/github-actions/generate-app-token@master
+        id: generate-app-token
+        with:
+          repository: ${{ github.repository }}
+          app-id: ${{ secrets.AUTOMATION_APP_ID }}
+          app-private-key: ${{ secrets.AUTOMATION_APP_PRIVATE_KEY }}
+
+      - name: Propose changes via PR if required
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ steps.generate-app-token.outputs.token }}
+          commit-message: >-
+            Update ${{ matrix.key }} to ${{ steps.next.outputs.version }}
+          branch: update-dependency/${{ matrix.key }}
+          delete-branch: true
+          title: >-
+            Update ${{ matrix.key }} to ${{ steps.next.outputs.version }}
+          body: >
+            This PR was created automatically to update
+            ${{ matrix.key }} to ${{ steps.next.outputs.version }}.
+          labels: |
+            automation
+            dependency-update
+            ${{ matrix.component }}
