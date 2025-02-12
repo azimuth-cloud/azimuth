@@ -25,6 +25,8 @@ global:
       secretName:
       # TLS-specific ingress annotations, e.g. for cert-manager configuration
       annotations: {}
+  # The secret key to use for Django and OIDC cookies etc.
+  secretKey:
 
 api:
   # The image to use for the api component
@@ -476,7 +478,11 @@ oidc:
   extraArgs:
     # The path prefix to use for OAuth2 proxy endpoints
     proxy-prefix: /_oidc
-    cookie-secret: "{{ fail \"cookie secret is required\" }}"
+    # Cookie secret must be 16, 24 or 32 bytes
+    # To ensure this, we pad with 32 bytes of "x" then truncate at 32 bytes
+    cookie-secret: >-
+      {{- $secretKey := required "global.secretKey is required" .Values.global.secretKey }}
+      {{- printf "%s%s" $secretKey (repeat 32 "x") | trunc 32 -}}
     # The length of time for which OAuth2 proxy cookies should last
     #   This determines the length of time until a user is forced to reauthenticate
     cookie-expire: 24h

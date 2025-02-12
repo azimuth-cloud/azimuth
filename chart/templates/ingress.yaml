@@ -6,8 +6,45 @@ metadata:
   labels: {{ include "azimuth.labels" . | nindent 4 }}
   {{- $tlsAnnotations := $ingress.tls.enabled | ternary $ingress.tls.annotations dict }}
   {{- $annotations := mergeOverwrite $ingress.annotations $tlsAnnotations }}
-  {{- with $annotations }}
-  annotations: {{ toYaml . | nindent 4 }}
+  {{- if or $annotations .Values.oidc.enabled }}
+  annotations:
+    {{- with $annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- if .Values.oidc.enabled }}
+    {{- $scheme := ternary "https" "http" $ingress.tls.enabled }}
+    {{- $prefix := index .Values.oidc.extraArgs "proxy-prefix" }}
+    nginx.ingress.kubernetes.io/auth-url: >-
+      http://{{ printf "%s-oidc" .Release.Name }}.{{ .Release.Namespace }}.svc.cluster.local{{ $prefix }}/auth
+    nginx.ingress.kubernetes.io/auth-signin: >-
+      {{ $scheme }}://{{ $ingress.host }}{{ $prefix }}/start?rd=$escaped_request_uri&$args
+    {{- with .Values.oidc.alphaConfig.configData.injectResponseHeaders }}
+    nginx.ingress.kubernetes.io/auth-response-headers: >-
+      {{ range $i, $rh := . }}{{ if $i }},{{ end }}{{ $rh.name }}{{ end }}
+    {{- end }}
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      auth_request_set $auth_cookie__oauth2_proxy_1 $upstream_cookie__oauth2_proxy_1;
+      auth_request_set $auth_cookie__oauth2_proxy_2 $upstream_cookie__oauth2_proxy_2;
+      auth_request_set $auth_cookie__oauth2_proxy_3 $upstream_cookie__oauth2_proxy_3;
+
+      access_by_lua_block {
+        local auth_set_cookie = ngx.var.auth_cookie
+
+        if ngx.var.auth_cookie__oauth2_proxy_1 ~= "" then
+          auth_set_cookie = "_oauth2_proxy_1=" .. ngx.var.auth_cookie__oauth2_proxy_1 .. "; " .. auth_set_cookie
+        end
+        if ngx.var.auth_cookie__oauth2_proxy_2 ~= "" then
+          auth_set_cookie = "_oauth2_proxy_2=" .. ngx.var.auth_cookie__oauth2_proxy_2 .. "; " .. auth_set_cookie
+        end
+        if ngx.var.auth_cookie__oauth2_proxy_3 ~= "" then
+          auth_set_cookie = "_oauth2_proxy_3=" .. ngx.var.auth_cookie__oauth2_proxy_3 .. "; " .. auth_set_cookie
+        end
+
+        if auth_set_cookie ~= "" then
+          ngx.header["Set-Cookie"] = auth_set_cookie
+        end
+      }
+    {{- end }}
   {{- end }}
 spec:
   {{- with $ingress.className }}

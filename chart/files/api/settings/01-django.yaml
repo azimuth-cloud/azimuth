@@ -1,5 +1,9 @@
 {{- $ingress := mergeOverwrite .Values.global.ingress .Values.ingress }}
-SECRET_KEY: {{ .Values.settings.secretKey | default (randAlphaNum 64) }}
+SECRET_KEY: {{
+  .Values.global.secretKey |
+    default .Values.settings.secretKey |
+    required "global.secretKey is required"
+}}
 DEBUG: {{ .Values.settings.debug }}
 CSRF_COOKIE_SECURE: {{ $ingress.tls.enabled }}
 {{- with .Values.settings.csrfCookieName }}
