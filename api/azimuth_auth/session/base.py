@@ -4,6 +4,8 @@ Module containing the base session.
 
 import typing as t
 
+from django import http
+
 from . import dto
 
 
@@ -11,9 +13,9 @@ class Provider:
     """
     Base class for an authentication session provider.
     """
-    def from_token(self, token: str) -> 'Session':
+    def from_request(self, request: http.HttpRequest) -> 'Session':
         """
-        Create an authentication session from a token.
+        Create an authentication session from a HTTP request.
         """
         raise NotImplementedError
 

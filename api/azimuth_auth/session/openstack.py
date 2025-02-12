@@ -5,7 +5,7 @@ import httpx
 
 from ..authenticator.openstack import normalize_auth_url
 
-from . import base, dto, errors
+from . import base, dto, errors, token
 
 
 def convert_httpx_exceptions(f):
@@ -46,7 +46,7 @@ class OpenStackAuth(httpx.Auth):
         yield request
 
 
-class Provider(base.Provider):
+class Provider(token.Provider):
     """
     Provider that understands OpenStack tokens.
     """

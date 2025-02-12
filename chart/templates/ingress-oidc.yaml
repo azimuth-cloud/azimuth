@@ -1,0 +1,35 @@
+{{- if .Values.oidc.enabled }}
+{{- $ingress := .Values.global.ingress }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "azimuth.componentname" (list . "oidc") }}
+  labels: {{ include "azimuth.componentLabels" (list . "oidc") | nindent 4 }}
+  {{- $tlsAnnotations := $ingress.tls.enabled | ternary $ingress.tls.annotations dict }}
+  {{- $annotations := mergeOverwrite $ingress.annotations $tlsAnnotations }}
+  {{- with $annotations }}
+  annotations: {{ toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with $ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- if $ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ required "global.ingress.host is required" $ingress.host | quote }}
+      secretName: {{ $ingress.tls.secretName | default (printf "%s-tls" (include "azimuth.fullname" .)) }}
+  {{- end }}
+  rules:
+    - host: {{ $ingress.host | quote }}
+      http:
+        paths:
+          # Send traffic for the proxy-prefix to the oauth2-proxy
+          - path: {{ index .Values.oidc.extraArgs "proxy-prefix" }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ printf "%s-oidc" .Release.Name }}
+                port:
+                  name: http
+{{- end }}

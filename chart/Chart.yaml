@@ -5,3 +5,10 @@ type: application
 # The version and appVersion are updated by the chart build script
 version: 0.1.0
 appVersion: master
+
+dependencies:
+  - alias: oidc
+    repository: https://oauth2-proxy.github.io/manifests
+    name: oauth2-proxy
+    version: 7.10.2
+    condition: oidc.enabled
