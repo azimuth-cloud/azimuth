@@ -7,8 +7,6 @@ import dateutil.parser
 
 import httpx
 
-import yaml
-
 from easykube import (
     Configuration,
     ApiError,
@@ -65,9 +63,14 @@ class Provider(base.Provider):
     """
     Base class for Cluster API providers.
     """
-    def __init__(self):
+    def __init__(
+        self,
+        # The label to use to find the default kubeconfig secret
+        default_kubeconfig_secret_label: str = "apps.azimuth-cloud.io/default-kubeconfig"
+    ):
         # Get the easykube configuration from the environment
         self._ekconfig = Configuration.from_environment()
+        self._default_kubeconfig_secret_label = default_kubeconfig_secret_label
 
     def session(self, cloud_session: cloud_base.ScopedSession) -> 'Session':
         """
@@ -78,16 +81,22 @@ class Provider(base.Provider):
         namespace = get_namespace(client, cloud_session.tenancy())
         # Set the target namespace as the default namespace for the client
         client.default_namespace = namespace
-        return Session(client, cloud_session)
+        return Session(client, cloud_session, self._default_kubeconfig_secret_label)
 
 
 class Session(base.Session):
     """
     Base class for a scoped session.
     """
-    def __init__(self, client: SyncClient, cloud_session: cloud_base.ScopedSession):
+    def __init__(
+        self,
+        client: SyncClient,
+        cloud_session: cloud_base.ScopedSession,
+        default_kubeconfig_secret_label: str
+    ):
         self._client = client
         self._cloud_session = cloud_session
+        self._default_kubeconfig_secret_label = default_kubeconfig_secret_label
 
     def _log(self, message, *args, level = logging.INFO, **kwargs):
         logger.log(
@@ -234,6 +243,23 @@ class Session(base.Session):
         app = self._client.api(APPS_API_VERSION).resource("apps").fetch(id)
         return self._from_api_app(app)
 
+    def _find_default_kubeconfig_secret(self) -> t.Optional[t.Dict[str, t.Any]]:
+        """
+        Attempts to locate a default kubeconfig secret in the namespace.
+        """
+        # Find the first secret with the expected label
+        secret = self._client.api("v1").resource("secrets").first(
+            labels = { self._default_kubeconfig_secret_label: PRESENT }
+        )
+        if secret:
+            # Use the first key in the secret (we expect it to be the only key)
+            try:
+                return secret.metadata.name, next(iter(secret.get("data", {}).keys()))
+            except StopIteration:
+                # Fall through to the exception
+                pass
+        raise errors.BadInputError("Unable to determine Kubernetes cluster for app.")
+
     @convert_exceptions
     def create_app(
         self,
@@ -247,12 +273,15 @@ class Session(base.Session):
         """
         Create a new app in the tenancy.
         """
-        # For now, we require a Kubernetes cluster
-        if not kubernetes_cluster:
-            raise errors.BadInputError("No Kubernetes cluster specified.")
         # This driver requires the Zenith identity realm to be specified
         if not zenith_identity_realm_name:
             raise errors.BadInputError("No Zenith identity realm specified.")
+        # Decide which kubeconfig to use
+        if kubernetes_cluster:
+            kubeconfig_secret_name = f"{kubernetes_cluster.id}-kubeconfig"
+            kubeconfig_secret_key = "value"
+        else:
+            kubeconfig_secret_name, kubeconfig_secret_key = self._find_default_kubeconfig_secret()
         # NOTE(mkjpryor)
         # We know that the target namespace exists because it has a cluster in
         return self._from_api_app(
@@ -266,9 +295,11 @@ class Session(base.Session):
                             "app.kubernetes.io/managed-by": "azimuth",
                         },
                         # If the app belongs to a cluster, store that in an annotation
-                        "annotations": {
-                            "azimuth.stackhpc.com/cluster": kubernetes_cluster.id,
-                        },
+                        "annotations": (
+                            { "azimuth.stackhpc.com/cluster": kubernetes_cluster.id }
+                            if kubernetes_cluster
+                            else {}
+                        ),
                     },
                     "spec": {
                         "template": {
@@ -277,9 +308,8 @@ class Session(base.Session):
                             "version": template.versions[0].name,
                         },
                         "kubeconfigSecret": {
-                            # Use the kubeconfig for the cluster
-                            "name": f"{kubernetes_cluster.id}-kubeconfig",
-                            "key": "value",
+                            "name": kubeconfig_secret_name,
+                            "key": kubeconfig_secret_key,
                         },
                         "zenithIdentityRealmName": zenith_identity_realm_name,
                         "values": values,
