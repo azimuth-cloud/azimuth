@@ -125,8 +125,8 @@ const initialValues = (kubernetesAppTemplate, kubernetesApp) => {
 
 
 const initialState = (kubernetesAppTemplate, kubernetesApp) => ({
-    name: kubernetesApp ? kubernetesApp.name : "",
-    kubernetesCluster: kubernetesApp ? kubernetesApp.kubernetes_cluster.id : "",
+    name: kubernetesApp?.name || "",
+    kubernetesCluster: kubernetesApp?.kubernetes_cluster?.id || "",
     // Use the latest version by default
     version: kubernetesApp ? kubernetesApp.version : kubernetesAppTemplate.versions[0].name,
     values: initialValues(kubernetesAppTemplate, kubernetesApp),
