@@ -408,10 +408,13 @@ scheduling:
 
 # Settings for the Kubernetes apps provider
 appsProvider:
-  # Indicates whether the apps provider should be enabled
+  # Indicates if the apps provider should be enabled
   enabled: true
-  # The type of provider to use, one of "helmrelease" or "app"
-  type: helmrelease
+  # The apps provider to use - valid options are default, helmrelease and app
+  #   If default is specified then the helmrelease provider is used if Cluster
+  #   API is available (for backwards compatibility), and the app provider is
+  #   used when Cluster API is not available
+  type: default
 
 # Properties for applying themes
 theme:
