@@ -332,8 +332,16 @@ class Session(base.Session):
             # If we get to here, the user is allowed to use the tenancy!
             yield dto.Tenancy(tenancy_id, tenancy_name)
 
-    # TODO(mkjpryor)
-    # Implement SSH key management by reading/writing public keys stored in configmaps
+    def credential(self, tenancy_id):
+        #####
+        # TODO(mkjpryor)
+        # Try to find a cloud credential in a secret with a known label in the tenancy namespace
+        # If no such credential exists, return a null credential so that the null cloud provider
+        # can still be used to deploy Kubernetes apps
+        #
+        # For now, we always return a null credential
+        #####
+        return dto.Credential("null", {})
 
     # TODO(mkjpryor)
-    # Implement cloud credential retrieval from a secret with a known type and/or label
+    # Implement SSH key management by reading/writing public keys stored in configmaps
