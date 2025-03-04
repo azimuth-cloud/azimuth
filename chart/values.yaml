@@ -187,7 +187,7 @@ settings:
 # Configuration for authentication
 authentication:
   # The type of authentication to use (valid options are oidc, openstack)
-  type: oidc
+  type: openstack
   # Parameters for OpenStack authentication
   openstack:
     # The OpenStack auth URL to use
