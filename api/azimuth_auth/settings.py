@@ -2,14 +2,19 @@
 Settings for the Azimuth auth package.
 """
 
+import functools
+
 from django.core.exceptions import ImproperlyConfigured
+
+import httpx
 
 from settings_object import (
     SettingsObject,
     Setting,
     MergedDictSetting,
     NestedSetting,
-    ObjectFactorySetting
+    ObjectFactorySetting,
+
 )
 
 
@@ -28,6 +33,70 @@ class ChoiceSetting(Setting):
         else:
             choices = ",".join(str(choice) for choice in self.choices)
             raise ImproperlyConfigured(f"{instance.name}.{self.name} must be one of {choices}")
+
+
+class OIDCDiscoverySetting(Setting):
+    """
+    Setting whose default value is populated by OIDC discovery.
+    """
+    def __init__(self, key):
+        self.key = key
+
+    def _get_default(self, instance):
+        try:
+            return instance.DISCOVERY_DATA[self.key]
+        except KeyError:
+            raise ImproperlyConfigured(f"{self.key} not present in OIDC discovery data")
+
+
+class OIDCSettings(SettingsObject):
+    """
+    Settings for OIDC authentication.
+    """
+    #: The URL for the OIDC issuer
+    ISSUER_URL = Setting()
+    #: The authorization URL for the OIDC issuer
+    #: If not given, OIDC discovery is used to discover it
+    AUTHORIZATION_URL = OIDCDiscoverySetting("authorization_endpoint")
+    #: The token URL for the OIDC issuer
+    #: If not given, OIDC discovery is used to discover it
+    TOKEN_URL = OIDCDiscoverySetting("token_endpoint")
+    #: The userinfo URL for the OIDC issuer
+    #: If not given, OIDC discovery is used to discover it
+    USERINFO_URL = OIDCDiscoverySetting("userinfo_endpoint")
+
+    #: The claim to extract the user's ID from
+    USERID_CLAIM = Setting(default = "sub")
+    #: The claim to extract the username from
+    USERNAME_CLAIM = Setting(default = "preferred_username")
+    #: The claim to extract the user's email address from
+    EMAIL_CLAIM = Setting(default = "email")
+    #: The claim to extract the user's groups from
+    GROUPS_CLAIM = Setting(default = "groups")
+
+    #: The OIDC client ID
+    CLIENT_ID = Setting()
+    #: The OIDC client secret
+    CLIENT_SECRET = Setting()
+
+    #: The scope to use for the OIDC request
+    SCOPE = Setting(default = "openid profile email")
+
+    #: The session key to use to store the OIDC state
+    STATE_SESSION_KEY = Setting(default = "oidc_state")
+
+    #: Indicates whether to verify SSL for the OIDC issuer
+    VERIFY_SSL = Setting(default = True)
+
+    @functools.cached_property
+    def DISCOVERY_DATA(self):
+        """
+        The data from the discovery endpoint for the specified issuer.
+        """
+        discovery_url = self.ISSUER_URL.rstrip("/") + "/.well-known/openid-configuration"
+        response = httpx.get(discovery_url, verify = self.VERIFY_SSL)
+        response.raise_for_status()
+        return response.json()
 
 
 class OpenStackSettings(SettingsObject):
@@ -63,7 +132,28 @@ class AuthenticatorsSetting(ObjectFactorySetting):
     """
     def _get_default(self, instance):
         authenticators = []
-        if instance.AUTH_TYPE == "openstack":
+        if instance.AUTH_TYPE == "oidc":
+            # Include the authcode authenticator
+            authenticators.append(
+                {
+                    "NAME": "oidc",
+                    "LABEL": "OpenID Connect",
+                    "HIDDEN": False,
+                    "AUTHENTICATOR": {
+                        "FACTORY": "azimuth_auth.authenticator.oidc.AuthorizationCodeAuthenticator",
+                        "PARAMS": {
+                            "AUTHORIZATION_URL": instance.OIDC.AUTHORIZATION_URL,
+                            "TOKEN_URL": instance.OIDC.TOKEN_URL,
+                            "CLIENT_ID": instance.OIDC.CLIENT_ID,
+                            "CLIENT_SECRET": instance.OIDC.CLIENT_SECRET,
+                            "SCOPE": instance.OIDC.SCOPE,
+                            "STATE_SESSION_KEY": instance.OIDC.STATE_SESSION_KEY,
+                            "VERIFY_SSL": instance.OIDC.VERIFY_SSL,
+                        },
+                    },
+                }
+            )
+        elif instance.AUTH_TYPE == "openstack":
             # Always include the appcred authenticator
             authenticators.append(
                 {
@@ -134,7 +224,23 @@ class SessionProviderSetting(ObjectFactorySetting):
     Custom setting for configuring the session provider based on other settings.
     """
     def _get_default(self, instance):
-        if instance.AUTH_TYPE == "openstack":
+        if instance.AUTH_TYPE == "oidc":
+            return {
+                "FACTORY": "azimuth_auth.session.oidc.Provider",
+                "PARAMS": {
+                    "TOKEN_URL": instance.OIDC.TOKEN_URL,
+                    "USERINFO_URL": instance.OIDC.USERINFO_URL,
+                    "USERID_CLAIM": instance.OIDC.USERID_CLAIM,
+                    "USERNAME_CLAIM": instance.OIDC.USERNAME_CLAIM,
+                    "EMAIL_CLAIM": instance.OIDC.EMAIL_CLAIM,
+                    "GROUPS_CLAIM": instance.OIDC.GROUPS_CLAIM,
+                    "CLIENT_ID": instance.OIDC.CLIENT_ID,
+                    "CLIENT_SECRET": instance.OIDC.CLIENT_SECRET,
+                    "SCOPE": instance.OIDC.SCOPE,
+                    "VERIFY_SSL": instance.OIDC.VERIFY_SSL,
+                },
+            }
+        elif instance.AUTH_TYPE == "openstack":
             return {
                 "FACTORY": "azimuth_auth.session.openstack.Provider",
                 "PARAMS": {
@@ -153,7 +259,9 @@ class AzimuthAuthSettings(SettingsObject):
     Settings object for the ``AZIMUTH_AUTH`` setting.
     """
     #: The type of authentication to use
-    AUTH_TYPE = ChoiceSetting(["openstack"])
+    AUTH_TYPE = ChoiceSetting(["oidc", "openstack"])
+    #: Settings for OIDC authentication
+    OIDC = NestedSetting(OIDCSettings)
     #: Settings for OpenStack authentication
     OPENSTACK = NestedSetting(OpenStackSettings)
 

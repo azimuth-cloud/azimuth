@@ -29,7 +29,8 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
+    # Use a custom session middleware that supports cookie splitting for large cookies
+    'azimuth_site.middleware.SessionMiddleware',
     'azimuth_auth.middleware.Middleware',
     'azimuth.middleware.CleanupProviderMiddleware',
 ]
@@ -39,6 +40,7 @@ ROOT_URLCONF = 'azimuth_site.urls'
 WSGI_APPLICATION = 'azimuth_site.wsgi.application'
 
 # Use cookie sessions so that we don't need a database
+# It also means requests can go to any replica, unlike the file backend
 SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
 
 REST_FRAMEWORK = {

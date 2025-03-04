@@ -31,6 +31,8 @@ def convert_auth_session_errors(f):
             raise errors.ObjectNotFoundError(str(exc))
         except auth_errors.InvalidOperationError as exc:
             raise errors.InvalidOperationError(str(exc))
+        except auth_errors.UnsupportedOperationError as exc:
+            raise errors.UnsupportedOperationError(str(exc))
         except auth_errors.CommunicationError as exc:
             raise errors.CommunicationError(str(exc)) from exc
         except auth_errors.Error as exc:
