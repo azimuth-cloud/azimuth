@@ -246,7 +246,7 @@ authentication:
     clientID:
     clientSecret:
     # Indicates whether to require SSL for OIDC operations
-    requireSsl: false
+    requireSsl: true
     # Indicates whether to verify SSL for OIDC operations
     verifySsl: true
 
