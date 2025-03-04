@@ -37,13 +37,14 @@ class Middleware:
             yield
             # If the session token has changed during the request processing that means a
             # reauthentication has happened, which takes precedence
-            session_token = request.session[auth_settings.TOKEN_SESSION_KEY]
-            if session_token != original_token:
-                return
-            # If the token in the auth session has changed, update it
-            current_token = auth_session.token()
-            if current_token != original_token:
-                request.session[auth_settings.TOKEN_SESSION_KEY] = current_token
+            # It is also possible that the token has been removed from the session, e.g.
+            # during a logout
+            session_token = request.session.get(auth_settings.TOKEN_SESSION_KEY)
+            if session_token and session_token == original_token:
+                # If the token in the auth session has changed, update it
+                current_token = auth_session.token()
+                if current_token != original_token:
+                    request.session[auth_settings.TOKEN_SESSION_KEY] = current_token
         else:
             # If there is no token in the session, we don't put one in
             yield

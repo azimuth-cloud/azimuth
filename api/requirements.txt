@@ -7,7 +7,7 @@ charset-normalizer==3.4.1
 cryptography==44.0.2
 Django==5.1.7
 django-flexi-settings @ git+https://github.com/cedadev/django-flexi-settings.git@68eb74b00e28448279e7d800889d6e39466bf0ce
-django-settings-object @ git+https://github.com/cedadev/django-settings-object.git@2b66c0fc5eae92972df5210b4bc43f7d95ad9ceb
+django-settings-object @ git+https://github.com/azimuth-cloud/django-settings-object.git@e7d2b6be4f4141e79b1f437be423354a6265a8dc
 djangorestframework==3.15.2
 docutils==0.21.2
 easykube==0.5.0
