@@ -75,8 +75,8 @@ class App:
     id: str
     #: The human-readable name of the app
     name: str
-    #: The id of the Kubernetes cluster that the app is deployed on
-    kubernetes_cluster_id: str
+    #: The id of the Kubernetes cluster that the app is deployed on, if known
+    kubernetes_cluster_id: t.Optional[str]
     #: The id of the template for the app
     template_id: str
     #: The version of the template that the app is using
