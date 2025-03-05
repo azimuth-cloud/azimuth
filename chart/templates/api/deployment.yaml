@@ -50,7 +50,15 @@ spec:
           securityContext: {{ toYaml $values.securityContext | nindent 12 }}
           image: {{ printf "%s:%s" $values.image.repository (default .Chart.AppVersion $values.image.tag) }}
           imagePullPolicy: {{ $values.image.pullPolicy }}
-          {{- if or $values.monitoring.enabled (and .Values.tags.clusters (eq $clusterEngine.type "awx")) }}
+          {{-
+            if or
+              $values.monitoring.enabled
+              (and
+                (eq .Values.authentication.type "oidc")
+                (hasPrefix "http://" .Values.authentication.oidc.issuerUrl)
+              )
+              (and .Values.tags.clusters (eq $clusterEngine.type "awx"))
+          }}
           env:
             {{- if and .Values.tags.clusters (eq $clusterEngine.type "awx") }}
             - name: AWX_PASSWORD
@@ -69,6 +77,14 @@ spec:
             {{- if $values.monitoring.enabled }}
             - name: GUNICORN_STATSD_HOST
               value: "localhost:9125"
+            {{- end }}
+            {{-
+              if and
+                (eq .Values.authentication.type "oidc")
+                (hasPrefix "http://" .Values.authentication.oidc.issuerUrl)
+            }}
+            - name: OAUTHLIB_INSECURE_TRANSPORT
+              value: "1"
             {{- end }}
           {{- end }}
           ports:
