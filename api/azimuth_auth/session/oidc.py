@@ -350,17 +350,22 @@ class Session(base.Session):
         yield from namespaces.list(labels = {TENANCY_ID_LABEL: tenancy_id})
         yield from namespaces.list(labels = {TENANCY_ID_LABEL_LEGACY: tenancy_id})
 
-    def credential(self, tenancy_id):
-        # Try to find a cloud credential in a secret with a known label in the tenancy namespace
-        # If no such credential exists, return a null credential so that the null cloud provider
-        # can still be used to deploy Kubernetes apps
+    def credential(self, tenancy_id, provider):
+        #####
+        # NOTE(mkjpryor)
+        # Credentials are stored in secrets in the tenancy namespace
+        # The secrets have a label indicating the provider that they are for
+        #
+        # If no secret exists with the correct label for the provider, then we are unable
+        # to supply a credential for that provider and we return None
+        #####
         user = self.user()
         logger.info("[%s] locating namespace for tenant ID '%s'", user.username, tenancy_id)
         try:
             ns = next(self._iter_namespaces(tenancy_id))
         except StopIteration:
             logger.warning("[%s] no namespace for tenant ID '%s'", user.username, tenancy_id)
-            return dto.Credential("null", {})
+            return None
         else:
             namespace = ns["metadata"]["name"]
             tenancy_name = (
@@ -369,28 +374,31 @@ class Session(base.Session):
                     .get(TENANCY_NAME_ANNOTATION, namespace.removeprefix("az-"))
             )
         # Find the first secret in the namespace with the required label
-        logger.info("[%s] [%s] searching for credential secret", user.username, tenancy_name)
-        secrets = self._ekclient.api("v1").resource("secrets")
-        secret = secrets.first(
-            labels = { CLOUD_CREDENTIAL_PROVIDER_LABEL: easykube.PRESENT },
+        logger.info(
+            "[%s] [%s] searching for credential secrets for provider '%s'",
+            user.username,
+            tenancy_name,
+            provider
+        )
+        secret = self._ekclient.api("v1").resource("secrets").first(
+            labels = { CLOUD_CREDENTIAL_PROVIDER_LABEL: provider },
             namespace = namespace
         )
         if not secret:
             logger.warning(
-                "[%s] [%s] no credential secrets available for tenant",
+                "[%s] [%s] no credential secrets available for provider '%s'",
                 user.username,
-                tenancy_name
+                tenancy_name,
+                provider
             )
-            return dto.Credential("null", {})
+            return None
         secret_name = secret["metadata"]["name"]
-        # Take the provider name from the label value
-        credential_provider = secret["metadata"]["labels"][CLOUD_CREDENTIAL_PROVIDER_LABEL]
         logger.info(
             "[%s] [%s] found credential secret '%s' for provider '%s'",
             user.username,
             tenancy_name,
             secret_name,
-            credential_provider
+            provider
         )
         # Use the first data item as the credential data
         try:
@@ -402,12 +410,9 @@ class Session(base.Session):
                 tenancy_name,
                 secret_name
             )
-            return dto.Credential("null", {})
-        return dto.Credential(
-            credential_provider,
-            # The data from the secret is base64-encoded
-            base64.b64decode(credential_data).decode()
-        )
+            return None
+        # The data from the secret is base64-encoded
+        return dto.Credential(provider, base64.b64decode(credential_data).decode())
 
     # TODO(mkjpryor)
     # Implement SSH key management by reading/writing public keys stored in configmaps
