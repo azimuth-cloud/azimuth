@@ -53,7 +53,10 @@ spec:
           {{-
             if or
               $values.monitoring.enabled
-              (and (eq .Values.authentication.type "oidc") (not .Values.authentication.oidc.requireSsl))
+              (and
+                (eq .Values.authentication.type "oidc")
+                (hasPrefix "http://" .Values.authentication.oidc.issuerUrl)
+              )
               (and .Values.tags.clusters (eq $clusterEngine.type "awx"))
           }}
           env:
@@ -78,7 +81,7 @@ spec:
             {{-
               if and
                 (eq .Values.authentication.type "oidc")
-                (not .Values.authentication.oidc.requireSsl)
+                (hasPrefix "http://" .Values.authentication.oidc.issuerUrl)
             }}
             - name: OAUTHLIB_INSECURE_TRANSPORT
               value: "1"

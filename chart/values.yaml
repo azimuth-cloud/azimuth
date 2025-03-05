@@ -245,8 +245,6 @@ authentication:
     # The client ID and secret for Azimuth to use
     clientID:
     clientSecret:
-    # Indicates whether to require SSL for OIDC operations
-    requireSsl: true
     # Indicates whether to verify SSL for OIDC operations
     verifySsl: true
 
