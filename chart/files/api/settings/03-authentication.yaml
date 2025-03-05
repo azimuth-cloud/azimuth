@@ -21,7 +21,7 @@ AZIMUTH_AUTH:
     CLIENT_ID: {{ required "OIDC client ID is required" .clientID | quote }}
     CLIENT_SECRET: {{ required "OIDC client secret is required" .clientSecret | quote }}
     {{- with .scope }}
-    SCOPE: {{ quote .scope }}
+    SCOPE: {{ quote . }}
     {{- end }}
     VERIFY_SSL: {{ ternary "true" "false" .verifySsl }}
   {{- end }}
