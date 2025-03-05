@@ -52,9 +52,11 @@ class Session:
         """
         raise errors.UnsupportedOperationError("Operation not supported.")
 
-    def credential(self, tenancy_id: str) -> dto.Credential:
+    def credential(self, tenancy_id: str, provider: str) -> t.Optional[dto.Credential]:
         """
-        Returns the credential for the specified tenancy ID.
+        Returns the credential for the specified tenancy ID and provider.
+
+        If no such credential exists, None is returned.
         """
         raise errors.UnsupportedOperationError("Operation not supported.")
 
