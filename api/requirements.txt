@@ -18,7 +18,7 @@ httpcore==1.0.7
 httpx==0.28.1
 idna==3.10
 jasmin-ldap @ git+https://github.com/cedadev/jasmin-ldap.git@3e1d2659731e9e1a65e8723b4e72c776ae7f7b25
-Jinja2==3.1.5
+Jinja2==3.1.6
 jsonschema==4.23.0
 jsonschema-specifications==2024.10.1
 ldap3==2.9.1
