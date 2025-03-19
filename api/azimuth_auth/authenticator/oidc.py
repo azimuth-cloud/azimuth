@@ -14,6 +14,21 @@ from . import redirect
 class AuthorizationCodeAuthenticator(redirect.RedirectAuthenticator):
     """
     Authenticator that uses the OIDC authorization flow to obtain a token.
+
+    The OAuth2 flow is implemented here rather than using an ingress auth callout with
+    oauth2-proxy primarily because we need to be able to have some requests that are
+    "optionally authenticated".
+
+    This makes it possible to do things like render the Azimuth homepage to unauthenticated
+    users so that they can discover docs on how to register while also understanding when a
+    user is authenticated, and to present nicer messages to API consumers when unauthenticated
+    requests are made.
+
+    This kind of optional authentication is extremely difficult to configure with the ingress
+    callout as implemented by the NGINX ingress controller.
+
+    Potential issues with writing our own authentication code are mitigated by using the
+    oauthlib library to generate OAuth2 request URIs/bodies and to parse the responses.
     """
     authenticator_type = "oidc_authcode"
 

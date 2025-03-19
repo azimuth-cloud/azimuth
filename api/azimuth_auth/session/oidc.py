@@ -203,6 +203,17 @@ class Provider(base.Provider):
 class Session(base.Session):
     """
     Session implementation that understands OIDC tokens.
+
+    In this implementation we do not use the OIDC ID token to identify the user. Instead, we
+    use the OAuth2 access token to query the OIDC userinfo endpoint on every request.
+
+    This decision was made, at the expense of more requests to the IDP, for a number of reasons:
+
+      * It means we do not have to deal with parsing JWTs and all the things that come with
+        that, e.g. fetching and caching JWKS keys and knowing when they have been rotated.
+      * We don't have to decide how long we are happy working with stale user information due
+        to ID token caching. Changes to user information at the IDP, and in particular group
+        memberships, are reflected immediately.
     """
     def __init__(
         self,
@@ -286,15 +297,17 @@ class Session(base.Session):
             return
         # Search for the tenancy namespaces that the user is permitted to use
         logger.info("[%s] searching for tenancy namespaces", user.username)
-        namespaces = self._ekclient.api("v1").resource("namespaces")
-        # We want to de-dupe namespaces that have both labels
+        eknamespaces = self._ekclient.api("v1").resource("namespaces")
+        # Collect the namespaces indexed by ID
+        # This is a map of tenancy ID -> a list of namespaces with that ID
+        # We do this to avoid non-deterministic behaviour if multiple namespaces have the same ID
+        namespaces_by_id = {}
+        # We de-dupe namespaces that have both labels as we go
         seen_namespaces = set()
-        # We want to produce a warning if we see two different namespaces with the same ID
-        seen_tenancy_ids = set()
         for ns in itertools.chain(
             # Unfortunately, two labels with an OR relationship means two queries
-            namespaces.list(labels = {TENANCY_ID_LABEL: easykube.PRESENT}),
-            namespaces.list(labels = {TENANCY_ID_LABEL_LEGACY: easykube.PRESENT})
+            eknamespaces.list(labels = {TENANCY_ID_LABEL: easykube.PRESENT}),
+            eknamespaces.list(labels = {TENANCY_ID_LABEL_LEGACY: easykube.PRESENT})
         ):
             # If we have already seen the namespace, that means it has both labels so skip it
             ns_name = ns["metadata"]["name"]
@@ -318,16 +331,20 @@ class Session(base.Session):
                     "namespace '%s' has new-style and legacy tenancy ID labels with different values",
                     ns_name
                 )
-            # If the same tenancy ID has appeared on a previous namespace, emit a warning and skip
-            if tenancy_id in seen_tenancy_ids:
+            # Store the namespace by ID for further processing
+            namespaces_by_id.setdefault(tenancy_id, []).append(ns)
+        # Process the indexed namespaces
+        # We require each list to have size one, or we have an error
+        for tenancy_id, namespaces in namespaces_by_id.items():
+            if len(namespaces) != 1:
                 logger.error("tenancy ID '%s' appears on multiple namespaces", tenancy_id)
                 continue
-            else:
-                seen_tenancy_ids.add(tenancy_id)
+
+            ns_name = namespaces[0]["metadata"]["name"]
 
             # Allow the tenancy name to come from an annotation, if present
             # If not, use the tenancy name with the 'az-' prefix removed
-            annotations = ns["metadata"].get("annotations", {})
+            annotations = namespaces[0]["metadata"].get("annotations", {})
             tenancy_name = annotations.get(TENANCY_NAME_ANNOTATION, ns_name.removeprefix("az-"))
 
             # Check if the user has the required group for the tenancy
@@ -344,11 +361,17 @@ class Session(base.Session):
             yield dto.Tenancy(tenancy_id, tenancy_name)
 
     def _iter_namespaces(self, tenancy_id):
-        # Returns an iterator over the tenancy namespaces
+        # Returns an iterator over the unique tenancy namespaces
         # This avoids the second query for the legacy label unless required
-        namespaces = self._ekclient.api("v1").resource("namespaces")
-        yield from namespaces.list(labels = {TENANCY_ID_LABEL: tenancy_id})
-        yield from namespaces.list(labels = {TENANCY_ID_LABEL_LEGACY: tenancy_id})
+        eknamespaces = self._ekclient.api("v1").resource("namespaces")
+        seen_namespaces = set()
+        for namespace in eknamespaces.list(labels = {TENANCY_ID_LABEL: tenancy_id}):
+            # We won't see any duplicate namespaces in this first loop
+            seen_namespaces.add(namespace["metadata"]["name"])
+            yield namespace
+        for namespace in eknamespaces.list(labels = {TENANCY_ID_LABEL_LEGACY: tenancy_id}):
+            if namespace["metadata"]["name"] not in seen_namespaces:
+                yield namespace
 
     def credential(self, tenancy_id, provider):
         #####
@@ -361,30 +384,48 @@ class Session(base.Session):
         #####
         user = self.user()
         logger.info("[%s] locating namespace for tenant ID '%s'", user.username, tenancy_id)
-        try:
-            ns = next(self._iter_namespaces(tenancy_id))
-        except StopIteration:
+        # Attempt to find a unique namespace for the tenancy ID
+        namespaces = list(self._iter_namespaces(tenancy_id))
+        if len(namespaces) > 1:
+            logger.error(
+                "[%s] multiple namespaces found for tenant ID '%s'",
+                user.username,
+                tenancy_id
+            )
+            return None
+        elif len(namespaces) < 1:
             logger.warning("[%s] no namespace for tenant ID '%s'", user.username, tenancy_id)
             return None
         else:
-            namespace = ns["metadata"]["name"]
+            namespace = namespaces[0]["metadata"]["name"]
             tenancy_name = (
-                ns["metadata"]
+                namespaces[0]["metadata"]
                     .get("annotations", {})
                     .get(TENANCY_NAME_ANNOTATION, namespace.removeprefix("az-"))
             )
-        # Find the first secret in the namespace with the required label
+        # Find a unique secret in the namespace with the required label
+        # This is to avoid non-deterministic behaviour when returning the first secret
         logger.info(
             "[%s] [%s] searching for credential secrets for provider '%s'",
             user.username,
             tenancy_name,
             provider
         )
-        secret = self._ekclient.api("v1").resource("secrets").first(
-            labels = { CLOUD_CREDENTIAL_PROVIDER_LABEL: provider },
-            namespace = namespace
+        secrets = list(
+            self._ekclient.api("v1").resource("secrets").list(
+                labels = { CLOUD_CREDENTIAL_PROVIDER_LABEL: provider },
+                namespace = namespace
+            )
         )
-        if not secret:
+        if len(secrets) > 1:
+            logger.error(
+                "[%s] [%s] multiple credential secrets found for provider '%s'",
+                user.username,
+                tenancy_name,
+                provider
+            )
+            return None
+        elif len(secrets) < 1:
             logger.warning(
                 "[%s] [%s] no credential secrets available for provider '%s'",
                 user.username,
@@ -392,6 +433,8 @@ class Session(base.Session):
                 provider
             )
             return None
+        else:
+            secret = secrets[0]
         secret_name = secret["metadata"]["name"]
         logger.info(
             "[%s] [%s] found credential secret '%s' for provider '%s'",
@@ -400,10 +443,18 @@ class Session(base.Session):
             secret_name,
             provider
         )
-        # Use the first data item as the credential data
-        try:
-            credential_data = next(iter(secret.get("data", {}).values()))
-        except StopIteration:
+        # Check that there is exactly one key and return the data from it
+        # This is to avoid non-deterministic behaivour when returning the first key
+        secret_data = secret.get("data", {}).values()
+        if len(secret_data) > 1:
+            logger.warning(
+                "[%s] [%s] credential secret '%s' has multiple keys",
+                user.username,
+                tenancy_name,
+                secret_name
+            )
+            return None
+        elif len(secret_data) < 1:
             logger.warning(
                 "[%s] [%s] credential secret '%s' has no data",
                 user.username,
@@ -411,8 +462,10 @@ class Session(base.Session):
                 secret_name
             )
             return None
-        # The data from the secret is base64-encoded
-        return dto.Credential(provider, base64.b64decode(credential_data).decode())
+        else:
+            # The data from the secret is base64-encoded
+            credential_data = next(iter(secret_data))
+            return dto.Credential(provider, base64.b64decode(credential_data).decode())
 
     # TODO(mkjpryor)
     # Implement SSH key management by reading/writing public keys stored in configmaps

@@ -1,3 +1,4 @@
+import itertools
 import logging
 import re
 
@@ -13,6 +14,14 @@ TENANCY_ID_LABEL_LEGACY = "azimuth.stackhpc.com/tenant-id"
 
 
 logger = logging.getLogger(__name__)
+
+
+class DuplicateTenancyIDError(Exception):
+    """
+    Raised when there are multiple namespaces with the same tenancy ID.
+    """
+    def __init__(self, tenancy_id: str):
+        super().__init__(f"multiple tenancy namespaces found with ID '{tenancy_id}'")
 
 
 class NamespaceOwnershipError(Exception):
@@ -33,15 +42,26 @@ def sanitise(value):
     return re.sub(r"[^a-z0-9]+", "-", str(value).lower()).strip("-")
 
 
-def iter_namespaces(ekresource, tenancy_id):
+def unique_namespaces(ekresource, tenancy_id):
     """
-    Returns an iterator over the namespaces for the given tenancy ID.
-
-    This is preferred to itertools.chain as it means the second request for the legacy
-    label is only made when the search for the new-style label is exhausted.
+    Returns an iterator over the unique namespaces for the given tenancy ID.
     """
-    yield from ekresource.list(labels = {TENANCY_ID_LABEL: tenancy_id})
-    yield from ekresource.list(labels = {TENANCY_ID_LABEL_LEGACY: tenancy_id})
+    seen_namespaces = set()
+    for namespace in ekresource.list(labels = {TENANCY_ID_LABEL: tenancy_id}):
+        # We won't see any duplicate namespaces in this first loop
+        seen_namespaces.add(namespace["metadata"]["name"])
+        yield namespace
+    for namespace in ekresource.list(labels = {TENANCY_ID_LABEL_LEGACY: tenancy_id}):
+        # We might see namespaces in this loop that appeared in the previous loop, if a
+        # namespace has both labels
+        ns_name = namespace["metadata"]["name"]
+        if ns_name in seen_namespaces:
+            logger.warning(
+                f"namespace '{ns_name}' has both new-style and legacy tenancy ID labels"
+            )
+            continue
+        else:
+            yield namespace
 
 
 def get_namespace(ekclient, tenancy: dto.Tenancy) -> str:
@@ -53,12 +73,11 @@ def get_namespace(ekclient, tenancy: dto.Tenancy) -> str:
     ekresource = ekclient.api("v1").resource("namespaces")
     expected_namespace = f"az-{tenancy_name}"
     # Try to find the namespace that is labelled with the tenant ID
-    try:
-        namespace = next(iter_namespaces(ekresource, tenancy_id))
-    except StopIteration:
-        pass
-    else:
-        found_namespace = namespace["metadata"]["name"]
+    # We require that the namespace is unique
+    namespaces = list(unique_namespaces(ekresource, tenancy_id))
+    # If there is exactly one namespace, return it
+    if len(namespaces) == 1:
+        found_namespace = namespaces[0]["metadata"]["name"]
         logger.info(f"using namespace '{found_namespace}' for tenant '{tenancy_id}'")
         if found_namespace != expected_namespace:
             logger.warning(
@@ -66,6 +85,9 @@ def get_namespace(ekclient, tenancy: dto.Tenancy) -> str:
                 f"tenant '{tenancy_id}', but found '{found_namespace}'"
             )
         return found_namespace
+    # If there are multiple namespaces with the ID, bail
+    elif len(namespaces) > 1:
+        raise DuplicateTenancyIDError(tenancy_id)
     # If there is no namespace labelled with the tenant ID, find the namespace
     # that uses the standard naming convention
     try:
