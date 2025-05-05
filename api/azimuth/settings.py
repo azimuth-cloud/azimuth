@@ -169,9 +169,8 @@ class ZenithSetting(Setting):
     def __init__(self):
         super().__init__(dict)
 
-    def __get__(self, instance, owner):
-        user_settings = super().__get__(instance, owner)
-        apps_settings = AppsSettings(self.name, user_settings)
+    def _transform(self, instance, value):
+        apps_settings = AppsSettings(self.name, value)
         if apps_settings.ENABLED:
             return Zenith(
                 apps_settings.BASE_DOMAIN,
