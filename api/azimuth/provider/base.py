@@ -31,6 +31,8 @@ def convert_auth_session_errors(f):
             raise errors.ObjectNotFoundError(str(exc))
         except auth_errors.InvalidOperationError as exc:
             raise errors.InvalidOperationError(str(exc))
+        except auth_errors.UnsupportedOperationError as exc:
+            raise errors.UnsupportedOperationError(str(exc))
         except auth_errors.CommunicationError as exc:
             raise errors.CommunicationError(str(exc)) from exc
         except auth_errors.Error as exc:
@@ -129,7 +131,7 @@ class UnscopedSession:
         self,
         auth_user: auth_dto.User,
         tenancy: dto.Tenancy,
-        credential_data: Any
+        credential_data: str
     ) -> 'ScopedSession':
         """
         Private method that creates a scoped session for the given tenancy.
@@ -152,11 +154,12 @@ class UnscopedSession:
                 raise errors.ObjectNotFoundError(
                     "Could not find tenancy with ID {}.".format(tenancy)
                 )
-        # Get the credential from the auth session
-        credential = self.auth_session.credential(tenancy.id)
-        # Verify that the provider matches this provider
-        if credential.provider != self.provider_name:
-            raise errors.InvalidOperationError("credential is for a different provider")
+        # Get the credential from the auth session for this provider
+        credential = self.auth_session.credential(tenancy.id, self.provider_name)
+        # If the auth session is unable to supply a credential for the provider, bail
+        if not credential:
+            msg = f"no credentials available for {self.provider_name} provider"
+            raise errors.InvalidOperationError(msg)
         return self._scoped_session(self.auth_user, tenancy, credential.data)
 
     def close(self):

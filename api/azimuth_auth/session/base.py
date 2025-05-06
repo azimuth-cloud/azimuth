@@ -4,7 +4,7 @@ Module containing the base session.
 
 import typing as t
 
-from . import dto
+from . import dto, errors
 
 
 class Provider:
@@ -26,37 +26,39 @@ class Session:
         """
         Returns the token for the session.
         """
-        raise NotImplementedError
+        raise errors.UnsupportedOperationError("Operation not supported.")
 
     def user(self) -> dto.User:
         """
         Returns the user for the session.
         """
-        raise NotImplementedError
+        raise errors.UnsupportedOperationError("Operation not supported.")
 
     def ssh_public_key(self) -> str:
         """
         Returns the SSH public key for the session user.
         """
-        raise NotImplementedError
+        raise errors.UnsupportedOperationError("Operation not supported.")
 
     def update_ssh_public_key(self, public_key: str) -> str:
         """
         Updates the SSH public key for the session user.
         """
-        raise NotImplementedError
+        raise errors.UnsupportedOperationError("Operation not supported.")
 
     def tenancies(self) -> t.Iterable[dto.Tenancy]:
         """
         The list of tenancies that the session is able to access.
         """
-        raise NotImplementedError
+        raise errors.UnsupportedOperationError("Operation not supported.")
 
-    def credential(self, tenancy_id: str) -> dto.Credential:
+    def credential(self, tenancy_id: str, provider: str) -> t.Optional[dto.Credential]:
         """
-        Returns the credential for the specified tenancy ID.
+        Returns the credential for the specified tenancy ID and provider.
+
+        If no such credential exists, None is returned.
         """
-        raise NotImplementedError
+        raise errors.UnsupportedOperationError("Operation not supported.")
 
     def close(self):
         """
