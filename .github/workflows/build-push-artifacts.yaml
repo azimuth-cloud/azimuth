@@ -83,7 +83,7 @@ jobs:
     # Only build and push the chart if the images built successfully
     needs: [build_push_images]
     outputs:
-      chart-version: ${{ steps.semver.outputs.version }}
+      chart-version: ${{ steps.version_fix.outputs.version }}
     steps:
       - name: Check out the repository
         uses: actions/checkout@v4
@@ -96,6 +96,12 @@ jobs:
       - name: Get SemVer version for current commit
         id: semver
         uses: azimuth-cloud/github-actions/semver@master
+
+      - name: Replace 'dependabot' with 'depbot' in version
+        id: version_fix
+        run: |
+          new_version="${{ steps.semver.outputs.version//dependabot/depbot }}"
+          echo "version=$new_version" >> "$GITHUB_OUTPUT"
 
       - name: Publish Helm charts
         uses: azimuth-cloud/github-actions/helm-publish@master
