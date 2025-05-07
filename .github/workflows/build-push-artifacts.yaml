@@ -83,7 +83,7 @@ jobs:
     # Only build and push the chart if the images built successfully
     needs: [build_push_images]
     outputs:
-      chart-version: ${{ steps.semver.outputs.version }}
+      chart-version: ${{ steps.version_fix.outputs.version }}
     steps:
       - name: Check out the repository
         uses: actions/checkout@v4
@@ -97,18 +97,15 @@ jobs:
         id: semver
         uses: azimuth-cloud/github-actions/semver@master
 
-      - name: Sanitize SemVer version for K8s safety
-        id: sanitized
+      - name: Replace 'dependabot' with 'depbot' in version
+        id: version_fix
         run: |
-          RAW_VERSION="${{ steps.semver.outputs.version }}"
-          # Keep alphanumeric, dot, hyphen — truncate to 63 chars
-          SAFE_VERSION=$(echo "$RAW_VERSION" | sed 's/[^a-zA-Z0-9.-]//g' | cut -c1-63)
-          echo "SAFE_VERSION=$SAFE_VERSION"
-          echo "version=$SAFE_VERSION" >> $GITHUB_OUTPUT
+          new_version="${{ steps.semver.outputs.version//dependabot/depbot }}"
+          echo "version=$new_version" >> "$GITHUB_OUTPUT"
 
       - name: Publish Helm charts
         uses: azimuth-cloud/github-actions/helm-publish@master
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          version: ${{ steps.sanitized.outputs.version }}
+          version: ${{ steps.semver.outputs.version }}
           app-version: ${{ steps.semver.outputs.short-sha }}
