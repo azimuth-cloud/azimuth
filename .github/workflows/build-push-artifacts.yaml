@@ -97,9 +97,18 @@ jobs:
         id: semver
         uses: azimuth-cloud/github-actions/semver@master
 
+      - name: Sanitize SemVer version for K8s safety
+        id: sanitized
+        run: |
+          RAW_VERSION="${{ steps.semver.outputs.version }}"
+          # Keep alphanumeric, dot, hyphen — truncate to 63 chars
+          SAFE_VERSION=$(echo "$RAW_VERSION" | sed 's/[^a-zA-Z0-9.-]//g' | cut -c1-63)
+          echo "SAFE_VERSION=$SAFE_VERSION"
+          echo "version=$SAFE_VERSION" >> $GITHUB_OUTPUT
+
       - name: Publish Helm charts
         uses: azimuth-cloud/github-actions/helm-publish@master
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          version: ${{ steps.semver.outputs.version }}
+          version: ${{ steps.sanitized.outputs.version }}
           app-version: ${{ steps.semver.outputs.short-sha }}
