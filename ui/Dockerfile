@@ -55,7 +55,7 @@ RUN apt-get update && \
     ln -sf /dev/stdout /var/log/nginx/access.log && \
     ln -sf /dev/stderr /var/log/nginx/error.log && \
     sed -i '/^user /d' /etc/nginx/nginx.conf && \
-    sed -i 's/\/run/ngnix.pid/\/var\/run\/nginx/ngnix.pid' /etc/nginx/nginx.conf && \
+    sed -i 's/\/run\/ngnix.pid/\/var\/run\/nginx/ngnix.pid' /etc/nginx/nginx.conf && \
     mkdir -p /var/cache/nginx /var/run/nginx && \
     chown nginx:nginx /var/cache/nginx /var/run/nginx
 
