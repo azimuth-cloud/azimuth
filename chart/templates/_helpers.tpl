@@ -2,7 +2,7 @@
 Expand the name of the chart.
 */}}
 {{- define "azimuth.name" -}}
-{{- .Chart.Name | lower | trunc 63 | trimSuffix "-" }}
+{{- .Chart.Name | lower | trunc 63 | trimSuffix "-" | trimSuffix "." }}
 {{- end }}
 
 {{/*
@@ -16,7 +16,7 @@ This template must be usable from subcharts, so the chart name is hard-coded.
 {{- if contains "azimuth" .Release.Name }}
 {{- .Release.Name | lower | trunc 63 | trimSuffix "-" }}
 {{- else }}
-{{- printf "%s-azimuth" .Release.Name | lower | trunc 63 | trimSuffix "-" }}
+{{- printf "%s-azimuth" .Release.Name | lower | trunc 63 | trimSuffix "-" | trimSuffix "." }}
 {{- end }}
 {{- end }}
 
@@ -27,7 +27,7 @@ Create a fully qualified name for a component resource.
 {{- $context := index . 0 }}
 {{- $componentName := index . 1 }}
 {{- $fullName := include "azimuth.fullname" $context }}
-{{- printf "%s-%s" $fullName $componentName | lower | trunc 63 | trimSuffix "-" }}
+{{- printf "%s-%s" $fullName $componentName | lower | trunc 63 | trimSuffix "-" | trimSuffix "." }}
 {{- end -}}
 
 {{/*
@@ -52,7 +52,7 @@ app.kubernetes.io/component: {{ $componentName }}
 Common labels for all resources.
 */}}
 {{- define "azimuth.commonLabels" -}}
-helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | lower | trunc 63 | trimSuffix "-" }}
+helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | lower | trunc 63 | trimSuffix "-" | trimSuffix "." }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
