@@ -123,9 +123,16 @@ export const KubeconfigButton = ({ kubernetesCluster, kubernetesClusterActions, 
                     <Row>
                         <Col>
                             <Alert variant="info">
-                                Use this configuration file with the{" "}
-                                <a href="https://kubernetes.io/docs/tasks/tools/#kubectl" target="_blank">kubectl</a>{" "}
-                                command-line tool to access your cluster.
+                                <p>
+                                    Use this configuration file with the{" "}
+                                    <a href="https://kubernetes.io/docs/tasks/tools/#kubectl" target="_blank">kubectl</a>{" "}
+                                    command-line tool to access your cluster.
+                                </p>
+                                <p className="mb-0">
+                                    In order to use this configuration file you must have the{" "}
+                                    <a href="https://github.com/int128/kubelogin" target="_blank">oidc-login</a>{" "}
+                                    plugin installed.
+                                </p>
                             </Alert>
                         </Col>
                     </Row>
