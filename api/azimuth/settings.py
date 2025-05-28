@@ -120,15 +120,18 @@ class AppsProviderSetting(ObjectFactorySetting):
     Custom setting for the Kubernetes app provider.
     """
     def _get_default(self, instance):
-        # For now, apps are only available if a Kubernetes provider is configured
+        # If a Cluster API provider is configured, use the helmrelease provider
+        # If not, use the app provider with the default settings
         if instance.CLUSTER_API_PROVIDER:
-            # By default, we use the HelmRelease provider (for now)
             return {
                 "FACTORY": "azimuth.apps.helmrelease.Provider",
                 "PARAMS": {},
             }
         else:
-            return None
+            return {
+                "FACTORY": "azimuth.apps.app.Provider",
+                "PARAMS": {},
+            }
 
 
 class AppsSettings(SettingsObject):
@@ -169,9 +172,8 @@ class ZenithSetting(Setting):
     def __init__(self):
         super().__init__(dict)
 
-    def __get__(self, instance, owner):
-        user_settings = super().__get__(instance, owner)
-        apps_settings = AppsSettings(self.name, user_settings)
+    def _transform(self, instance, value):
+        apps_settings = AppsSettings(self.name, value)
         if apps_settings.ENABLED:
             return Zenith(
                 apps_settings.BASE_DOMAIN,
