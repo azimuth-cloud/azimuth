@@ -186,7 +186,7 @@ settings:
 
 # Configuration for authentication
 authentication:
-  # The type of authentication to use (valid options are openstack, oidc)
+  # The type of authentication to use (valid options are oidc, openstack)
   type: openstack
   # Parameters for OpenStack authentication
   openstack:
@@ -234,13 +234,25 @@ authentication:
     # The URL of the issuer
     # Azimuth will use OIDC discovery to discover the rest of the configuration
     issuerUrl:
+    # The scope to use - leave blank for the default
+    scope:
+    # The claims to use for user ID, username, email and groups
+    claims:
+      userid: sub
+      username: preferred_username
+      email: email
+      groups: groups
     # The client ID and secret for Azimuth to use
     clientID:
     clientSecret:
+    # Indicates whether to verify SSL for OIDC operations
+    verifySsl: true
 
 # The cloud provider to use
 provider:
-  # The type of provider to use (currently only openstack is supported)
+  # The type of provider to use - openstack and null are supported
+  # The null provider does not support any cloud functionality, but does support deploying
+  # apps on a pre-configured Kubernetes cluster
   type: openstack
   # Parameters for the openstack provider
   openstack:
@@ -393,6 +405,16 @@ sshKeyStore:
 scheduling:
   # Indicates whether scheduling should be enabled
   enabled: false
+
+# Settings for the Kubernetes apps provider
+appsProvider:
+  # Indicates if the apps provider should be enabled
+  enabled: true
+  # The apps provider to use - valid options are default, helmrelease and app
+  #   If default is specified then the helmrelease provider is used if Cluster
+  #   API is available (for backwards compatibility), and the app provider is
+  #   used when Cluster API is not available
+  type: default
 
 # Properties for applying themes
 theme:
