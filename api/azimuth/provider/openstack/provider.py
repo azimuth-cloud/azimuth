@@ -15,8 +15,8 @@ import certifi
 import dateutil.parser
 import rackit
 import yaml
+from provider import base, dto, errors
 
-from .. import base, dto, errors
 from . import api
 
 logger = logging.getLogger(__name__)
@@ -27,6 +27,7 @@ class Lazy:
     Wrapper around a function invocation that lazily evaluates the result
     and caches it for future invocations.
     """
+
     def __init__(self, func, *args, **kwargs):
         self.func = func
         self.args = args
@@ -47,12 +48,10 @@ _REPLACEMENTS = [
     ("Security group rule", "Firewall rule"),
     ("Floating IP", "External IP"),
 ]
+
+
 def _replace_resource_names(message):
-    return functools.reduce(
-        lambda a, x: a.replace(x[0], x[1]),
-        _REPLACEMENTS,
-        message
-    )
+    return functools.reduce(lambda a, x: a.replace(x[0], x[1]), _REPLACEMENTS, message)
 
 
 def sanitise_username(username):
@@ -64,14 +63,17 @@ def sanitise_username(username):
 
 def convert_exceptions(f):
     """
-    Decorator that converts OpenStack API exceptions into errors from :py:mod:`..errors`.
+    Decorator that converts OpenStack API exceptions into errors from
+    :py:mod:`..errors`.
     """
+
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
         try:
             return f(*args, **kwargs)
         except api.ServiceNotSupported as exc:
-            # Convert service not supported from the API module into unsupported operation
+            # Convert service not supported from the API module into unsupported
+            # operation
             raise errors.UnsupportedOperationError(str(exc))
         except rackit.ApiError as exc:
             # Extract the status code and message
@@ -83,7 +85,7 @@ def convert_exceptions(f):
             elif status_code == 401:
                 raise errors.AuthenticationError("Your session has expired.")
             elif status_code == 403:
-                # Some quota exceeded errors get reported as permission denied (WHY???!!!)
+                # Some quota exceeded errors get reported as permission denied (WHY??!!)
                 # So report them as quota exceeded instead
                 if "exceeded" in message.lower():
                     raise errors.QuotaExceededError(
@@ -112,9 +114,10 @@ def convert_exceptions(f):
                 raise errors.CommunicationError("Unknown error with OpenStack API.")
             else:
                 raise errors.CommunicationError("Unknown error with OpenStack API.")
-        except rackit.RackitError as exc:
+        except rackit.RackitError:
             logger.exception("Could not connect to OpenStack API.")
             raise errors.CommunicationError("Could not connect to OpenStack API.")
+
     return wrapper
 
 
@@ -123,7 +126,8 @@ class Provider(base.Provider):
     Provider implementation for OpenStack.
 
     Args:
-        metadata_prefix: The prefix to use for all Azimuth-related metadata (default ``azimuth_``).
+        metadata_prefix: The prefix to use for all Azimuth-related metadata
+                         (default ``azimuth_``).
         internal_net_template: Template for the name of the internal network to use
                                (default ``None``).
                                The current tenancy name can be templated in using the
@@ -132,26 +136,28 @@ class Provider(base.Provider):
                                (default ``None``).
                                The current tenancy name can be templated in using the
                                fragment ``{tenant_name}``.
-        create_internal_net: If ``True`` (the default), then the internal network is auto-created
-                             when a tagged network or templated network cannot be found.
+        create_internal_net: If ``True`` (the default), then the internal network is
+                             auto-created when a tagged network or templated network
+                             cannot be found.
         manila_project_share_gb: If >0 (the default is 0), then
                              manila project share is auto created with specified size.
         internal_net_cidr: The CIDR for the internal network when it is
                            auto-created (default ``192.168.3.0/24``).
-        internal_net_dns_nameservers: The DNS nameservers for the internal network when it is
-                           auto-created (default ``None``).
+        internal_net_dns_nameservers: The DNS nameservers for the internal network when
+                               it is auto-created (default ``None``).
     """
+
     provider_name = "openstack"
 
     def __init__(
         self,
-        metadata_prefix = "azimuth_",
-        internal_net_template = None,
-        external_net_template = None,
-        create_internal_net = True,
-        manila_project_share_gb = 0,
-        internal_net_cidr = "192.168.3.0/24",
-        internal_net_dns_nameservers = None
+        metadata_prefix="azimuth_",
+        internal_net_template=None,
+        external_net_template=None,
+        create_internal_net=True,
+        manila_project_share_gb=0,
+        internal_net_cidr="192.168.3.0/24",
+        internal_net_dns_nameservers=None,
     ):
         self._metadata_prefix = metadata_prefix
         self._internal_net_template = internal_net_template
@@ -173,7 +179,7 @@ class Provider(base.Provider):
             self._create_internal_net,
             self._manila_project_share_gb,
             self._internal_net_cidr,
-            self._internal_net_dns_nameservers
+            self._internal_net_dns_nameservers,
         )
 
 
@@ -181,19 +187,20 @@ class UnscopedSession(base.UnscopedSession):
     """
     Unscoped session implementation for OpenStack.
     """
+
     provider_name = "openstack"
 
     def __init__(
         self,
         auth_session,
         auth_user,
-        metadata_prefix = "azimuth_",
-        internal_net_template = None,
-        external_net_template = None,
-        create_internal_net = True,
-        manila_project_share_gb = 0,
-        internal_net_cidr = "192.168.3.0/24",
-        internal_net_dns_nameservers = None
+        metadata_prefix="azimuth_",
+        internal_net_template=None,
+        external_net_template=None,
+        create_internal_net=True,
+        manila_project_share_gb=0,
+        internal_net_cidr="192.168.3.0/24",
+        internal_net_dns_nameservers=None,
     ):
         super().__init__(auth_session, auth_user)
         self._metadata_prefix = metadata_prefix
@@ -216,7 +223,7 @@ class UnscopedSession(base.UnscopedSession):
             self._create_internal_net,
             self._manila_project_share_gb,
             self._internal_net_cidr,
-            self._internal_net_dns_nameservers
+            self._internal_net_dns_nameservers,
         )
 
 
@@ -224,6 +231,7 @@ class ScopedSession(base.ScopedSession):
     """
     Tenancy-scoped session implementation for OpenStack.
     """
+
     provider_name = "openstack"
 
     def __init__(
@@ -231,13 +239,13 @@ class ScopedSession(base.ScopedSession):
         auth_user,
         tenancy,
         connection,
-        metadata_prefix = "azimuth_",
-        internal_net_template = None,
-        external_net_template = None,
-        create_internal_net = True,
-        manila_project_share_gb = 0,
-        internal_net_cidr = "192.168.3.0/24",
-        internal_net_dns_nameservers = None
+        metadata_prefix="azimuth_",
+        internal_net_template=None,
+        external_net_template=None,
+        create_internal_net=True,
+        manila_project_share_gb=0,
+        internal_net_cidr="192.168.3.0/24",
+        internal_net_dns_nameservers=None,
     ):
         super().__init__(auth_user, tenancy)
         self._connection = connection
@@ -258,11 +266,14 @@ class ScopedSession(base.ScopedSession):
         project_id_safe = self._connection.project_id.replace("-", "")
         self._project_share_user = prefix + project_id_safe
 
-    def _log(self, message, *args, level = logging.INFO, **kwargs):
+    def _log(self, message, *args, level=logging.INFO, **kwargs):
         logger.log(
             level,
             "[%s] [%s] " + message,
-            self.username(), self.tenancy().name, *args, **kwargs
+            self.username(),
+            self.tenancy().name,
+            *args,
+            **kwargs,
         )
 
     def capabilities(self):
@@ -276,7 +287,7 @@ class ScopedSession(base.ScopedSession):
             supports_volumes = False
         else:
             supports_volumes = True
-        return dto.Capabilities(supports_volumes = supports_volumes)
+        return dto.Capabilities(supports_volumes=supports_volumes)
 
     @convert_exceptions
     def quotas(self):
@@ -293,21 +304,21 @@ class ScopedSession(base.ScopedSession):
                 "CPUs",
                 None,
                 compute_limits.total_cores,
-                compute_limits.total_cores_used
+                compute_limits.total_cores_used,
             ),
             dto.Quota(
                 "ram",
                 "RAM",
                 "MB",
                 compute_limits.total_ram,
-                compute_limits.total_ram_used
+                compute_limits.total_ram_used,
             ),
             dto.Quota(
                 "machines",
                 "Machines",
                 None,
                 compute_limits.instances,
-                compute_limits.instances_used
+                compute_limits.instances_used,
             ),
         ]
         # Get the floating ip quota
@@ -319,29 +330,31 @@ class ScopedSession(base.ScopedSession):
                 None,
                 network_quotas.floatingip,
                 # Just get the length of the list of IPs
-                len(list(self._connection.network.floatingips.all()))
+                len(list(self._connection.network.floatingips.all())),
             )
         )
         # The volume service is optional
         # In the case where the service is not enabled, just don't add the quotas
         try:
             volume_limits = self._connection.block_store.limits.absolute
-            quotas.extend([
-                dto.Quota(
-                    "storage",
-                    "Volume Storage",
-                    "GB",
-                    volume_limits.total_volume_gigabytes,
-                    volume_limits.total_gigabytes_used
-                ),
-                dto.Quota(
-                    "volumes",
-                    "Volumes",
-                    None,
-                    volume_limits.volumes,
-                    volume_limits.volumes_used
-                )
-            ])
+            quotas.extend(
+                [
+                    dto.Quota(
+                        "storage",
+                        "Volume Storage",
+                        "GB",
+                        volume_limits.total_volume_gigabytes,
+                        volume_limits.total_gigabytes_used,
+                    ),
+                    dto.Quota(
+                        "volumes",
+                        "Volumes",
+                        None,
+                        volume_limits.volumes,
+                        volume_limits.volumes_used,
+                    ),
+                ]
+            )
         except api.ServiceNotSupported:
             pass
         return quotas
@@ -358,18 +371,20 @@ class ScopedSession(base.ScopedSession):
             for key, value in api_image._data.items()
             if key.startswith(self._metadata_prefix)
         }
-        metadata.update({
-            tag.removeprefix(self._metadata_prefix): "1"
-            for tag in getattr(api_image, "tags") or []
-            if tag.startswith(self._metadata_prefix)
-        })
+        metadata.update(
+            {
+                tag.removeprefix(self._metadata_prefix): "1"
+                for tag in getattr(api_image, "tags") or []
+                if tag.startswith(self._metadata_prefix)
+            }
+        )
         return dto.Image(
             api_image.id,
             api_image.name,
             api_image.visibility == "public",
             # The image size is specified in bytes. Convert to MB.
             float(api_image.size) / 1024.0 / 1024.0,
-            metadata = metadata
+            metadata=metadata,
         )
 
     @convert_exceptions
@@ -379,16 +394,18 @@ class ScopedSession(base.ScopedSession):
         """
         self._log("Fetching available images")
         # Fetch from the SDK using our custom image resource
-        images = list(self._connection.image.images.all(
-            status = "active",
-            # Only show shared images that have been accepted
-            member_status = "accepted"
-        ))
+        images = list(
+            self._connection.image.images.all(
+                status="active",
+                # Only show shared images that have been accepted
+                member_status="accepted",
+            )
+        )
         self._log("Found %s images", len(images))
         return tuple(self._from_api_image(i) for i in images)
 
     @convert_exceptions
-    def find_image(self, id): # noqa: A002
+    def find_image(self, id):  # noqa: A002
         """
         See :py:meth:`.base.ScopedSession.find_image`.
         """
@@ -408,7 +425,7 @@ class ScopedSession(base.ScopedSession):
             api_flavor.ram,
             api_flavor.disk,
             getattr(api_flavor, "ephemeral_disk", 0),
-            getattr(api_flavor, "extra_specs", None) or {}
+            getattr(api_flavor, "extra_specs", None) or {},
         )
 
     @convert_exceptions
@@ -426,7 +443,7 @@ class ScopedSession(base.ScopedSession):
         return flavors
 
     @convert_exceptions
-    def find_size(self, id): # noqa: A002
+    def find_size(self, id):  # noqa: A002
         """
         See :py:meth:`.base.ScopedSession.find_size`.
         """
@@ -437,52 +454,66 @@ class ScopedSession(base.ScopedSession):
         """
         Returns the first network with the given tag, or None if there is not one.
         """
-        tag = "portal-{}".format(net_type)
-        # By default, networks.all() will only return networks that belong to the project
-        # For the internal network this is what we want, but for all other types of network
-        # (e.g. external, storage) we want to allow shared networks from other projects to
-        # be selected - setting "project_id = None" allows this to happen
+        tag = f"portal-{net_type}"
+        # By default, networks.all() will only return networks that belong to the
+        # project
+        # For the internal network this is what we want, but for all other types of
+        # network (e.g. external, storage) we want to allow shared networks from other
+        # projects to be selected - setting "project_id = None" allows this to happen
         kwargs = {} if net_type == "internal" else {"project_id": None}
-        networks = list(self._connection.network.networks.all(tags = tag, **kwargs))
+        networks = list(self._connection.network.networks.all(tags=tag, **kwargs))
         if len(networks) == 1:
             self._log("Using tagged %s network '%s'", net_type, networks[0].name)
             return networks[0]
         elif len(networks) > 1:
-            self._log("Found multiple networks with tag '%s'.", tag, level = logging.ERROR)
-            raise errors.InvalidOperationError(f"Found multiple networks with tag '{tag}'.")
+            self._log(
+                "Found multiple networks with tag '%s'.", tag, level=logging.ERROR
+            )
+            raise errors.InvalidOperationError(
+                f"Found multiple networks with tag '{tag}'."
+            )
         else:
-            self._log("Failed to find tagged %s network.", net_type, level = logging.WARN)
+            self._log("Failed to find tagged %s network.", net_type, level=logging.WARN)
             return None
 
     def _templated_network(self, template, net_type):
         """
-        Returns the network specified by the template, after interpolating with the tenant name.
+        Returns the network specified by the template, after interpolating with the
+        tenant name.
 
-        If the network does not exist, that is a config error and an exception is raised.
+        If the network does not exist, that is a config error and an exception is
+        raised.
         """
-        net_name = template.format(tenant_name = self._connection.project_name)
-        # By default, networks.all() will only return networks that belong to the project
-        # For the internal network this is what we want, but for all other types of network
-        # (e.g. external, storage) we want to allow shared networks from other projects to
-        # be selected - setting "project_id = None" allows this to happen
+        net_name = template.format(tenant_name=self._connection.project_name)
+        # By default, networks.all() will only return networks that belong to the
+        # project
+        # For the internal network this is what we want, but for all other types of
+        # network (e.g. external, storage) we want to allow shared networks from other
+        # projects to be selected - setting "project_id = None" allows this to happen
         kwargs = {} if net_type == "internal" else {"project_id": None}
-        networks = list(self._connection.network.networks.all(name = net_name, **kwargs))
+        networks = list(self._connection.network.networks.all(name=net_name, **kwargs))
         if len(networks) == 1:
-            self._log("Found %s network '%s' using template.", net_type, networks[0].name)
+            self._log(
+                "Found %s network '%s' using template.", net_type, networks[0].name
+            )
             return networks[0]
         elif len(networks) > 1:
-            self._log("Found multiple networks named '%s'.", net_name, level = logging.ERROR)
-            raise errors.InvalidOperationError(f"Found multiple networks named '{net_name}'.")
+            self._log(
+                "Found multiple networks named '%s'.", net_name, level=logging.ERROR
+            )
+            raise errors.InvalidOperationError(
+                f"Found multiple networks named '{net_name}'."
+            )
         else:
             self._log(
                 "Failed to find %s network '%s' from template.",
                 net_type,
                 net_name,
-                level = logging.ERROR
+                level=logging.ERROR,
             )
-            raise errors.InvalidOperationError("Could not find {} network.".format(net_type))
+            raise errors.InvalidOperationError(f"Could not find {net_type} network.")
 
-    def _tenant_network(self, create_network = False):
+    def _tenant_network(self, create_network=False):
         """
         Returns the tenant internal network.
 
@@ -504,7 +535,7 @@ class ScopedSession(base.ScopedSession):
         if self._create_internal_net:
             # Unfortunately, the tags cannot be set in the POST request
             self._log("Creating internal network")
-            network = self._connection.network.networks.create(name = "portal-internal")
+            network = self._connection.network.networks.create(name="portal-internal")
             network._update_tags(["portal-internal"])
             # Create a subnet for the network
             self._log("Creating subnet for network '%s'", network.name)
@@ -512,34 +543,34 @@ class ScopedSession(base.ScopedSession):
                 "name": "portal-internal",
                 "network_id": network.id,
                 "ip_version": 4,
-                "cidr": self._internal_net_cidr
+                "cidr": self._internal_net_cidr,
             }
             # When internal_net_dns_nameservers is set, add it to the subnet.
             if self._internal_net_dns_nameservers is not None:
-                subnet_create_args['dns_nameservers'] = self._internal_net_dns_nameservers
+                subnet_create_args["dns_nameservers"] = (
+                    self._internal_net_dns_nameservers
+                )
             subnet = self._connection.network.subnets.create(**subnet_create_args)
             # If we can find an external network, create a router that links the two
             try:
                 external_network = self._external_network()
             except errors.InvalidOperationError:
                 self._log(
-                    "Failed to find external network",
-                    level = logging.WARN,
-                    exc_info = True
+                    "Failed to find external network", level=logging.WARN, exc_info=True
                 )
             else:
                 self._log("Creating tenant router")
                 router = self._connection.network.routers.create(
-                    name = "portal-router",
-                    external_gateway_info = dict(network_id = external_network.id)
+                    name="portal-router",
+                    external_gateway_info=dict(network_id=external_network.id),
                 )
                 self._log("Attaching router to network '%s'", network.name)
-                router._add_interface(subnet_id = subnet.id)
+                router._add_interface(subnet_id=subnet.id)
             return network
         else:
             raise errors.InvalidOperationError("Could not find internal network.")
 
-    def _project_share(self, create_share=True): # noqa: C901
+    def _project_share(self, create_share=True):  # noqa: C901
         """
         Returns the project specific Manila share.
 
@@ -572,23 +603,29 @@ class ScopedSession(base.ScopedSession):
             self._log(f"Got share details f{share_details}")
             if share_details.share_proto.upper() != "CEPHFS":
                 raise errors.ImproperlyConfiguredError(
-                    "Currently only support CephFS shares!")
+                    "Currently only support CephFS shares!"
+                )
             if share_details.status.lower() != "available":
                 raise errors.ImproperlyConfiguredError(
-                    "Project share is not available!")
+                    "Project share is not available!"
+                )
             if share_details.access_rules_status.lower() != "active":
                 raise errors.ImproperlyConfiguredError(
-                    "Project share has a problem with its access rules!")
+                    "Project share has a problem with its access rules!"
+                )
 
-            access_list = list(self._connection.share.access.all(
-                share_id=project_share.id))
+            access_list = list(
+                self._connection.share.access.all(share_id=project_share.id)
+            )
             found_expected_access = False
             for access in access_list:
                 if access.access_to == self._project_share_user:
                     found_expected_access = True
                     break
             if not found_expected_access:
-                raise errors.ImproperlyConfiguredError("can't find the expected access rule!")
+                raise errors.ImproperlyConfiguredError(
+                    "can't find the expected access rule!"
+                )
             self._log(f"Found project share for: {self._connection.project_id}")
 
         # no share found, create if required
@@ -617,7 +654,8 @@ class ScopedSession(base.ScopedSession):
                 size=self._manila_project_share_gb,
                 name=self._project_share_name,
                 description="Project share auto-created by Azimuth.",
-                share_type=default_share_type.id)
+                share_type=default_share_type.id,
+            )
 
             # wait for share to be available before trying to grant access
             for _ in range(10):
@@ -636,7 +674,8 @@ class ScopedSession(base.ScopedSession):
 
     def _external_network(self):
         """
-        Returns the external network that connects the tenant router to the outside world.
+        Returns the external network that connects the tenant router to the outside
+        world.
         """
         # First, try to find a network that is tagged as the portal external network
         tagged_network = self._tagged_network("external")
@@ -646,10 +685,9 @@ class ScopedSession(base.ScopedSession):
         if self._external_net_template:
             return self._templated_network(self._external_net_template, "external")
         # If there is exactly one external network available, use that
-        params = { "router:external": True }
-        networks = (
-            list(self._connection.network.networks.all(**params)) +
-            list(self._connection.network.networks.all(**params, project_id = None))
+        params = {"router:external": True}
+        networks = list(self._connection.network.networks.all(**params)) + list(
+            self._connection.network.networks.all(**params, project_id=None)
         )
         if len(networks) == 1:
             return networks[0]
@@ -657,14 +695,14 @@ class ScopedSession(base.ScopedSession):
             raise errors.InvalidOperationError("Multiple external networks found.")
         else:
             raise errors.InvalidOperationError("Could not find external network.")
-    
+
     def _storage_network(self):
         """
         Returns the direct storage network.
         """
         # Try to find a network that is tagged as the portal storage network
         tagged_network = self._tagged_network("storage")
-        
+
         return tagged_network
 
     def _get_or_create_keypair(self, ssh_key):
@@ -676,22 +714,21 @@ class ScopedSession(base.ScopedSession):
         # which allows for us to recognise when a user has changed their key and create
         # a new one
         fingerprint = hashlib.md5(base64.b64decode(ssh_key.split()[1])).hexdigest()
-        key_name = "{username}-{fingerprint}".format(
+        key_name = "{username}-{fingerprint}".format(  # noqa: UP032
             # Sanitise the username by replacing non-alphanumerics with -
-            username = sanitise_username(self.username()),
+            username=sanitise_username(self.username()),
             # Truncate the fingerprint to 8 characters
-            fingerprint = fingerprint[:8]
+            fingerprint=fingerprint[:8],
         )
         try:
             # We need to force a fetch so that the keypair is resolved
-            return self._connection.compute.keypairs.get(key_name, force = True)
+            return self._connection.compute.keypairs.get(key_name, force=True)
         except rackit.NotFound:
             return self._connection.compute.keypairs.create(
-                name = key_name,
-                public_key = ssh_key
+                name=key_name, public_key=ssh_key
             )
 
-    _POWER_STATES = {
+    _POWER_STATES = {  # noqa: RUF012
         0: "Unknown",
         1: "Running",
         3: "Paused",
@@ -709,6 +746,7 @@ class ScopedSession(base.ScopedSession):
         status = api_server.status
         fault = api_server.fault.get("message", None)
         task = api_server.task_state
+
         # Function to get the first IP of a particular type for a machine
         # We prefer to get an IP on the specified tenant network, but if the machine is
         # not connected to that network we just return the first IP
@@ -716,16 +754,21 @@ class ScopedSession(base.ScopedSession):
             addresses_of_type = {}
             for net, addresses in api_server.addresses.items():
                 for address in addresses:
-                    if address["version"] == 4 and address["OS-EXT-IPS:type"] == ip_type:
+                    if (
+                        address["version"] == 4
+                        and address["OS-EXT-IPS:type"] == ip_type
+                    ):
                         addresses_of_type[net] = address["addr"]
                         break
-            # If the machine has more than one IP, attempt to select the one on the tenant net
+            # If the machine has more than one IP, attempt to select the one on the
+            # tenant net
             if len(addresses_of_type) > 1:
                 tenant_network = get_tenant_network()
                 if tenant_network and tenant_network.name in addresses_of_type:
                     return addresses_of_type[tenant_network.name]
             # Otherwise just return the first one
             return next(iter(addresses_of_type.values()), None)
+
         return dto.Machine(
             api_server.id,
             api_server.name,
@@ -734,7 +777,7 @@ class ScopedSession(base.ScopedSession):
             dto.MachineStatus(
                 getattr(dto.MachineStatusType, status, dto.MachineStatusType.OTHER),
                 status,
-                _replace_resource_names(fault) if fault else None
+                _replace_resource_names(fault) if fault else None,
             ),
             self._POWER_STATES[api_server.power_state],
             task.capitalize() if task else None,
@@ -748,7 +791,7 @@ class ScopedSession(base.ScopedSession):
                 if key.startswith(self._metadata_prefix)
             },
             api_server.user_id,
-            dateutil.parser.parse(api_server.created)
+            dateutil.parser.parse(api_server.created),
         )
 
     @convert_exceptions
@@ -759,16 +802,19 @@ class ScopedSession(base.ScopedSession):
         self._log("Fetching available servers")
         api_servers = tuple(self._connection.compute.servers.all())
         self._log("Found %s servers", len(api_servers))
-        # We need to be able to look up the flavor ID from the name, which is all that is reported
+        # We need to be able to look up the flavor ID from the name, which is all that
+        # is reported
         # To avoid multiple queries, we look up all the flavors and index them by name
-        flavors = { f.name: f.id for f in self._connection.compute.flavors.all() }
+        flavors = {f.name: f.id for f in self._connection.compute.flavors.all()}
         # Note that this will (a) only load the network if required and (b)
         # reuse the network once loaded
         get_tenant_network = Lazy(self._tenant_network)
-        return tuple(self._from_api_server(s, flavors, get_tenant_network) for s in api_servers)
+        return tuple(
+            self._from_api_server(s, flavors, get_tenant_network) for s in api_servers
+        )
 
     @convert_exceptions
-    def find_machine(self, id): # noqa: A002
+    def find_machine(self, id):  # noqa: A002
         """
         See :py:meth:`.base.ScopedSession.find_machine`.
         """
@@ -777,7 +823,7 @@ class ScopedSession(base.ScopedSession):
         # We need to be able to look up the flavor from the name
         # It is not possible to filter the query by name using GET params, so the best
         # we can do it query the list and index it
-        flavors = { f.name: f.id for f in self._connection.compute.flavors.all() }
+        flavors = {f.name: f.id for f in self._connection.compute.flavors.all()}
         # Don't discover the tenant network unless the server is found
         get_tenant_network = Lazy(self._tenant_network)
         return self._from_api_server(server, flavors, get_tenant_network)
@@ -794,48 +840,54 @@ class ScopedSession(base.ScopedSession):
         return logs.splitlines()
 
     @convert_exceptions
-    def create_machine(self, name, image, size, ssh_key = None, metadata = None, userdata = None):
+    def create_machine(
+        self, name, image, size, ssh_key=None, metadata=None, userdata=None
+    ):
         """
         See :py:meth:`.base.ScopedSession.create_machine`.
         """
         # Start building the server params
-        params = dict(name = name)
+        params = dict(name=name)
         # If an id was given, resolve it to an image
         if not isinstance(image, dto.Image):
             try:
                 image = self.find_image(image)
             except errors.ObjectNotFoundError:
                 raise errors.BadInputError("Invalid image provided.")
-        params.update(image_id = str(image.id))
+        params.update(image_id=str(image.id))
         size = size.id if isinstance(size, dto.Size) else size
-        params.update(flavor_id = size)
+        params.update(flavor_id=size)
         self._log("Creating machine '%s' (image: %s, size: %s)", name, image.name, size)
         # Get the networks to use
         # Always use the tenant network, creating it if required
-        params.update(networks = [{ "uuid": self._tenant_network(True).id }])
+        params.update(networks=[{"uuid": self._tenant_network(True).id}])
         # Get the keypair to inject
         if ssh_key:
             keypair = self._get_or_create_keypair(ssh_key)
-            params.update(key_name = keypair.name)
+            params.update(key_name=keypair.name)
         # Build the machine metadata, starting with the tenant name
-        machine_metadata = { self._metadata_prefix + "tenant_name": self.tenancy().name }
+        machine_metadata = {self._metadata_prefix + "tenant_name": self.tenancy().name}
         # Copy metadata from the image
-        machine_metadata.update({
-            self._metadata_prefix + key: value
-            for key, value in image.metadata.items()
-        })
+        machine_metadata.update(
+            {
+                self._metadata_prefix + key: value
+                for key, value in image.metadata.items()
+            }
+        )
         # Add any provided metadata to the default metadata
         if metadata:
-            machine_metadata.update({
-                self._metadata_prefix + key: str(value)
-                for key, value in metadata.items()
-            })
-        params.update(metadata = machine_metadata)
+            machine_metadata.update(
+                {
+                    self._metadata_prefix + key: str(value)
+                    for key, value in metadata.items()
+                }
+            )
+        params.update(metadata=machine_metadata)
         # Add any user data script that was given - it must be base64-encoded
         if userdata:
             # The user data must be base64-encoded
             userdata_b64 = base64.b64encode(userdata.encode()).decode()
-            params.update(user_data = userdata_b64)
+            params.update(user_data=userdata_b64)
         server = self._connection.compute.servers.create(params)
         return self.find_machine(server.id)
 
@@ -877,11 +929,11 @@ class ScopedSession(base.ScopedSession):
         machine = machine.id if isinstance(machine, dto.Machine) else machine
         self._log("Deleting machine '%s'", machine)
         # First, delete any associated ports
-        for port in self._connection.network.ports.all(device_id = machine):
+        for port in self._connection.network.ports.all(device_id=machine):
             port._delete()
         self._connection.compute.servers.delete(machine)
         # Once the machine is deleted, delete the instance security group
-        secgroup_name = "instance-{}".format(machine)
+        secgroup_name = f"instance-{machine}"
         secgroup = self._connection.network.security_groups.find_by_name(secgroup_name)
         if secgroup:
             secgroup._delete()
@@ -892,35 +944,30 @@ class ScopedSession(base.ScopedSession):
 
     def _api_rule_is_supported(self, api_rule):
         # Only consider IPv4 rules for protocols we recognise
-        return (
-            api_rule["ethertype"] == "IPv4" and
-            (
-                api_rule["protocol"] is None or
-                api_rule["protocol"].upper() in { p.name for p in dto.FirewallRuleProtocol }
-            )
+        return api_rule["ethertype"] == "IPv4" and (
+            api_rule["protocol"] is None
+            or api_rule["protocol"].upper()
+            in {p.name for p in dto.FirewallRuleProtocol}
         )
 
     def _from_api_security_group_rule(self, secgroup_names, api_rule):
         params = dict(
-            id = api_rule["id"],
-            direction = dto.FirewallRuleDirection[api_rule["direction"].upper()],
-            protocol = (
+            id=api_rule["id"],
+            direction=dto.FirewallRuleDirection[api_rule["direction"].upper()],
+            protocol=(
                 dto.FirewallRuleProtocol[api_rule["protocol"].upper()]
                 if api_rule["protocol"] is not None
                 else dto.FirewallRuleProtocol.ANY
-            )
+            ),
         )
         if api_rule["port_range_max"]:
             params.update(
-                port_range = (
-                    api_rule["port_range_min"],
-                    api_rule["port_range_max"]
-                )
+                port_range=(api_rule["port_range_min"], api_rule["port_range_max"])
             )
         if api_rule["remote_group_id"]:
-            params.update(remote_group = secgroup_names[api_rule["remote_group_id"]])
+            params.update(remote_group=secgroup_names[api_rule["remote_group_id"]])
         else:
-            params.update(remote_cidr = api_rule["remote_ip_prefix"] or "0.0.0.0/0")
+            params.update(remote_cidr=api_rule["remote_ip_prefix"] or "0.0.0.0/0")
         return dto.FirewallRule(**params)
 
     @convert_exceptions
@@ -931,68 +978,66 @@ class ScopedSession(base.ScopedSession):
         self._log("Fetching security groups")
         security_groups = list(self._connection.network.security_groups.all())
         # Index the names of the security groups so we can easily resolve them later
-        secgroup_names = { s.id: s.name for s in security_groups }
+        secgroup_names = {s.id: s.name for s in security_groups}
         self._log("Filtering machine security groups for '%s'", machine)
         # Filter the security groups that apply to the machine
         machine = self._connection.compute.servers.get(machine)
         machine_security_groups = [
             group
             for group in security_groups
-            if group.name in { sg["name"] for sg in machine.security_groups }
+            if group.name in {sg["name"] for sg in machine.security_groups}
         ]
         # The instance security group is the only editable one
-        instance_secgroup = "instance-{}".format(machine.id)
+        instance_secgroup = f"instance-{machine.id}"
         return [
             dto.FirewallGroup(
-                name = group.name,
-                editable = group.name == instance_secgroup,
-                rules = [
+                name=group.name,
+                editable=group.name == instance_secgroup,
+                rules=[
                     self._from_api_security_group_rule(secgroup_names, rule)
                     for rule in group.security_group_rules
                     if self._api_rule_is_supported(rule)
-                ]
+                ],
             )
             for group in machine_security_groups
         ]
 
     @convert_exceptions
     def add_firewall_rule_to_machine(
-        self,
-        machine,
-        direction,
-        protocol,
-        port = None,
-        remote_cidr = None
+        self, machine, direction, protocol, port=None, remote_cidr=None
     ):
         machine = machine.id if isinstance(machine, dto.Machine) else machine
         self._log("Finding instance security group for '%s'", machine)
-        secgroup_name = "instance-{}".format(machine)
+        secgroup_name = f"instance-{machine}"
         secgroup = self._connection.network.security_groups.find_by_name(secgroup_name)
         if secgroup:
             self._log("Found existing security group '%s'", secgroup_name)
         else:
             self._log("Creating security group '%s'", secgroup_name)
             secgroup = self._connection.network.security_groups.create(
-                name = secgroup_name,
-                description = "Instance rules for {}".format(machine)
+                name=secgroup_name, description=f"Instance rules for {machine}"
             )
             # Delete the default rules
             for rule in secgroup.security_group_rules:
                 self._connection.network.security_group_rules.delete(rule["id"])
-            self._connection.compute.servers.get(machine).add_security_group(secgroup.name)
+            self._connection.compute.servers.get(machine).add_security_group(
+                secgroup.name
+            )
         # Now we have the group, we can add the rule
         params = dict(
-            security_group_id = secgroup.id,
-            ethertype = "IPv4",
-            direction = "ingress" if direction is dto.FirewallRuleDirection.INBOUND else "egress"
+            security_group_id=secgroup.id,
+            ethertype="IPv4",
+            direction="ingress"
+            if direction is dto.FirewallRuleDirection.INBOUND
+            else "egress",
         )
         if protocol != dto.FirewallRuleProtocol.ANY:
-            params.update(protocol = protocol.name.lower())
+            params.update(protocol=protocol.name.lower())
         # Only use the port when protocol is UDP or TCP
         if protocol.requires_port() and port:
-            params.update(port_range_min = port, port_range_max = port)
+            params.update(port_range_min=port, port_range_max=port)
         if remote_cidr:
-            params.update(remote_ip_prefix = remote_cidr)
+            params.update(remote_ip_prefix=remote_cidr)
         _ = self._connection.network.security_group_rules.create(**params)
         return self.fetch_firewall_rules_for_machine(machine)
 
@@ -1003,7 +1048,7 @@ class ScopedSession(base.ScopedSession):
         self._connection.network.security_group_rules.delete(rule)
         return self.fetch_firewall_rules_for_machine(machine)
 
-    def _from_api_floatingip(self, api_floatingip, ports = None):
+    def _from_api_floatingip(self, api_floatingip, ports=None):
         """
         Converts an OpenStack API floatingip object into a :py:class:`.dto.ExternalIp`.
         """
@@ -1019,7 +1064,7 @@ class ScopedSession(base.ScopedSession):
             api_floatingip.id,
             api_floatingip.floating_ip_address,
             not port,
-            getattr(port, "device_id", "") or None
+            getattr(port, "device_id", "") or None,
         )
 
     @convert_exceptions
@@ -1030,13 +1075,16 @@ class ScopedSession(base.ScopedSession):
         self._log("Fetching floating ips")
         # Only consider FIPs on the specified external network
         extnet = self._external_network()
-        fips = list(self._connection.network.floatingips.all(floating_network_id = extnet.id))
+        fips = list(
+            self._connection.network.floatingips.all(floating_network_id=extnet.id)
+        )
         self._log("Found %s floating ips", len(fips))
         # If any floating IPs were found, fetch all the ports in one go and index them
-        # by ID so we can locate the attached machines without making one request per port
+        # by ID so we can locate the attached machines without making one request per
+        # port
         if fips:
             self._log("Fetching ports")
-            ports = { p.id: p for p in self._connection.network.ports.all() }
+            ports = {p.id: p for p in self._connection.network.ports.all()}
         else:
             ports = {}
         return tuple(self._from_api_floatingip(fip, ports) for fip in fips)
@@ -1050,7 +1098,7 @@ class ScopedSession(base.ScopedSession):
         # Get the external network to allocate IPs on
         extnet = self._external_network()
         # Create a new floating IP on that network
-        fip = self._connection.network.floatingips.create(floating_network_id = extnet.id)
+        fip = self._connection.network.floatingips.create(floating_network_id=extnet.id)
         self._log("Allocated new floating ip '%s'", fip.floating_ip_address)
         return self._from_api_floatingip(fip)
 
@@ -1066,7 +1114,7 @@ class ScopedSession(base.ScopedSession):
         if fip.floating_network_id == extnet.id:
             return self._from_api_floatingip(fip)
         else:
-            raise errors.ObjectNotFoundError("External IP {} could not be found".format(ip))
+            raise errors.ObjectNotFoundError(f"External IP {ip} could not be found")
 
     @convert_exceptions
     def find_external_ip_by_ip_address(self, ip_address):
@@ -1077,14 +1125,13 @@ class ScopedSession(base.ScopedSession):
         # Only consider FIPs on the correct network
         extnet = self._external_network()
         fips = self._connection.network.floatingips.all(
-            floating_network_id = extnet.id,
-            floating_ip_address = ip_address
+            floating_network_id=extnet.id, floating_ip_address=ip_address
         )
         try:
             return self._from_api_floatingip(next(fips))
         except StopIteration:
             raise errors.ObjectNotFoundError(
-                "External IP {} could not be found".format(ip_address)
+                f"External IP {ip_address} could not be found"
             )
 
     @convert_exceptions
@@ -1101,22 +1148,23 @@ class ScopedSession(base.ScopedSession):
         if tenant_network:
             port = next(
                 self._connection.network.ports.all(
-                    device_id = machine,
-                    network_id = tenant_network.id
+                    device_id=machine, network_id=tenant_network.id
                 ),
-                None
+                None,
             )
         else:
             port = None
         if not port:
-            raise errors.InvalidOperationError("Machine is not connected to tenant network.")
+            raise errors.InvalidOperationError(
+                "Machine is not connected to tenant network."
+            )
         # If there is already a floating IP associated with the port, detach it
         current = self._connection.network.floatingips.find_by_port_id(port.id)
         if current:
-            current._update(port_id = None)
+            current._update(port_id=None)
         # Find the floating IP instance and associate the floating IP with the port
         fip = self._connection.network.floatingips.get(ip.id)
-        return self._from_api_floatingip(fip._update(port_id = port.id))
+        return self._from_api_floatingip(fip._update(port_id=port.id))
 
     @convert_exceptions
     def detach_external_ip(self, ip):
@@ -1127,9 +1175,9 @@ class ScopedSession(base.ScopedSession):
         self._log("Detaching floating ip '%s'", ip)
         # Remove any association for the floating IP
         fip = self._connection.network.floatingips.get(ip)
-        return self._from_api_floatingip(fip._update(port_id = None))
+        return self._from_api_floatingip(fip._update(port_id=None))
 
-    _VOLUME_STATUSES = {
+    _VOLUME_STATUSES = {  # noqa: RUF012
         "creating": dto.VolumeStatus.CREATING,
         "available": dto.VolumeStatus.AVAILABLE,
         "reserved": dto.VolumeStatus.ATTACHING,
@@ -1150,8 +1198,7 @@ class ScopedSession(base.ScopedSession):
         """
         # Work out the volume status
         status = self._VOLUME_STATUSES.get(
-            api_volume.status.lower(),
-            dto.VolumeStatus.OTHER
+            api_volume.status.lower(), dto.VolumeStatus.OTHER
         )
         try:
             attachment = api_volume.attachments[0]
@@ -1164,7 +1211,7 @@ class ScopedSession(base.ScopedSession):
             status,
             api_volume.size,
             attachment["server_id"] if attachment else None,
-            attachment["device"] if attachment else None
+            attachment["device"] if attachment else None,
         )
 
     @convert_exceptions
@@ -1174,14 +1221,13 @@ class ScopedSession(base.ScopedSession):
         """
         self._log("Fetching available volumes")
         volumes = tuple(
-            self._from_api_volume(v)
-            for v in self._connection.block_store.volumes.all()
+            self._from_api_volume(v) for v in self._connection.block_store.volumes.all()
         )
         self._log("Found %s volumes", len(volumes))
         return volumes
 
     @convert_exceptions
-    def find_volume(self, id): # noqa: A002
+    def find_volume(self, id):  # noqa: A002
         """
         See :py:meth:`.base.ScopedSession.find_volume`.
         """
@@ -1195,7 +1241,7 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.create_volume`.
         """
         self._log("Creating volume '%s' (size: %s)", name, size)
-        volume = self._connection.block_store.volumes.create(name = name, size = size)
+        volume = self._connection.block_store.volumes.create(name=name, size=size)
         return self.find_volume(volume.id)
 
     @convert_exceptions
@@ -1206,7 +1252,7 @@ class ScopedSession(base.ScopedSession):
         volume = volume if isinstance(volume, dto.Volume) else self.find_volume(volume)
         if volume.status not in [dto.VolumeStatus.AVAILABLE, dto.VolumeStatus.ERROR]:
             raise errors.InvalidOperationError(
-                "Cannot delete volume with status {}.".format(volume.status.name)
+                f"Cannot delete volume with status {volume.status.name}."
             )
         self._log("Deleting volume '%s'", volume.id)
         self._connection.block_store.volumes.delete(volume.id)
@@ -1232,9 +1278,9 @@ class ScopedSession(base.ScopedSession):
             )
         self._log("Attaching volume '%s' to server '%s'", volume.id, machine)
         server = self._connection.compute.servers.get(machine)
-        server.volume_attachments.create(volume_id = volume.id)
+        server.volume_attachments.create(volume_id=volume.id)
         # Refresh the volume in the cache
-        self._connection.block_store.volumes.get(volume.id, force = True)
+        self._connection.block_store.volumes.get(volume.id, force=True)
         return self.find_volume(volume.id)
 
     @convert_exceptions
@@ -1248,9 +1294,11 @@ class ScopedSession(base.ScopedSession):
             return volume
         self._log("Detaching volume '%s' from '%s'", volume.id, volume.machine_id)
         server = self._connection.compute.servers.get(volume.machine_id)
-        server.volume_attachments.find_by_volume_id(volume.id, as_params = False)._delete()
+        server.volume_attachments.find_by_volume_id(
+            volume.id, as_params=False
+        )._delete()
         # Refresh the volume in the cache
-        self._connection.block_store.volumes.get(volume.id, force = True)
+        self._connection.block_store.volumes.get(volume.id, force=True)
         return self.find_volume(volume.id)
 
     @convert_exceptions
@@ -1259,22 +1307,26 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.cloud_credential`.
         """
         # Create a new appcred for the current user
-        app_cred = self._connection.identity.current_user.application_credentials.create(
-            name = name,
-            description = description,
-            # If the user is an admin, don't include that role in the appcred
-            roles = [
-                {"name": role["name"]}
-                for role in self._connection.roles
-                if role["name"] != "admin"
-            ],
-            # TODO(mkjpryor)
-            # This is currently required to allow app creds to delete themselves
-            # However it also allows the app cred to make and delete other app creds
-            # which is much more power than we would ideally like the app cred to have
-            # We need to look at allowing restricted app creds to delete only themselves,
-            # either via policy or code changes depending on what is possible
-            unrestricted = True
+        app_cred = (
+            self._connection.identity.current_user.application_credentials.create(
+                name=name,
+                description=description,
+                # If the user is an admin, don't include that role in the appcred
+                roles=[
+                    {"name": role["name"]}
+                    for role in self._connection.roles
+                    if role["name"] != "admin"
+                ],
+                # TODO(mkjpryor)
+                # This is currently required to allow app creds to delete themselves
+                # However it also allows the app cred to make and delete other app
+                # creds which is much more power than we would ideally like the app cred
+                # to have
+                # We need to look at allowing restricted app creds to delete only
+                # themselves, either via policy or code changes depending on what is
+                # possible
+                unrestricted=True,
+            )
         )
         # Create the data for the credential object
         cloud_data = {
@@ -1303,10 +1355,11 @@ class ScopedSession(base.ScopedSession):
         }
         # Decide if we need to add any CA certs to the data
         if self._connection.verify:
-            # Use the cert file set by azimuth-entrypoint, which may contain custom certs
+            # Use the cert file set by azimuth-entrypoint, which may contain custom
+            # certs
             # If the envvar is not set, just use the certs provided by certifi
             cacert_path = os.environ.get("SSL_CERT_FILE", certifi.where())
-            with open(cacert_path, "r") as cacert_fh:
+            with open(cacert_path) as cacert_fh:
                 data["cacert"] = cacert_fh.read()
         return dto.Credential("openstack_application_credential", data)
 
@@ -1318,16 +1371,16 @@ class ScopedSession(base.ScopedSession):
         external_network = self._external_network().name
         params = dict(
             # Legacy name
-            cluster_floating_network = external_network,
+            cluster_floating_network=external_network,
             # New name
-            cluster_external_network = external_network,
-            cluster_network = self._tenant_network(True).name
+            cluster_external_network=external_network,
+            cluster_network=self._tenant_network(True).name,
         )
 
         # Inject storage direct network, if exists
         storage_network = self._storage_network()
         if storage_network:
-            params['cluster_storage_network'] = storage_network.name
+            params["cluster_storage_network"] = storage_network.name
 
         # If configured to, find if we can have a project share
         project_share = self._project_share(True)
@@ -1349,7 +1402,8 @@ class ScopedSession(base.ScopedSession):
         params = {
             k: v
             for k, v in cluster.parameter_values.items()
-            if k not in {
+            if k
+            not in {
                 "cluster_floating_network",
                 "cluster_external_network",
                 "cluster_network",
@@ -1361,7 +1415,9 @@ class ScopedSession(base.ScopedSession):
         }
         original_error = (cluster.error_message or "").lower()
         # Convert quota-related error messages based on known OpenStack errors
-        if any(m in original_error for m in {"quota exceeded", "exceedsavailablequota"}):
+        if any(
+            m in original_error for m in {"quota exceeded", "exceedsavailablequota"}
+        ):
             if "floatingip" in original_error:
                 error_message = (
                     "Could not find an external IP for deployment. "
@@ -1377,9 +1433,7 @@ class ScopedSession(base.ScopedSession):
         else:
             error_message = None
         return dataclasses.replace(
-            cluster,
-            parameter_values = params,
-            error_message = error_message
+            cluster, parameter_values=params, error_message=error_message
         )
 
     @convert_exceptions

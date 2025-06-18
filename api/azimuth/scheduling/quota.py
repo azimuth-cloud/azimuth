@@ -3,7 +3,8 @@ from __future__ import annotations
 
 import typing as t
 
-from ..provider import base as cloud_provider
+from azimuth.provider import base as cloud_provider
+
 from . import dto
 
 
@@ -11,13 +12,14 @@ class QuotaChecker:
     """
     Checks platform resource requirements against quota.
     """
+
     def __init__(self, session: cloud_provider.ScopedSession):
         self._session = session
 
     def check(
         self,
         future_resources: dto.PlatformResources,
-        current_resources: dto.PlatformResources | None = None
+        current_resources: dto.PlatformResources | None = None,
     ) -> tuple[bool, t.Iterable[dto.ProjectedQuota]]:
         """
         Runs a quota check for the given platform resources and returns a tuple
@@ -45,12 +47,12 @@ class QuotaChecker:
                 quota.allocated,
                 quota.used,
                 delta,
-                quota.used + delta
+                quota.used + delta,
             )
             projected_quotas.append(projected_quota)
             if (
-                projected_quota.allocated >= 0 and
-                projected_quota.projected > projected_quota.allocated
+                projected_quota.allocated >= 0
+                and projected_quota.projected > projected_quota.allocated
             ):
                 fits = False
         return fits, projected_quotas

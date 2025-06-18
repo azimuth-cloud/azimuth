@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.utils.html import escape, format_html
 from django.utils.safestring import mark_safe
 
-from ..settings import cloud_settings
+from azimuth.settings import cloud_settings
 
 register = template.Library()
 
@@ -18,31 +18,31 @@ def azimuth_current_cloud():
     """
     Insert the name of the current cloud.
     """
-    return cloud_settings.AVAILABLE_CLOUDS[cloud_settings.CURRENT_CLOUD]['label']
+    return cloud_settings.AVAILABLE_CLOUDS[cloud_settings.CURRENT_CLOUD]["label"]
 
 
-@register.simple_tag(takes_context = True)
+@register.simple_tag(takes_context=True)
 def azimuth_auth_login(context):
     """
     Include a login snippet using Azimuth auth.
     """
-    login_url = reverse('azimuth_auth:login')
+    login_url = reverse("azimuth_auth:login")
     snippet = "<li><a href='{href}?{param}={next}'>Sign in</a></li>"
     snippet = format_html(
         snippet,
-        href = login_url,
-        param = auth_settings.NEXT_URL_PARAM,
-        next = escape(context['request'].path)
+        href=login_url,
+        param=auth_settings.NEXT_URL_PARAM,
+        next=escape(context["request"].path),
     )
     return mark_safe(snippet)
 
 
-@register.simple_tag(takes_context = True)
+@register.simple_tag(takes_context=True)
 def azimuth_auth_logout(context):
     """
     Include a logout snippet using Azimuth auth.
     """
-    logout_url = reverse('azimuth_auth:logout')
+    logout_url = reverse("azimuth_auth:logout")
     snippet = """<li class="dropdown">
         <a href="#" class="dropdown-toggle" data-toggle="dropdown">
             {user}
@@ -54,9 +54,9 @@ def azimuth_auth_logout(context):
     </li>"""
     snippet = format_html(
         snippet,
-        user = escape(context['user']),
-        href = logout_url,
-        param = auth_settings.NEXT_URL_PARAM,
-        next = escape(context['request'].path)
+        user=escape(context["user"]),
+        href=logout_url,
+        param=auth_settings.NEXT_URL_PARAM,
+        next=escape(context["request"].path),
     )
     return mark_safe(snippet)

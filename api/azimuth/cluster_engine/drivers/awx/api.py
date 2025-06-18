@@ -12,15 +12,17 @@ class ResourceManager(rackit.ResourceManager):
     """
     Default resource manager for all AWX resources.
     """
+
     def extract_list(self, response):
         json = response.json()
-        return json['results'], json.get('next'), {}
+        return json["results"], json.get("next"), {}
 
 
 class Resource(rackit.Resource):
     """
     Base resource for all AWX resources.
     """
+
     class Meta:
         manager_cls = ResourceManager
 
@@ -58,9 +60,9 @@ class Team(Resource):
 
     def associate_role(self, role):
         connection = self._manager.connection
-        path = "{}roles/".format(self._path)
+        path = f"{self._path}roles/"
         role_id = role.id if isinstance(role, Role) else role
-        connection.api_post(path, json = dict(id = role_id))
+        connection.api_post(path, json=dict(id=role_id))
 
 
 class Playbooks(rackit.UnmanagedResource):
@@ -78,12 +80,12 @@ class Project(Resource):
 class JobTemplate(Resource):
     class Meta:
         endpoint = "/job_templates/"
-        cache_keys = ('name', )
+        cache_keys = ("name",)
 
     credentials = rackit.NestedResource(Credential)
 
     def launch(self, *args, **kwargs):
-        return self._action('launch', *args, **kwargs)
+        return self._action("launch", *args, **kwargs)
 
 
 class JobEvent(Resource):
@@ -125,8 +127,8 @@ class Group(Resource):
 
 class InventoryManager(ResourceManager):
     def copy(self, resource_or_key, name):
-        endpoint = self.prepare_url(resource_or_key, 'copy')
-        response = self.connection.api_post(endpoint, json = dict(name = name))
+        endpoint = self.prepare_url(resource_or_key, "copy")
+        response = self.connection.api_post(endpoint, json=dict(name=name))
         return self.make_instance(self.extract_one(response))
 
 
@@ -152,6 +154,7 @@ class Connection(rackit.Connection):
     """
     Class for a connection to an AWX API server.
     """
+
     path_prefix = "/api/v2"
 
     organisations = rackit.RootResource(Organisation)
@@ -168,7 +171,7 @@ class Connection(rackit.Connection):
     roles = rackit.RootResource(Role)
     job_events = rackit.RootResource(JobEvent)
 
-    def __init__(self, url, username, password, verify_ssl = True):
+    def __init__(self, url, username, password, verify_ssl=True):
         # Build the session to use basic auth for requests
         session = requests.Session()
         session.auth = requests.auth.HTTPBasicAuth(username, password)
@@ -181,7 +184,7 @@ class Connection(rackit.Connection):
         # In addition, if we were redirected to the migrations page, raise that
         # as a 503 (which is what it should be)
         if response.url.endswith("/migrations_notran/"):
-            raise rackit.ServiceUnavailable('Migrations in progress')
+            raise rackit.ServiceUnavailable("Migrations in progress")
         return response
 
     def extract_error_message(self, response):

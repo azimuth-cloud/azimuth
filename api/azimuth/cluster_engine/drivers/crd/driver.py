@@ -1,6 +1,7 @@
 """
 This module contains the cluster engine implementation for azimuth-caas-crd.
 """
+
 import collections  # noqa: F401
 import datetime
 import logging
@@ -136,7 +137,9 @@ def _get_cluster_type(client, cluster_type_name: str, tenancy):
     clustertypes_resource = client.api(CAAS_API_VERSION).resource("clustertypes")
     raw = clustertypes_resource.fetch(cluster_type_name)
     if not allowed_by_acls(raw, tenancy):
-        raise errors.ObjectNotFoundError(f"Cannot find cluster type {cluster_type_name}")
+        raise errors.ObjectNotFoundError(
+            f"Cannot find cluster type {cluster_type_name}"
+        )
     cluster_type = _get_cluster_type_dto(raw)
     if cluster_type:
         return cluster_type
@@ -151,7 +154,7 @@ def create_cluster(
     params: dict,
     resources: scheduling_dto.PlatformResources,
     schedule: scheduling_dto.PlatformSchedule | None,
-    ctx: dto.Context
+    ctx: dto.Context,
 ):
     safe_name = utils.sanitise(name)
     secret_name = f"{safe_name}-caas-credential"
@@ -164,7 +167,7 @@ def create_cluster(
                 "name": secret_name,
             },
             "stringData": string_data,
-        }
+        },
     )
     cluster_type_name = cluster_type.name
 
@@ -191,9 +194,10 @@ def create_cluster(
                 "name": safe_name,
                 "labels": {"app.kubernetes.io/managed-by": "azimuth"},
                 # We annotate the cluster with the serialized schedule object
-                # This is to avoid doing an N+1 query to recover the schedules when listing
+                # This is to avoid doing an N+1 query to recover the schedules when
+                # listing
                 "annotations": (
-                    { "azimuth.stackhpc.com/schedule": schedule.to_json() }
+                    {"azimuth.stackhpc.com/schedule": schedule.to_json()}
                     if schedule
                     else {}
                 ),
@@ -203,14 +207,10 @@ def create_cluster(
     )
 
     # Create the scheduling resources for the platform
-    # This may or may not create a Blazar lease to reserve the resources for the platform
+    # This may or may not create a Blazar lease to reserve the resources for the
+    # platform
     scheduling_k8s.create_scheduling_resources(
-        client,
-        f"caas-{safe_name}",
-        cluster,
-        secret_name,
-        resources,
-        schedule
+        client, f"caas-{safe_name}", cluster, secret_name, resources, schedule
     )
 
     return get_cluster_dto(cluster)
@@ -221,7 +221,7 @@ def delete_cluster(client, name: str):
 
     # TODO(johngarbutt) should we be refreshing the application cred here?
     cluster_resource = client.api(CAAS_API_VERSION).resource("clusters")
-    cluster_resource.delete(safe_name, propagation_policy = "Foreground")
+    cluster_resource.delete(safe_name, propagation_policy="Foreground")
 
     # NOTE(johngarbutt) we are racing the operator here,
     # returning the ready state will confuse people
@@ -248,12 +248,13 @@ def patch_cluster(client, name: str, params: t.Mapping[str, t.Any], ctx: dto.Con
     return update_cluster(client, name, params, cluster_type.version, ctx)
 
 
-def update_cluster(client, name: str, params: t.Mapping[str, t.Any],
-                   version: str, ctx: dto.Context):
+def update_cluster(
+    client, name: str, params: t.Mapping[str, t.Any], version: str, ctx: dto.Context
+):
     safe_name = utils.sanitise(name)
 
     # trigger updates even when params are same as create or last update
-    now = datetime.datetime.now(tz = datetime.timezone.utc)
+    now = datetime.datetime.now(tz=datetime.timezone.utc)
     now_string = now.strftime("%Y-%m-%dT%H:%M:%SZ")
     params["azimuth_requested_update_at"] = now_string
     params["azimuth_update_reason"] = "unknown"
@@ -279,7 +280,9 @@ def update_cluster(client, name: str, params: t.Mapping[str, t.Any],
     time.sleep(0.1)
     raw_cluster = cluster_resource.fetch(safe_name)
     if not allowed_by_acls(raw_cluster, ctx.tenancy):
-        raise errors.ObjectNotFoundError(f"Cannot update cluster {name} - cluster type not found")
+        raise errors.ObjectNotFoundError(
+            f"Cannot update cluster {name} - cluster type not found"
+        )
 
     return get_cluster_dto(raw_cluster, status_if_ready=dto.ClusterStatus.CONFIGURING)
 
@@ -317,7 +320,7 @@ class Driver(base.Driver):
         client = get_k8s_client(ctx)
         return get_clusters(client)
 
-    def find_cluster(self, id: str, ctx: dto.Context) -> dto.Cluster: # noqa: A002
+    def find_cluster(self, id: str, ctx: dto.Context) -> dto.Cluster:  # noqa: A002
         """
         Find a cluster by id.
         """
@@ -334,32 +337,27 @@ class Driver(base.Driver):
         params: t.Mapping[str, t.Any],
         resources: scheduling_dto.PlatformResources,
         schedule: scheduling_dto.PlatformSchedule | None,
-        ctx: dto.Context
+        ctx: dto.Context,
     ) -> dto.Cluster:
         """
         Create a new cluster with the given name, type and parameters.
         """
         client = get_k8s_client(ctx, True)
-        return create_cluster(client, name, cluster_type, params, resources, schedule, ctx)
+        return create_cluster(
+            client, name, cluster_type, params, resources, schedule, ctx
+        )
 
     def update_cluster(
-        self,
-        cluster: dto.Cluster,
-        params: t.Mapping[str, t.Any],
-        ctx: dto.Context
+        self, cluster: dto.Cluster, params: t.Mapping[str, t.Any], ctx: dto.Context
     ) -> dto.Cluster:
         """
         Updates an existing cluster with the given parameters.
         """
         client = get_k8s_client(ctx, True)
-        return update_cluster(client, cluster.name, params,
-                              version=None, ctx=ctx)
+        return update_cluster(client, cluster.name, params, version=None, ctx=ctx)
 
     def patch_cluster(
-        self,
-        cluster: dto.Cluster,
-        params: t.Mapping[str, t.Any],
-        ctx: dto.Context
+        self, cluster: dto.Cluster, params: t.Mapping[str, t.Any], ctx: dto.Context
     ) -> dto.Cluster:
         """
         Patches the given existing cluster.
@@ -368,9 +366,7 @@ class Driver(base.Driver):
         return patch_cluster(client, cluster.name, params, ctx)
 
     def delete_cluster(
-        self,
-        cluster: dto.Cluster,
-        ctx: dto.Context
+        self, cluster: dto.Cluster, ctx: dto.Context
     ) -> dto.Cluster | None:
         """
         Deletes an existing cluster.

@@ -9,6 +9,7 @@ class StatusEndpointFilterMixin:
     """
     Mixin for logger classes that allows for the filtering of the status endpoint.
     """
+
     def access(self, resp, req, environ, request_time):
         # If the request path starts with the status path, ignore it
         if not req.path.startswith(reverse("status")):
@@ -25,6 +26,7 @@ class StatsdLogger(StatusEndpointFilterMixin, Statsd):
     """
     Custom statsd-enabled logger that allows for the filtering of the status endpoint.
     """
+
     def __init__(self, cfg):
         super().__init__(cfg)
 
@@ -38,4 +40,4 @@ class StatsdLogger(StatusEndpointFilterMixin, Statsd):
         for status in http.HTTPStatus:
             # Ignore the 1xx statuses as we will never serve them
             if status.value >= 200:
-                self.increment("gunicorn.request.status.%d" % status.value, 0)
+                self.increment(f"gunicorn.request.status.{status.value}", 0)
