@@ -1,22 +1,21 @@
 """
 This module contains the cluster engine implementation for azimuth-caas-crd.
 """
-import collections
+import collections  # noqa: F401
 import datetime
-import dateutil.parser
 import logging
 import time
 import typing as t
 
+import dateutil.parser
 import easykube
 
-from azimuth.acls import allowed_by_acls
-from azimuth.cluster_engine.drivers import base
-from azimuth.cluster_engine import dto
-from azimuth.cluster_engine import errors
-from azimuth.scheduling import dto as scheduling_dto, k8s as scheduling_k8s
 from azimuth import utils
-
+from azimuth.acls import allowed_by_acls
+from azimuth.cluster_engine import dto, errors
+from azimuth.cluster_engine.drivers import base
+from azimuth.scheduling import dto as scheduling_dto
+from azimuth.scheduling import k8s as scheduling_k8s
 
 CAAS_API_VERSION = "caas.azimuth.stackhpc.com/v1alpha1"
 LOG = logging.getLogger(__name__)
@@ -51,7 +50,7 @@ def get_cluster_types(client, tenancy) -> t.Iterable[dto.ClusterType]:
     return cluster_types
 
 
-def get_cluster_dto(raw_cluster, status_if_ready: t.Optional[dto.ClusterStatus] = None):
+def get_cluster_dto(raw_cluster, status_if_ready: dto.ClusterStatus | None = None):
     raw_status = raw_cluster.get("status", {})
     status = dto.ClusterStatus.CONFIGURING
     task = None
@@ -151,7 +150,7 @@ def create_cluster(
     cluster_type: dto.ClusterType,
     params: dict,
     resources: scheduling_dto.PlatformResources,
-    schedule: t.Optional[scheduling_dto.PlatformSchedule],
+    schedule: scheduling_dto.PlatformSchedule | None,
     ctx: dto.Context
 ):
     safe_name = utils.sanitise(name)
@@ -318,7 +317,7 @@ class Driver(base.Driver):
         client = get_k8s_client(ctx)
         return get_clusters(client)
 
-    def find_cluster(self, id: str, ctx: dto.Context) -> dto.Cluster:
+    def find_cluster(self, id: str, ctx: dto.Context) -> dto.Cluster: # noqa: A002
         """
         Find a cluster by id.
         """
@@ -334,7 +333,7 @@ class Driver(base.Driver):
         cluster_type: dto.ClusterType,
         params: t.Mapping[str, t.Any],
         resources: scheduling_dto.PlatformResources,
-        schedule: t.Optional[scheduling_dto.PlatformSchedule],
+        schedule: scheduling_dto.PlatformSchedule | None,
         ctx: dto.Context
     ) -> dto.Cluster:
         """
@@ -372,7 +371,7 @@ class Driver(base.Driver):
         self,
         cluster: dto.Cluster,
         ctx: dto.Context
-    ) -> t.Optional[dto.Cluster]:
+    ) -> dto.Cluster | None:
         """
         Deletes an existing cluster.
         """

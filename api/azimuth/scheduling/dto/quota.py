@@ -1,5 +1,4 @@
 import dataclasses
-import typing as t
 
 
 @dataclasses.dataclass(frozen = True)
@@ -12,7 +11,7 @@ class ProjectedQuota:
     #: The human-readable label for the quota resource
     label: str
     #: The units of the quota. For a unit-less quota, use ``None``.
-    units: t.Optional[str]
+    units: str | None
     #: The amount of the resource that has been allocated
     allocated: int
     #: The current amount of resource being consumed

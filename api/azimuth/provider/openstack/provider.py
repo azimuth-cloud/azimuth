@@ -12,17 +12,12 @@ import re
 import time
 
 import certifi
-
 import dateutil.parser
-
 import rackit
-
 import yaml
 
-from .. import base, errors, dto
-
+from .. import base, dto, errors
 from . import api
-
 
 logger = logging.getLogger(__name__)
 
@@ -356,7 +351,7 @@ class ScopedSession(base.ScopedSession):
         Converts an OpenStack API image object into a :py:class:`.dto.Image`.
         """
         # Gather the metadata items with the specified prefix
-        # As well as the image metadata, we also treat tags with the specified prefix
+        # As well as the image metadata, we also treat tags with the specified prefix
         # as metadata items with a value of "1"
         metadata = {
             key.removeprefix(self._metadata_prefix): value
@@ -393,7 +388,7 @@ class ScopedSession(base.ScopedSession):
         return tuple(self._from_api_image(i) for i in images)
 
     @convert_exceptions
-    def find_image(self, id):
+    def find_image(self, id): # noqa: A002
         """
         See :py:meth:`.base.ScopedSession.find_image`.
         """
@@ -431,7 +426,7 @@ class ScopedSession(base.ScopedSession):
         return flavors
 
     @convert_exceptions
-    def find_size(self, id):
+    def find_size(self, id): # noqa: A002
         """
         See :py:meth:`.base.ScopedSession.find_size`.
         """
@@ -544,7 +539,7 @@ class ScopedSession(base.ScopedSession):
         else:
             raise errors.InvalidOperationError("Could not find internal network.")
 
-    def _project_share(self, create_share=True):
+    def _project_share(self, create_share=True): # noqa: C901
         """
         Returns the project specific Manila share.
 
@@ -724,7 +719,7 @@ class ScopedSession(base.ScopedSession):
                     if address["version"] == 4 and address["OS-EXT-IPS:type"] == ip_type:
                         addresses_of_type[net] = address["addr"]
                         break
-            # If the machine has more than one IP, attempt to select the one on the tenant net
+            # If the machine has more than one IP, attempt to select the one on the tenant net
             if len(addresses_of_type) > 1:
                 tenant_network = get_tenant_network()
                 if tenant_network and tenant_network.name in addresses_of_type:
@@ -768,12 +763,12 @@ class ScopedSession(base.ScopedSession):
         # To avoid multiple queries, we look up all the flavors and index them by name
         flavors = { f.name: f.id for f in self._connection.compute.flavors.all() }
         # Note that this will (a) only load the network if required and (b)
-        # reuse the network once loaded
+        # reuse the network once loaded
         get_tenant_network = Lazy(self._tenant_network)
         return tuple(self._from_api_server(s, flavors, get_tenant_network) for s in api_servers)
 
     @convert_exceptions
-    def find_machine(self, id):
+    def find_machine(self, id): # noqa: A002
         """
         See :py:meth:`.base.ScopedSession.find_machine`.
         """
@@ -1186,7 +1181,7 @@ class ScopedSession(base.ScopedSession):
         return volumes
 
     @convert_exceptions
-    def find_volume(self, id):
+    def find_volume(self, id): # noqa: A002
         """
         See :py:meth:`.base.ScopedSession.find_volume`.
         """
@@ -1275,7 +1270,7 @@ class ScopedSession(base.ScopedSession):
             ],
             # TODO(mkjpryor)
             # This is currently required to allow app creds to delete themselves
-            # However it also allows the app cred to make and delete other app creds
+            # However it also allows the app cred to make and delete other app creds
             # which is much more power than we would ideally like the app cred to have
             # We need to look at allowing restricted app creds to delete only themselves,
             # either via policy or code changes depending on what is possible

@@ -2,10 +2,10 @@
 This module defines data-transfer objects used by providers.
 """
 
+import enum
 from dataclasses import dataclass
 from datetime import datetime
-import enum
-from typing import Mapping, Optional, Sequence, Tuple
+from typing import Mapping, Sequence
 
 
 @dataclass(frozen = True)
@@ -49,7 +49,7 @@ class Quota:
     #: The human-readable label for the quota
     label: str
     #: The units of the quota. For a unit-less quota, use ``None``.
-    units: Optional[str]
+    units: str | None
     #: The amount of the resource that has been allocated
     allocated: int
     #: The amount of the resource that has been used
@@ -80,7 +80,7 @@ class Size:
     """
     Represents a machine size available to a tenancy.
 
-    A size is a specification of the number of virtaul CPUs and RAM available to
+    A size is a specification of the number of virtual CPUs and RAM available to
     a machine.
 
     Can be combined with an :py:class:`Image` to create a new :py:class:`Machine`.
@@ -90,7 +90,7 @@ class Size:
     #: The human-readable name of the size
     name: str
     #: The description of the size
-    description: Optional[str]
+    description: str | None
     #: The number of CPUs
     cpus: int
     #: The amount of RAM in MB
@@ -126,7 +126,7 @@ class MachineStatus:
     #: A short string representation of the status
     name: str
     #: A more details description of the status, e.g. an error
-    details: Optional[str]
+    details: str | None
 
 
 @dataclass(frozen = True)
@@ -147,11 +147,11 @@ class Machine:
     #: The power state of the machine
     power_state: str
     #: String representation of any task that is currently executing
-    task: Optional[str]
+    task: str | None
     #: The internal IPv4 address of the machine
-    internal_ip: Optional[str]
+    internal_ip: str | None
     #: The external IPv4 address of the machine
-    external_ip: Optional[str]
+    external_ip: str | None
     #: Tuple of ids of attached volumes for the machine
     attached_volume_ids: Sequence[str]
     #: The metadata associated with the machine
@@ -202,11 +202,11 @@ class FirewallRule:
     #: The protocol for the firewall rule
     protocol: FirewallRuleProtocol
     #: The port range matched by the firewall rule, if applicable
-    port_range: Optional[Tuple[int, int]] = None
+    port_range: tuple[int, int] | None = None
     #: The remote CIDR matched by the firewall rule, if applicable
-    remote_cidr: Optional[str] = None
+    remote_cidr: str | None = None
     #: The name of the remote firewall group matched by the firewall rule, if applicable
-    remote_group: Optional[str] = None
+    remote_group: str | None = None
 
 
 @dataclass(frozen = True)
@@ -255,9 +255,9 @@ class Volume:
     #: The size of the volume in GB
     size: int
     #: The id of the machine the volume is attached to, or None if the volume is not attached
-    machine_id: Optional[str]
+    machine_id: str | None
     #: The device that the volume is attached on, or None if the volume is not attached
-    device: Optional[str]
+    device: str | None
 
 
 @dataclass(frozen = True)
@@ -273,4 +273,4 @@ class ExternalIp:
     available: bool
     #: The ID of the machine to which the external IP address is mapped,
     #: or None if it is not mapped
-    machine_id: Optional[str]
+    machine_id: str | None

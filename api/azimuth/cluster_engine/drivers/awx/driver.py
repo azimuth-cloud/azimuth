@@ -3,21 +3,19 @@ This module contains the cluster engine implementation for AWX.
 """
 
 import functools
-import logging
 import json
+import logging
 import re
 import time
 import typing as t
 import uuid
 
 import dateutil.parser
-
 import rackit
 
 from ... import dto, errors
 from .. import base
 from . import api
-
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +100,7 @@ class Driver(base.Driver):
         message: str,
         *args,
         level: int = logging.INFO,
-        ctx: t.Optional[dto.Context] = None,
+        ctx: dto.Context | None = None,
         **kwargs
     ):
         logger.log(
@@ -276,7 +274,7 @@ class Driver(base.Driver):
         self._log("Found %s permitted inventories", len(permitted), ctx = ctx)
         return permitted
 
-    def _from_inventory(self, inventory: api.Inventory, ctx: dto.Context):
+    def _from_inventory(self, inventory: api.Inventory, ctx: dto.Context): # noqa: C901
         """
         Returns a cluster from the given inventory.
         """
@@ -363,7 +361,7 @@ class Driver(base.Driver):
                 if not updated:
                     updated = updated or job.finished
                     # If the last task is a debug action for the "outputs" variable, then that
-                    # value is used as the outputs
+                    # value is used as the outputs
                     event = next(
                         job.job_events.all(event = "runner_on_ok", order_by = "-created"),
                         None
@@ -421,7 +419,7 @@ class Driver(base.Driver):
         return inventories
 
     @convert_exceptions
-    def find_cluster(self, id: str, ctx: dto.Context) -> dto.Cluster:
+    def find_cluster(self, id: str, ctx: dto.Context) -> dto.Cluster: # noqa: A002
         """
         See :py:meth:`.base.Driver.find_cluster`.
         """
@@ -497,7 +495,7 @@ class Driver(base.Driver):
         cluster_type: str,
         inventory: api.Inventory,
         awx_credential: api.Credential,
-        extra_vars: t.Dict[str, t.Any],
+        extra_vars: dict[str, t.Any],
         ctx: dto.Context
     ):
         """
@@ -571,7 +569,7 @@ class Driver(base.Driver):
                     raise errors.OperationTimedOutError("Timed out while removing inventory.")
             else:
                 # If the cluster already exists, we have a conflict
-                raise errors.BadInputError("A cluster called '{}' aleady exists.".format(name))
+                raise errors.BadInputError("A cluster called '{}' already exists.".format(name))
         # Start to build the new inventory for the new cluster
         self._log("Copying template inventory as '%s'", inventory_name, ctx = ctx)
         inventory = template_inventory.copy(inventory_name)
@@ -650,7 +648,7 @@ class Driver(base.Driver):
         return self.find_cluster(cluster.id, ctx)
 
     @convert_exceptions
-    def delete_cluster(self, cluster: dto.Cluster, ctx: dto.Context) -> t.Optional[dto.Cluster]:
+    def delete_cluster(self, cluster: dto.Cluster, ctx: dto.Context) -> dto.Cluster | None:
         """
         See :py:meth:`.base.Driver.delete_cluster`.
         """

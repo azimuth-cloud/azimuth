@@ -5,7 +5,8 @@ import typing as t
 
 from ..cluster_api import dto as capi_dto
 from ..cluster_engine import dto as caas_dto
-from ..provider import base as cloud_provider, dto as provider_dto
+from ..provider import base as cloud_provider
+from ..provider import dto as provider_dto
 from . import dto
 
 
@@ -56,9 +57,9 @@ class KubernetesNodeGroupSpec(t.TypedDict):
     name: str
     machine_size: provider_dto.Size
     autoscale: bool
-    count: t.Optional[int]
-    min_count: t.Optional[int]
-    max_count: t.Optional[int]
+    count: int | None
+    min_count: int | None
+    max_count: int | None
 
 
 class KubernetesClusterCalculator:
@@ -72,7 +73,7 @@ class KubernetesClusterCalculator:
         self,
         template: capi_dto.ClusterTemplate,
         control_plane_size: provider_dto.Size,
-        node_groups: t.List[KubernetesNodeGroupSpec],
+        node_groups: list[KubernetesNodeGroupSpec],
         monitoring_enabled: bool,
         monitoring_metrics_volume_size: int,
         monitoring_logs_volume_size: int,

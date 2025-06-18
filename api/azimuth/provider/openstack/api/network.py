@@ -4,7 +4,7 @@ Module containing service and resource definitions for the OpenStack compute API
 
 from rackit import Endpoint, RootResource
 
-from .core import Service, UnmanagedResource, ResourceManager, Resource
+from .core import Resource, ResourceManager, Service, UnmanagedResource
 
 
 class Quotas(UnmanagedResource):

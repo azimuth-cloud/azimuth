@@ -5,7 +5,6 @@ This module defines the base class for cluster managers.
 import typing as t
 
 from ...scheduling import dto as scheduling_dto
-
 from .. import dto
 
 
@@ -34,7 +33,7 @@ class Driver:
         """
         raise NotImplementedError
 
-    def find_cluster(self, id: str, ctx: dto.Context) -> dto.Cluster:
+    def find_cluster(self, id: str, ctx: dto.Context) -> dto.Cluster: # noqa: A002
         """
         Find a cluster by id.
         """
@@ -46,7 +45,7 @@ class Driver:
         cluster_type: dto.ClusterType,
         params: t.Mapping[str, t.Any],
         resources: scheduling_dto.PlatformResources,
-        schedule: t.Optional[scheduling_dto.PlatformSchedule],
+        schedule: scheduling_dto.PlatformSchedule | None,
         ctx: dto.Context
     ):
         """
@@ -80,7 +79,7 @@ class Driver:
         self,
         cluster: dto.Cluster,
         ctx: dto.Context
-    ) -> t.Optional[dto.Cluster]:
+    ) -> dto.Cluster | None:
         """
         Deletes an existing cluster.
         """

@@ -4,7 +4,7 @@ Module containing service and resource definitions for the OpenStack image API.
 
 from rackit import RootResource
 
-from .core import Service, Resource, ResourceManager
+from .core import Resource, ResourceManager, Service
 
 
 class ImageManager(ResourceManager):

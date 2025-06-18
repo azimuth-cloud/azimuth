@@ -2,13 +2,9 @@
 Module containing service and resource definitions for the OpenStack compute API.
 """
 
-from rackit import RootResource, NestedResource
+from rackit import NestedResource, RootResource
 
-from .core import (
-    Service,
-    Resource,
-    ResourceManager
-)
+from .core import Resource, ResourceManager, Service
 
 
 class IdentityResourceManager(ResourceManager):

@@ -1,11 +1,6 @@
-from rackit import RootResource, EmbeddedResource, Endpoint
+from rackit import EmbeddedResource, Endpoint, RootResource
 
-from .core import (
-    Service,
-    UnmanagedResource,
-    Resource,
-    ResourceWithDetail
-)
+from .core import Resource, ResourceWithDetail, Service, UnmanagedResource
 
 
 class ShareType(Resource):

@@ -2,7 +2,7 @@
 URL definitions for the ``azimuth`` Django app.
 """
 
-from django.urls import path, include, register_converter
+from django.urls import include, path, register_converter
 from django.urls.converters import StringConverter
 
 from . import views

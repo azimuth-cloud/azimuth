@@ -4,7 +4,6 @@ import re
 import httpx
 
 from ..authenticator.openstack import normalize_auth_url
-
 from . import base, dto, errors
 
 

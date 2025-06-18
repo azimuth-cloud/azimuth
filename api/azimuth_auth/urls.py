@@ -6,7 +6,6 @@ from django.urls import path
 
 from . import views
 
-
 app_name = 'azimuth_auth'
 urlpatterns = [
     path('authenticators/', views.authenticators, name = 'authenticators'),

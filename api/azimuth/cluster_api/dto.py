@@ -1,6 +1,5 @@
 import dataclasses
 import datetime
-import typing as t
 
 from ..scheduling import dto as scheduling_dto
 
@@ -15,7 +14,7 @@ class ClusterTemplate:
     #: The human-readable name of the template
     name: str
     #: A brief description of the template
-    description: t.Optional[str]
+    description: str | None
     #: The Kubernetes version that this template will deploy
     kubernetes_version: str
     #: Indicates if this is a deprecated template
@@ -29,7 +28,7 @@ class ClusterTemplate:
     #: The size of the volumes used for worker nodes (0 for ephemeral root disk)
     node_group_root_volume_size: int
     #: The tags for the template
-    tags: t.List[str]
+    tags: list[str]
     #: The datetime at which the template was created
     created_at: datetime.datetime
 
@@ -46,11 +45,11 @@ class NodeGroup:
     #: Indicates if the node group should autoscale
     autoscale: bool
     #: The fixed number of nodes in the node group when autoscale is false
-    count: t.Optional[int]
+    count: int | None
     #: The minimum number of nodes in the node group when autoscale is true
-    min_count: t.Optional[int]
+    min_count: int | None
     #: The maximum number of nodes in the node group when autoscale is true
-    max_count: t.Optional[int]
+    max_count: int | None
 
 
 @dataclasses.dataclass(frozen = True)
@@ -67,11 +66,11 @@ class Node:
     #: The id of the size of the node
     size_id: str
     #: The internal IP of the node
-    ip: t.Optional[str]
+    ip: str | None
     #: The kubelet version of the node
-    kubelet_version: t.Optional[str]
+    kubelet_version: str | None
     #: The node group of the node
-    node_group: t.Optional[str]
+    node_group: str | None
     #: The time at which the node was created
     created_at: datetime.datetime
 
@@ -99,7 +98,7 @@ class Service:
     #: The FQDN for the service
     fqdn: str
     #: The URL of an ico for the service
-    icon_url: t.Optional[str]
+    icon_url: str | None
 
 
 @dataclasses.dataclass(frozen = True)
@@ -116,7 +115,7 @@ class Cluster:
     #: The id of the size of the control plane nodes
     control_plane_size_id: str
     #: The node groups in the cluster
-    node_groups: t.List[NodeGroup]
+    node_groups: list[NodeGroup]
     #: Indicates if autohealing is enabled
     autohealing_enabled: bool
     #: Indicates if the Kubernetes dashboard is enabled
@@ -124,7 +123,7 @@ class Cluster:
     #: Indicates if ingress is enabled
     ingress_enabled: bool
     #: The IP address of the ingress controller load balancer
-    ingress_controller_load_balancer_ip: t.Optional[str]
+    ingress_controller_load_balancer_ip: str | None
     #: Indicates if monitoring is enabled
     monitoring_enabled: bool
     #: The size of the volume to use for metrics data
@@ -132,23 +131,23 @@ class Cluster:
     #: The size of the volume to use for logging data
     monitoring_logs_volume_size: int
     #: The Kubernetes version of the cluster
-    kubernetes_version: t.Optional[str]
+    kubernetes_version: str | None
     #: The overall status of the cluster
-    status: t.Optional[str]
+    status: str | None
     #: The status of the control plane
-    control_plane_status: t.Optional[str]
+    control_plane_status: str | None
     #: The nodes in the cluster
-    nodes: t.List[Node]
+    nodes: list[Node]
     #: The addons for the cluster
-    addons: t.List[Addon]
+    addons: list[Addon]
     #: The services for the cluster
-    services: t.List[Service]
+    services: list[Service]
     #: The time at which the cluster was created
     created_at: datetime.datetime
     #: Details about the users interacting with the cluster
-    created_by_username: t.Optional[str]
-    created_by_user_id: t.Optional[str]
-    updated_by_username: t.Optional[str]
-    updated_by_user_id: t.Optional[str]
+    created_by_username: str | None
+    created_by_user_id: str | None
+    updated_by_username: str | None
+    updated_by_user_id: str | None
     #: Scheduling information for the cluster
-    schedule: t.Optional[scheduling_dto.PlatformSchedule] = None
+    schedule: scheduling_dto.PlatformSchedule | None = None

@@ -6,22 +6,19 @@ import json
 import re
 import time
 
-from django.core.management.base import BaseCommand
-
+import rackit
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives.serialization import (
     Encoding,
+    NoEncryption,
     PrivateFormat,
     PublicFormat,
-    NoEncryption
 )
+from django.core.management.base import BaseCommand
 
-import rackit
-
-from ...settings import cloud_settings
-from ...cluster_engine.drivers.awx.driver import CREDENTIAL_TYPE_NAMES
 from ...cluster_engine.drivers.awx import api
-
+from ...cluster_engine.drivers.awx.driver import CREDENTIAL_TYPE_NAMES
+from ...settings import cloud_settings
 
 CAAS_ORGANISATION_NAME = "CaaS"
 
@@ -355,7 +352,7 @@ class Command(BaseCommand):
                 name = inventory_name,
                 organization = organisation.id
             )
-        # Create the openstack group
+        # Create the openstack group
         group = inventory.groups.find_by_name('openstack')
         if group:
             self.stdout.write("Found existing inventory group 'openstack'")

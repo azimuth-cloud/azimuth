@@ -1,5 +1,5 @@
 """
-Django REST Framwork authentication backend for the Azimuth app.
+Django REST Framework authentication backend for the Azimuth app.
 """
 
 import logging
@@ -9,7 +9,6 @@ from rest_framework.exceptions import AuthenticationFailed
 
 from .provider import errors
 from .settings import cloud_settings
-
 
 logger = logging.getLogger(__name__)
 

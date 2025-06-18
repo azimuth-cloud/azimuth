@@ -1,9 +1,8 @@
 import http
 
+from django.urls import reverse
 from gunicorn.glogging import Logger as GLogger
 from gunicorn.instrument.statsd import Statsd
-
-from django.urls import reverse
 
 
 class StatusEndpointFilterMixin:
@@ -30,7 +29,7 @@ class StatsdLogger(StatusEndpointFilterMixin, Statsd):
         super().__init__(cfg)
 
         # Initialise as many counters as possible to zero
-        # https://www.section.io/blog/beware-prometheus-counters-that-do-not-begin-at-zero/
+        # https://www.section.io/blog/beware-prometheus-counters-that-do-not-begin-at-zero/
         self.increment("gunicorn.log.critical", 0)
         self.increment("gunicorn.log.error", 0)
         self.increment("gunicorn.log.warning", 0)

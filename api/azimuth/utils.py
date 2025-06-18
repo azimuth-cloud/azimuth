@@ -5,7 +5,6 @@ import easykube
 
 from .provider import dto
 
-
 MANAGED_BY_LABEL = "app.kubernetes.io/managed-by"
 TENANCY_ID_LABEL = "azimuth.stackhpc.com/tenant-id"
 

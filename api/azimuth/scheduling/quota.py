@@ -17,7 +17,7 @@ class QuotaChecker:
     def check(
         self,
         future_resources: dto.PlatformResources,
-        current_resources: t.Optional[dto.PlatformResources] = None
+        current_resources: dto.PlatformResources | None = None
     ) -> tuple[bool, t.Iterable[dto.ProjectedQuota]]:
         """
         Runs a quota check for the given platform resources and returns a tuple

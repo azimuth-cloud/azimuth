@@ -2,12 +2,7 @@
 Settings helpers for the ``azimuth`` Django app.
 """
 
-from settings_object import (
-    SettingsObject,
-    Setting,
-    NestedSetting,
-    ObjectFactorySetting
-)
+from settings_object import NestedSetting, ObjectFactorySetting, Setting, SettingsObject
 
 from .zenith import Zenith
 

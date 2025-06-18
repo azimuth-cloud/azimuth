@@ -1,6 +1,7 @@
 import yaml
 
-from .base import Provider as ProviderBase, Session as SessionBase
+from .base import Provider as ProviderBase
+from .base import Session as SessionBase
 
 
 class Provider(ProviderBase):

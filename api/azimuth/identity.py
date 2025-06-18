@@ -1,12 +1,10 @@
 import dataclasses
-import typing as t
 
-from easykube import Configuration, ApiError
+from easykube import ApiError, Configuration
 
+from . import utils
 from .cluster_engine import dto as cluster_dto
 from .provider import dto
-from . import utils
-
 
 AZIMUTH_IDENTITY_API_VERSION = "identity.azimuth.stackhpc.com/v1alpha1"
 
@@ -25,9 +23,9 @@ class Realm:
     #: The status of the realm
     status: str
     #: The issuer URL for the realm
-    oidc_issuer_url: t.Optional[str]
+    oidc_issuer_url: str | None
     #: The admin URL for the realm
-    admin_url: t.Optional[str]
+    admin_url: str | None
 
     @classmethod
     def from_k8s_object(cls, obj):
@@ -43,7 +41,7 @@ class Realm:
         )
 
 
-def get_realm(tenancy: dto.Tenancy) -> t.Optional[Realm]:
+def get_realm(tenancy: dto.Tenancy) -> Realm | None:
     """
     Returns the identity realm for the tenancy.
     """

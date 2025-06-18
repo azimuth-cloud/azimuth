@@ -6,7 +6,6 @@ import os
 
 from azimuth_site.gunicorn import Logger, StatsdLogger
 
-
 # Configure the bind address
 _host = os.environ.get("GUNICORN_HOST", "0.0.0.0")
 _port = os.environ.get("GUNICORN_PORT", "8080")

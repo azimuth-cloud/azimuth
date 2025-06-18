@@ -3,13 +3,12 @@ Settings for the Azimuth auth package.
 """
 
 from django.core.exceptions import ImproperlyConfigured
-
 from settings_object import (
-    SettingsObject,
-    Setting,
     MergedDictSetting,
     NestedSetting,
-    ObjectFactorySetting
+    ObjectFactorySetting,
+    Setting,
+    SettingsObject,
 )
 
 

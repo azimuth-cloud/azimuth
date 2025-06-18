@@ -2,9 +2,9 @@
 Module containing service and resource definitions for the OpenStack compute API.
 """
 
-from rackit import RootResource, RelatedResource
+from rackit import RelatedResource, RootResource
 
-from .core import Service, Resource
+from .core import Resource, Service
 from .orchestration import Stack
 
 

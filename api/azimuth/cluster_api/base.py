@@ -6,23 +6,17 @@ import logging
 import typing as t
 
 import dateutil.parser
-
 import httpx
+from easykube import PRESENT, ApiError, Configuration, SyncClient  # noqa: F401
 
-from easykube import (
-    Configuration,
-    ApiError,
-    SyncClient,
-    PRESENT
-)
-
-from ..provider import base as cloud_base, dto as cloud_dto, errors as cloud_errors
-from ..scheduling import dto as scheduling_dto, k8s as scheduling_k8s
 from .. import utils
-
-from . import dto, errors
 from ..acls import allowed_by_acls
-
+from ..provider import base as cloud_base
+from ..provider import dto as cloud_dto
+from ..provider import errors as cloud_errors
+from ..scheduling import dto as scheduling_dto
+from ..scheduling import k8s as scheduling_k8s
+from . import dto, errors
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +64,7 @@ class Provider:
         # Get the easykube configuration from the environment
         self._ekconfig = Configuration.from_environment()
 
-    def get_session_class(self) -> t.Type['Session']:
+    def get_session_class(self) -> type['Session']:
         """
         Returns the session class for the provider.
 
@@ -99,11 +93,11 @@ class NodeGroupSpec(t.TypedDict):
     #: Indicates if the node group should autoscale
     autoscale: bool
     #: The fixed number of nodes in the node group when autoscale is false
-    count: t.Optional[int]
+    count: int | None
     #: The minimum number of nodes in the node group when autoscale is true
-    min_count: t.Optional[int]
+    min_count: int | None
     #: The maximum number of nodes in the node group when autoscale is true
-    max_count: t.Optional[int]
+    max_count: int | None
 
 
 class Session:
@@ -169,7 +163,7 @@ class Session:
         return tuple(self._from_api_cluster_template(ct) for ct in templates)
 
     @convert_exceptions
-    def find_cluster_template(self, id: str) -> dto.ClusterTemplate:
+    def find_cluster_template(self, id: str) -> dto.ClusterTemplate: # noqa: A002
         """
         Finds a cluster template by id.
         """
@@ -195,11 +189,11 @@ class Session:
         cluster_status = cluster.get("status", {})
 
         # We want to account for the case where a change has been made but the operator
-        # has not yet caught up by tweaking the cluster state against what is reported
+        # has not yet caught up by tweaking the cluster state against what is reported
         cluster_state = cluster_status.get("phase")
         if cluster.metadata.get("deletionTimestamp"):
             # If the cluster has a deletion timestamp, flag it as deleting even if
-            # the operator hasn't yet updated the status
+            # the operator hasn't yet updated the status
             cluster_state = "Deleting"
         elif not cluster_state:
             # If there is no state, then the operator has not caught up after a create
@@ -344,7 +338,7 @@ class Session:
             return ()
 
     @convert_exceptions
-    def find_cluster(self, id: str) -> dto.Cluster:
+    def find_cluster(self, id: str) -> dto.Cluster: # noqa: A002
         """
         Finds a cluster by id.
         """
@@ -420,17 +414,17 @@ class Session:
         name: str,
         template: dto.ClusterTemplate,
         control_plane_size: cloud_dto.Size,
-        node_groups: t.List[NodeGroupSpec],
+        node_groups: list[NodeGroupSpec],
         resources: scheduling_dto.PlatformResources,
         autohealing_enabled: bool = True,
         dashboard_enabled: bool = False,
         ingress_enabled: bool = False,
-        ingress_controller_load_balancer_ip: t.Optional[str] = None,
+        ingress_controller_load_balancer_ip: str | None = None,
         monitoring_enabled: bool = False,
-        monitoring_metrics_volume_size: t.Optional[int] = None,
-        monitoring_logs_volume_size: t.Optional[int] = None,
-        zenith_identity_realm_name: t.Optional[str] = None,
-        schedule: t.Optional[scheduling_dto.PlatformSchedule] = None
+        monitoring_metrics_volume_size: int | None = None,
+        monitoring_logs_volume_size: int | None = None,
+        zenith_identity_realm_name: str | None = None,
+        schedule: scheduling_dto.PlatformSchedule | None = None
     ) -> dto.Cluster:
         """
         Create a new cluster in the tenancy.
@@ -531,7 +525,7 @@ class Session:
         return self._from_api_cluster(cluster, sizes)
 
     @convert_exceptions
-    def update_cluster(self, cluster: t.Union[dto.Cluster, str], **options):
+    def update_cluster(self, cluster: dto.Cluster | str, **options):
         """
         Update the specified cluster with the given parameters.
         """
@@ -552,8 +546,8 @@ class Session:
     @convert_exceptions
     def upgrade_cluster(
         self,
-        cluster: t.Union[dto.Cluster, str],
-        template: t.Union[dto.ClusterTemplate, str]
+        cluster: dto.Cluster | str,
+        template: dto.ClusterTemplate | str
     ) -> dto.Cluster:
         """
         Upgrade the specified cluster to the specified template.
@@ -577,8 +571,8 @@ class Session:
     @convert_exceptions
     def delete_cluster(
         self,
-        cluster: t.Union[dto.Cluster, str]
-    ) -> t.Optional[dto.Cluster]:
+        cluster: dto.Cluster | str
+    ) -> dto.Cluster | None:
         """
         Delete the specified Kubernetes cluster.
         """
@@ -615,7 +609,7 @@ class Session:
     @convert_exceptions
     def generate_kubeconfig(
         self,
-        cluster: t.Union[dto.Cluster, str]
+        cluster: dto.Cluster | str
     ) -> str:
         """
         Generate a kubeconfig for the specified cluster.

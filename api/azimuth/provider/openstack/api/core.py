@@ -6,10 +6,8 @@ import json
 import logging
 from urllib.parse import urlsplit
 
-import requests
-
 import rackit
-
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -156,8 +154,8 @@ class AuthProjectManager(ResourceManager):
     def extract_list(self, response):
         list_data, next_url, next_params = super().extract_list(response)
         # HACK
-        # When the current token is for an app cred, limit the returned results to the project
-        # that the app cred is for
+        # When the current token is for an app cred, limit the returned results to the project
+        # that the app cred is for
         # This is a hack around the fact app creds are able to list all the projects that the
         # owner can see, even though they cannot use those projects
         # IMHO this is a bug

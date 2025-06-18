@@ -47,7 +47,7 @@ REST_FRAMEWORK = {
     'UNAUTHENTICATED_USER': None,
 }
 
-# Javascript must be able to access the CSRF cookie
+# Javascript must be able to access the CSRF cookie
 CSRF_COOKIE_HTTPONLY = False
 
 # Use cookie names that don't conflict by default

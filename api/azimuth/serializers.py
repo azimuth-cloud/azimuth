@@ -2,24 +2,21 @@
 Django REST framework serializers for objects from the :py:mod:`~.cloud.dto` package.
 """
 import collections
-import datetime
 import dataclasses
+import datetime
 import ipaddress
 
+import easysemver
+import jsonschema
 from cryptography.exceptions import UnsupportedAlgorithm
 from cryptography.hazmat.primitives.serialization import load_ssh_public_key
-
 from django.urls import reverse
-
 from rest_framework import serializers
-
-import jsonschema
-
-import easysemver
 
 from .apps import dto as apps_dto
 from .cluster_api import dto as capi_dto
-from .cluster_engine import dto as clusters_dto, errors as clusters_errors
+from .cluster_engine import dto as clusters_dto
+from .cluster_engine import errors as clusters_errors
 from .provider import dto, errors
 from .scheduling import dto as scheduling_dto
 from .settings import cloud_settings
@@ -83,7 +80,7 @@ class RefSerializer(serializers.Serializer):
             )
         return result
 
-    def get_self_link(self, request, tenant, id):
+    def get_self_link(self, request, tenant, id): # noqa: A002
         """
         Returns the self link for a ref.
         """
@@ -211,7 +208,7 @@ QuotaSerializer = make_dto_serializer(dto.Quota)
 
 
 class ImageRefSerializer(RefSerializer):
-    def get_self_link(self, request, tenant, id):
+    def get_self_link(self, request, tenant, id): # noqa: A002
         return request.build_absolute_uri(
             reverse("azimuth:image_details", kwargs = {
                 "tenant": tenant,
@@ -233,7 +230,7 @@ class ImageSerializer(
 
 
 class SizeRefSerializer(RefSerializer):
-    def get_self_link(self, request, tenant, id):
+    def get_self_link(self, request, tenant, id): # noqa: A002
         return request.build_absolute_uri(
             reverse("azimuth:size_details", kwargs = {
                 "tenant": tenant,
@@ -250,7 +247,7 @@ SizeSerializer = type(
 
 
 class VolumeRefSerializer(RefSerializer):
-    def get_self_link(self, request, tenant, id):
+    def get_self_link(self, request, tenant, id): # noqa: A002
         return request.build_absolute_uri(
             reverse("azimuth:volume_details", kwargs = {
                 "tenant": tenant,
@@ -260,7 +257,7 @@ class VolumeRefSerializer(RefSerializer):
 
 
 class MachineRefSerializer(RefSerializer):
-    def get_self_link(self, request, tenant, id):
+    def get_self_link(self, request, tenant, id): # noqa: A002
         return request.build_absolute_uri(
             reverse("azimuth:machine_details", kwargs = {
                 "tenant": tenant,
@@ -600,7 +597,7 @@ class UpdateClusterSerializer(serializers.Serializer):
 
 
 class KubernetesClusterTemplateRefSerializer(RefSerializer):
-    def get_self_link(self, request, tenant, id):
+    def get_self_link(self, request, tenant, id): # noqa: A002
         return request.build_absolute_uri(
             reverse("azimuth:kubernetes_cluster_template_details", kwargs = {
                 "tenant": tenant,
@@ -636,7 +633,7 @@ class KubernetesClusterAddonSerializer(make_dto_serializer(capi_dto.Addon)):
 
 
 class KubernetesClusterRefSerializer(RefSerializer):
-    def get_self_link(self, request, tenant, id):
+    def get_self_link(self, request, tenant, id): # noqa: A002
         return request.build_absolute_uri(
             reverse("azimuth:kubernetes_cluster_details", kwargs = {
                 "tenant": tenant,
@@ -950,7 +947,7 @@ class UpdateKubernetesClusterSerializer(
 
 
 class KubernetesAppTemplateRefSerializer(RefSerializer):
-    def get_self_link(self, request, tenant, id):
+    def get_self_link(self, request, tenant, id): # noqa: A002
         return request.build_absolute_uri(
             reverse("azimuth:kubernetes_app_template_details", kwargs = {
                 "tenant": tenant,
@@ -1121,7 +1118,7 @@ class UpdateKubernetesAppSerializer(serializers.Serializer):
             # So the new version must be closer to the front of the list than current
             if new_version_idx > current_version_idx:
                 raise serializers.ValidationError("Downgrading an app is not supported")
-        # Return the new version
+        # Return the new version
         return app_template.versions[new_version_idx]
 
     def validate(self, data):

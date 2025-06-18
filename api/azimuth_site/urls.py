@@ -2,8 +2,8 @@
 Root URL configuration for the Azimuth API.
 """
 
-from django.urls import path, include
 from django.http import HttpResponse
+from django.urls import include, path
 
 
 def status(request):

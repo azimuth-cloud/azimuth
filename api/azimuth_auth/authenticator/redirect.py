@@ -5,7 +5,6 @@ Module containing the base class for authenticators that begin with a redirectio
 from django.shortcuts import redirect, render
 
 from ..settings import auth_settings
-
 from .base import BaseAuthenticator
 
 

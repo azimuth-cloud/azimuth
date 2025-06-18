@@ -4,9 +4,8 @@ Module containing authenticators for OpenStack clouds.
 
 from urllib.parse import urlencode
 
-from django import forms
-
 import requests
+from django import forms
 
 from .form import FormAuthenticator
 from .redirect import RedirectAuthenticator

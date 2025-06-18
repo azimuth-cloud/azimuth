@@ -5,9 +5,8 @@ Custom template tags for the Azimuth auth package.
 from django import template
 from django.urls import reverse
 
-from ..settings import auth_settings
 from ..forms import authenticator_choices
-
+from ..settings import auth_settings
 
 register = template.Library()
 

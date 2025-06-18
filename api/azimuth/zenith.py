@@ -3,7 +3,6 @@ Module containing the Zenith provider.
 """
 
 import dataclasses
-import typing as t
 
 import requests
 from requests.models import PreparedRequest
@@ -19,7 +18,7 @@ class ZenithReservation:
     #: The FQDN for the reserved subdomain
     fqdn: str
     #: The internal FQDN for the reserved subdomain
-    internal_fqdn: t.Optional[str]
+    internal_fqdn: str | None
     #: The token that can be used to associate public keys
     token: str
 
@@ -45,9 +44,9 @@ class Zenith:
     #: registrar using the external endpoint
     verify_ssl_clients: bool
     #: Query parameters that should be added to the URL before redirecting
-    query_params: t.Dict[str, str] = dataclasses.field(default_factory = dict)
+    query_params: dict[str, str] = dataclasses.field(default_factory = dict)
 
-    def service_is_ready(self, fqdn: str, readiness_path: str = "/") -> t.Optional[str]:
+    def service_is_ready(self, fqdn: str, readiness_path: str = "/") -> str | None:
         """
         Given an FQDN for a Zenith service, return the redirect URL if it is ready or
         `None` otherwise.

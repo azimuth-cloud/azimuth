@@ -2,7 +2,7 @@
 Module implementing an LDAP key store.
 """
 
-from jasmin_ldap import ServerPool, Connection, Query
+from jasmin_ldap import Connection, Query, ServerPool
 
 from .base import KeyStore
 from .errors import KeyNotFound

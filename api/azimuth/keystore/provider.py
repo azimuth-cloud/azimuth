@@ -4,7 +4,6 @@ to store public keys.
 """
 
 from ..provider.errors import ObjectNotFoundError
-
 from .base import KeyStore
 from .errors import KeyNotFound
 

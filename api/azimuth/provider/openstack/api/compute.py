@@ -2,16 +2,16 @@
 Module containing service and resource definitions for the OpenStack compute API.
 """
 
-from rackit import RootResource, NestedResource, EmbeddedResource, Endpoint
+from rackit import EmbeddedResource, Endpoint, NestedResource, RootResource
 
 from .core import (
+    Resource,
+    ResourceManager,
+    ResourceWithDetail,
     Service,
     UnmanagedResource,
-    Resource,
-    ResourceWithDetail,
-    ResourceManager
 )
-from .image import Image
+from .image import Image  # noqa: F401
 
 
 class Flavor(ResourceWithDetail):

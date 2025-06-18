@@ -8,18 +8,16 @@ import functools
 import logging
 import math
 
-from django.template import Context, Engine
-from django.shortcuts import redirect, render
-from django.urls import reverse
-from django.utils.safestring import mark_safe
-from django.utils.encoding import smart_str
-
-from docutils import core
-
-from rest_framework import decorators, permissions, response, status, exceptions as drf_exceptions
-from rest_framework.utils import formatting
-
 from azimuth_auth.settings import auth_settings
+from django.shortcuts import redirect, render
+from django.template import Context, Engine
+from django.urls import reverse
+from django.utils.encoding import smart_str
+from django.utils.safestring import mark_safe
+from docutils import core
+from rest_framework import decorators, permissions, response, status
+from rest_framework import exceptions as drf_exceptions
+from rest_framework.utils import formatting
 
 from . import identity, scheduling, serializers
 from .apps import errors as apps_errors
@@ -28,7 +26,6 @@ from .cluster_engine import errors as cluster_engine_errors
 from .keystore import errors as keystore_errors
 from .provider import errors as provider_errors
 from .settings import cloud_settings
-
 
 log = logging.getLogger(__name__)
 
@@ -539,7 +536,7 @@ def image_details(request, tenant, image):
     return response.Response(serializer.data)
 
 
-_SIZE_UNITS = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+_SIZE_UNITS = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"]
 
 def _format_size(amount, original_units):
     """
@@ -1204,7 +1201,7 @@ def cluster_details(request, tenant, cluster):
     """
     On ``GET`` requests, return the named cluster.
 
-    On ``PATCH`` requests, update the named cluster with the given paramters.
+    On ``PATCH`` requests, update the named cluster with the given parameters.
 
     On ``DELETE`` requests, delete the named cluster.
     """

@@ -1,30 +1,20 @@
-import base64
+import base64  # noqa: F401
 import functools
-import importlib
+import importlib  # noqa: F401
 import json
 import logging
 import typing as t
 
 import dateutil.parser
-
 import httpx
-
 import yaml
-
-from easykube import (
-    Configuration,
-    ApiError,
-    SyncClient,
-    PRESENT
-)
+from easykube import PRESENT, ApiError, Configuration, SyncClient
 
 from ..acls import allowed_by_acls
 from ..cluster_api import dto as capi_dto
 from ..provider import base as cloud_base
 from ..utils import get_namespace
-
 from . import base, dto, errors
-
 
 logger = logging.getLogger(__name__)
 
@@ -149,7 +139,7 @@ class Session(base.Session):
         )
 
     @convert_exceptions
-    def find_app_template(self, id: str) -> dto.AppTemplate:
+    def find_app_template(self, id: str) -> dto.AppTemplate: # noqa: A002
         """
         Finds an app template by id.
         """
@@ -176,11 +166,11 @@ class Session(base.Session):
         Converts a Helm release to an app DTO.
         """
         # We want to account for the case where a change has been made but the operator
-        # has not yet caught up by tweaking the release state
+        # has not yet caught up by tweaking the release state
         app_state = helm_release.get("status", {}).get("phase")
         if helm_release.metadata.get("deletionTimestamp"):
             # If the release has a deletion timestamp, flag it as uninstalling even if
-            # the operator hasn't yet updated the status
+            # the operator hasn't yet updated the status
             app_state = "Uninstalling"
         elif not app_state:
             # If there is no state, then the operator has not caught up after a create
@@ -253,7 +243,7 @@ class Session(base.Session):
         return tuple(self._from_helm_release(app) for app in apps)
 
     @convert_exceptions
-    def find_app(self, id: str) -> dto.App:
+    def find_app(self, id: str) -> dto.App: # noqa: A002
         """
         Finds an app by id.
         """
@@ -274,9 +264,9 @@ class Session(base.Session):
         self,
         name: str,
         template: dto.AppTemplate,
-        values: t.Dict[str, t.Any],
+        values: dict[str, t.Any],
         *,
-        kubernetes_cluster: t.Optional[capi_dto.Cluster] = None
+        kubernetes_cluster: capi_dto.Cluster | None = None
     ) -> dto.App:
         """
         Create a new app in the tenancy.
@@ -321,10 +311,10 @@ class Session(base.Session):
     @convert_exceptions
     def update_app(
         self,
-        app: t.Union[dto.App, str],
+        app: dto.App | str,
         template: dto.AppTemplate,
         version: dto.Version,
-        values: t.Dict[str, t.Any]
+        values: dict[str, t.Any]
     ) -> dto.App:
         """
         Update the specified cluster with the given parameters.
@@ -367,7 +357,7 @@ class Session(base.Session):
         )
 
     @convert_exceptions
-    def delete_app(self, app: t.Union[dto.App, str]) -> t.Optional[dto.App]:
+    def delete_app(self, app: dto.App | str) -> dto.App | None:
         """
         Delete the specified app.
         """

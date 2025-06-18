@@ -10,10 +10,8 @@ import jinja2
 from ..provider import base as cloud_base
 from ..scheduling import dto as scheduling_dto
 from ..zenith import Zenith
-
 from . import dto, errors
 from .drivers import base as drivers_base
-
 
 ZENITH_REGISTRAR_URL_VAR = "zenith_registrar_url"
 ZENITH_REGISTRAR_VERIFY_SSL_VAR = "zenith_registrar_verify_ssl"
@@ -78,7 +76,7 @@ class ClusterManager:
     def _cluster_modify(
         self,
         cluster: dto.Cluster,
-        cluster_types: t.Optional[t.Dict[str, dto.ClusterType]] = None
+        cluster_types: dict[str, dto.ClusterType] | None = None
     ) -> dto.Cluster:
         """
         Modifies a cluster returned from a driver before returning it.
@@ -136,7 +134,7 @@ class ClusterManager:
                 cluster_types = { ct.name: ct for ct in self.cluster_types() }
             yield self._cluster_modify(cluster, cluster_types)
 
-    def find_cluster(self, id: str) -> dto.Cluster:
+    def find_cluster(self, id: str) -> dto.Cluster: # noqa: A002
         """
         Find a cluster by id.
         """
@@ -146,7 +144,7 @@ class ClusterManager:
 
     def validate_cluster_params(
         self,
-        cluster_type: t.Union[dto.ClusterType, str],
+        cluster_type: dto.ClusterType | str,
         params: t.Mapping[str, t.Any],
         prev_params: t.Mapping[str, t.Any] = {}
     ) -> t.Mapping[str, t.Any]:
@@ -170,7 +168,7 @@ class ClusterManager:
         self,
         params: t.Mapping[str, t.Any],
         cluster_type: dto.ClusterType,
-        cluster: t.Optional[dto.Cluster] = None
+        cluster: dto.Cluster | None = None
     ):
         """
         Returns a new set of parameters that have the required Zenith parameters
@@ -238,9 +236,9 @@ class ClusterManager:
         name: str,
         cluster_type: dto.ClusterType,
         params: t.Mapping[str, t.Any],
-        ssh_key: t.Optional[str],
+        ssh_key: str | None,
         resources: scheduling_dto.PlatformResources,
-        schedule: t.Optional[scheduling_dto.PlatformSchedule]
+        schedule: scheduling_dto.PlatformSchedule | None
     ) -> dto.Cluster:
         """
         Creates a new cluster with the given name, type and parameters.
@@ -279,7 +277,7 @@ class ClusterManager:
 
     def update_cluster(
         self,
-        cluster: t.Union[dto.Cluster, str],
+        cluster: dto.Cluster | str,
         params: t.Mapping[str, t.Any]
     ) -> dto.Cluster:
         """
@@ -313,7 +311,7 @@ class ClusterManager:
 
     def patch_cluster(
         self,
-        cluster: t.Union[dto.Cluster, str]
+        cluster: dto.Cluster | str
     ) -> dto.Cluster:
         """
         Patches the given existing cluster.
@@ -334,8 +332,8 @@ class ClusterManager:
 
     def delete_cluster(
         self,
-        cluster: t.Union[dto.Cluster, str]
-    ) -> t.Optional[dto.Cluster]:
+        cluster: dto.Cluster | str
+    ) -> dto.Cluster | None:
         """
         Deletes an existing cluster.
         """

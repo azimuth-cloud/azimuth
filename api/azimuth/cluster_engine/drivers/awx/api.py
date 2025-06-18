@@ -4,9 +4,8 @@ Module containing helpers for interacting with the AWX API.
 
 import json
 
-import requests
-
 import rackit
+import requests
 
 
 class ResourceManager(rackit.ResourceManager):
@@ -20,7 +19,7 @@ class ResourceManager(rackit.ResourceManager):
 
 class Resource(rackit.Resource):
     """
-    Base resource for all AWX resouces.
+    Base resource for all AWX resources.
     """
     class Meta:
         manager_cls = ResourceManager

@@ -4,7 +4,7 @@ Views for the Azimuth auth package.
 
 import json
 import unicodedata
-from urllib.parse import urlparse, urlencode
+from urllib.parse import urlencode, urlparse
 
 from django.http import JsonResponse
 from django.shortcuts import redirect, render

@@ -2,14 +2,13 @@
 Custom template tags for the Azimuth auth package.
 """
 
+from azimuth_auth.settings import auth_settings
 from django import template
 from django.urls import reverse
 from django.utils.html import escape, format_html
 from django.utils.safestring import mark_safe
 
-from azimuth_auth.settings import auth_settings
 from ..settings import cloud_settings
-
 
 register = template.Library()
 
