@@ -12,6 +12,7 @@ class ProviderKeyStore(KeyStore):
     """
     Key store implementation that consumes keypairs using provider functionality.
     """
+
     supports_key_update = True
 
     def get_key(self, username, *, unscoped_session, **kwargs):

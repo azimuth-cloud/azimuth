@@ -16,6 +16,7 @@ class NamespaceOwnershipError(Exception):
     """
     Raised when there is a conflict in the namespace ownership.
     """
+
     def __init__(self, namespace: str, expected_owner: str, current_owner: str):
         super().__init__(
             f"expected namespace '{namespace}' to be owned by tenant "
@@ -40,7 +41,7 @@ def get_namespace(ekclient, tenancy: dto.Tenancy) -> str:
     expected_namespace = f"az-{tenancy_name}"
     # Try to find the namespace that is labelled with the tenant ID
     try:
-        namespace = next(ekresource.list(labels = {TENANCY_ID_LABEL: tenancy_id}))
+        namespace = next(ekresource.list(labels={TENANCY_ID_LABEL: tenancy_id}))
     except StopIteration:
         pass
     else:
@@ -59,7 +60,9 @@ def get_namespace(ekclient, tenancy: dto.Tenancy) -> str:
     except easykube.ApiError as exc:
         if exc.status_code == 404:
             # Even if the namespace doesn't exist, it is still the correct one to use
-            logger.info(f"using namespace '{expected_namespace}' for tenant '{tenancy_id}'")
+            logger.info(
+                f"using namespace '{expected_namespace}' for tenant '{tenancy_id}'"
+            )
             return expected_namespace
         else:
             raise
@@ -89,5 +92,5 @@ def ensure_namespace(ekclient, namespace: str, tenancy: dto.Tenancy):
                     TENANCY_ID_LABEL: sanitise(tenancy.id),
                 },
             },
-        }
+        },
     )

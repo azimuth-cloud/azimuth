@@ -5,45 +5,49 @@ This module defines data-transfer objects used by providers.
 import enum
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Mapping, Sequence
+from typing import Mapping, Sequence  # noqa: UP035
 
 
-@dataclass(frozen = True)
+@dataclass(frozen=True)
 class Capabilities:
     """
     Represents the capabilities of the cloud.
     """
+
     #: Indicates if the cloud supports volumes
     supports_volumes: bool = False
 
 
-@dataclass(frozen = True)
+@dataclass(frozen=True)
 class Tenancy:
     """
     Represents a tenancy/organisation on a cloud provider.
     """
+
     #: The ID of the tenancy
     id: str
     #: The human-readable name of the tenancy
     name: str
 
 
-@dataclass(frozen = True)
+@dataclass(frozen=True)
 class Credential:
     """
     Represents a credential for interacting with a cloud.
     """
+
     #: The credential type
     type: str
     #: The credential data
     data: dict
 
 
-@dataclass(frozen = True)
+@dataclass(frozen=True)
 class Quota:
     """
     Represents a quota available to a tenancy.
     """
+
     #: The resource that the quota is for
     resource: str
     #: The human-readable label for the quota
@@ -56,13 +60,14 @@ class Quota:
     used: int
 
 
-@dataclass(frozen = True)
+@dataclass(frozen=True)
 class Image:
     """
     Represents an image available to a tenancy.
 
     Can be combined with a :py:class:`Size` to create a new :py:class:`Machine`.
     """
+
     #: The id of the image
     id: str
     #: The human-readable name of the image
@@ -75,7 +80,7 @@ class Image:
     metadata: Mapping[str, str]
 
 
-@dataclass(frozen = True)
+@dataclass(frozen=True)
 class Size:
     """
     Represents a machine size available to a tenancy.
@@ -85,6 +90,7 @@ class Size:
 
     Can be combined with an :py:class:`Image` to create a new :py:class:`Machine`.
     """
+
     #: The id of the size
     id: str
     #: The human-readable name of the size
@@ -110,17 +116,19 @@ class MachineStatusType(enum.Enum):
     """
     Enum representing the possible status types.
     """
-    BUILD = 'BUILD'
-    ACTIVE = 'ACTIVE'
-    ERROR = 'ERROR'
-    OTHER = 'OTHER'
+
+    BUILD = "BUILD"
+    ACTIVE = "ACTIVE"
+    ERROR = "ERROR"
+    OTHER = "OTHER"
 
 
-@dataclass(frozen = True)
+@dataclass(frozen=True)
 class MachineStatus:
     """
     Represents a machine status.
     """
+
     #: The type of the status
     type: MachineStatusType
     #: A short string representation of the status
@@ -129,11 +137,12 @@ class MachineStatus:
     details: str | None
 
 
-@dataclass(frozen = True)
+@dataclass(frozen=True)
 class Machine:
     """
     Represents a machine in a tenancy.
     """
+
     #: The id of the machine
     id: str
     #: The human-readable name of the machine
@@ -166,6 +175,7 @@ class FirewallRuleDirection(enum.Enum):
     """
     Enum representing the possible directions for a firewall rule.
     """
+
     INBOUND = "INBOUND"
     OUTBOUND = "OUTBOUND"
     # Add ingress and egress as aliases for inbound and outbound
@@ -178,6 +188,7 @@ class FirewallRuleProtocol(enum.Enum):
     """
     Enum representing the possible protocols for a firewall rule.
     """
+
     ANY = "ANY"
     ICMP = "ICMP"
     UDP = "UDP"
@@ -190,11 +201,12 @@ class FirewallRuleProtocol(enum.Enum):
         return self in {self.__class__.UDP, self.__class__.TCP}
 
 
-@dataclass(frozen = True)
+@dataclass(frozen=True)
 class FirewallRule:
     """
     Represents a firewall rule applying to a host.
     """
+
     #: The id of the firewall rule
     id: str
     #: The direction for the firewall rule
@@ -209,7 +221,7 @@ class FirewallRule:
     remote_group: str | None = None
 
 
-@dataclass(frozen = True)
+@dataclass(frozen=True)
 class FirewallGroup:
     """
     Represents a group in the firewall.
@@ -217,6 +229,7 @@ class FirewallGroup:
     This means a group in two senses - a set of rules and a set of hosts that
     have the group applied.
     """
+
     #: The name of the firewall group
     name: str
     #: The rules for the firewall group
@@ -231,21 +244,23 @@ class VolumeStatus(enum.Enum):
     """
     Enum representing the possible volume statuses.
     """
-    CREATING  = 'CREATING'
-    AVAILABLE = 'AVAILABLE'
-    ATTACHING = 'ATTACHING'
-    DETACHING = 'DETACHING'
-    IN_USE    = 'IN_USE'
-    DELETING  = 'DELETING'
-    ERROR     = 'ERROR'
-    OTHER     = 'OTHER'
+
+    CREATING = "CREATING"
+    AVAILABLE = "AVAILABLE"
+    ATTACHING = "ATTACHING"
+    DETACHING = "DETACHING"
+    IN_USE = "IN_USE"
+    DELETING = "DELETING"
+    ERROR = "ERROR"
+    OTHER = "OTHER"
 
 
-@dataclass(frozen = True)
+@dataclass(frozen=True)
 class Volume:
     """
     Represents a volume attached to a machine.
     """
+
     #: The id of the volume
     id: str
     #: The name of the volume
@@ -254,17 +269,19 @@ class Volume:
     status: VolumeStatus
     #: The size of the volume in GB
     size: int
-    #: The id of the machine the volume is attached to, or None if the volume is not attached
+    #: The id of the machine the volume is attached to, or None if the volume is not
+    #: attached
     machine_id: str | None
     #: The device that the volume is attached on, or None if the volume is not attached
     device: str | None
 
 
-@dataclass(frozen = True)
+@dataclass(frozen=True)
 class ExternalIp:
     """
     Represents an externally visible IP address.
     """
+
     #: The id of the external IP
     id: str
     #: The externally visible IP address

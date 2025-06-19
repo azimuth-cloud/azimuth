@@ -8,7 +8,7 @@ import json
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping, Sequence  # noqa: UP035
 
 import requests
 import yaml
@@ -17,11 +17,12 @@ from ..provider import dto as cloud_dto
 from ..scheduling import dto as scheduling_dto
 
 
-@dataclass(frozen = True)
+@dataclass(frozen=True)
 class Context:
     """
     Represents a context for an operation.
     """
+
     #: The username of the user carrying out the operation
     username: str
     #: The user id of the user carrying out the operation
@@ -33,11 +34,12 @@ class Context:
     credential: cloud_dto.Credential | None = None
 
 
-@dataclass(frozen = True)
+@dataclass(frozen=True)
 class ClusterParameter:
     """
     Represents a parameter required by a cluster type.
     """
+
     #: The name of the parameter
     name: str
     #: A human-readable label for the parameter
@@ -58,11 +60,12 @@ class ClusterParameter:
     hidden: bool
 
 
-@dataclass(frozen = True)
+@dataclass(frozen=True)
 class ClusterServiceSpec:
     """
     Represents a Zenith service exposed by a cluster type (when apps are enabled).
     """
+
     #: The name of the service
     name: str
     #: A human-readable label for the service
@@ -75,11 +78,12 @@ class ClusterServiceSpec:
     internal: bool
 
 
-@dataclass(frozen = True)
+@dataclass(frozen=True)
 class ClusterType:
     """
     Represents a cluster type.
     """
+
     #: The name of the cluster type
     name: str
     #: A human-readable label for the cluster type
@@ -114,41 +118,41 @@ class ClusterType:
         """
         return cls(
             name,
-            spec.get('label', name),
-            spec.get('description'),
-            spec.get('logo'),
-            spec.get('requires_ssh_key', spec.get("requiresSshKey", True)),
+            spec.get("label", name),
+            spec.get("description"),
+            spec.get("logo"),
+            spec.get("requires_ssh_key", spec.get("requiresSshKey", True)),
             tuple(
                 ClusterParameter(
-                    param['name'],
-                    param.get('label', param['name']),
-                    param.get('description'),
-                    param['kind'],
-                    param.get('options', {}),
-                    param.get('immutable', False),
-                    param.get('required', True),
-                    param.get('default', None),
-                    param.get('hidden', False)
+                    param["name"],
+                    param.get("label", param["name"]),
+                    param.get("description"),
+                    param["kind"],
+                    param.get("options", {}),
+                    param.get("immutable", False),
+                    param.get("required", True),
+                    param.get("default", None),
+                    param.get("hidden", False),
                 )
-                for param in spec.get('parameters', [])
+                for param in spec.get("parameters", [])
             ),
             tuple(
                 ClusterServiceSpec(
-                    service['name'],
-                    service.get('label', service['name']),
-                    service.get('icon_url', service.get('iconUrl')),
-                    service.get('when'),
-                    service.get('internal', False)
+                    service["name"],
+                    service.get("label", service["name"]),
+                    service.get("icon_url", service.get("iconUrl")),
+                    service.get("when"),
+                    service.get("internal", False),
                 )
-                for service in spec.get('services', [])
+                for service in spec.get("services", [])
             ),
-            spec.get('usage_template', spec.get('usageTemplate', None)),
+            spec.get("usage_template", spec.get("usageTemplate", None)),
             version,
         )
 
     @classmethod
     def _open(cls, path):
-        if re.match(r'https?://', path):
+        if re.match(r"https?://", path):
             response = requests.get(path)
             response.raise_for_status()
             return io.StringIO(response.text)
@@ -191,17 +195,19 @@ class ClusterStatus(enum.Enum):
     """
     Enum for the possible cluster statuses.
     """
-    CONFIGURING = 'CONFIGURING'
-    READY = 'READY'
-    DELETING = 'DELETING'
-    ERROR = 'ERROR'
+
+    CONFIGURING = "CONFIGURING"
+    READY = "READY"
+    DELETING = "DELETING"
+    ERROR = "ERROR"
 
 
-@dataclass(frozen = True)
+@dataclass(frozen=True)
 class ClusterService:
     """
     Represents a Zenith service for a cluster.
     """
+
     #: The name of the service
     name: str
     #: A human-readable label for the service
@@ -214,11 +220,12 @@ class ClusterService:
     subdomain: str
 
 
-@dataclass(frozen = True)
+@dataclass(frozen=True)
 class Cluster:
     """
     Represents a cluster.
     """
+
     #: The id of the cluster
     id: str
     #: The name of the cluster
@@ -251,7 +258,7 @@ class Cluster:
     updated_by_username: str | None
     updated_by_user_id: str | None
     #: A list of Zenith services enabled for the cluster
-    services: Sequence[ClusterService] = field(default_factory = list)
+    services: Sequence[ClusterService] = field(default_factory=list)
     #: Scheduling information for the cluster
     schedule: scheduling_dto.PlatformSchedule | None = None
     #: The raw parameter values as reported by the driver
@@ -259,4 +266,6 @@ class Cluster:
 
     def __post_init__(self):
         if self.raw_parameter_values is None:
-            object.__setattr__(self, "raw_parameter_values", dict(self.parameter_values))
+            object.__setattr__(
+                self, "raw_parameter_values", dict(self.parameter_values)
+            )

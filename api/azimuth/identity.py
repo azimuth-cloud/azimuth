@@ -13,11 +13,12 @@ AZIMUTH_IDENTITY_API_VERSION = "identity.azimuth.stackhpc.com/v1alpha1"
 ekconfig = Configuration.from_environment()
 
 
-@dataclasses.dataclass(frozen = True)
+@dataclasses.dataclass(frozen=True)
 class Realm:
     """
     DTO representing an identity realm.
     """
+
     #: The realm name
     name: str
     #: The status of the realm
@@ -37,7 +38,7 @@ class Realm:
             obj["metadata"]["name"],
             status.get("phase", "Unknown"),
             status.get("oidcIssuerUrl"),
-            status.get("adminUrl")
+            status.get("adminUrl"),
         )
 
 
@@ -48,9 +49,10 @@ def get_realm(tenancy: dto.Tenancy) -> Realm | None:
     with ekconfig.sync_client() as client:
         tenancy_namespace = utils.get_namespace(client, tenancy)
         try:
-            realm = client.api(AZIMUTH_IDENTITY_API_VERSION).resource("realms").fetch(
-                tenancy_namespace,
-                namespace = tenancy_namespace
+            realm = (
+                client.api(AZIMUTH_IDENTITY_API_VERSION)
+                .resource("realms")
+                .fetch(tenancy_namespace, namespace=tenancy_namespace)
             )
         except ApiError as exc:
             if exc.status_code == 404:
@@ -65,7 +67,7 @@ def ensure_realm(tenancy: dto.Tenancy) -> Realm:
     """
     Ensures that an identity realm exists for the given tenancy.
     """
-    with ekconfig.sync_client(default_field_manager = "azimuth") as client:
+    with ekconfig.sync_client(default_field_manager="azimuth") as client:
         tenancy_namespace = utils.get_namespace(client, tenancy)
         # Create the namespace if required
         utils.ensure_namespace(client, tenancy_namespace, tenancy)
@@ -88,20 +90,18 @@ def ensure_realm(tenancy: dto.Tenancy) -> Realm:
                     "tenancyId": tenancy.id,
                 },
             },
-            force = True
+            force=True,
         )
     return Realm.from_k8s_object(realm)
 
 
 def ensure_platform_for_cluster(
-    tenancy: dto.Tenancy,
-    realm: Realm,
-    cluster: cluster_dto.Cluster
+    tenancy: dto.Tenancy, realm: Realm, cluster: cluster_dto.Cluster
 ):
     """
     Ensures that an identity platform exists for the cluster.
     """
-    with ekconfig.sync_client(default_field_manager = "azimuth") as client:
+    with ekconfig.sync_client(default_field_manager="azimuth") as client:
         tenancy_namespace = utils.get_namespace(client, tenancy)
         client.apply_object(
             {
@@ -134,5 +134,5 @@ def ensure_platform_for_cluster(
                     },
                 },
             },
-            force = True
+            force=True,
         )

@@ -5,22 +5,24 @@ import typing as t
 from ..scheduling import dto as scheduling_dto  # noqa: F401
 
 
-@dataclasses.dataclass(frozen = True)
+@dataclasses.dataclass(frozen=True)
 class Chart:
     """
     Represents a Helm chart to use for an app.
     """
+
     #: The repository for the chart for the app
     repo: str
     #: The name of the chart for the app
     name: str
 
 
-@dataclasses.dataclass(frozen = True)
+@dataclasses.dataclass(frozen=True)
 class Version:
     """
     Represents a version of an app.
     """
+
     #: The name of the version
     name: str
     #: The JSON schema to use to validate the values
@@ -29,11 +31,12 @@ class Version:
     ui_schema: dict[str, t.Any]
 
 
-@dataclasses.dataclass(frozen = True)
+@dataclasses.dataclass(frozen=True)
 class AppTemplate:
     """
     Represents a template for an app on a Kubernetes cluster.
     """
+
     #: The id of the app template
     id: str
     #: A human-readable label for the app template
@@ -51,11 +54,12 @@ class AppTemplate:
     versions: list[Version]
 
 
-@dataclasses.dataclass(frozen = True)
+@dataclasses.dataclass(frozen=True)
 class Service:
     """
     Represents a service available on a cluster or app.
     """
+
     #: The name of the service
     name: str
     #: The human-readable label for the service
@@ -66,11 +70,12 @@ class Service:
     icon_url: str | None
 
 
-@dataclasses.dataclass(frozen = True)
+@dataclasses.dataclass(frozen=True)
 class App:
     """
     Represents an app on a Kubernetes cluster.
     """
+
     #: The id of the app
     id: str
     #: The human-readable name of the app

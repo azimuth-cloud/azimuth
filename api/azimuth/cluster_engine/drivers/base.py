@@ -15,6 +15,7 @@ class Driver:
     Drivers do not need to worry about validation etc. They just deal with the machinery
     of managing a cluster of a particular type.
     """
+
     def cluster_types(self, ctx: dto.Context) -> t.Iterable[dto.ClusterType]:
         """
         Lists the available cluster types.
@@ -33,7 +34,7 @@ class Driver:
         """
         raise NotImplementedError
 
-    def find_cluster(self, id: str, ctx: dto.Context) -> dto.Cluster: # noqa: A002
+    def find_cluster(self, id: str, ctx: dto.Context) -> dto.Cluster:  # noqa: A002
         """
         Find a cluster by id.
         """
@@ -46,7 +47,7 @@ class Driver:
         params: t.Mapping[str, t.Any],
         resources: scheduling_dto.PlatformResources,
         schedule: scheduling_dto.PlatformSchedule | None,
-        ctx: dto.Context
+        ctx: dto.Context,
     ):
         """
         Create a new cluster with the given name, type and parameters.
@@ -54,10 +55,7 @@ class Driver:
         raise NotImplementedError
 
     def update_cluster(
-        self,
-        cluster: dto.Cluster,
-        params: t.Mapping[str, t.Any],
-        ctx: dto.Context
+        self, cluster: dto.Cluster, params: t.Mapping[str, t.Any], ctx: dto.Context
     ) -> dto.Cluster:
         """
         Updates an existing cluster with the given parameters.
@@ -65,10 +63,7 @@ class Driver:
         raise NotImplementedError
 
     def patch_cluster(
-        self,
-        cluster: dto.Cluster,
-        params: t.Mapping[str, t.Any],
-        ctx: dto.Context
+        self, cluster: dto.Cluster, params: t.Mapping[str, t.Any], ctx: dto.Context
     ) -> dto.Cluster:
         """
         Patches the given existing cluster.
@@ -76,9 +71,7 @@ class Driver:
         raise NotImplementedError
 
     def delete_cluster(
-        self,
-        cluster: dto.Cluster,
-        ctx: dto.Context
+        self, cluster: dto.Cluster, ctx: dto.Context
     ) -> dto.Cluster | None:
         """
         Deletes an existing cluster.

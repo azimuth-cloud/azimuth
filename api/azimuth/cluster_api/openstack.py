@@ -8,6 +8,7 @@ class Provider(ProviderBase):
     """
     Cluster API provider for OpenStack.
     """
+
     provider_name = "openstack"
 
 
@@ -15,6 +16,7 @@ class Session(SessionBase):
     """
     Cluster API session for OpenStack.
     """
+
     provider_name = "openstack"
 
     def _create_credential(self, cluster_name):
@@ -25,7 +27,7 @@ class Session(SessionBase):
         # Gophercloud weirdly requires the project ID to be present in the app cred
         # All other OpenStack clients bork at this :shrugs:
         clouds["clouds"]["openstack"]["auth"]["project_id"] = user_info["project_id"]
-        return { **credential, "clouds.yaml": yaml.safe_dump(clouds) }
+        return {**credential, "clouds.yaml": yaml.safe_dump(clouds)}
 
     def _ensure_shared_resources(self):
         # Just make sure that the shared tenant network exists

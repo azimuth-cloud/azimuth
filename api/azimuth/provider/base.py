@@ -3,7 +3,7 @@ This module defines the interface for a cloud provider.
 """
 
 import functools
-from typing import Any, Iterable, Mapping
+from typing import Any, Iterable, Mapping  # noqa: UP035
 
 from azimuth_auth.session import dto as auth_dto
 from azimuth_auth.session import errors as auth_errors
@@ -17,6 +17,7 @@ def convert_auth_session_errors(f):
     """
     Decorator that converts errors from the auth session into provider errors.
     """
+
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
         try:
@@ -35,6 +36,7 @@ def convert_auth_session_errors(f):
             raise errors.CommunicationError(str(exc)) from exc
         except auth_errors.Error as exc:
             raise errors.Error(str(exc)) from exc
+
     return wrapper
 
 
@@ -42,13 +44,13 @@ class Provider:
     """
     Class for a cloud provider.
     """
+
     def _from_auth_session(
-        self,
-        auth_session: AuthSession,
-        auth_user: auth_dto.User
-    ) -> 'UnscopedSession':
+        self, auth_session: AuthSession, auth_user: auth_dto.User
+    ) -> "UnscopedSession":
         """
-        Private method that creates an unscoped session from the given auth session and user.
+        Private method that creates an unscoped session from the given auth session and
+        user.
 
         This method should be overridden in subclasses to create unscoped sessions.
         Subclasses can assume that the parent class will handle error conditions.
@@ -56,7 +58,7 @@ class Provider:
         raise NotImplementedError
 
     @convert_auth_session_errors
-    def from_auth_session(self, auth_session: AuthSession) -> 'UnscopedSession':
+    def from_auth_session(self, auth_session: AuthSession) -> "UnscopedSession":
         """
         Creates an unscoped session for the given auth session.
         """
@@ -71,6 +73,7 @@ class UnscopedSession:
     By default, an unscoped session wraps an auth session, with only creation of the
     scoped session from the credential provided by the auth session being overridden.
     """
+
     def __init__(self, auth_session: AuthSession, auth_user: auth_dto.User):
         self.auth_session = auth_session
         self.auth_user = auth_user
@@ -113,7 +116,8 @@ class UnscopedSession:
     @convert_auth_session_errors
     def update_ssh_public_key(self, public_key: str) -> str:
         """
-        Update the stored SSH public key for the authenticated user and returns the new SSH key.
+        Update the stored SSH public key for the authenticated user and returns the new
+        SSH key.
         """
         return self.auth_session.update_ssh_public_key(public_key)
 
@@ -126,11 +130,8 @@ class UnscopedSession:
         return [dto.Tenancy(t.id, t.name) for t in self.auth_session.tenancies()]
 
     def _scoped_session(
-        self,
-        auth_user: auth_dto.User,
-        tenancy: dto.Tenancy,
-        credential_data: Any
-    ) -> 'ScopedSession':
+        self, auth_user: auth_dto.User, tenancy: dto.Tenancy, credential_data: Any
+    ) -> "ScopedSession":
         """
         Private method that creates a scoped session for the given tenancy.
 
@@ -140,7 +141,7 @@ class UnscopedSession:
         raise NotImplementedError
 
     @convert_auth_session_errors
-    def scoped_session(self, tenancy: dto.Tenancy | str) -> 'ScopedSession':
+    def scoped_session(self, tenancy: dto.Tenancy | str) -> "ScopedSession":
         """
         Get a scoped session for the given tenancy.
         """
@@ -188,6 +189,7 @@ class ScopedSession:
     """
     Class for a tenancy-scoped session.
     """
+
     def __init__(self, auth_user: auth_dto.User, tenancy: dto.Tenancy):
         self._auth_user = auth_user
         self._tenancy = tenancy
@@ -246,7 +248,7 @@ class ScopedSession:
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def find_image(self, id: str) -> dto.Image: # noqa: A002
+    def find_image(self, id: str) -> dto.Image:  # noqa: A002
         """
         Finds an image by id.
         """
@@ -262,7 +264,7 @@ class ScopedSession:
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def find_size(self, id: str) -> dto.Size: # noqa: A002
+    def find_size(self, id: str) -> dto.Size:  # noqa: A002
         """
         Finds a size by id.
         """
@@ -278,7 +280,7 @@ class ScopedSession:
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def find_machine(self, id: str) -> dto.Machine: # noqa: A002
+    def find_machine(self, id: str) -> dto.Machine:  # noqa: A002
         """
         Finds a machine by id.
         """
@@ -301,7 +303,7 @@ class ScopedSession:
         size: dto.Size | str,
         ssh_key: str | None = None,
         metadata: Mapping[str, str] | None = None,
-        userdata: str | None = None
+        userdata: str | None = None,
     ) -> dto.Machine:
         """
         Create a new machine in the tenancy.
@@ -311,9 +313,7 @@ class ScopedSession:
         )
 
     def resize_machine(
-        self,
-        machine: dto.Machine | str,
-        size: dto.Size | str
+        self, machine: dto.Machine | str, size: dto.Size | str
     ) -> dto.Machine:
         """
         Change the size of a machine.
@@ -355,8 +355,7 @@ class ScopedSession:
         )
 
     def fetch_firewall_rules_for_machine(
-        self,
-        machine: dto.Machine | str
+        self, machine: dto.Machine | str
     ) -> Iterable[dto.FirewallGroup]:
         """
         Returns the firewall rules for the machine.
@@ -372,7 +371,7 @@ class ScopedSession:
         direction: dto.FirewallRuleDirection,
         protocol: dto.FirewallRuleProtocol,
         port: int | None = None,
-        remote_cidr: str | None = None
+        remote_cidr: str | None = None,
     ) -> Iterable[dto.FirewallGroup]:
         """
         Adds a firewall rule to the specified machine and returns the new set of rules.
@@ -382,9 +381,7 @@ class ScopedSession:
         )
 
     def remove_firewall_rule_from_machine(
-        self,
-        machine: dto.Machine | str,
-        firewall_rule: dto.FirewallRule | str
+        self, machine: dto.Machine | str, firewall_rule: dto.FirewallRule | str
     ) -> Iterable[dto.FirewallGroup]:
         """
         Removes the specified firewall rule from the machine and returns the new set
@@ -403,7 +400,7 @@ class ScopedSession:
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def find_external_ip(self, id: str) -> dto.ExternalIp: # noqa: A002
+    def find_external_ip(self, id: str) -> dto.ExternalIp:  # noqa: A002
         """
         Finds an external IP by id.
         """
@@ -429,9 +426,7 @@ class ScopedSession:
         )
 
     def attach_external_ip(
-        self,
-        ip: dto.ExternalIp | str,
-        machine: dto.Machine | str
+        self, ip: dto.ExternalIp | str, machine: dto.Machine | str
     ) -> dto.ExternalIp:
         """
         Attaches an external IP to a machine.
@@ -457,7 +452,7 @@ class ScopedSession:
             "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def find_volume(self, id: str) -> dto.Volume: # noqa: A002
+    def find_volume(self, id: str) -> dto.Volume:  # noqa: A002
         """
         Finds a volume by id.
         """
@@ -482,9 +477,7 @@ class ScopedSession:
         )
 
     def attach_volume(
-        self,
-        volume: dto.Volume | str,
-        machine: dto.Machine | str
+        self, volume: dto.Volume | str, machine: dto.Machine | str
     ) -> dto.Volume:
         """
         Attaches the specified volume to the specified machine.
