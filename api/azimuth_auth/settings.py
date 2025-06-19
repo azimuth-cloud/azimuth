@@ -26,7 +26,8 @@ class ChoiceSetting(Setting):
         self.choices = choices
         super().__init__(*args, **kwargs)
 
-    def _transform(self, instance, value):
+    def __get__(self, instance, owner):
+        value = super().__get__(instance, owner)
         if value in self.choices:
             return value
         else:
