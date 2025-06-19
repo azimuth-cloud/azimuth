@@ -4,8 +4,8 @@ This module defines the base class for cluster managers.
 
 import typing as t
 
-from ...scheduling import dto as scheduling_dto
-from .. import dto
+from ...scheduling import dto as scheduling_dto  # noqa: TID252
+from .. import dto  # noqa: TID252
 
 
 class Driver:

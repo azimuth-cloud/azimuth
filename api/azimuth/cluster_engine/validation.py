@@ -7,8 +7,8 @@ import typing as t
 
 import voluptuous as v
 
-from ..provider import base as cloud_base
-from ..provider import errors as cloud_errors
+from ..provider import base as cloud_base  # noqa: TID252
+from ..provider import errors as cloud_errors  # noqa: TID252
 from . import dto, engine, errors
 
 #: Sentinel object for no previous value

@@ -13,8 +13,8 @@ import uuid
 import dateutil.parser
 import rackit
 
-from ... import dto, errors
-from .. import base
+from ... import dto, errors  # noqa: TID252
+from .. import base  # noqa: TID252
 from . import api
 
 logger = logging.getLogger(__name__)

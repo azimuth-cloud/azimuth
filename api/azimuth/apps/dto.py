@@ -2,7 +2,7 @@ import dataclasses
 import datetime
 import typing as t
 
-from ..scheduling import dto as scheduling_dto  # noqa: F401
+from ..scheduling import dto as scheduling_dto  # noqa: F401, TID252
 
 
 @dataclasses.dataclass(frozen=True)

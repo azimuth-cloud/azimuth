@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.utils.html import escape, format_html
 from django.utils.safestring import mark_safe
 
-from ..settings import cloud_settings
+from ..settings import cloud_settings  # noqa: TID252
 
 register = template.Library()
 

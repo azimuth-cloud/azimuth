@@ -5,8 +5,8 @@ Custom template tags for the Azimuth auth package.
 from django import template
 from django.urls import reverse
 
-from ..forms import authenticator_choices
-from ..settings import auth_settings
+from ..forms import authenticator_choices  # noqa: TID252
+from ..settings import auth_settings  # noqa: TID252
 
 register = template.Library()
 

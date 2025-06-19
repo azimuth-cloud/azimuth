@@ -13,8 +13,8 @@ from typing import Any, Mapping, Sequence  # noqa: UP035
 import requests
 import yaml
 
-from ..provider import dto as cloud_dto
-from ..scheduling import dto as scheduling_dto
+from ..provider import dto as cloud_dto  # noqa: TID252
+from ..scheduling import dto as scheduling_dto  # noqa: TID252
 
 
 @dataclass(frozen=True)

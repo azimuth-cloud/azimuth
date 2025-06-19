@@ -16,9 +16,9 @@ from cryptography.hazmat.primitives.serialization import (
 )
 from django.core.management.base import BaseCommand
 
-from ...cluster_engine.drivers.awx import api
-from ...cluster_engine.drivers.awx.driver import CREDENTIAL_TYPE_NAMES
-from ...settings import cloud_settings
+from ...cluster_engine.drivers.awx import api  # noqa: TID252
+from ...cluster_engine.drivers.awx.driver import CREDENTIAL_TYPE_NAMES  # noqa: TID252
+from ...settings import cloud_settings  # noqa: TID252
 
 CAAS_ORGANISATION_NAME = "CaaS"
 

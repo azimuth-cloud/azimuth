@@ -3,10 +3,10 @@ from __future__ import annotations
 
 import typing as t
 
-from ..cluster_api import dto as capi_dto
-from ..cluster_engine import dto as caas_dto
-from ..provider import base as cloud_provider
-from ..provider import dto as provider_dto
+from ..cluster_api import dto as capi_dto  # noqa: TID252
+from ..cluster_engine import dto as caas_dto  # noqa: TID252
+from ..provider import base as cloud_provider  # noqa: TID252
+from ..provider import dto as provider_dto  # noqa: TID252
 from . import dto
 
 

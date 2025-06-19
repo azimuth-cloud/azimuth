@@ -1,7 +1,7 @@
 import dataclasses
 import typing as t
 
-from ...provider import dto as cloud_dto
+from ...provider import dto as cloud_dto  # noqa: TID252
 
 
 @dataclasses.dataclass(frozen=True)

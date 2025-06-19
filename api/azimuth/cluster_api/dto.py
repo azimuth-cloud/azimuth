@@ -1,7 +1,7 @@
 import dataclasses
 import datetime
 
-from ..scheduling import dto as scheduling_dto
+from ..scheduling import dto as scheduling_dto  # noqa: TID252
 
 
 @dataclasses.dataclass(frozen=True)

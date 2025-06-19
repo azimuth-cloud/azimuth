@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from ..provider.dto import Tenancy
+from ..provider.dto import Tenancy  # noqa: TID252
 from .acls import (
     ACL_ALLOW_IDS_KEY,
     ACL_ALLOW_PATTERN_KEY,

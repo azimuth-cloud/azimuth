@@ -16,7 +16,7 @@ import dateutil.parser
 import rackit
 import yaml
 
-from .. import base, dto, errors
+from .. import base, dto, errors  # noqa: TID252
 from . import api
 
 logger = logging.getLogger(__name__)

@@ -4,7 +4,7 @@ Module containing the base class for authenticators that begin with a redirectio
 
 from django.shortcuts import redirect, render
 
-from ..settings import auth_settings
+from ..settings import auth_settings  # noqa: TID252
 from .base import BaseAuthenticator
 
 

@@ -10,10 +10,10 @@ import httpx
 import yaml
 from easykube import PRESENT, ApiError, Configuration, SyncClient
 
-from ..acls import allowed_by_acls
-from ..cluster_api import dto as capi_dto
-from ..provider import base as cloud_base
-from ..utils import get_namespace
+from ..acls import allowed_by_acls  # noqa: TID252
+from ..cluster_api import dto as capi_dto  # noqa: TID252
+from ..provider import base as cloud_base  # noqa: TID252
+from ..utils import get_namespace  # noqa: TID252
 from . import base, dto, errors
 
 logger = logging.getLogger(__name__)

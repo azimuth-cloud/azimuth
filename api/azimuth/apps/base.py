@@ -1,7 +1,7 @@
 import typing as t
 
-from ..cluster_api import dto as capi_dto
-from ..provider import base as cloud_base
+from ..cluster_api import dto as capi_dto  # noqa: TID252
+from ..provider import base as cloud_base  # noqa: TID252
 from . import dto
 
 

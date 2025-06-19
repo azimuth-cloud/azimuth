@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import typing as t
 
-from ..provider import base as cloud_provider
+from ..provider import base as cloud_provider  # noqa: TID252
 from . import dto
 
 

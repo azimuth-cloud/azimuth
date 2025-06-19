@@ -9,7 +9,7 @@ from azimuth_auth.session import dto as auth_dto
 from azimuth_auth.session import errors as auth_errors
 from azimuth_auth.session.base import Session as AuthSession
 
-from ..cluster_engine import dto as clusters_dto
+from ..cluster_engine import dto as clusters_dto  # noqa: TID252
 from . import dto, errors
 
 
