@@ -61,9 +61,7 @@ class Zenith:
         # While the URL returns a 404, 503 or a certificate error (probably because
         # cert-manager is still negotiating the certificate), the service is not ready
         try:
-            resp = requests.get(
-                "{}{}".format(url, readiness_path), verify=self.verify_ssl
-            )
+            resp = requests.get(f"{url}{readiness_path}", verify=self.verify_ssl)
         except requests.exceptions.SSLError:
             return None
         else:

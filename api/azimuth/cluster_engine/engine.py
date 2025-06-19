@@ -292,7 +292,7 @@ class ClusterManager:
             {dto.ClusterStatus.CONFIGURING, dto.ClusterStatus.DELETING}
         ):
             raise errors.InvalidOperationError(
-                "Cannot update cluster with status {}".format(cluster.status.name)
+                f"Cannot update cluster with status {cluster.status.name}"
             )
         validated = getattr(params, "__validated__", False)
         # Load the cluster type once if required
@@ -322,7 +322,7 @@ class ClusterManager:
             {dto.ClusterStatus.CONFIGURING, dto.ClusterStatus.DELETING}
         ):
             raise errors.InvalidOperationError(
-                "Cannot patch cluster with status {}".format(cluster.status.name)
+                f"Cannot patch cluster with status {cluster.status.name}"
             )
         params = self._cloud_session.cluster_parameters()
         if self._zenith:
@@ -342,7 +342,7 @@ class ClusterManager:
             {dto.ClusterStatus.CONFIGURING, dto.ClusterStatus.DELETING}
         ):
             raise errors.InvalidOperationError(
-                "Cannot delete cluster with status {}".format(cluster.status.name)
+                f"Cannot delete cluster with status {cluster.status.name}"
             )
         ctx = dto.Context(self._username, self._user_id, self._tenancy)
         cluster = self._driver.delete_cluster(cluster, ctx)

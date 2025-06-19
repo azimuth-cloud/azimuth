@@ -100,15 +100,16 @@ class SSHKeyUpdateSerializer(serializers.Serializer):
         key_type = value.split()[0]
         # Test whether the key type is an allowed key type
         if key_type not in cloud_settings.SSH_ALLOWED_KEY_TYPES:
-            message = "Keys of type '{}' are not permitted.".format(key_type)
+            message = f"Keys of type '{key_type}' are not permitted."
             raise serializers.ValidationError([message])
         # If the key is an RSA key, check the minimum size
         if (
             key_type == "ssh-rsa"
             and public_key.key_size < cloud_settings.SSH_RSA_MIN_BITS
         ):
-            message = "RSA keys must have a minimum of {} bits ({} given).".format(
-                cloud_settings.SSH_RSA_MIN_BITS, public_key.key_size
+            message = (
+                f"RSA keys must have a minimum of "
+                f"{cloud_settings.SSH_RSA_MIN_BITS} bits ({public_key.key_size} given)."
             )
             raise serializers.ValidationError([message])
         # The key is valid! Hooray!

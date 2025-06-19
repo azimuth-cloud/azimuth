@@ -60,7 +60,7 @@ class Team(Resource):
 
     def associate_role(self, role):
         connection = self._manager.connection
-        path = "{}roles/".format(self._path)
+        path = f"{self._path}roles/"
         role_id = role.id if isinstance(role, Role) else role
         connection.api_post(path, json=dict(id=role_id))
 

@@ -454,7 +454,7 @@ class ScopedSession(base.ScopedSession):
         """
         Returns the first network with the given tag, or None if there is not one.
         """
-        tag = "portal-{}".format(net_type)
+        tag = f"portal-{net_type}"
         # By default, networks.all() will only return networks that belong to the
         # project
         # For the internal network this is what we want, but for all other types of
@@ -511,9 +511,7 @@ class ScopedSession(base.ScopedSession):
                 net_name,
                 level=logging.ERROR,
             )
-            raise errors.InvalidOperationError(
-                "Could not find {} network.".format(net_type)
-            )
+            raise errors.InvalidOperationError(f"Could not find {net_type} network.")
 
     def _tenant_network(self, create_network=False):
         """
@@ -716,7 +714,7 @@ class ScopedSession(base.ScopedSession):
         # which allows for us to recognise when a user has changed their key and create
         # a new one
         fingerprint = hashlib.md5(base64.b64decode(ssh_key.split()[1])).hexdigest()
-        key_name = "{username}-{fingerprint}".format(
+        key_name = "{username}-{fingerprint}".format(  # noqa: UP032
             # Sanitise the username by replacing non-alphanumerics with -
             username=sanitise_username(self.username()),
             # Truncate the fingerprint to 8 characters
@@ -935,7 +933,7 @@ class ScopedSession(base.ScopedSession):
             port._delete()
         self._connection.compute.servers.delete(machine)
         # Once the machine is deleted, delete the instance security group
-        secgroup_name = "instance-{}".format(machine)
+        secgroup_name = f"instance-{machine}"
         secgroup = self._connection.network.security_groups.find_by_name(secgroup_name)
         if secgroup:
             secgroup._delete()
@@ -990,7 +988,7 @@ class ScopedSession(base.ScopedSession):
             if group.name in {sg["name"] for sg in machine.security_groups}
         ]
         # The instance security group is the only editable one
-        instance_secgroup = "instance-{}".format(machine.id)
+        instance_secgroup = f"instance-{machine.id}"
         return [
             dto.FirewallGroup(
                 name=group.name,
@@ -1010,14 +1008,14 @@ class ScopedSession(base.ScopedSession):
     ):
         machine = machine.id if isinstance(machine, dto.Machine) else machine
         self._log("Finding instance security group for '%s'", machine)
-        secgroup_name = "instance-{}".format(machine)
+        secgroup_name = f"instance-{machine}"
         secgroup = self._connection.network.security_groups.find_by_name(secgroup_name)
         if secgroup:
             self._log("Found existing security group '%s'", secgroup_name)
         else:
             self._log("Creating security group '%s'", secgroup_name)
             secgroup = self._connection.network.security_groups.create(
-                name=secgroup_name, description="Instance rules for {}".format(machine)
+                name=secgroup_name, description=f"Instance rules for {machine}"
             )
             # Delete the default rules
             for rule in secgroup.security_group_rules:
@@ -1116,9 +1114,7 @@ class ScopedSession(base.ScopedSession):
         if fip.floating_network_id == extnet.id:
             return self._from_api_floatingip(fip)
         else:
-            raise errors.ObjectNotFoundError(
-                "External IP {} could not be found".format(ip)
-            )
+            raise errors.ObjectNotFoundError(f"External IP {ip} could not be found")
 
     @convert_exceptions
     def find_external_ip_by_ip_address(self, ip_address):
@@ -1135,7 +1131,7 @@ class ScopedSession(base.ScopedSession):
             return self._from_api_floatingip(next(fips))
         except StopIteration:
             raise errors.ObjectNotFoundError(
-                "External IP {} could not be found".format(ip_address)
+                f"External IP {ip_address} could not be found"
             )
 
     @convert_exceptions
@@ -1256,7 +1252,7 @@ class ScopedSession(base.ScopedSession):
         volume = volume if isinstance(volume, dto.Volume) else self.find_volume(volume)
         if volume.status not in [dto.VolumeStatus.AVAILABLE, dto.VolumeStatus.ERROR]:
             raise errors.InvalidOperationError(
-                "Cannot delete volume with status {}.".format(volume.status.name)
+                f"Cannot delete volume with status {volume.status.name}."
             )
         self._log("Deleting volume '%s'", volume.id)
         self._connection.block_store.volumes.delete(volume.id)

@@ -227,7 +227,7 @@ class Driver(base.Driver):
         """
         if not job_template.description:
             raise errors.ImproperlyConfiguredError(
-                "No metadata specified for cluster type '{}'".format(job_template.name)
+                f"No metadata specified for cluster type '{job_template.name}'"
             )
         self._log("Loading metadata from %s", job_template.description, ctx=ctx)
         return dto.ClusterType.from_yaml(job_template.name, job_template.description)
@@ -262,17 +262,13 @@ class Driver(base.Driver):
         self._log("Fetching job template '%s'", name, ctx=ctx)
         job_template = self._connection.job_templates.find_by_name(name)
         if not job_template:
-            raise errors.ObjectNotFoundError(
-                "Could not find cluster type '{}'".format(name)
-            )
+            raise errors.ObjectNotFoundError(f"Could not find cluster type '{name}'")
         # Check if the context has permission to access the cluster template
         allow_all, permitted = self._get_permitted_job_templates(ctx)
         if allow_all or job_template.id in permitted:
             return self._from_job_template(job_template, ctx)
         else:
-            raise errors.ObjectNotFoundError(
-                "Could not find cluster type '{}'".format(name)
-            )
+            raise errors.ObjectNotFoundError(f"Could not find cluster type '{name}'")
 
     def _get_permitted_inventories(self, team: api.Team, ctx: dto.Context):
         """
@@ -322,7 +318,7 @@ class Driver(base.Driver):
                         ctx=ctx,
                     )
                     raise errors.ObjectNotFoundError(
-                        "Could not find cluster with ID {}".format(inventory.id)
+                        f"Could not find cluster with ID {inventory.id}"
                     )
             elif latest.status == "canceled":
                 status = dto.ClusterStatus.ERROR
@@ -344,7 +340,7 @@ class Driver(base.Driver):
                 else:
                     msg = json.dumps(result, indent=4)
                 if host:
-                    error_message = "[{}] => {}".format(host, msg)
+                    error_message = f"[{host}] => {msg}"
                 else:
                     error_message = msg
             else:
@@ -453,25 +449,17 @@ class Driver(base.Driver):
         try:
             id = int(id)  # noqa: A001
         except ValueError:
-            raise errors.ObjectNotFoundError(
-                "Could not find cluster with ID {}".format(id)
-            )
+            raise errors.ObjectNotFoundError(f"Could not find cluster with ID {id}")
         team = self._get_team(ctx)
         if not team:
-            raise errors.ObjectNotFoundError(
-                "Could not find cluster with ID {}".format(id)
-            )
+            raise errors.ObjectNotFoundError(f"Could not find cluster with ID {id}")
         if id not in self._get_permitted_inventories(team, ctx):
-            raise errors.ObjectNotFoundError(
-                "Could not find cluster with ID {}".format(id)
-            )
+            raise errors.ObjectNotFoundError(f"Could not find cluster with ID {id}")
         self._log("Fetching inventory with id '%s'", id, ctx=ctx)
         try:
             inventory = self._connection.inventories.get(id)
         except rackit.NotFound:
-            raise errors.ObjectNotFoundError(
-                "Could not find cluster with ID {}".format(id)
-            )
+            raise errors.ObjectNotFoundError(f"Could not find cluster with ID {id}")
         else:
             return self._from_inventory(inventory, ctx)
 
@@ -497,7 +485,7 @@ class Driver(base.Driver):
                 credential_type_name
             )
         if not credential_type:
-            message = "Unknown credential type '{}'.".format(ctx.credential.type)
+            message = f"Unknown credential type '{ctx.credential.type}'."
             raise errors.InvalidOperationError(message)
         # Now we have found the credential type, create and return the credential
         credential_name = re.sub(
@@ -505,7 +493,7 @@ class Driver(base.Driver):
             "-",
             # Combine the username and team name with some randomness to avoid
             # collisions
-            "{}-{}-{}".format(ctx.username, ctx.tenancy.name, uuid.uuid4().hex[:16]),
+            f"{ctx.username}-{ctx.tenancy.name}-{uuid.uuid4().hex[:16]}",
         )
         self._log("Creating credential '%s'", credential_name, ctx=ctx)
         return self._connection.credentials.create(
@@ -531,7 +519,7 @@ class Driver(base.Driver):
         job_template = self._connection.job_templates.find_by_name(cluster_type)
         if not job_template:
             raise errors.ObjectNotFoundError(
-                "Could not find cluster type '{}'".format(cluster_type)
+                f"Could not find cluster type '{cluster_type}'"
             )
         self._log("Executing job for inventory '%s'", inventory.name, ctx=ctx)
         # Append the cloud credential to the existing creds for the template
@@ -565,7 +553,7 @@ class Driver(base.Driver):
             raise errors.ImproperlyConfiguredError("Could not find template inventory.")
         awx_credential = self._create_credential(ctx)
         # The inventory name is prefixed with the tenancy name
-        inventory_name = "{}-{}".format(ctx.tenancy.name, name)
+        inventory_name = f"{ctx.tenancy.name}-{name}"
         self._log("Try to find existing inventory '%s'", inventory_name, ctx=ctx)
         # Try to find an existing inventory with the name we want to use
         inventory = self._connection.inventories.find_by_name(inventory_name)
@@ -601,9 +589,7 @@ class Driver(base.Driver):
                     )
             else:
                 # If the cluster already exists, we have a conflict
-                raise errors.BadInputError(
-                    "A cluster called '{}' already exists.".format(name)
-                )
+                raise errors.BadInputError(f"A cluster called '{name}' already exists.")
         # Start to build the new inventory for the new cluster
         self._log("Copying template inventory as '%s'", inventory_name, ctx=ctx)
         inventory = template_inventory.copy(inventory_name)

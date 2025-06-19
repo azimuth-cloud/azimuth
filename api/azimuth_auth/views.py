@@ -124,7 +124,7 @@ def redirect_to_login(code=None, force_change_method=False):
     if force_change_method:
         params[auth_settings.CHANGE_METHOD_PARAM] = "1"
     if params:
-        redirect_to = "{}?{}".format(redirect_to, urlencode(params))
+        redirect_to = f"{redirect_to}?{urlencode(params)}"
     return redirect(redirect_to)
 
 
@@ -146,7 +146,7 @@ def redirect_to_start(authenticator_choice, code=None):
     if code:
         params[auth_settings.MESSAGE_CODE_PARAM] = code
     if params:
-        redirect_to = "{}?{}".format(redirect_to, urlencode(params))
+        redirect_to = f"{redirect_to}?{urlencode(params)}"
     return redirect(redirect_to)
 
 

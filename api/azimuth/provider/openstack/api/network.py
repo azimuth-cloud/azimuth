@@ -85,7 +85,7 @@ class Network(NetworkResource):
         Update the tags associated with a network.
         """
         conn = self._manager.connection
-        conn.api_put("{}/tags".format(self._path), json=dict(tags=tags))
+        conn.api_put(f"{self._path}/tags", json=dict(tags=tags))
 
 
 class SecurityGroup(NetworkResource):
@@ -131,7 +131,7 @@ class Router(NetworkResource):
         """
         params = params.copy() if params else dict()
         params.update(kwargs)
-        url = "{}/add_router_interface".format(self._path)
+        url = f"{self._path}/add_router_interface"
         self._manager.connection.api_put(url, json=params)
 
 
