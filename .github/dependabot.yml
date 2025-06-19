@@ -1,0 +1,49 @@
+---
+
+version: 2
+
+updates:
+  # Automatically propose PRs for out-of-date GitHub actions
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      # Check for new versions weekly
+      interval: weekly
+    # Update all actions in a single PR
+    groups:
+      github-actions:
+        patterns: ["*"]
+    labels:
+      - automation
+      - gha-update
+
+  # Automatically propose PRs for Python dependencies
+  - package-ecosystem: pip
+    directory: "/api"
+    schedule:
+      # Check for new versions daily
+      interval: daily
+    groups:
+      pip-updates:
+        patterns: ["*"]
+    labels:
+      - automation
+      - pip-update
+      - api
+    commit-message:
+    # Prefix all commit messages with "pip: "
+      prefix: "pip"
+
+  # Automatically propose PRs for Python dependencies
+  - package-ecosystem: npm
+    directory: "/ui"
+    schedule:
+      # Check for new versions daily
+      interval: daily
+    # Don't open PRs for JS dependencies for now, as we don't have any
+    # way of testing them
+    open-pull-requests-limit: 0
+    labels:
+      - automation
+      - javascript
+      - ui
