@@ -1,12 +1,11 @@
 import dataclasses
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass(frozen = True)
 class ProjectedQuota:
     """
     Represents a projected quota after a change.
     """
-
     #: The resource that the quota is for
     resource: str
     #: The human-readable label for the quota resource

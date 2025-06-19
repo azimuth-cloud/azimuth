@@ -30,8 +30,8 @@ class AuthenticatorSelectForm(forms.Form):
     """
     Form for selecting an authenticator.
     """
-
     authenticator = forms.ChoiceField(
-        label="Authentication Method", choices=list(authenticator_choices())
+        label = "Authentication Method",
+        choices = list(authenticator_choices())
     )
-    remember = forms.BooleanField(required=False, label="Remember my choice")
+    remember = forms.BooleanField(required = False, label = "Remember my choice")

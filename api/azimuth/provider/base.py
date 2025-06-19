@@ -3,15 +3,13 @@ This module defines the interface for a cloud provider.
 """
 
 import functools
-from collections.abc import Iterable, Mapping
-from typing import Any
+from typing import Any, Iterable, Mapping
 
 from azimuth_auth.session import dto as auth_dto
 from azimuth_auth.session import errors as auth_errors
 from azimuth_auth.session.base import Session as AuthSession
 
-from azimuth.cluster_engine import dto as clusters_dto
-
+from ..cluster_engine import dto as clusters_dto
 from . import dto, errors
 
 
@@ -19,7 +17,6 @@ def convert_auth_session_errors(f):
     """
     Decorator that converts errors from the auth session into provider errors.
     """
-
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
         try:
@@ -38,7 +35,6 @@ def convert_auth_session_errors(f):
             raise errors.CommunicationError(str(exc)) from exc
         except auth_errors.Error as exc:
             raise errors.Error(str(exc)) from exc
-
     return wrapper
 
 
@@ -46,13 +42,13 @@ class Provider:
     """
     Class for a cloud provider.
     """
-
     def _from_auth_session(
-        self, auth_session: AuthSession, auth_user: auth_dto.User
-    ) -> "UnscopedSession":
+        self,
+        auth_session: AuthSession,
+        auth_user: auth_dto.User
+    ) -> 'UnscopedSession':
         """
-        Private method that creates an unscoped session from the given auth session and
-        user.
+        Private method that creates an unscoped session from the given auth session and user.
 
         This method should be overridden in subclasses to create unscoped sessions.
         Subclasses can assume that the parent class will handle error conditions.
@@ -60,7 +56,7 @@ class Provider:
         raise NotImplementedError
 
     @convert_auth_session_errors
-    def from_auth_session(self, auth_session: AuthSession) -> "UnscopedSession":
+    def from_auth_session(self, auth_session: AuthSession) -> 'UnscopedSession':
         """
         Creates an unscoped session for the given auth session.
         """
@@ -75,7 +71,6 @@ class UnscopedSession:
     By default, an unscoped session wraps an auth session, with only creation of the
     scoped session from the credential provided by the auth session being overridden.
     """
-
     def __init__(self, auth_session: AuthSession, auth_user: auth_dto.User):
         self.auth_session = auth_session
         self.auth_user = auth_user
@@ -118,8 +113,7 @@ class UnscopedSession:
     @convert_auth_session_errors
     def update_ssh_public_key(self, public_key: str) -> str:
         """
-        Update the stored SSH public key for the authenticated user and returns the new
-        SSH key.
+        Update the stored SSH public key for the authenticated user and returns the new SSH key.
         """
         return self.auth_session.update_ssh_public_key(public_key)
 
@@ -132,8 +126,11 @@ class UnscopedSession:
         return [dto.Tenancy(t.id, t.name) for t in self.auth_session.tenancies()]
 
     def _scoped_session(
-        self, auth_user: auth_dto.User, tenancy: dto.Tenancy, credential_data: Any
-    ) -> "ScopedSession":
+        self,
+        auth_user: auth_dto.User,
+        tenancy: dto.Tenancy,
+        credential_data: Any
+    ) -> 'ScopedSession':
         """
         Private method that creates a scoped session for the given tenancy.
 
@@ -143,7 +140,7 @@ class UnscopedSession:
         raise NotImplementedError
 
     @convert_auth_session_errors
-    def scoped_session(self, tenancy: dto.Tenancy | str) -> "ScopedSession":
+    def scoped_session(self, tenancy: dto.Tenancy | str) -> 'ScopedSession':
         """
         Get a scoped session for the given tenancy.
         """
@@ -153,7 +150,7 @@ class UnscopedSession:
                 tenancy = next(t for t in self.tenancies() if t.id == tenancy)
             except StopIteration:
                 raise errors.ObjectNotFoundError(
-                    f"Could not find tenancy with ID {tenancy}."
+                    "Could not find tenancy with ID {}.".format(tenancy)
                 )
         # Get the credential from the auth session
         credential = self.auth_session.credential(tenancy.id)
@@ -191,7 +188,6 @@ class ScopedSession:
     """
     Class for a tenancy-scoped session.
     """
-
     def __init__(self, auth_user: auth_dto.User, tenancy: dto.Tenancy):
         self._auth_user = auth_user
         self._tenancy = tenancy
@@ -239,7 +235,7 @@ class ScopedSession:
         The absence of these resources indicates that there is no specific limit.
         """
         raise errors.UnsupportedOperationError(
-            f"Operation not supported for provider '{self.provider_name}'"
+            "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
     def images(self) -> Iterable[dto.Image]:
@@ -247,15 +243,15 @@ class ScopedSession:
         Lists the images available to the tenancy.
         """
         raise errors.UnsupportedOperationError(
-            f"Operation not supported for provider '{self.provider_name}'"
+            "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def find_image(self, id: str) -> dto.Image:  # noqa: A002
+    def find_image(self, id: str) -> dto.Image: # noqa: A002
         """
         Finds an image by id.
         """
         raise errors.UnsupportedOperationError(
-            f"Operation not supported for provider '{self.provider_name}'"
+            "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
     def sizes(self) -> Iterable[dto.Size]:
@@ -263,15 +259,15 @@ class ScopedSession:
         Lists the machine sizes available to the tenancy.
         """
         raise errors.UnsupportedOperationError(
-            f"Operation not supported for provider '{self.provider_name}'"
+            "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def find_size(self, id: str) -> dto.Size:  # noqa: A002
+    def find_size(self, id: str) -> dto.Size: # noqa: A002
         """
         Finds a size by id.
         """
         raise errors.UnsupportedOperationError(
-            f"Operation not supported for provider '{self.provider_name}'"
+            "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
     def machines(self) -> Iterable[dto.Machine]:
@@ -279,15 +275,15 @@ class ScopedSession:
         Lists the machines in the tenancy.
         """
         raise errors.UnsupportedOperationError(
-            f"Operation not supported for provider '{self.provider_name}'"
+            "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def find_machine(self, id: str) -> dto.Machine:  # noqa: A002
+    def find_machine(self, id: str) -> dto.Machine: # noqa: A002
         """
         Finds a machine by id.
         """
         raise errors.UnsupportedOperationError(
-            f"Operation not supported for provider '{self.provider_name}'"
+            "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
     def fetch_logs_for_machine(self, machine: dto.Machine | str) -> Iterable[str]:
@@ -295,7 +291,7 @@ class ScopedSession:
         Returns the log lines for the given machine.
         """
         raise errors.UnsupportedOperationError(
-            f"Operation not supported for provider '{self.provider_name}'"
+            "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
     def create_machine(
@@ -305,23 +301,25 @@ class ScopedSession:
         size: dto.Size | str,
         ssh_key: str | None = None,
         metadata: Mapping[str, str] | None = None,
-        userdata: str | None = None,
+        userdata: str | None = None
     ) -> dto.Machine:
         """
         Create a new machine in the tenancy.
         """
         raise errors.UnsupportedOperationError(
-            f"Operation not supported for provider '{self.provider_name}'"
+            "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
     def resize_machine(
-        self, machine: dto.Machine | str, size: dto.Size | str
+        self,
+        machine: dto.Machine | str,
+        size: dto.Size | str
     ) -> dto.Machine:
         """
         Change the size of a machine.
         """
         raise errors.UnsupportedOperationError(
-            f"Operation not supported for provider '{self.provider_name}'"
+            "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
     def start_machine(self, machine: dto.Machine | str) -> dto.Machine:
@@ -329,7 +327,7 @@ class ScopedSession:
         Start the specified machine.
         """
         raise errors.UnsupportedOperationError(
-            f"Operation not supported for provider '{self.provider_name}'"
+            "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
     def stop_machine(self, machine: dto.Machine | str) -> dto.Machine:
@@ -337,7 +335,7 @@ class ScopedSession:
         Stop the specified machine.
         """
         raise errors.UnsupportedOperationError(
-            f"Operation not supported for provider '{self.provider_name}'"
+            "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
     def restart_machine(self, machine: dto.Machine | str) -> dto.Machine:
@@ -345,7 +343,7 @@ class ScopedSession:
         Restart the specified machine.
         """
         raise errors.UnsupportedOperationError(
-            f"Operation not supported for provider '{self.provider_name}'"
+            "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
     def delete_machine(self, machine: dto.Machine | str) -> dto.Machine | None:
@@ -353,17 +351,18 @@ class ScopedSession:
         Delete the specified machine.
         """
         raise errors.UnsupportedOperationError(
-            f"Operation not supported for provider '{self.provider_name}'"
+            "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
     def fetch_firewall_rules_for_machine(
-        self, machine: dto.Machine | str
+        self,
+        machine: dto.Machine | str
     ) -> Iterable[dto.FirewallGroup]:
         """
         Returns the firewall rules for the machine.
         """
         raise errors.UnsupportedOperationError(
-            f"Operation not supported for provider '{self.provider_name}'"
+            "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
     def add_firewall_rule_to_machine(
@@ -373,24 +372,26 @@ class ScopedSession:
         direction: dto.FirewallRuleDirection,
         protocol: dto.FirewallRuleProtocol,
         port: int | None = None,
-        remote_cidr: str | None = None,
+        remote_cidr: str | None = None
     ) -> Iterable[dto.FirewallGroup]:
         """
         Adds a firewall rule to the specified machine and returns the new set of rules.
         """
         raise errors.UnsupportedOperationError(
-            f"Operation not supported for provider '{self.provider_name}'"
+            "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
     def remove_firewall_rule_from_machine(
-        self, machine: dto.Machine | str, firewall_rule: dto.FirewallRule | str
+        self,
+        machine: dto.Machine | str,
+        firewall_rule: dto.FirewallRule | str
     ) -> Iterable[dto.FirewallGroup]:
         """
         Removes the specified firewall rule from the machine and returns the new set
         of rules.
         """
         raise errors.UnsupportedOperationError(
-            f"Operation not supported for provider '{self.provider_name}'"
+            "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
     def external_ips(self) -> Iterable[dto.ExternalIp]:
@@ -399,15 +400,15 @@ class ScopedSession:
         tenancy.
         """
         raise errors.UnsupportedOperationError(
-            f"Operation not supported for provider '{self.provider_name}'"
+            "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def find_external_ip(self, id: str) -> dto.ExternalIp:  # noqa: A002
+    def find_external_ip(self, id: str) -> dto.ExternalIp: # noqa: A002
         """
         Finds an external IP by id.
         """
         raise errors.UnsupportedOperationError(
-            f"Operation not supported for provider '{self.provider_name}'"
+            "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
     def find_external_ip_by_ip_address(self, ip_address: str):
@@ -415,7 +416,7 @@ class ScopedSession:
         Finds an external IP by the IP address.
         """
         raise errors.UnsupportedOperationError(
-            f"Operation not supported for provider '{self.provider_name}'"
+            "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
     def allocate_external_ip(self) -> dto.ExternalIp:
@@ -424,17 +425,19 @@ class ScopedSession:
         it.
         """
         raise errors.UnsupportedOperationError(
-            f"Operation not supported for provider '{self.provider_name}'"
+            "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
     def attach_external_ip(
-        self, ip: dto.ExternalIp | str, machine: dto.Machine | str
+        self,
+        ip: dto.ExternalIp | str,
+        machine: dto.Machine | str
     ) -> dto.ExternalIp:
         """
         Attaches an external IP to a machine.
         """
         raise errors.UnsupportedOperationError(
-            f"Operation not supported for provider '{self.provider_name}'"
+            "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
     def detach_external_ip(self, ip: dto.ExternalIp | str) -> dto.ExternalIp:
@@ -443,7 +446,7 @@ class ScopedSession:
         attached to.
         """
         raise errors.UnsupportedOperationError(
-            f"Operation not supported for provider '{self.provider_name}'"
+            "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
     def volumes(self) -> Iterable[dto.Volume]:
@@ -451,15 +454,15 @@ class ScopedSession:
         Lists the volumes currently available to the tenancy.
         """
         raise errors.UnsupportedOperationError(
-            f"Operation not supported for provider '{self.provider_name}'"
+            "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
-    def find_volume(self, id: str) -> dto.Volume:  # noqa: A002
+    def find_volume(self, id: str) -> dto.Volume: # noqa: A002
         """
         Finds a volume by id.
         """
         raise errors.UnsupportedOperationError(
-            f"Operation not supported for provider '{self.provider_name}'"
+            "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
     def create_volume(self, name: str, size: int) -> dto.Volume:
@@ -467,7 +470,7 @@ class ScopedSession:
         Create a new volume in the tenancy.
         """
         raise errors.UnsupportedOperationError(
-            f"Operation not supported for provider '{self.provider_name}'"
+            "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
     def delete_volume(self, volume: dto.Volume | str) -> dto.Volume | None:
@@ -475,17 +478,19 @@ class ScopedSession:
         Delete the specified volume.
         """
         raise errors.UnsupportedOperationError(
-            f"Operation not supported for provider '{self.provider_name}'"
+            "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
     def attach_volume(
-        self, volume: dto.Volume | str, machine: dto.Machine | str
+        self,
+        volume: dto.Volume | str,
+        machine: dto.Machine | str
     ) -> dto.Volume:
         """
         Attaches the specified volume to the specified machine.
         """
         raise errors.UnsupportedOperationError(
-            f"Operation not supported for provider '{self.provider_name}'"
+            "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
     def detach_volume(self, volume: dto.Volume | str) -> dto.Volume:
@@ -493,7 +498,7 @@ class ScopedSession:
         Detaches the specified volume from the machine it is attached to.
         """
         raise errors.UnsupportedOperationError(
-            f"Operation not supported for provider '{self.provider_name}'"
+            "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
     def cloud_credential(self, name: str, description: str) -> dto.Credential:
@@ -501,7 +506,7 @@ class ScopedSession:
         Returns a credential with the given name for interacting with the cloud.
         """
         raise errors.UnsupportedOperationError(
-            f"Operation not supported for provider '{self.provider_name}'"
+            "Operation not supported for provider '{}'".format(self.provider_name)
         )
 
     def cluster_parameters(self) -> Mapping[str, Any]:

@@ -1,15 +1,14 @@
 import dataclasses
 import datetime
 
-from azimuth.scheduling import dto as scheduling_dto
+from ..scheduling import dto as scheduling_dto
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass(frozen = True)
 class ClusterTemplate:
     """
     Represents a template for Kubernetes clusters.
     """
-
     #: The id of the template
     id: str
     #: The human-readable name of the template
@@ -34,12 +33,11 @@ class ClusterTemplate:
     created_at: datetime.datetime
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass(frozen = True)
 class NodeGroup:
     """
     Represents a node group in a cluster.
     """
-
     #: The name of the node group
     name: str
     #: The id of the size of machines in the node group
@@ -54,12 +52,11 @@ class NodeGroup:
     max_count: int | None
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass(frozen = True)
 class Node:
     """
     Represents a node in the cluster.
     """
-
     #: The name of the node
     name: str
     #: The role of the node in the cluster
@@ -78,24 +75,22 @@ class Node:
     created_at: datetime.datetime
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass(frozen = True)
 class Addon:
     """
     Represents an addon in the cluster.
     """
-
     #: The name of the addon
     name: str
     #: The status of the addon
     status: str
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass(frozen = True)
 class Service:
     """
     Represents a service available on a cluster or app.
     """
-
     #: The name of the service
     name: str
     #: The human-readable label for the service
@@ -106,12 +101,11 @@ class Service:
     icon_url: str | None
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass(frozen = True)
 class Cluster:
     """
     Represents a Kubernetes cluster.
     """
-
     #: The id of the cluster
     id: str
     #: The human-readable name of the cluster

@@ -3,11 +3,10 @@ from __future__ import annotations
 
 import typing as t
 
-from azimuth.cluster_api import dto as capi_dto
-from azimuth.cluster_engine import dto as caas_dto
-from azimuth.provider import base as cloud_provider
-from azimuth.provider import dto as provider_dto
-
+from ..cluster_api import dto as capi_dto
+from ..cluster_engine import dto as caas_dto
+from ..provider import base as cloud_provider
+from ..provider import dto as provider_dto
 from . import dto
 
 
@@ -15,12 +14,13 @@ class CaaSClusterCalculator:
     """
     Calculates the resources required for a CaaS cluster.
     """
-
     def __init__(self, session: cloud_provider.ScopedSession):
         self._session = session
 
     def calculate(
-        self, cluster_type: caas_dto.ClusterType, parameter_values: dict[str, t.Any]
+        self,
+        cluster_type: caas_dto.ClusterType,
+        parameter_values: dict[str, t.Any]
     ) -> dto.PlatformResources:
         """
         Calculates the resources required to make the specified CaaS cluster.
@@ -54,7 +54,6 @@ class KubernetesNodeGroupSpec(t.TypedDict):
     """
     Spec for a Kubernetes node group.
     """
-
     name: str
     machine_size: provider_dto.Size
     autoscale: bool
@@ -67,7 +66,6 @@ class KubernetesClusterCalculator:
     """
     Calculates the resources required for a Kubernetes cluster.
     """
-
     def __init__(self, session: cloud_provider.ScopedSession):
         self._session = session
 
@@ -79,7 +77,7 @@ class KubernetesClusterCalculator:
         monitoring_enabled: bool,
         monitoring_metrics_volume_size: int,
         monitoring_logs_volume_size: int,
-        **kwargs,
+        **kwargs
     ) -> dto.PlatformResources:
         """
         Calculates the resources required to make the specified Kubernetes cluster.
@@ -89,28 +87,27 @@ class KubernetesClusterCalculator:
         resources.add_machines(template.control_plane_count, control_plane_size)
         if template.etcd_volume_size > 0:
             resources.add_volumes(
-                template.control_plane_count, template.etcd_volume_size
+                template.control_plane_count,
+                template.etcd_volume_size
             )
         if template.control_plane_root_volume_size > 0:
             resources.add_volumes(
-                template.control_plane_count, template.control_plane_root_volume_size
+                template.control_plane_count,
+                template.control_plane_root_volume_size
             )
         # Next, the node groups
         for ng in node_groups:
-            # When autoscaling, make sure there is enough space for the max size of the
-            # cluster
+            # When autoscaling, make sure there is enough space for the max size of the cluster
             ng_count = ng["max_count"] if ng["autoscale"] else ng["count"]
             resources.add_machines(ng_count, ng["machine_size"])
             if template.node_group_root_volume_size > 0:
                 resources.add_volumes(ng_count, template.node_group_root_volume_size)
         # Add the monitoring volumes
-        # There is always an additional volume of 10GB for alertmanager that isn't
-        # customisable
+        # There is always an additional volume of 10GB for alertmanager that isn't customisable
         if monitoring_enabled:
             resources.add_volumes(1, 10)
             resources.add_volumes(1, monitoring_metrics_volume_size)
             resources.add_volumes(1, monitoring_logs_volume_size)
         # NOTE(mkjpryor)
-        # The ingress controller IP is pre-allocated, so we don't need to account for
-        # it here
+        # The ingress controller IP is pre-allocated, so we don't need to account for it here
         return resources

@@ -1,8 +1,7 @@
 import typing as t
 
-from azimuth.cluster_api import dto as capi_dto
-from azimuth.provider import base as cloud_base
-
+from ..cluster_api import dto as capi_dto
+from ..provider import base as cloud_base
 from . import dto
 
 
@@ -10,8 +9,7 @@ class Provider:
     """
     Base class for apps providers.
     """
-
-    def session(self, cloud_session: cloud_base.ScopedSession) -> "Session":
+    def session(self, cloud_session: cloud_base.ScopedSession) -> 'Session':
         """
         Returns an apps session scoped to the given cloud provider session.
         """
@@ -22,14 +20,13 @@ class Session:
     """
     Base class for a scoped apps session.
     """
-
     def app_templates(self) -> t.Iterable[dto.AppTemplate]:
         """
         Lists the app templates currently available to the tenancy.
         """
         raise NotImplementedError
 
-    def find_app_template(self, id: str) -> dto.AppTemplate:  # noqa: A002
+    def find_app_template(self, id: str) -> dto.AppTemplate: # noqa: A002
         """
         Finds an app template by id.
         """
@@ -41,7 +38,7 @@ class Session:
         """
         raise NotImplementedError
 
-    def find_app(self, id: str) -> dto.App:  # noqa: A002
+    def find_app(self, id: str) -> dto.App: # noqa: A002
         """
         Finds an app by id.
         """
@@ -53,7 +50,7 @@ class Session:
         template: dto.AppTemplate,
         values: dict[str, t.Any],
         *,
-        kubernetes_cluster: capi_dto.Cluster | None = None,
+        kubernetes_cluster: capi_dto.Cluster | None = None
     ) -> dto.App:
         """
         Create a new app in the tenancy.
@@ -65,7 +62,7 @@ class Session:
         app: dto.App | str,
         template: dto.AppTemplate,
         version: dto.Version,
-        values: dict[str, t.Any],
+        values: dict[str, t.Any]
     ) -> dto.App:
         """
         Update the specified cluster with the given parameters.

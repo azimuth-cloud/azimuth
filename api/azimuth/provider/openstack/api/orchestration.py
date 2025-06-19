@@ -11,17 +11,15 @@ class Stack(Resource):
     """
     Resource for accessing stacks.
     """
-
     class Meta:
-        endpoint = "/stacks"
+        endpoint = '/stacks'
 
 
 class OrchestrationService(Service):
     """
     OpenStack service class for the orchestration service.
     """
-
-    catalog_type = "orchestration"
-    path_prefix = "/v1/{project_id}"
+    catalog_type = 'orchestration'
+    path_prefix = '/v1/{project_id}'
 
     stacks = RootResource(Stack)

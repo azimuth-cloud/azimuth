@@ -30,7 +30,7 @@ from .settings import cloud_settings
 log = logging.getLogger(__name__)
 
 
-def get_view_description(view_cls, html=False):
+def get_view_description(view_cls, html = False):
     """
     Alternative django-rest-framework ``VIEW_DESCRIPTION_FUNCTION`` that allows
     RestructuredText to be used instead of Markdown.
@@ -42,7 +42,7 @@ def get_view_description(view_cls, html=False):
     description = formatting.dedent(smart_str(description))
     if html:
         # Get just the HTML parts corresponding to the docstring
-        parts = core.publish_parts(source=description, writer_name="html")
+        parts = core.publish_parts(source = description, writer_name = "html")
         html = parts["body_pre_docinfo"] + parts["fragment"]
         # Mark the output as safe for rendering as-is
         return mark_safe(html)
@@ -54,7 +54,6 @@ def convert_provider_exceptions(view):
     Decorator that converts errors from :py:mod:`.provider.errors` into appropriate
     HTTP responses or Django REST framework errors.
     """
-
     @functools.wraps(view)
     def wrapper(*args, **kwargs):
         try:
@@ -63,28 +62,28 @@ def convert_provider_exceptions(view):
         # return suitable responses
         except provider_errors.UnsupportedOperationError as exc:
             return response.Response(
-                {"detail": str(exc), "code": "unsupported_operation"},
-                status=status.HTTP_404_NOT_FOUND,
+                { "detail": str(exc), "code": "unsupported_operation"},
+                status = status.HTTP_404_NOT_FOUND
             )
         except provider_errors.QuotaExceededError as exc:
             return response.Response(
-                {"detail": str(exc), "code": "quota_exceeded"},
-                status=status.HTTP_409_CONFLICT,
+                { "detail": str(exc), "code": "quota_exceeded"},
+                status = status.HTTP_409_CONFLICT
             )
         except provider_errors.InvalidOperationError as exc:
             return response.Response(
-                {"detail": str(exc), "code": "invalid_operation"},
-                status=status.HTTP_409_CONFLICT,
+                { "detail": str(exc), "code": "invalid_operation"},
+                status = status.HTTP_409_CONFLICT
             )
         except provider_errors.BadInputError as exc:
             return response.Response(
-                {"detail": str(exc), "code": "bad_input"},
-                status=status.HTTP_400_BAD_REQUEST,
+                { "detail": str(exc), "code": "bad_input"},
+                status = status.HTTP_400_BAD_REQUEST
             )
         except provider_errors.OperationTimedOutError as exc:
             return response.Response(
-                {"detail": str(exc), "code": "operation_timed_out"},
-                status=status.HTTP_504_GATEWAY_TIMEOUT,
+                { "detail": str(exc), "code": "operation_timed_out"},
+                status = status.HTTP_504_GATEWAY_TIMEOUT
             )
         # For authentication/not found errors, raise the DRF equivalent
         except provider_errors.AuthenticationError as exc:
@@ -96,9 +95,9 @@ def convert_provider_exceptions(view):
         except provider_errors.Error as exc:
             log.exception("Unexpected provider error")
             return response.Response(
-                {"detail": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                { "detail": str(exc) },
+                status = status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
     return wrapper
 
 
@@ -107,36 +106,34 @@ def convert_key_store_exceptions(view):
     Decorator that converts errors from :py:mod:`.keystore.errors` into appropriate
     HTTP responses or Django REST framework errors.
     """
-
     @functools.wraps(view)
     def wrapper(*args, **kwargs):
         try:
             return view(*args, **kwargs)
         except keystore_errors.KeyNotFound:
             return response.Response(
-                {"detail": "No SSH public key available.", "code": "ssh_key_not_set"},
-                status=status.HTTP_409_CONFLICT,
+                { "detail": "No SSH public key available.", "code": "ssh_key_not_set" },
+                status = status.HTTP_409_CONFLICT
             )
         except keystore_errors.UnsupportedOperation as exc:
             return response.Response(
-                {"detail": str(exc), "code": "unsupported_operation"},
-                status=status.HTTP_405_METHOD_NOT_ALLOWED,
+                { "detail": str(exc), "code": "unsupported_operation"},
+                status = status.HTTP_405_METHOD_NOT_ALLOWED
             )
         except keystore_errors.Error as exc:
             log.exception("Unexpected key store error")
             return response.Response(
-                {"detail": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                { "detail": str(exc) },
+                status = status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
     return wrapper
 
 
 def convert_cluster_engine_exceptions(view):
     """
-    Decorator that converts errors from :py:mod:`.cluster_engine.errors` into
-    appropriate HTTP responses or Django REST framework errors.
+    Decorator that converts errors from :py:mod:`.cluster_engine.errors` into appropriate
+    HTTP responses or Django REST framework errors.
     """
-
     @functools.wraps(view)
     def wrapper(*args, **kwargs):
         try:
@@ -145,32 +142,32 @@ def convert_cluster_engine_exceptions(view):
         # return suitable responses
         except cluster_engine_errors.UnsupportedOperationError as exc:
             return response.Response(
-                {"detail": str(exc), "code": "unsupported_operation"},
-                status=status.HTTP_404_NOT_FOUND,
+                { "detail": str(exc), "code": "unsupported_operation"},
+                status = status.HTTP_404_NOT_FOUND
             )
         except cluster_engine_errors.QuotaExceededError as exc:
             return response.Response(
-                {"detail": str(exc), "code": "quota_exceeded"},
-                status=status.HTTP_409_CONFLICT,
+                { "detail": str(exc), "code": "quota_exceeded"},
+                status = status.HTTP_409_CONFLICT
             )
         except cluster_engine_errors.InvalidOperationError as exc:
             return response.Response(
-                {"detail": str(exc), "code": "invalid_operation"},
-                status=status.HTTP_409_CONFLICT,
+                { "detail": str(exc), "code": "invalid_operation"},
+                status = status.HTTP_409_CONFLICT
             )
         except cluster_engine_errors.BadInputError as exc:
             return response.Response(
-                {"detail": str(exc), "code": "bad_input"},
-                status=status.HTTP_400_BAD_REQUEST,
+                { "detail": str(exc), "code": "bad_input"},
+                status = status.HTTP_400_BAD_REQUEST
             )
         except cluster_engine_errors.ObjectNotFoundError as exc:
             raise drf_exceptions.NotFound(str(exc))
         except cluster_engine_errors.Error as exc:
             log.exception("Unexpected cluster engine error")
             return response.Response(
-                {"detail": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                { "detail": str(exc) },
+                status = status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
     return wrapper
 
 
@@ -179,7 +176,6 @@ def convert_cluster_api_exceptions(view):
     Decorator that converts errors from :py:mod:`.cluster_api.errors` into appropriate
     HTTP responses or Django REST framework errors.
     """
-
     @functools.wraps(view)
     def wrapper(*args, **kwargs):
         try:
@@ -188,27 +184,27 @@ def convert_cluster_api_exceptions(view):
         # return suitable responses
         except cluster_api_errors.UnsupportedOperationError as exc:
             return response.Response(
-                {"detail": str(exc), "code": "unsupported_operation"},
-                status=status.HTTP_404_NOT_FOUND,
+                { "detail": str(exc), "code": "unsupported_operation"},
+                status = status.HTTP_404_NOT_FOUND
             )
         except cluster_api_errors.InvalidOperationError as exc:
             return response.Response(
-                {"detail": str(exc), "code": "invalid_operation"},
-                status=status.HTTP_409_CONFLICT,
+                { "detail": str(exc), "code": "invalid_operation"},
+                status = status.HTTP_409_CONFLICT
             )
         except cluster_api_errors.BadInputError as exc:
             return response.Response(
-                {"detail": str(exc), "code": "bad_input"},
-                status=status.HTTP_400_BAD_REQUEST,
+                { "detail": str(exc), "code": "bad_input"},
+                status = status.HTTP_400_BAD_REQUEST
             )
         except cluster_api_errors.ObjectNotFoundError as exc:
             raise drf_exceptions.NotFound(str(exc))
         except cluster_api_errors.Error as exc:
             log.exception("Unexpected Cluster API provider error")
             return response.Response(
-                {"detail": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                { "detail": str(exc) },
+                status = status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
     return wrapper
 
 
@@ -217,7 +213,6 @@ def convert_apps_exceptions(view):
     Decorator that converts errors from :py:mod:`.apps.errors` into appropriate
     HTTP responses or Django REST framework errors.
     """
-
     @functools.wraps(view)
     def wrapper(*args, **kwargs):
         try:
@@ -226,36 +221,34 @@ def convert_apps_exceptions(view):
         # return suitable responses
         except apps_errors.UnsupportedOperationError as exc:
             return response.Response(
-                {"detail": str(exc), "code": "unsupported_operation"},
-                status=status.HTTP_404_NOT_FOUND,
+                { "detail": str(exc), "code": "unsupported_operation"},
+                status = status.HTTP_404_NOT_FOUND
             )
         except apps_errors.InvalidOperationError as exc:
             return response.Response(
-                {"detail": str(exc), "code": "invalid_operation"},
-                status=status.HTTP_409_CONFLICT,
+                { "detail": str(exc), "code": "invalid_operation"},
+                status = status.HTTP_409_CONFLICT
             )
         except apps_errors.BadInputError as exc:
             return response.Response(
-                {"detail": str(exc), "code": "bad_input"},
-                status=status.HTTP_400_BAD_REQUEST,
+                { "detail": str(exc), "code": "bad_input"},
+                status = status.HTTP_400_BAD_REQUEST
             )
         except apps_errors.ObjectNotFoundError as exc:
             raise drf_exceptions.NotFound(str(exc))
         except apps_errors.Error as exc:
             log.exception("Unexpected apps provider error")
             return response.Response(
-                {"detail": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                { "detail": str(exc) },
+                status = status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
     return wrapper
 
 
 def provider_api_view(methods):
     """
-    Returns a decorator for a provider API view that combines several decorators into
-    one.
+    Returns a decorator for a provider API view that combines several decorators into one.
     """
-
     def decorator(view):
         view = convert_provider_exceptions(view)
         view = convert_key_store_exceptions(view)
@@ -265,7 +258,6 @@ def provider_api_view(methods):
         view = decorators.permission_classes([permissions.IsAuthenticated])(view)
         view = decorators.api_view(methods)(view)
         return view
-
     return decorator
 
 
@@ -274,10 +266,9 @@ def redirect_to_signin(view):
     Decorator that redirects unauthorized requests to the sign in page instead
     of returning a 401 to the client.
 
-    Primarily for use with views that use redirect_to_zenith_service to redirect users
-    to external services.
+    Primarily for use with views that use redirect_to_zenith_service to redirect users to
+    external services.
     """
-
     @functools.wraps(view)
     def wrapper(request, *args, **kwargs):
         response = view(request, *args, **kwargs)
@@ -286,12 +277,11 @@ def redirect_to_signin(view):
                 "{}?{}={}".format(
                     reverse("azimuth_auth:login"),
                     auth_settings.NEXT_URL_PARAM,
-                    request.get_full_path(),
+                    request.get_full_path()
                 )
             )
         else:
             return response
-
     return wrapper
 
 
@@ -300,8 +290,8 @@ def redirect_to_zenith_service(
     service_type,
     service_name,
     service_fqdn,
-    service_label=None,
-    readiness_path="/",
+    service_label = None,
+    readiness_path = "/"
 ):
     """
     Redirects to a service URL if it is ready.
@@ -314,7 +304,7 @@ def redirect_to_zenith_service(
         return render(
             request,
             "azimuth/service_not_available.html",
-            {"service_name": service_label},
+            { "service_name": service_label }
         )
     redirect_url = cloud_settings.APPS.service_is_ready(service_fqdn, readiness_path)
     if redirect_url:
@@ -323,7 +313,7 @@ def redirect_to_zenith_service(
         return render(
             request,
             "azimuth/service_not_ready.html",
-            {"service_name": service_label, "service_type": service_type},
+            { "service_name": service_label, "service_type": service_type }
         )
 
 
@@ -338,7 +328,7 @@ def cloud_info(request):
             "session": request.build_absolute_uri(reverse("azimuth:session")),
             "documentation": cloud_settings.DOCUMENTATION_URL,
             "support": cloud_settings.SUPPORT_URL,
-        },
+        }
     }
     if cloud_settings.METRICS.CLOUD_METRICS_URL:
         data["links"]["metrics"] = cloud_settings.METRICS.CLOUD_METRICS_URL
@@ -350,19 +340,15 @@ def session(request):
     """
     Returns information about the current session.
     """
-    return response.Response(
-        {
-            "user_id": request.auth.user_id(),
-            "username": request.auth.username(),
-            "token": request.auth.token(),
-            "links": {
-                "ssh_public_key": request.build_absolute_uri(
-                    reverse("azimuth:ssh_public_key")
-                ),
-                "tenancies": request.build_absolute_uri(reverse("azimuth:tenancies")),
-            },
+    return response.Response({
+        "user_id": request.auth.user_id(),
+        "username": request.auth.username(),
+        "token": request.auth.token(),
+        "links": {
+            "ssh_public_key": request.build_absolute_uri(reverse("azimuth:ssh_public_key")),
+            "tenancies": request.build_absolute_uri(reverse("azimuth:tenancies")),
         }
-    )
+    })
 
 
 @provider_api_view(["GET"])
@@ -383,7 +369,7 @@ def session_verify(request):
     """
     # If we get to here, the user is already authenticated
     # If they are not, a 401 will have been returned
-    content = {"authenticated": True}
+    content = { "authenticated": True }
     tenancies = list(request.auth.tenancies())
     # If the tenancy ID header is present, verify that the user belongs to the tenancy
     tenancy_id = request.META.get(cloud_settings.VERIFY_TENANCY_ID_HEADER)
@@ -400,7 +386,7 @@ def session_verify(request):
     email = request.auth.user_email()
     if email:
         headers["X-Remote-User-Email"] = email
-    return response.Response(content, headers=headers)
+    return response.Response(content, headers = headers)
 
 
 @provider_api_view(["GET", "PUT"])
@@ -418,15 +404,15 @@ def ssh_public_key(request):
         }
     """
     if request.method == "PUT":
-        serializer = serializers.SSHKeyUpdateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        serializer = serializers.SSHKeyUpdateSerializer(data = request.data)
+        serializer.is_valid(raise_exception = True)
         ssh_public_key = cloud_settings.SSH_KEY_STORE.update_key(
             request.user.username,
             serializer.validated_data["ssh_public_key"],
             # Pass the request and the sessions as keyword options
             # so that the key store can use them if it needs to
-            request=request,
-            unscoped_session=request.auth,
+            request = request,
+            unscoped_session = request.auth
         )
     else:
         try:
@@ -434,19 +420,19 @@ def ssh_public_key(request):
                 request.user.username,
                 # Pass the request and the sessions as keyword options
                 # so that the key store can use them if it needs to
-                request=request,
-                unscoped_session=request.auth,
+                request = request,
+                unscoped_session = request.auth
             )
         except keystore_errors.KeyNotFound:
             ssh_public_key = None
     content = dict(
-        ssh_public_key=ssh_public_key,
-        can_update=cloud_settings.SSH_KEY_STORE.supports_key_update,
+        ssh_public_key = ssh_public_key,
+        can_update = cloud_settings.SSH_KEY_STORE.supports_key_update
     )
     if cloud_settings.SSH_KEY_STORE.supports_key_update:
         content.update(
-            allowed_key_types=cloud_settings.SSH_ALLOWED_KEY_TYPES,
-            rsa_min_bits=cloud_settings.SSH_RSA_MIN_BITS,
+            allowed_key_types = cloud_settings.SSH_ALLOWED_KEY_TYPES,
+            rsa_min_bits = cloud_settings.SSH_RSA_MIN_BITS
         )
     return response.Response(content)
 
@@ -457,7 +443,9 @@ def tenancies(request):
     Returns the tenancies available to the authenticated user.
     """
     serializer = serializers.TenancySerializer(
-        request.auth.tenancies(), many=True, context={"request": request}
+        request.auth.tenancies(),
+        many = True,
+        context = { "request": request }
     )
     return response.Response(serializer.data)
 
@@ -471,15 +459,15 @@ def capabilities(request, tenant):
         response_data = dict(
             dataclasses.asdict(session.capabilities()),
             # Clusters are supported if a cluster engine is configured
-            supports_clusters=bool(cloud_settings.CLUSTER_ENGINE),
+            supports_clusters = bool(cloud_settings.CLUSTER_ENGINE),
             # Kubernetes is supported if a Cluster API provider is configured
-            supports_kubernetes=bool(cloud_settings.CLUSTER_API_PROVIDER),
+            supports_kubernetes = bool(cloud_settings.CLUSTER_API_PROVIDER),
             # Kubernetes apps are supported if an apps provider is configured
-            supports_apps=bool(cloud_settings.APPS_PROVIDER),
+            supports_apps = bool(cloud_settings.APPS_PROVIDER),
             # Scheduling must be specifically enabled
-            supports_scheduling=bool(cloud_settings.SCHEDULING.ENABLED),
+            supports_scheduling = bool(cloud_settings.SCHEDULING.ENABLED),
         )
-    response_data["links"] = {"self": request.build_absolute_uri()}
+    response_data["links"] = { "self": request.build_absolute_uri() }
     return response.Response(response_data)
 
 
@@ -490,7 +478,9 @@ def quotas(request, tenant):
     """
     with request.auth.scoped_session(tenant) as session:
         serializer = serializers.QuotaSerializer(
-            session.quotas(), many=True, context={"request": request, "tenant": tenant}
+            session.quotas(),
+            many = True,
+            context = { "request": request, "tenant": tenant }
         )
     return response.Response(serializer.data)
 
@@ -509,11 +499,13 @@ def identity_provider(request, tenant):
             realm = identity.get_realm(session.tenancy())
     if realm:
         response_data = dict(
-            enabled=True, status=realm.status, admin_url=realm.admin_url
+            enabled = True,
+            status = realm.status,
+            admin_url = realm.admin_url
         )
     else:
-        response_data = dict(enabled=False)
-    response_data["links"] = {"self": request.build_absolute_uri()}
+        response_data = dict(enabled = False)
+    response_data["links"] = { "self": request.build_absolute_uri() }
     return response.Response(response_data)
 
 
@@ -524,7 +516,9 @@ def images(request, tenant):
     """
     with request.auth.scoped_session(tenant) as session:
         serializer = serializers.ImageSerializer(
-            session.images(), many=True, context={"request": request, "tenant": tenant}
+            session.images(),
+            many = True,
+            context = { "request": request, "tenant": tenant }
         )
     return response.Response(serializer.data)
 
@@ -536,13 +530,13 @@ def image_details(request, tenant, image):
     """
     with request.auth.scoped_session(tenant) as session:
         serializer = serializers.ImageSerializer(
-            session.find_image(image), context={"request": request, "tenant": tenant}
+            session.find_image(image),
+            context = { "request": request, "tenant": tenant }
         )
     return response.Response(serializer.data)
 
 
 _SIZE_UNITS = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"]
-
 
 def _format_size(amount, original_units):
     """
@@ -553,7 +547,7 @@ def _format_size(amount, original_units):
         return f"0{original_units}"
     # Otherwise calculate the exponent and the formatted amount
     exponent = math.floor(math.log(amount) / math.log(1024))
-    new_amount = amount / math.pow(1024, exponent)
+    new_amount = (amount / math.pow(1024, exponent))
     # Make sure the new amount renders nicely for integers, e.g. 1GB vs 1.00GB
     if new_amount % 1 == 0:
         formatted_amount = int(new_amount)
@@ -571,21 +565,22 @@ def _curated_size(cloud_size, curated_size_spec):
     """
     curated_size = cloud_size
     if "name" in curated_size_spec:
-        curated_size = dataclasses.replace(curated_size, name=curated_size_spec["name"])
+        curated_size = dataclasses.replace(
+            curated_size,
+            name = curated_size_spec["name"]
+        )
     if "description" in curated_size_spec:
         template = Engine.get_default().from_string(curated_size_spec["description"])
         curated_size = dataclasses.replace(
             curated_size,
-            description=template.render(
-                Context(
-                    {
-                        "cpus": cloud_size.cpus,
-                        "ram": _format_size(cloud_size.ram, "MB"),
-                        "disk": _format_size(cloud_size.disk, "GB"),
-                        "ephemeral_disk": _format_size(cloud_size.ephemeral_disk, "GB"),
-                    }
-                )
-            ),
+            description = template.render(
+                Context({
+                    "cpus": cloud_size.cpus,
+                    "ram": _format_size(cloud_size.ram, "MB"),
+                    "disk": _format_size(cloud_size.disk, "GB"),
+                    "ephemeral_disk": _format_size(cloud_size.ephemeral_disk, "GB")
+                })
+            )
         )
     if "additional_properties" in curated_size_spec:
         additional_properties = curated_size.additional_properties.copy()
@@ -596,10 +591,12 @@ def _curated_size(cloud_size, curated_size_spec):
             }
         )
         curated_size = dataclasses.replace(
-            curated_size, additional_properties=additional_properties
+            curated_size,
+            additional_properties = additional_properties
         )
     return dataclasses.replace(
-        curated_size, sort_idx=curated_size_spec.get("sort_idx", 0)
+        curated_size,
+        sort_idx = curated_size_spec.get("sort_idx", 0)
     )
 
 
@@ -613,7 +610,7 @@ def sizes(request, tenant):
         if cloud_settings.CURATED_SIZES:
             # Index the curated sizes by id, maintaining the sort index
             curated_size_specs = {
-                cs["id"]: dict(cs, sort_idx=idx)
+                cs["id"]: dict(cs, sort_idx = idx)
                 for idx, cs in enumerate(cloud_settings.CURATED_SIZES)
             }
             sizes = [
@@ -622,7 +619,9 @@ def sizes(request, tenant):
                 if size.id in curated_size_specs
             ]
         serializer = serializers.SizeSerializer(
-            sizes, many=True, context={"request": request, "tenant": tenant}
+            sizes,
+            many = True,
+            context = { "request": request, "tenant": tenant }
         )
     return response.Response(serializer.data)
 
@@ -637,7 +636,7 @@ def size_details(request, tenant, size):
         if cloud_settings.CURATED_SIZES:
             try:
                 curated_size_spec = next(
-                    dict(cs, sort_idx=idx)
+                    dict(cs, sort_idx = idx)
                     for idx, cs in enumerate(cloud_settings.CURATED_SIZES)
                     if cs["id"] == size.id
                 )
@@ -646,7 +645,8 @@ def size_details(request, tenant, size):
             else:
                 size = _curated_size(size, curated_size_spec)
         serializer = serializers.SizeSerializer(
-            size, context={"request": request, "tenant": tenant}
+            size,
+            context = { "request": request, "tenant": tenant }
         )
     return response.Response(serializer.data)
 
@@ -665,29 +665,30 @@ def machines(request, tenant):
         }
     """
     if request.method == "POST":
-        input_serializer = serializers.CreateMachineSerializer(data=request.data)
-        input_serializer.is_valid(raise_exception=True)
+        input_serializer = serializers.CreateMachineSerializer(data = request.data)
+        input_serializer.is_valid(raise_exception = True)
         with request.auth.scoped_session(tenant) as session:
             machine = session.create_machine(
-                name=input_serializer.validated_data["name"],
-                image=input_serializer.validated_data["image_id"],
-                size=input_serializer.validated_data["size_id"],
-                ssh_key=cloud_settings.SSH_KEY_STORE.get_key(
+                name = input_serializer.validated_data["name"],
+                image = input_serializer.validated_data["image_id"],
+                size = input_serializer.validated_data["size_id"],
+                ssh_key = cloud_settings.SSH_KEY_STORE.get_key(
                     request.user.username,
-                    request=request,
-                    unscoped_session=request.auth,
-                ),
+                    request = request,
+                    unscoped_session = request.auth,
+                )
             )
         output_serializer = serializers.MachineSerializer(
-            machine, context={"request": request, "tenant": tenant}
+            machine,
+            context = { "request": request, "tenant": tenant }
         )
-        return response.Response(output_serializer.data, status=status.HTTP_201_CREATED)
+        return response.Response(output_serializer.data, status = status.HTTP_201_CREATED)
     else:
         with request.auth.scoped_session(tenant) as session:
             serializer = serializers.MachineSerializer(
                 session.machines(),
-                many=True,
-                context={"request": request, "tenant": tenant},
+                many = True,
+                context = { "request": request, "tenant": tenant }
             )
         return response.Response(serializer.data)
 
@@ -704,7 +705,8 @@ def machine_details(request, tenant, machine):
             deleted = session.delete_machine(machine)
         if deleted:
             serializer = serializers.MachineSerializer(
-                deleted, context={"request": request, "tenant": tenant}
+                deleted,
+                context = { "request": request, "tenant": tenant }
             )
             return response.Response(serializer.data)
         else:
@@ -713,7 +715,7 @@ def machine_details(request, tenant, machine):
         with request.auth.scoped_session(tenant) as session:
             serializer = serializers.MachineSerializer(
                 session.find_machine(machine),
-                context={"request": request, "tenant": tenant},
+                context = { "request": request, "tenant": tenant }
             )
         return response.Response(serializer.data)
 
@@ -725,7 +727,7 @@ def machine_logs(request, tenant, machine):
     """
     with request.auth.scoped_session(tenant) as session:
         machine_logs = session.fetch_logs_for_machine(machine)
-    return response.Response(dict(logs=machine_logs))
+    return response.Response(dict(logs = machine_logs))
 
 
 @provider_api_view(["GET", "POST"])
@@ -744,8 +746,8 @@ def machine_firewall_rules(request, tenant, machine):
         }
     """
     if request.method == "POST":
-        input_serializer = serializers.CreateFirewallRuleSerializer(data=request.data)
-        input_serializer.is_valid(raise_exception=True)
+        input_serializer = serializers.CreateFirewallRuleSerializer(data = request.data)
+        input_serializer.is_valid(raise_exception = True)
         with request.auth.scoped_session(tenant) as session:
             output_serializer = serializers.FirewallGroupSerializer(
                 session.add_firewall_rule_to_machine(
@@ -755,16 +757,16 @@ def machine_firewall_rules(request, tenant, machine):
                     input_serializer.validated_data["port"],
                     input_serializer.validated_data["remote_cidr"],
                 ),
-                many=True,
-                context={"request": request, "tenant": tenant},
+                many = True,
+                context = { "request": request, "tenant": tenant }
             )
-        return response.Response(output_serializer.data, status=status.HTTP_201_CREATED)
+        return response.Response(output_serializer.data, status = status.HTTP_201_CREATED)
     else:
         with request.auth.scoped_session(tenant) as session:
             serializer = serializers.FirewallGroupSerializer(
                 session.fetch_firewall_rules_for_machine(machine),
-                many=True,
-                context={"request": request, "tenant": tenant},
+                many = True,
+                context = { "request": request, "tenant": tenant }
             )
         return response.Response(serializer.data)
 
@@ -777,8 +779,8 @@ def machine_firewall_rule_details(request, tenant, machine, rule):
     with request.auth.scoped_session(tenant) as session:
         output_serializer = serializers.FirewallGroupSerializer(
             session.remove_firewall_rule_from_machine(machine, rule),
-            many=True,
-            context={"request": request, "tenant": tenant},
+            many = True,
+            context = { "request": request, "tenant": tenant }
         )
         return response.Response(output_serializer.data)
 
@@ -791,7 +793,7 @@ def machine_start(request, tenant, machine):
     with request.auth.scoped_session(tenant) as session:
         serializer = serializers.MachineSerializer(
             session.start_machine(machine),
-            context={"request": request, "tenant": tenant},
+            context = { "request": request, "tenant": tenant }
         )
     return response.Response(serializer.data)
 
@@ -804,7 +806,7 @@ def machine_stop(request, tenant, machine):
     with request.auth.scoped_session(tenant) as session:
         serializer = serializers.MachineSerializer(
             session.stop_machine(machine),
-            context={"request": request, "tenant": tenant},
+            context = { "request": request, "tenant": tenant }
         )
     return response.Response(serializer.data)
 
@@ -817,7 +819,7 @@ def machine_restart(request, tenant, machine):
     with request.auth.scoped_session(tenant) as session:
         serializer = serializers.MachineSerializer(
             session.restart_machine(machine),
-            context={"request": request, "tenant": tenant},
+            context = { "request": request, "tenant": tenant }
         )
     return response.Response(serializer.data)
 
@@ -834,16 +836,14 @@ def external_ips(request, tenant):
     """
     if request.method == "POST":
         with request.auth.scoped_session(tenant) as session:
-            serializer = serializers.ExternalIPSerializer(
-                session.allocate_external_ip()
-            )
-        return response.Response(serializer.data, status=status.HTTP_201_CREATED)
+            serializer = serializers.ExternalIPSerializer(session.allocate_external_ip())
+        return response.Response(serializer.data, status = status.HTTP_201_CREATED)
     else:
         with request.auth.scoped_session(tenant) as session:
             serializer = serializers.ExternalIPSerializer(
                 session.external_ips(),
-                many=True,
-                context={"request": request, "tenant": tenant},
+                many = True,
+                context = { "request": request, "tenant": tenant }
             )
         return response.Response(serializer.data)
 
@@ -861,8 +861,8 @@ def external_ip_details(request, tenant, ip):
         { "machine_id": "<machine id>" }
     """
     if request.method == "PATCH":
-        input_serializer = serializers.ExternalIPSerializer(data=request.data)
-        input_serializer.is_valid(raise_exception=True)
+        input_serializer = serializers.ExternalIPSerializer(data = request.data)
+        input_serializer.is_valid(raise_exception = True)
         machine_id = input_serializer.validated_data["machine_id"]
         with request.auth.scoped_session(tenant) as session:
             if machine_id:
@@ -871,25 +871,24 @@ def external_ip_details(request, tenant, ip):
                 if machine.metadata.get("nat_allowed", "1") == "0":
                     return response.Response(
                         {
-                            "detail": (
-                                "Machine is not allowed to have an external IP address."
-                            ),
-                            "code": "invalid_operation",
+                            "detail": "Machine is not allowed to have an external IP address.",
+                            "code": "invalid_operation"
                         },
-                        status=status.HTTP_409_CONFLICT,
+                        status = status.HTTP_409_CONFLICT
                     )
                 ip = session.attach_external_ip(ip, str(machine_id))
             else:
                 ip = session.detach_external_ip(ip)
         output_serializer = serializers.ExternalIPSerializer(
-            ip, context={"request": request, "tenant": tenant}
+            ip,
+            context = { "request": request, "tenant": tenant }
         )
         return response.Response(output_serializer.data)
     else:
         with request.auth.scoped_session(tenant) as session:
             serializer = serializers.ExternalIPSerializer(
                 session.find_external_ip(ip),
-                context={"request": request, "tenant": tenant},
+                context = { "request": request, "tenant": tenant }
             )
         return response.Response(serializer.data)
 
@@ -909,23 +908,23 @@ def volumes(request, tenant):
     The size of the volume is given in GB.
     """
     if request.method == "POST":
-        input_serializer = serializers.CreateVolumeSerializer(data=request.data)
-        input_serializer.is_valid(raise_exception=True)
+        input_serializer = serializers.CreateVolumeSerializer(data = request.data)
+        input_serializer.is_valid(raise_exception = True)
         with request.auth.scoped_session(tenant) as session:
             output_serializer = serializers.VolumeSerializer(
                 session.create_volume(
                     input_serializer.validated_data["name"],
-                    input_serializer.validated_data["size"],
+                    input_serializer.validated_data["size"]
                 ),
-                context={"request": request, "tenant": tenant},
+                context = { "request": request, "tenant": tenant }
             )
-        return response.Response(output_serializer.data, status=status.HTTP_201_CREATED)
+        return response.Response(output_serializer.data, status = status.HTTP_201_CREATED)
     else:
         with request.auth.scoped_session(tenant) as session:
             serializer = serializers.VolumeSerializer(
                 session.volumes(),
-                many=True,
-                context={"request": request, "tenant": tenant},
+                many = True,
+                context = { "request": request, "tenant": tenant }
             )
         return response.Response(serializer.data)
 
@@ -949,8 +948,8 @@ def volume_details(request, tenant, volume):
     On ``DELETE`` requests, delete the specified volume.
     """
     if request.method == "PATCH":
-        input_serializer = serializers.UpdateVolumeSerializer(data=request.data)
-        input_serializer.is_valid(raise_exception=True)
+        input_serializer = serializers.UpdateVolumeSerializer(data = request.data)
+        input_serializer.is_valid(raise_exception = True)
         machine_id = input_serializer.validated_data["machine_id"]
         with request.auth.scoped_session(tenant) as session:
             if machine_id:
@@ -958,7 +957,8 @@ def volume_details(request, tenant, volume):
             else:
                 volume = session.detach_volume(volume)
         output_serializer = serializers.VolumeSerializer(
-            volume, context={"request": request, "tenant": tenant}
+            volume,
+            context = { "request": request, "tenant": tenant }
         )
         return response.Response(output_serializer.data)
     elif request.method == "DELETE":
@@ -966,7 +966,8 @@ def volume_details(request, tenant, volume):
             deleted = session.delete_volume(volume)
         if deleted:
             serializer = serializers.VolumeSerializer(
-                deleted, context={"request": request, "tenant": tenant}
+                deleted,
+                context = { "request": request, "tenant": tenant }
             )
             return response.Response(serializer.data)
         else:
@@ -975,7 +976,7 @@ def volume_details(request, tenant, volume):
         with request.auth.scoped_session(tenant) as session:
             serializer = serializers.VolumeSerializer(
                 session.find_volume(volume),
-                context={"request": request, "tenant": tenant},
+                context = { "request": request, "tenant": tenant }
             )
         return response.Response(serializer.data)
 
@@ -987,15 +988,18 @@ def cluster_types(request, tenant):
     """
     if not cloud_settings.CLUSTER_ENGINE:
         return response.Response(
-            {"detail": "Clusters are not supported.", "code": "unsupported_operation"},
-            status=status.HTTP_404_NOT_FOUND,
+            {
+                "detail": "Clusters are not supported.",
+                "code": "unsupported_operation"
+            },
+            status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
         with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
             serializer = serializers.ClusterTypeSerializer(
                 cluster_manager.cluster_types(),
-                many=True,
-                context={"request": request, "tenant": tenant},
+                many = True,
+                context = { "request": request, "tenant": tenant }
             )
     return response.Response(serializer.data)
 
@@ -1007,14 +1011,17 @@ def cluster_type_details(request, tenant, cluster_type):
     """
     if not cloud_settings.CLUSTER_ENGINE:
         return response.Response(
-            {"detail": "Clusters are not supported.", "code": "unsupported_operation"},
-            status=status.HTTP_404_NOT_FOUND,
+            {
+                "detail": "Clusters are not supported.",
+                "code": "unsupported_operation"
+            },
+            status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
         with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
             serializer = serializers.ClusterTypeSerializer(
                 cluster_manager.find_cluster_type(cluster_type),
-                context={"request": request, "tenant": tenant},
+                context = { "request": request, "tenant": tenant }
             )
     return response.Response(serializer.data)
 
@@ -1026,32 +1033,39 @@ def cluster_schedule_new(request, tenant):
     """
     if not cloud_settings.CLUSTER_ENGINE:
         return response.Response(
-            {"detail": "Clusters are not supported.", "code": "unsupported_operation"},
-            status=status.HTTP_404_NOT_FOUND,
+            {
+                "detail": "Clusters are not supported.",
+                "code": "unsupported_operation"
+            },
+            status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
         with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
             input_serializer = serializers.CreateClusterSerializer(
-                data=request.data,
-                context={
+                data = request.data,
+                context = {
                     "session": session,
                     "cluster_manager": cluster_manager,
                     "validate_schedule": False,
-                },
+                }
             )
-            input_serializer.is_valid(raise_exception=True)
+            input_serializer.is_valid(raise_exception = True)
             # Get the scheduling information for the cluster
             calculator = scheduling.CaaSClusterCalculator(session)
             resources = calculator.calculate(
                 input_serializer.validated_data["cluster_type"],
-                input_serializer.validated_data["parameter_values"],
+                input_serializer.validated_data["parameter_values"]
             )
             checker = scheduling.QuotaChecker(session)
             fits, quotas = checker.check(resources)
-            serializer = serializers.ProjectedQuotaSerializer(quotas, many=True)
+            serializer = serializers.ProjectedQuotaSerializer(quotas, many = True)
             return response.Response(
-                {"quotas": serializer.data},
-                status=(status.HTTP_200_OK if fits else status.HTTP_409_CONFLICT),
+                { "quotas": serializer.data },
+                status = (
+                    status.HTTP_200_OK
+                    if fits
+                    else status.HTTP_409_CONFLICT
+                )
             )
 
 
@@ -1062,37 +1076,46 @@ def cluster_schedule_existing(request, tenant, cluster):
     """
     if not cloud_settings.CLUSTER_ENGINE:
         return response.Response(
-            {"detail": "Clusters are not supported.", "code": "unsupported_operation"},
-            status=status.HTTP_404_NOT_FOUND,
+            {
+                "detail": "Clusters are not supported.",
+                "code": "unsupported_operation"
+            },
+            status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
         with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
             cluster = cluster_manager.find_cluster(cluster)
             cluster_type = cluster_manager.find_cluster_type(cluster.cluster_type)
             input_serializer = serializers.UpdateClusterSerializer(
-                instance=cluster,
-                data=request.data,
-                context=dict(
-                    session=session,
-                    cluster_manager=cluster_manager,
-                    cluster_type=cluster_type,
-                ),
+                instance = cluster,
+                data = request.data,
+                context = dict(
+                    session = session,
+                    cluster_manager = cluster_manager,
+                    cluster_type = cluster_type
+                )
             )
-            input_serializer.is_valid(raise_exception=True)
+            input_serializer.is_valid(raise_exception = True)
             # Get the scheduling information for the cluster
             calculator = scheduling.CaaSClusterCalculator(session)
             current_resources = calculator.calculate(
-                cluster_type, cluster.parameter_values
+                cluster_type,
+                cluster.parameter_values
             )
             future_resources = calculator.calculate(
-                cluster_type, input_serializer.validated_data["parameter_values"]
+                cluster_type,
+                input_serializer.validated_data["parameter_values"]
             )
             checker = scheduling.QuotaChecker(session)
             fits, quotas = checker.check(future_resources, current_resources)
-            serializer = serializers.ProjectedQuotaSerializer(quotas, many=True)
+            serializer = serializers.ProjectedQuotaSerializer(quotas, many = True)
             return response.Response(
-                {"quotas": serializer.data},
-                status=(status.HTTP_200_OK if fits else status.HTTP_409_CONFLICT),
+                { "quotas": serializer.data },
+                status = (
+                    status.HTTP_200_OK
+                    if fits
+                    else status.HTTP_409_CONFLICT
+                )
             )
 
 
@@ -1105,22 +1128,25 @@ def clusters(request, tenant):
     """
     if not cloud_settings.CLUSTER_ENGINE:
         return response.Response(
-            {"detail": "Clusters are not supported.", "code": "unsupported_operation"},
-            status=status.HTTP_404_NOT_FOUND,
+            {
+                "detail": "Clusters are not supported.",
+                "code": "unsupported_operation"
+            },
+            status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
         with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
             if request.method == "POST":
                 input_serializer = serializers.CreateClusterSerializer(
-                    data=request.data,
-                    context={"session": session, "cluster_manager": cluster_manager},
+                    data = request.data,
+                    context = { "session": session, "cluster_manager": cluster_manager }
                 )
-                input_serializer.is_valid(raise_exception=True)
+                input_serializer.is_valid(raise_exception = True)
                 # Check that the cluster fits within quota
                 calculator = scheduling.CaaSClusterCalculator(session)
                 resources = calculator.calculate(
                     input_serializer.validated_data["cluster_type"],
-                    input_serializer.validated_data["parameter_values"],
+                    input_serializer.validated_data["parameter_values"]
                 )
                 checker = scheduling.QuotaChecker(session)
                 fits, _ = checker.check(resources)
@@ -1128,9 +1154,9 @@ def clusters(request, tenant):
                     return response.Response(
                         {
                             "detail": "Cluster exceeds at least one quota.",
-                            "code": "quota_exceeded",
+                            "code": "quota_exceeded"
                         },
-                        status=status.HTTP_409_CONFLICT,
+                        status = status.HTTP_409_CONFLICT
                     )
                 # If an SSH key is available, add it to the params
                 try:
@@ -1138,9 +1164,9 @@ def clusters(request, tenant):
                         request.user.username,
                         # Pass the request and the sessions as keyword options
                         # so that the key store can use them if it needs to
-                        request=request,
-                        unscoped_session=request.auth,
-                        scoped_session=session,
+                        request = request,
+                        unscoped_session = request.auth,
+                        scoped_session = session
                     )
                 except keystore_errors.KeyNotFound:
                     ssh_key = None
@@ -1150,23 +1176,22 @@ def clusters(request, tenant):
                     input_serializer.validated_data["parameter_values"],
                     ssh_key,
                     resources,
-                    input_serializer.validated_data.get("schedule"),
+                    input_serializer.validated_data.get("schedule")
                 )
                 # Set up the identity for the cluster services
                 if cloud_settings.APPS:
                     realm = identity.ensure_realm(session.tenancy())
-                    identity.ensure_platform_for_cluster(
-                        session.tenancy(), realm, cluster
-                    )
+                    identity.ensure_platform_for_cluster(session.tenancy(), realm, cluster)
                 output_serializer = serializers.ClusterSerializer(
-                    cluster, context={"request": request, "tenant": tenant}
+                    cluster,
+                    context = { "request": request, "tenant": tenant }
                 )
                 return response.Response(output_serializer.data)
             else:
                 serializer = serializers.ClusterSerializer(
                     cluster_manager.clusters(),
-                    many=True,
-                    context={"request": request, "tenant": tenant},
+                    many = True,
+                    context = { "request": request, "tenant": tenant }
                 )
                 return response.Response(serializer.data)
 
@@ -1182,8 +1207,11 @@ def cluster_details(request, tenant, cluster):
     """
     if not cloud_settings.CLUSTER_ENGINE:
         return response.Response(
-            {"detail": "Clusters are not supported.", "code": "unsupported_operation"},
-            status=status.HTTP_404_NOT_FOUND,
+            {
+                "detail": "Clusters are not supported.",
+                "code": "unsupported_operation"
+            },
+            status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
         with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
@@ -1191,22 +1219,24 @@ def cluster_details(request, tenant, cluster):
             if request.method == "PATCH":
                 cluster_type = cluster_manager.find_cluster_type(cluster.cluster_type)
                 input_serializer = serializers.UpdateClusterSerializer(
-                    instance=cluster,
-                    data=request.data,
-                    context=dict(
-                        session=session,
-                        cluster_manager=cluster_manager,
-                        cluster_type=cluster_type,
-                    ),
+                    instance = cluster,
+                    data = request.data,
+                    context = dict(
+                        session = session,
+                        cluster_manager = cluster_manager,
+                        cluster_type = cluster_type
+                    )
                 )
-                input_serializer.is_valid(raise_exception=True)
+                input_serializer.is_valid(raise_exception = True)
                 # Check that the changes to the cluster fit within quota
                 calculator = scheduling.CaaSClusterCalculator(session)
                 current_resources = calculator.calculate(
-                    cluster_type, cluster.parameter_values
+                    cluster_type,
+                    cluster.parameter_values
                 )
                 future_resources = calculator.calculate(
-                    cluster_type, input_serializer.validated_data["parameter_values"]
+                    cluster_type,
+                    input_serializer.validated_data["parameter_values"]
                 )
                 checker = scheduling.QuotaChecker(session)
                 fits, _ = checker.check(future_resources, current_resources)
@@ -1214,35 +1244,37 @@ def cluster_details(request, tenant, cluster):
                     return response.Response(
                         {
                             "detail": "Cluster exceeds at least one quota.",
-                            "code": "quota_exceeded",
+                            "code": "quota_exceeded"
                         },
-                        status=status.HTTP_409_CONFLICT,
+                        status = status.HTTP_409_CONFLICT
                     )
                 cluster = cluster_manager.update_cluster(
-                    cluster, input_serializer.validated_data["parameter_values"]
+                    cluster,
+                    input_serializer.validated_data["parameter_values"]
                 )
                 # Ensure that the identity resources are up-to-date for the cluster
                 if cloud_settings.APPS:
                     realm = identity.ensure_realm(session.tenancy())
-                    identity.ensure_platform_for_cluster(
-                        session.tenancy(), realm, cluster
-                    )
+                    identity.ensure_platform_for_cluster(session.tenancy(), realm, cluster)
                 output_serializer = serializers.ClusterSerializer(
-                    cluster, context={"request": request, "tenant": tenant}
+                    cluster,
+                    context = { "request": request, "tenant": tenant }
                 )
                 return response.Response(output_serializer.data)
             elif request.method == "DELETE":
                 deleted = cluster_manager.delete_cluster(cluster)
                 if deleted:
                     serializer = serializers.ClusterSerializer(
-                        deleted, context={"request": request, "tenant": tenant}
+                        deleted,
+                        context = { "request": request, "tenant": tenant }
                     )
                     return response.Response(serializer.data)
                 else:
                     return response.Response()
             else:
                 serializer = serializers.ClusterSerializer(
-                    cluster, context={"request": request, "tenant": tenant}
+                    cluster,
+                    context = { "request": request, "tenant": tenant }
                 )
                 return response.Response(serializer.data)
 
@@ -1254,8 +1286,11 @@ def cluster_patch(request, tenant, cluster):
     """
     if not cloud_settings.CLUSTER_ENGINE:
         return response.Response(
-            {"detail": "Clusters are not supported.", "code": "unsupported_operation"},
-            status=status.HTTP_404_NOT_FOUND,
+            {
+                "detail": "Clusters are not supported.",
+                "code": "unsupported_operation"
+            },
+            status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
         with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
@@ -1265,7 +1300,8 @@ def cluster_patch(request, tenant, cluster):
                 realm = identity.ensure_realm(session.tenancy())
                 identity.ensure_platform_for_cluster(session.tenancy(), realm, cluster)
             serializer = serializers.ClusterSerializer(
-                cluster, context={"request": request, "tenant": tenant}
+                cluster,
+                context = { "request": request, "tenant": tenant }
             )
     return response.Response(serializer.data)
 
@@ -1278,17 +1314,18 @@ def cluster_service(request, tenant, cluster, service):
     """
     if not cloud_settings.CLUSTER_ENGINE:
         return response.Response(
-            {"detail": "Clusters are not supported.", "code": "unsupported_operation"},
-            status=status.HTTP_404_NOT_FOUND,
+            {
+                "detail": "Clusters are not supported.",
+                "code": "unsupported_operation"
+            },
+            status = status.HTTP_404_NOT_FOUND
         )
     service_fqdn = None
     service_label = None
     try:
         if cloud_settings.CLUSTER_ENGINE:
             with request.auth.scoped_session(tenant) as session:
-                with cloud_settings.CLUSTER_ENGINE.create_manager(
-                    session
-                ) as cluster_manager:
+                with cloud_settings.CLUSTER_ENGINE.create_manager(session) as cluster_manager:
                     cluster = cluster_manager.find_cluster(cluster)
         service_obj = next(s for s in cluster.services if s.name == service)
         service_fqdn = service_obj.fqdn
@@ -1296,7 +1333,11 @@ def cluster_service(request, tenant, cluster, service):
     except (cluster_engine_errors.ObjectNotFoundError, StopIteration):
         pass
     return redirect_to_zenith_service(
-        request, "cluster", service, service_fqdn, service_label=service_label
+        request,
+        "cluster",
+        service,
+        service_fqdn,
+        service_label = service_label
     )
 
 
@@ -1309,16 +1350,16 @@ def kubernetes_cluster_templates(request, tenant):
         return response.Response(
             {
                 "detail": "Kubernetes clusters are not supported.",
-                "code": "unsupported_operation",
+                "code": "unsupported_operation"
             },
-            status=status.HTTP_404_NOT_FOUND,
+            status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             serializer = serializers.KubernetesClusterTemplateSerializer(
                 capi_session.cluster_templates(),
-                many=True,
-                context={"request": request, "tenant": tenant},
+                many = True,
+                context = { "request": request, "tenant": tenant }
             )
     return response.Response(serializer.data)
 
@@ -1332,15 +1373,15 @@ def kubernetes_cluster_template_details(request, tenant, template):
         return response.Response(
             {
                 "detail": "Kubernetes clusters are not supported.",
-                "code": "unsupported_operation",
+                "code": "unsupported_operation"
             },
-            status=status.HTTP_404_NOT_FOUND,
+            status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             serializer = serializers.KubernetesClusterTemplateSerializer(
                 capi_session.find_cluster_template(template),
-                context={"request": request, "tenant": tenant},
+                context = { "request": request, "tenant": tenant }
             )
     return response.Response(serializer.data)
 
@@ -1352,8 +1393,7 @@ def kubernetes_cluster_check_quotas(session, cluster, template, **data):
     calculator = scheduling.KubernetesClusterCalculator(session)
     # Calculate the resources used by the current cluster
     if cluster:
-        # Index the sizes that have already been loaded so we don't have to load them
-        # again
+        # Index the sizes that have already been loaded so we don't have to load them again
         known_sizes = {}
         if "control_plane_size" in data:
             known_sizes[data["control_plane_size"].id] = data["control_plane_size"]
@@ -1388,7 +1428,7 @@ def kubernetes_cluster_check_quotas(session, cluster, template, **data):
         # Calculate the resources for the current state of the cluster
         current_resources = calculator.calculate(template, **current_data)
         # Overwrite with any changes from the incoming data
-        data = {**current_data, **data}
+        data = { **current_data, **data }
     else:
         current_resources = None
     future_resources = calculator.calculate(template, **data)
@@ -1405,28 +1445,34 @@ def kubernetes_cluster_schedule_new(request, tenant):
         return response.Response(
             {
                 "detail": "Kubernetes clusters are not supported.",
-                "code": "unsupported_operation",
+                "code": "unsupported_operation"
             },
-            status=status.HTTP_404_NOT_FOUND,
+            status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             input_serializer = serializers.CreateKubernetesClusterSerializer(
-                data=request.data,
-                context={
+                data = request.data,
+                context = {
                     "session": session,
                     "capi_session": capi_session,
                     "validate_schedule": False,
-                },
+                }
             )
-            input_serializer.is_valid(raise_exception=True)
+            input_serializer.is_valid(raise_exception = True)
             _, fits, quotas = kubernetes_cluster_check_quotas(
-                session, None, **input_serializer.validated_data
+                session,
+                None,
+                **input_serializer.validated_data
             )
-            serializer = serializers.ProjectedQuotaSerializer(quotas, many=True)
+            serializer = serializers.ProjectedQuotaSerializer(quotas, many = True)
             return response.Response(
-                {"quotas": serializer.data},
-                status=(status.HTTP_200_OK if fits else status.HTTP_409_CONFLICT),
+                { "quotas": serializer.data },
+                status = (
+                    status.HTTP_200_OK
+                    if fits
+                    else status.HTTP_409_CONFLICT
+                )
             )
 
 
@@ -1439,19 +1485,19 @@ def kubernetes_cluster_schedule_existing(request, tenant, cluster):
         return response.Response(
             {
                 "detail": "Kubernetes clusters are not supported.",
-                "code": "unsupported_operation",
+                "code": "unsupported_operation"
             },
-            status=status.HTTP_404_NOT_FOUND,
+            status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             cluster = capi_session.find_cluster(cluster)
             input_serializer = serializers.UpdateKubernetesClusterSerializer(
-                instance=cluster,
-                data=request.data,
-                context={"session": session, "capi_session": capi_session},
+                instance = cluster,
+                data = request.data,
+                context = { "session": session, "capi_session": capi_session }
             )
-            input_serializer.is_valid(raise_exception=True)
+            input_serializer.is_valid(raise_exception = True)
             _, fits, quotas = kubernetes_cluster_check_quotas(
                 session,
                 cluster,
@@ -1460,20 +1506,23 @@ def kubernetes_cluster_schedule_existing(request, tenant, cluster):
                     k: v
                     for k, v in input_serializer.validated_data.items()
                     if k != "template"
-                },
+                }
             )
-            serializer = serializers.ProjectedQuotaSerializer(quotas, many=True)
+            serializer = serializers.ProjectedQuotaSerializer(quotas, many = True)
             return response.Response(
-                {"quotas": serializer.data},
-                status=(status.HTTP_200_OK if fits else status.HTTP_409_CONFLICT),
+                { "quotas": serializer.data },
+                status = (
+                    status.HTTP_200_OK
+                    if fits
+                    else status.HTTP_409_CONFLICT
+                )
             )
 
 
 @provider_api_view(["GET", "POST"])
 def kubernetes_clusters(request, tenant):
     """
-    On ``GET`` requests, return a list of the deployed Kubernetes clusters for the
-    tenancy.
+    On ``GET`` requests, return a list of the deployed Kubernetes clusters for the tenancy.
 
     On ``POST`` requests, create a new Kubernetes cluster.
     """
@@ -1481,45 +1530,48 @@ def kubernetes_clusters(request, tenant):
         return response.Response(
             {
                 "detail": "Kubernetes clusters are not supported.",
-                "code": "unsupported_operation",
+                "code": "unsupported_operation"
             },
-            status=status.HTTP_404_NOT_FOUND,
+            status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             if request.method == "POST":
                 input_serializer = serializers.CreateKubernetesClusterSerializer(
-                    data=request.data,
-                    context={"session": session, "capi_session": capi_session},
+                    data = request.data,
+                    context = { "session": session, "capi_session": capi_session }
                 )
-                input_serializer.is_valid(raise_exception=True)
+                input_serializer.is_valid(raise_exception = True)
                 # Check that the cluster fits within quota
                 resources, fits, _ = kubernetes_cluster_check_quotas(
-                    session, None, **input_serializer.validated_data
+                    session,
+                    None,
+                    **input_serializer.validated_data
                 )
                 if not fits:
                     return response.Response(
                         {
                             "detail": "Cluster exceeds at least one quota.",
-                            "code": "quota_exceeded",
+                            "code": "quota_exceeded"
                         },
-                        status=status.HTTP_409_CONFLICT,
+                        status = status.HTTP_409_CONFLICT
                     )
                 params = dict(input_serializer.validated_data)
                 if cloud_settings.APPS:
                     # Make sure that the identity realm exists
                     realm = identity.ensure_realm(session.tenancy())
                     params["zenith_identity_realm_name"] = realm.name
-                cluster = capi_session.create_cluster(resources=resources, **params)
+                cluster = capi_session.create_cluster(resources = resources, **params)
                 output_serializer = serializers.KubernetesClusterSerializer(
-                    cluster, context={"request": request, "tenant": tenant}
+                    cluster,
+                    context = { "request": request, "tenant": tenant }
                 )
                 return response.Response(output_serializer.data)
             else:
                 serializer = serializers.KubernetesClusterSerializer(
                     capi_session.clusters(),
-                    many=True,
-                    context={"request": request, "tenant": tenant},
+                    many = True,
+                    context = { "request": request, "tenant": tenant }
                 )
                 return response.Response(serializer.data)
 
@@ -1540,20 +1592,20 @@ def kubernetes_cluster_details(request, tenant, cluster):
         return response.Response(
             {
                 "detail": "Kubernetes clusters are not supported.",
-                "code": "unsupported_operation",
+                "code": "unsupported_operation"
             },
-            status=status.HTTP_404_NOT_FOUND,
+            status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             if request.method == "PATCH":
                 cluster = capi_session.find_cluster(cluster)
                 input_serializer = serializers.UpdateKubernetesClusterSerializer(
-                    instance=cluster,
-                    data=request.data,
-                    context={"session": session, "capi_session": capi_session},
+                    instance = cluster,
+                    data = request.data,
+                    context = { "session": session, "capi_session": capi_session }
                 )
-                input_serializer.is_valid(raise_exception=True)
+                input_serializer.is_valid(raise_exception = True)
                 template = input_serializer.validated_data.get("template")
                 if template:
                     cluster = capi_session.upgrade_cluster(cluster, template)
@@ -1568,26 +1620,28 @@ def kubernetes_cluster_details(request, tenant, cluster):
                         session,
                         cluster,
                         capi_session.find_cluster_template(cluster.template_id),
-                        **data,
+                        **data
                     )
                     if not fits:
                         return response.Response(
                             {
                                 "detail": "Cluster exceeds at least one quota.",
-                                "code": "quota_exceeded",
+                                "code": "quota_exceeded"
                             },
-                            status=status.HTTP_409_CONFLICT,
+                            status = status.HTTP_409_CONFLICT
                         )
                     cluster = capi_session.update_cluster(cluster, **data)
                 output_serializer = serializers.KubernetesClusterSerializer(
-                    cluster, context={"request": request, "tenant": tenant}
+                    cluster,
+                    context = { "request": request, "tenant": tenant }
                 )
                 return response.Response(output_serializer.data)
             elif request.method == "DELETE":
                 deleted = capi_session.delete_cluster(cluster)
                 if deleted:
                     serializer = serializers.KubernetesClusterSerializer(
-                        deleted, context={"request": request, "tenant": tenant}
+                        deleted,
+                        context = { "request": request, "tenant": tenant }
                     )
                     return response.Response(serializer.data)
                 else:
@@ -1595,7 +1649,7 @@ def kubernetes_cluster_details(request, tenant, cluster):
             else:
                 serializer = serializers.KubernetesClusterSerializer(
                     capi_session.find_cluster(cluster),
-                    context={"request": request, "tenant": tenant},
+                    context = { "request": request, "tenant": tenant }
                 )
                 return response.Response(serializer.data)
 
@@ -1609,14 +1663,14 @@ def kubernetes_cluster_generate_kubeconfig(request, tenant, cluster):
         return response.Response(
             {
                 "detail": "Kubernetes clusters are not supported.",
-                "code": "unsupported_operation",
+                "code": "unsupported_operation"
             },
-            status=status.HTTP_404_NOT_FOUND,
+            status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             kubeconfig = capi_session.generate_kubeconfig(cluster)
-    return response.Response({"kubeconfig": kubeconfig})
+    return response.Response({ "kubeconfig": kubeconfig })
 
 
 @redirect_to_signin
@@ -1629,18 +1683,16 @@ def kubernetes_cluster_service(request, tenant, cluster, service):
         return response.Response(
             {
                 "detail": "Kubernetes clusters are not supported.",
-                "code": "unsupported_operation",
+                "code": "unsupported_operation"
             },
-            status=status.HTTP_404_NOT_FOUND,
+            status = status.HTTP_404_NOT_FOUND
         )
     service_fqdn = None
     service_label = None
     try:
         if cloud_settings.CLUSTER_API_PROVIDER:
             with request.auth.scoped_session(tenant) as session:
-                with cloud_settings.CLUSTER_API_PROVIDER.session(
-                    session
-                ) as capi_session:
+                with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
                     cluster = capi_session.find_cluster(cluster)
         service_obj = next(s for s in cluster.services if s.name == service)
         service_fqdn = service_obj.fqdn
@@ -1648,7 +1700,11 @@ def kubernetes_cluster_service(request, tenant, cluster, service):
     except (cluster_api_errors.ObjectNotFoundError, StopIteration):
         pass
     return redirect_to_zenith_service(
-        request, "kubernetes", service, service_fqdn, service_label=service_label
+        request,
+        "kubernetes",
+        service,
+        service_fqdn,
+        service_label = service_label
     )
 
 
@@ -1661,16 +1717,16 @@ def kubernetes_app_templates(request, tenant):
         return response.Response(
             {
                 "detail": "Kubernetes apps are not supported.",
-                "code": "unsupported_operation",
+                "code": "unsupported_operation"
             },
-            status=status.HTTP_404_NOT_FOUND,
+            status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
         with cloud_settings.APPS_PROVIDER.session(session) as apps_session:
             serializer = serializers.KubernetesAppTemplateSerializer(
                 apps_session.app_templates(),
-                many=True,
-                context={"request": request, "tenant": tenant},
+                many = True,
+                context = { "request": request, "tenant": tenant }
             )
     return response.Response(serializer.data)
 
@@ -1684,15 +1740,15 @@ def kubernetes_app_template_details(request, tenant, template):
         return response.Response(
             {
                 "detail": "Kubernetes apps are not supported.",
-                "code": "unsupported_operation",
+                "code": "unsupported_operation"
             },
-            status=status.HTTP_404_NOT_FOUND,
+            status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
         with cloud_settings.APPS_PROVIDER.session(session) as apps_session:
             serializer = serializers.KubernetesAppTemplateSerializer(
                 apps_session.find_app_template(template),
-                context={"request": request, "tenant": tenant},
+                context = { "request": request, "tenant": tenant }
             )
     return response.Response(serializer.data)
 
@@ -1719,33 +1775,34 @@ def kubernetes_apps(request, tenant):
         return response.Response(
             {
                 "detail": "Kubernetes apps are not supported.",
-                "code": "unsupported_operation",
+                "code": "unsupported_operation"
             },
-            status=status.HTTP_404_NOT_FOUND,
+            status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
         with cloud_settings.APPS_PROVIDER.session(session) as apps_session:
             if request.method == "POST":
                 with optional_capi_session(session) as capi_session:
                     input_serializer = serializers.CreateKubernetesAppSerializer(
-                        data=request.data,
-                        context={
+                        data = request.data,
+                        context = {
                             "session": session,
                             "apps_session": apps_session,
                             "capi_session": capi_session,
-                        },
+                        }
                     )
-                    input_serializer.is_valid(raise_exception=True)
+                    input_serializer.is_valid(raise_exception = True)
                     app = apps_session.create_app(**input_serializer.validated_data)
                     output_serializer = serializers.KubernetesAppSerializer(
-                        app, context={"request": request, "tenant": tenant}
+                        app,
+                        context = { "request": request, "tenant": tenant }
                     )
                     return response.Response(output_serializer.data)
             else:
                 serializer = serializers.KubernetesAppSerializer(
                     apps_session.apps(),
-                    many=True,
-                    context={"request": request, "tenant": tenant},
+                    many = True,
+                    context = { "request": request, "tenant": tenant }
                 )
                 return response.Response(serializer.data)
 
@@ -1764,9 +1821,9 @@ def kubernetes_app_details(request, tenant, app):
         return response.Response(
             {
                 "detail": "Kubernetes apps are not supported.",
-                "code": "unsupported_operation",
+                "code": "unsupported_operation"
             },
-            status=status.HTTP_404_NOT_FOUND,
+            status = status.HTTP_404_NOT_FOUND
         )
     with request.auth.scoped_session(tenant) as session:
         with cloud_settings.APPS_PROVIDER.session(session) as apps_session:
@@ -1774,27 +1831,30 @@ def kubernetes_app_details(request, tenant, app):
                 app = apps_session.find_app(app)
                 app_template = apps_session.find_app_template(app.template_id)
                 input_serializer = serializers.UpdateKubernetesAppSerializer(
-                    data=request.data,
-                    context=dict(
-                        session=session,
-                        apps_session=apps_session,
-                        app_template=app_template,
-                        app=app,
-                    ),
+                    data = request.data,
+                    context = dict(
+                        session = session,
+                        apps_session = apps_session,
+                        app_template = app_template,
+                        app = app
+                    )
                 )
-                input_serializer.is_valid(raise_exception=True)
+                input_serializer.is_valid(raise_exception = True)
                 output_serializer = serializers.KubernetesAppSerializer(
                     apps_session.update_app(
-                        app, app_template, **input_serializer.validated_data
+                        app,
+                        app_template,
+                        **input_serializer.validated_data
                     ),
-                    context={"request": request, "tenant": tenant},
+                    context = { "request": request, "tenant": tenant }
                 )
                 return response.Response(output_serializer.data)
             elif request.method == "DELETE":
                 deleted = apps_session.delete_app(app)
                 if deleted:
                     serializer = serializers.KubernetesAppSerializer(
-                        deleted, context={"request": request, "tenant": tenant}
+                        deleted,
+                        context = { "request": request, "tenant": tenant }
                     )
                     return response.Response(serializer.data)
                 else:
@@ -1802,7 +1862,7 @@ def kubernetes_app_details(request, tenant, app):
             else:
                 serializer = serializers.KubernetesAppSerializer(
                     apps_session.find_app(app),
-                    context={"request": request, "tenant": tenant},
+                    context = { "request": request, "tenant": tenant }
                 )
                 return response.Response(serializer.data)
 
@@ -1817,9 +1877,9 @@ def kubernetes_app_service(request, tenant, app, service):
         return response.Response(
             {
                 "detail": "Kubernetes apps are not supported.",
-                "code": "unsupported_operation",
+                "code": "unsupported_operation"
             },
-            status=status.HTTP_404_NOT_FOUND,
+            status = status.HTTP_404_NOT_FOUND
         )
     service_fqdn = None
     service_label = None
@@ -1833,5 +1893,9 @@ def kubernetes_app_service(request, tenant, app, service):
     except (cluster_api_errors.ObjectNotFoundError, StopIteration):
         pass
     return redirect_to_zenith_service(
-        request, "kubernetes_app", service, service_fqdn, service_label=service_label
+        request,
+        "kubernetes_app",
+        service,
+        service_fqdn,
+        service_label = service_label
     )

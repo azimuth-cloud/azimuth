@@ -3,8 +3,7 @@ import re
 
 import httpx
 
-from azimuth_auth.authenticator.openstack import normalize_auth_url
-
+from ..authenticator.openstack import normalize_auth_url
 from . import base, dto, errors
 
 
@@ -12,7 +11,6 @@ def convert_httpx_exceptions(f):
     """
     Decorator that converts HTTPX exceptions into auth session errors.
     """
-
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
         try:
@@ -25,18 +23,13 @@ def convert_httpx_exceptions(f):
             elif exc.response.status_code == 403:
                 raise errors.PermissionDeniedError("Permission denied.")
             elif exc.response.status_code == 404:
-                raise errors.ObjectNotFoundError(
-                    "The requested resource could not be found."
-                )
+                raise errors.ObjectNotFoundError("The requested resource could not be found.")
             elif exc.response.status_code == 409:
                 raise errors.InvalidOperationError(str(exc))
             else:
                 raise errors.CommunicationError("Error with OpenStack API.") from exc
         except httpx.HTTPError as exc:
-            raise errors.CommunicationError(
-                "Could not connect to OpenStack API."
-            ) from exc
-
+            raise errors.CommunicationError("Could not connect to OpenStack API.") from exc
     return wrapper
 
 
@@ -44,7 +37,6 @@ class OpenStackAuth(httpx.Auth):
     """
     Authentication scheme for OpenStack requests.
     """
-
     def __init__(self, token):
         self.token = token
 
@@ -57,24 +49,29 @@ class Provider(base.Provider):
     """
     Provider that understands OpenStack tokens.
     """
-
-    def __init__(self, auth_url, region=None, interface="public", verify_ssl=True):
+    def __init__(
+        self,
+        auth_url,
+        region = None,
+        interface = "public",
+        verify_ssl = True
+    ):
         self.auth_url = normalize_auth_url(auth_url)
         self.region = region
         self.interface = interface
         self.verify_ssl = verify_ssl
 
-    def from_token(self, token: str) -> "Session":
+    def from_token(self, token: str) -> 'Session':
         return Session(
             httpx.Client(
-                auth=OpenStackAuth(token),
-                base_url=self.auth_url,
-                verify=self.verify_ssl,
+                auth = OpenStackAuth(token),
+                base_url = self.auth_url,
+                verify = self.verify_ssl
             ),
             self.auth_url,
             self.region,
             self.interface,
-            self.verify_ssl,
+            self.verify_ssl
         )
 
 
@@ -82,7 +79,6 @@ class Session(base.Session):
     """
     Session for OpenStack clouds.
     """
-
     def __init__(self, client, auth_url, region, interface, verify_ssl):
         self.client = client
         self.auth_url = auth_url
@@ -98,7 +94,8 @@ class Session(base.Session):
     def _get_token_data(self):
         if not self._token_data:
             response = self.client.get(
-                "/auth/tokens", headers={"X-Subject-Token": self.token()}
+                "/auth/tokens",
+                headers = {"X-Subject-Token": self.token()}
             )
             # A 401 or a 404 indicates a failure to validate the token
             if response.status_code in {401, 404}:
@@ -125,10 +122,9 @@ class Session(base.Session):
         response = self.client.get("/auth/projects")
         response.raise_for_status()
         # NOTE(mkjpryor)
-        # If the token was issued for an appcred, return only the project that the
-        # appcred is for
-        # This is a because tokens issued for appcreds are able to list all the projects
-        # that the owner belongs to but cannot be rescoped to any of the other projects
+        # If the token was issued for an appcred, return only the project that the appcred is for
+        # This is a because tokens issued for appcreds are able to list all the projects that the
+        # owner belongs to but cannot be rescoped to any of the other projects
         token_data = self._get_token_data()
         is_app_cred = token_data["methods"][0] == "application_credential"
         project_id = token_data.get("project", {}).get("id")
@@ -138,10 +134,9 @@ class Session(base.Session):
             if project["enabled"] and (not is_app_cred or project["id"] == project_id)
         ]
 
-    def _scoped_token(self, project_id=None):
+    def _scoped_token(self, project_id = None):
         """
-        Returns a scoped token for the specified project, or any project if not
-        specified.
+        Returns a scoped token for the specified project, or any project if not specified.
         """
         # If we already have a scoped token for the correct project, we are done
         token_data = self._get_token_data()
@@ -154,12 +149,10 @@ class Session(base.Session):
             try:
                 project_id = next(t.id for t in self.tenancies())
             except StopIteration:
-                raise errors.InvalidOperationError(
-                    "User does not belong to any tenancies."
-                )
+                raise errors.InvalidOperationError("User does not belong to any tenancies.")
         response = self.client.post(
             "/auth/tokens",
-            json={
+            json = {
                 "auth": {
                     "identity": {
                         "methods": ["token"],
@@ -173,7 +166,7 @@ class Session(base.Session):
                         },
                     },
                 },
-            },
+            }
         )
         response.raise_for_status()
         return response.headers["X-Subject-Token"], response.json()["token"]
@@ -194,15 +187,17 @@ class Session(base.Session):
                 for entry in token_data["catalog"]
                 for ep in entry["endpoints"]
                 if (
-                    entry["type"] == "compute"
-                    and ep["interface"] == self.interface
-                    and (not self.region or ep["region"] == self.region)
+                    entry["type"] == "compute" and
+                    ep["interface"] == self.interface and
+                    (not self.region or ep["region"] == self.region)
                 )
             )
         except StopIteration:
             raise errors.InvalidOperationError("Unable to find compute service.")
         client = httpx.Client(
-            auth=OpenStackAuth(token), base_url=compute_url, verify=self.verify_ssl
+            auth = OpenStackAuth(token),
+            base_url = compute_url,
+            verify = self.verify_ssl
         )
         return client, re.sub("[^a-zA-Z0-9]+", "-", token_data["user"]["name"])
 
@@ -225,12 +220,12 @@ class Session(base.Session):
         # Create a new keypair with the new public key
         response = client.post(
             "/os-keypairs",
-            json={
+            json = {
                 "keypair": {
                     "name": keypair_name,
                     "public_key": public_key,
                 },
-            },
+            }
         )
         response.raise_for_status()
         return response.json()["keypair"]["public_key"]

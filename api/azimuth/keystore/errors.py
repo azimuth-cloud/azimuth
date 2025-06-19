@@ -9,13 +9,13 @@ class Error(Exception):
     """
 
 
-class UnsupportedOperation(Error):  # noqa: N818
+class UnsupportedOperation(Error):
     """
     Raised when an unsupported operation is attempted.
     """
 
 
-class KeyNotFound(Error):  # noqa: N818
+class KeyNotFound(Error):
     """
     Raised when no SSH key can be found for a user.
     """

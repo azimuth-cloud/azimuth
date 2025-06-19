@@ -1,7 +1,6 @@
 from unittest import TestCase
 
-from azimuth.provider.dto import Tenancy
-
+from ..provider.dto import Tenancy
 from .acls import (
     ACL_ALLOW_IDS_KEY,
     ACL_ALLOW_PATTERN_KEY,
@@ -13,6 +12,7 @@ from .acls import (
 
 
 class ACLTestCase(TestCase):
+
     def assert_allowed(self, resource, tenancy):
         """Helper method to make logic clearer"""
         self.assertTrue(allowed_by_acls(resource, tenancy))
@@ -28,8 +28,7 @@ class ACLTestCase(TestCase):
         for t in tenancies:
             self.assert_allowed(test_resource, t)
 
-    # Check that all tenancies are allowed when all ACL annotations are present but
-    # empty
+    # Check that all tenancies are allowed when all ACL annotations are present but empty
     def test_empty_annotations(self):
         tenancies = [Tenancy(id=f"test-id-{i}", name=f"name-{i}") for i in range(3)]
         test_resource = {"metadata": {"annotations": {k: "" for k in ACL_KEYS}}}
@@ -62,16 +61,16 @@ class ACLTestCase(TestCase):
     # Check that filtering by allowed name pattern works
     def test_allow_pattern(self):
         test_resource = {"metadata": {"annotations": {ACL_ALLOW_PATTERN_KEY: "prod-"}}}
-        self.assert_allowed(test_resource, Tenancy(id="", name="prod-123"))
-        self.assert_allowed(test_resource, Tenancy(id="", name="test-prod-2"))
-        self.assert_denied(test_resource, Tenancy(id="", name="staging"))
+        self.assert_allowed(test_resource, Tenancy(id="", name=f"prod-123"))
+        self.assert_allowed(test_resource, Tenancy(id="", name=f"test-prod-2"))
+        self.assert_denied(test_resource, Tenancy(id="", name=f"staging"))
 
     # Check that filtering by denied name patterm works
     def test_deny_pattern(self):
         test_resource = {"metadata": {"annotations": {ACL_DENY_PATTERN_KEY: "prod-"}}}
         self.assert_denied(test_resource, Tenancy(id="", name="prod-123"))
-        self.assert_denied(test_resource, Tenancy(id="", name="test-prod-2"))
-        self.assert_allowed(test_resource, Tenancy(id="", name="staging-123"))
+        self.assert_denied(test_resource, Tenancy(id="", name=f"test-prod-2"))
+        self.assert_allowed(test_resource, Tenancy(id="", name=f"staging-123"))
 
     # Check that presence of any 'allow' key triggers deny by default
     def test_default_deny_with_allows(self):

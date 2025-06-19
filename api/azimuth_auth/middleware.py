@@ -11,7 +11,6 @@ class Middleware:
 
     The token can either be given as a bearer token or taken from the session.
     """
-
     def __init__(self, get_response):
         self.get_response = get_response
 

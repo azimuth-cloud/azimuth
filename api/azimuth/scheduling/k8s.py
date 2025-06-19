@@ -24,7 +24,7 @@ def create_scheduling_resources(
     owner: dict[str, t.Any],
     cloud_credentials_secret_name: str,
     resources: dto.PlatformResources,
-    schedule: dto.PlatformSchedule | None,
+    schedule: dto.PlatformSchedule | None
 ):
     """
     Creates scheduling resources for the given Kubernetes object.
@@ -92,7 +92,10 @@ def create_scheduling_resources(
                     "endsAt": ends_at,
                     "resources": {
                         "machines": [
-                            {"sizeId": req.size.id, "count": req.count}
+                            {
+                                "sizeId": req.size.id,
+                                "count": req.count
+                            }
                             for req in resources.machines()
                         ],
                     },

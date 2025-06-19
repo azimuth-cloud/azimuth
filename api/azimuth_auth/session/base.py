@@ -11,8 +11,7 @@ class Provider:
     """
     Base class for an authentication session provider.
     """
-
-    def from_token(self, token: str) -> "Session":
+    def from_token(self, token: str) -> 'Session':
         """
         Create an authentication session from a token.
         """
@@ -23,7 +22,6 @@ class Session:
     """
     Base class for an auth session.
     """
-
     def token(self) -> str:
         """
         Returns the token for the session.
