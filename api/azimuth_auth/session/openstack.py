@@ -2,6 +2,7 @@ import functools
 import re
 
 import httpx
+import yaml
 
 from ..authenticator.openstack import normalize_auth_url
 
@@ -231,7 +232,10 @@ class Session(base.Session):
         response.raise_for_status()
         return response.json()["keypair"]["public_key"]
 
-    def credential(self, tenancy_id):
+    def credential(self, tenancy_id, provider):
+        # We only know how to produce credentials for the openstack provider
+        if provider != "openstack":
+            return None
         # Get a scoped token for the specified tenancy
         token, _ = self._scoped_token(tenancy_id)
         # Return the contents of a clouds.yaml configured to use the token
@@ -251,7 +255,7 @@ class Session(base.Session):
         }
         if self.region:
             data["clouds"]["openstack"]["region_name"] = self.region
-        return dto.Credential("openstack", data)
+        return dto.Credential(provider, yaml.safe_dump(data))
 
     def close(self):
         self.client.close()

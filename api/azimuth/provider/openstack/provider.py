@@ -214,7 +214,7 @@ class UnscopedSession(base.UnscopedSession):
         return ScopedSession(
             auth_user,
             tenancy,
-            api.Connection.from_clouds(credential_data),
+            api.Connection.from_clouds(yaml.safe_load(credential_data)),
             self._metadata_prefix,
             self._internal_net_template,
             self._external_net_template,

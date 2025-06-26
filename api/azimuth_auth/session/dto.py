@@ -34,4 +34,4 @@ class Credential:
     #: The provider that the credential is for
     provider: str
     #: The credential data, which will depend on the provider
-    data: t.Any
+    data: str

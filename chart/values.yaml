@@ -186,7 +186,7 @@ settings:
 
 # Configuration for authentication
 authentication:
-  # The type of authentication to use (valid options are openstack, oidc)
+  # The type of authentication to use (valid options are oidc, openstack)
   type: openstack
   # Parameters for OpenStack authentication
   openstack:
@@ -234,9 +234,19 @@ authentication:
     # The URL of the issuer
     # Azimuth will use OIDC discovery to discover the rest of the configuration
     issuerUrl:
+    # The scope to use - leave blank for the default
+    scope:
+    # The claims to use for user ID, username, email and groups
+    claims:
+      userid: sub
+      username: preferred_username
+      email: email
+      groups: groups
     # The client ID and secret for Azimuth to use
     clientID:
     clientSecret:
+    # Indicates whether to verify SSL for OIDC operations
+    verifySsl: true
 
 # The cloud provider to use
 provider:

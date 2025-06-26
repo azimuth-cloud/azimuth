@@ -41,7 +41,7 @@ class AuthSessionAuthentication(BaseAuthentication):
             session = cloud_settings.PROVIDER.from_auth_session(auth_session)
         except errors.AuthenticationError as exc:
             # If a session cannot be resolved from the token, then it has expired
-            logger.exception('Authentication failed: %s', str(exc))
+            logger.warning('Authentication failed: %s', str(exc))
             raise AuthenticationFailed(str(exc))
         else:
             # If the token resolved, return an authenticated user
