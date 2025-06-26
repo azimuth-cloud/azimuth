@@ -263,7 +263,7 @@ export const TenancyResourcePage = ({
     }
 
     // We only render the page once the capabilities have initialised
-    return currentTenancy.capabilities.initialised ? (
+    return (
         <Container fluid className="flex-grow-1 d-flex flex-column">
             <Row className="flex-grow-1">
                 <div className="sidebar-container">
@@ -280,29 +280,31 @@ export const TenancyResourcePage = ({
                     <h1 className="border-bottom border-2 pb-1 mb-4">
                         <code>{currentTenancy.name}</code>
                     </h1>
-                    <PanelComponent
-                        userId={userId}
-                        sshKey={sshKey}
-                        capabilities={currentTenancy.capabilities}
-                        tenancy={currentTenancy}
-                        tenancyActions={tenancyActions}
-                        notificationActions={notificationActions}
-                        supportsPlatforms={supportsPlatforms}
-                    />
+                    {currentTenancy.capabilities.initialised ? (
+                        <PanelComponent
+                            userId={userId}
+                            sshKey={sshKey}
+                            capabilities={currentTenancy.capabilities}
+                            tenancy={currentTenancy}
+                            tenancyActions={tenancyActions}
+                            notificationActions={notificationActions}
+                            supportsPlatforms={supportsPlatforms}
+                        />
+                    ) : (
+                        <Row className="justify-content-center">
+                            {(currentTenancy.capabilities.fetchError && !currentTenancy.capabilities.fetching) ? (
+                                <Col xs="auto py-3">
+                                    <Error message={currentTenancy.capabilities.fetchError.message} />
+                                </Col>
+                            ) : (
+                                <Col xs="auto py-5" className="mt-5">
+                                    <Loading iconSize="lg" size="lg" message="Loading..." />
+                                </Col>
+                            )}
+                        </Row>
+                    )}
                 </Col>
             </Row>
         </Container>
-    ) : (
-        <Row className="justify-content-center">
-            {(currentTenancy.capabilities.fetchError && !currentTenancy.capabilities.fetching) ? (
-                <Col xs="auto py-3">
-                    <Error message={currentTenancy.capabilities.fetchError.message} />
-                </Col>
-            ) : (
-                <Col xs="auto py-5" className="mt-5">
-                    <Loading iconSize="lg" size="lg" message="Loading..." />
-                </Col>
-            )}
-        </Row>
     );
 };

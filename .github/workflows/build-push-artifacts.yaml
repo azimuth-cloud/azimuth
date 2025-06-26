@@ -22,7 +22,7 @@ on:
         value: ${{ jobs.build_push_chart.outputs.chart-version }}
 
 env:
-  NGINX_VERSION: 1.27.3
+  NGINX_VERSION: 1.29.0
 
 jobs:
   build_push_images:
