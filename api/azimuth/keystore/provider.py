@@ -3,8 +3,7 @@ Module implementing a key store that uses the provider's native functionality
 to store public keys.
 """
 
-from ..provider.errors import ObjectNotFoundError
-
+from ..provider.errors import ObjectNotFoundError  # noqa: TID252
 from .base import KeyStore
 from .errors import KeyNotFound
 
@@ -13,6 +12,7 @@ class ProviderKeyStore(KeyStore):
     """
     Key store implementation that consumes keypairs using provider functionality.
     """
+
     supports_key_update = True
 
     def get_key(self, username, *, unscoped_session, **kwargs):

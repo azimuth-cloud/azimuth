@@ -1,14 +1,15 @@
 import dataclasses
 import typing as t
 
-from ...provider import dto as cloud_dto
+from ...provider import dto as cloud_dto  # noqa: TID252
 
 
-@dataclasses.dataclass(frozen = True)
+@dataclasses.dataclass(frozen=True)
 class ResourceSummary:
     """
     Represents a summary of resource.
     """
+
     #: The number of machines consumed by the platform
     machines: int
     #: The number of volumes consumed by the platform
@@ -38,11 +39,12 @@ class ResourceSummary:
         return cls(0, 0, 0, 0, 0, 0)
 
 
-@dataclasses.dataclass(frozen = True)
+@dataclasses.dataclass(frozen=True)
 class MachineResources:
     """
     Represents the resources for one or more machines.
     """
+
     #: The number of machines required at this size
     count: int
     #: The size of the machines
@@ -52,11 +54,12 @@ class MachineResources:
         assert self.count > 0
 
 
-@dataclasses.dataclass(frozen = True)
+@dataclasses.dataclass(frozen=True)
 class VolumeResources:
     """
     Represents the resources for one or more volumes.
     """
+
     #: The number of volumes required at this size
     count: int
     #: The size of the volumes (in GB)
@@ -71,6 +74,7 @@ class PlatformResources:
     """
     Represents the overall resources consumed by a platform.
     """
+
     def __init__(self):
         # Machine requirements, indexed by size id so we can aggregate
         self._machine_requirements: dict[str, MachineResources] = {}
@@ -82,19 +86,19 @@ class PlatformResources:
         Returns the machine requirements for the platform.
         """
         return self._machine_requirements.values()
-    
+
     def volumes(self) -> t.Iterable[VolumeResources]:
         """
         Returns the volume requirements for the platform.
         """
         return iter(self._volume_requirements)
-    
+
     def external_ips(self) -> int:
         """
         Returns the number of external IPs required for the platform.
         """
         return self._external_ips
-    
+
     def add_machines(self, count: int, size: cloud_dto.Size):
         """
         Adds a requirement for machines to the platform requirements.
@@ -103,10 +107,9 @@ class PlatformResources:
         current_req = self._machine_requirements.get(size.id)
         current_count = current_req.count if current_req else 0
         self._machine_requirements[size.id] = MachineResources(
-            current_count + count,
-            size
+            current_count + count, size
         )
-    
+
     def add_volumes(self, count: int, size: int):
         """
         Adds a requirement for volumes to the platform requirements.
@@ -121,7 +124,7 @@ class PlatformResources:
         """
         assert count > 0
         self._external_ips = self._external_ips + count
-    
+
     def summarise(self) -> ResourceSummary:
         """
         Returns an overall summary of the platform requirements in raw units.
@@ -138,8 +141,5 @@ class PlatformResources:
                 (req.size.ram * req.count)
                 for req in self._machine_requirements.values()
             ),
-            sum(
-                (req.size * req.count)
-                for req in self._volume_requirements
-            )
+            sum((req.size * req.count) for req in self._volume_requirements),
         )

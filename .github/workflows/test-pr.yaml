@@ -18,6 +18,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Run the unit tests on every PR, even from external repos
+  unit_tests:
+    uses: ./.github/workflows/tox.yaml
+    with:
+      ref: ${{ github.event.pull_request.head.sha }}
+
   # This job exists so that PRs from outside the main repo are rejected
   fail_on_remote:
     runs-on: ubuntu-latest
@@ -26,7 +32,7 @@ jobs:
         run: exit ${{ github.event.pull_request.head.repo.full_name == 'azimuth-cloud/azimuth' && '0' || '1' }}
 
   publish_artifacts:
-    needs: [fail_on_remote]
+    needs: [unit_tests, fail_on_remote]
     uses: ./.github/workflows/build-push-artifacts.yaml
     with:
       ref: ${{ github.event.pull_request.head.sha }}

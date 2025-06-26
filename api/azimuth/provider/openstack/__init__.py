@@ -1,1 +1,1 @@
-from .provider import Provider
+from .provider import Provider  # noqa: F401
