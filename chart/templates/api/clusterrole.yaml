@@ -47,6 +47,24 @@ rules:
       - patch
       - delete
   - apiGroups:
+      - apps.azimuth-cloud.io
+    resources:
+      - apptemplates
+    verbs:
+      - list
+      - get
+  - apiGroups:
+      - apps.azimuth-cloud.io
+    resources:
+      - apps
+    verbs:
+      - list
+      - get
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
       - ""
     resources:
       - namespaces
