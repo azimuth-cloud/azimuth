@@ -39,6 +39,12 @@ class InvalidOperationError(Error, RuntimeError):
     """
 
 
+class UnsupportedOperationError(Error, NotImplementedError):
+    """
+    Raised when the requested operation is not supported by a provider.
+    """
+
+
 class CommunicationError(Error, RuntimeError):
     """
     Raised when an unexpected communication problem occurs.
