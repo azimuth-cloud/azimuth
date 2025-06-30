@@ -1,5 +1,4 @@
 import dataclasses
-import typing as t
 
 
 @dataclasses.dataclass(frozen=True)

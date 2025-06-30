@@ -1144,7 +1144,7 @@ def clusters(request, tenant):
                     )
                 except (
                     keystore_errors.UnsupportedOperation,
-                    keystore_errors.KeyNotFound
+                    keystore_errors.KeyNotFound,
                 ):
                     ssh_key = None
                 cluster = cluster_manager.create_cluster(

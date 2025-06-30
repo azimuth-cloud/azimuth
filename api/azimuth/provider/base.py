@@ -3,7 +3,8 @@ This module defines the interface for a cloud provider.
 """
 
 import functools
-from typing import Any, Iterable, Mapping  # noqa: UP035
+from collections.abc import Iterable, Mapping
+from typing import Any
 
 from azimuth_auth.session import dto as auth_dto
 from azimuth_auth.session import errors as auth_errors
@@ -139,11 +140,8 @@ class UnscopedSession:
         return True
 
     def _scoped_session(
-        self,
-        auth_user: auth_dto.User,
-        tenancy: dto.Tenancy,
-        credential_data: str
-    ) -> 'ScopedSession':
+        self, auth_user: auth_dto.User, tenancy: dto.Tenancy, credential_data: str
+    ) -> "ScopedSession":
         """
         Private method that creates a scoped session for the given tenancy.
 

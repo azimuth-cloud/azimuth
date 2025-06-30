@@ -2,7 +2,7 @@ import dataclasses
 import datetime
 import typing as t
 
-from ..scheduling import dto as scheduling_dto  # noqa: F401, TID252
+from ..scheduling import dto as scheduling_dto  # noqa: TID252,F401
 
 
 @dataclasses.dataclass(frozen=True)
@@ -81,7 +81,7 @@ class App:
     #: The human-readable name of the app
     name: str
     #: The id of the Kubernetes cluster that the app is deployed on, if known
-    kubernetes_cluster_id: t.Optional[str]
+    kubernetes_cluster_id: str | None
     #: The id of the template for the app
     template_id: str
     #: The version of the template that the app is using

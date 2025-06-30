@@ -241,9 +241,11 @@ class TenancySerializer(make_dto_serializer(dto.Tenancy)):
         if cloud_settings.METRICS.TENANT_METRICS_URL_TEMPLATE:
             result.setdefault("links", {}).update(
                 {
-                    "metrics": cloud_settings.METRICS.TENANT_METRICS_URL_TEMPLATE.format(  # noqa: E501
-                        tenant_id=obj.id
-                    ),
+                    "metrics": (
+                        cloud_settings.METRICS.TENANT_METRICS_URL_TEMPLATE.format(
+                            tenant_id=obj.id
+                        ),
+                    )
                 }
             )
         return result
@@ -1164,7 +1166,7 @@ class CreateKubernetesAppSerializer(serializers.Serializer):
         # So the field is not required and empty strings and null are allowed
         required=False,
         allow_blank=True,
-        allow_null=True
+        allow_null=True,
     )
     values = serializers.JSONField(write_only=True)
 

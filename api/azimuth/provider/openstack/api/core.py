@@ -273,25 +273,27 @@ class Connection(rackit.Connection):
             response = requests.get(
                 f"{auth_url}/auth/tokens",
                 headers={"X-Auth-Token": token, "X-Subject-Token": token},
-                verify=verify
+                verify=verify,
             )
             response.raise_for_status()
             token_data = response.json()["token"]
         elif cloud_data["auth_type"] == "v3applicationcredential":
             response = requests.post(
                 f"{auth_url}/auth/tokens",
-                json = {
+                json={
                     "auth": {
                         "identity": {
                             "methods": ["application_credential"],
                             "application_credential": {
                                 "id": cloud_data["auth"]["application_credential_id"],
-                                "secret": cloud_data["auth"]["application_credential_secret"],
+                                "secret": cloud_data["auth"][
+                                    "application_credential_secret"
+                                ],
                             },
                         },
                     },
                 },
-                verify = verify
+                verify=verify,
             )
             response.raise_for_status()
             token = response.headers["X-Subject-Token"]

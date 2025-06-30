@@ -128,7 +128,10 @@ class FederatedAuthenticator(RedirectAuthenticator):
     POST request.
     """
 
-    PROVIDER_PROTOCOL_TPL = "{auth_url}/auth/OS-FEDERATION/identity_providers/{provider}/protocols/{protocol}/websso"  # noqa: E501
+    PROVIDER_PROTOCOL_TPL = (
+        "{auth_url}/auth/OS-FEDERATION/identity_providers/"
+        "{provider}/protocols/{protocol}/websso"
+    )
     PROTOCOL_ONLY_TPL = "{auth_url}/auth/OS-FEDERATION/websso/{protocol}"
 
     authenticator_type = "openstack_federation"

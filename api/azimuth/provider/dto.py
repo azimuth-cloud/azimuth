@@ -3,9 +3,9 @@ This module defines data-transfer objects used by providers.
 """
 
 import enum
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Mapping, Sequence  # noqa: UP035
 
 
 @dataclass(frozen=True)

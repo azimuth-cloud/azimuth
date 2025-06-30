@@ -1356,7 +1356,7 @@ class ScopedSession(base.ScopedSession):
             # certs
             # If the envvar is not set, just use the certs provided by certifi
             cacert_path = os.environ.get("SSL_CERT_FILE", certifi.where())
-            with open(cacert_path, "r") as cacert_fh:  # noqa: UP015
+            with open(cacert_path) as cacert_fh:
                 data["cacert"] = cacert_fh.read()
         return dto.Credential("openstack_application_credential", data)
 

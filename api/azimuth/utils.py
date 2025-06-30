@@ -1,4 +1,3 @@
-import itertools
 import logging
 import re
 
@@ -19,6 +18,7 @@ class DuplicateTenancyIDError(Exception):
     """
     Raised when there are multiple namespaces with the same tenancy ID.
     """
+
     def __init__(self, tenancy_id: str):
         super().__init__(f"multiple tenancy namespaces found with ID '{tenancy_id}'")
 
@@ -47,11 +47,11 @@ def unique_namespaces(ekresource, tenancy_id):
     Returns an iterator over the unique namespaces for the given tenancy ID.
     """
     seen_namespaces = set()
-    for namespace in ekresource.list(labels = {TENANCY_ID_LABEL: tenancy_id}):
+    for namespace in ekresource.list(labels={TENANCY_ID_LABEL: tenancy_id}):
         # We won't see any duplicate namespaces in this first loop
         seen_namespaces.add(namespace["metadata"]["name"])
         yield namespace
-    for namespace in ekresource.list(labels = {TENANCY_ID_LABEL_LEGACY: tenancy_id}):
+    for namespace in ekresource.list(labels={TENANCY_ID_LABEL_LEGACY: tenancy_id}):
         # We might see namespaces in this loop that appeared in the previous loop, if a
         # namespace has both labels
         ns_name = namespace["metadata"]["name"]

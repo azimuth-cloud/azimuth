@@ -61,16 +61,16 @@ class ACLTestCase(TestCase):
     # Check that filtering by allowed name pattern works
     def test_allow_pattern(self):
         test_resource = {"metadata": {"annotations": {ACL_ALLOW_PATTERN_KEY: "prod-"}}}
-        self.assert_allowed(test_resource, Tenancy(id="", name=f"prod-123"))  # noqa: F541
-        self.assert_allowed(test_resource, Tenancy(id="", name=f"test-prod-2"))  # noqa: F541
-        self.assert_denied(test_resource, Tenancy(id="", name=f"staging"))  # noqa: F541
+        self.assert_allowed(test_resource, Tenancy(id="", name="prod-123"))
+        self.assert_allowed(test_resource, Tenancy(id="", name="test-prod-2"))
+        self.assert_denied(test_resource, Tenancy(id="", name="staging"))
 
     # Check that filtering by denied name patterm works
     def test_deny_pattern(self):
         test_resource = {"metadata": {"annotations": {ACL_DENY_PATTERN_KEY: "prod-"}}}
         self.assert_denied(test_resource, Tenancy(id="", name="prod-123"))
-        self.assert_denied(test_resource, Tenancy(id="", name=f"test-prod-2"))  # noqa: F541
-        self.assert_allowed(test_resource, Tenancy(id="", name=f"staging-123"))  # noqa: F541
+        self.assert_denied(test_resource, Tenancy(id="", name="test-prod-2"))
+        self.assert_allowed(test_resource, Tenancy(id="", name="staging-123"))
 
     # Check that presence of any 'allow' key triggers deny by default
     def test_default_deny_with_allows(self):

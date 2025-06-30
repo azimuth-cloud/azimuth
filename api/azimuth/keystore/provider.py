@@ -3,8 +3,7 @@ Module implementing a key store that uses the provider's native functionality
 to store public keys.
 """
 
-from ..provider import errors as provider_errors # noqa: TID252
-
+from ..provider import errors as provider_errors  # noqa: TID252
 from . import base, errors
 
 

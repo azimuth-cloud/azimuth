@@ -262,8 +262,9 @@ class Session(base.Session):
         values: dict[str, t.Any],
         *,
         kubernetes_cluster: capi_dto.Cluster | None = None,
-        # This is ignored for the HelmRelease driver - the realm for the target cluster is used
-        zenith_identity_realm_name: str | None = None
+        # This is ignored for the HelmRelease driver - the realm for the target cluster
+        # is used
+        zenith_identity_realm_name: str | None = None,
     ) -> dto.App:
         """
         Create a new app in the tenancy.
@@ -283,8 +284,12 @@ class Session(base.Session):
                     },
                     # Use annotations to indicate who created the app
                     "annotations": {
-                        "azimuth.stackhpc.com/created-by-username": self._cloud_session.username(),  # noqa: E501
-                        "azimuth.stackhpc.com/created-by-user-id": self._cloud_session.user_id(),  # noqa: E501
+                        "azimuth.stackhpc.com/created-by-username": (
+                            self._cloud_session.username()
+                        ),
+                        "azimuth.stackhpc.com/created-by-user-id": (
+                            self._cloud_session.user_id()
+                        ),
                     },
                 },
                 "spec": {

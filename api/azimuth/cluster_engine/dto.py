@@ -6,9 +6,10 @@ import enum
 import io
 import json
 import re
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Mapping, Sequence  # noqa: UP035
+from typing import Any
 
 import requests
 import yaml

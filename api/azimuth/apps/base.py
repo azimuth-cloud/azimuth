@@ -53,7 +53,7 @@ class Session:
         values: dict[str, t.Any],
         *,
         kubernetes_cluster: capi_dto.Cluster | None = None,
-        zenith_identity_realm_name: str | None = None
+        zenith_identity_realm_name: str | None = None,
     ) -> dto.App:
         """
         Create a new app in the tenancy.

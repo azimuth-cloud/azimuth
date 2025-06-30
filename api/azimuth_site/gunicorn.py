@@ -40,4 +40,4 @@ class StatsdLogger(StatusEndpointFilterMixin, Statsd):
         for status in http.HTTPStatus:
             # Ignore the 1xx statuses as we will never serve them
             if status.value >= 200:
-                self.increment("gunicorn.request.status.%d" % status.value, 0)  # noqa: UP031
+                self.increment(f"gunicorn.request.status.{status.value}", 0)

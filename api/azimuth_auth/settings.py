@@ -4,14 +4,14 @@ Settings for the Azimuth auth package.
 
 import functools
 
-from django.core.exceptions import ImproperlyConfigured
-
 import httpx
-
+from django.core.exceptions import ImproperlyConfigured
 from settings_object import (
     MergedDictSetting,
     NestedSetting,
     ObjectFactorySetting,
+    Setting,
+    SettingsObject,
 )
 
 
@@ -38,6 +38,7 @@ class OIDCDiscoverySetting(Setting):
     """
     Setting whose default value is populated by OIDC discovery.
     """
+
     def __init__(self, key):
         self.key = key
 
@@ -52,6 +53,7 @@ class OIDCSettings(SettingsObject):
     """
     Settings for OIDC authentication.
     """
+
     #: The URL for the OIDC issuer
     ISSUER_URL = Setting()
     #: The authorization URL for the OIDC issuer
@@ -65,13 +67,13 @@ class OIDCSettings(SettingsObject):
     USERINFO_URL = OIDCDiscoverySetting("userinfo_endpoint")
 
     #: The claim to extract the user's ID from
-    USERID_CLAIM = Setting(default = "sub")
+    USERID_CLAIM = Setting(default="sub")
     #: The claim to extract the username from
-    USERNAME_CLAIM = Setting(default = "preferred_username")
+    USERNAME_CLAIM = Setting(default="preferred_username")
     #: The claim to extract the user's email address from
-    EMAIL_CLAIM = Setting(default = "email")
+    EMAIL_CLAIM = Setting(default="email")
     #: The claim to extract the user's groups from
-    GROUPS_CLAIM = Setting(default = "groups")
+    GROUPS_CLAIM = Setting(default="groups")
 
     #: The OIDC client ID
     CLIENT_ID = Setting()
@@ -79,21 +81,23 @@ class OIDCSettings(SettingsObject):
     CLIENT_SECRET = Setting()
 
     #: The scope to use for the OIDC request
-    SCOPE = Setting(default = "openid profile email")
+    SCOPE = Setting(default="openid profile email")
 
     #: The session key to use to store the OIDC state
-    STATE_SESSION_KEY = Setting(default = "oidc_state")
+    STATE_SESSION_KEY = Setting(default="oidc_state")
 
     #: Indicates whether to verify SSL for the OIDC issuer
-    VERIFY_SSL = Setting(default = True)
+    VERIFY_SSL = Setting(default=True)
 
     @functools.cached_property
-    def DISCOVERY_DATA(self):
+    def DISCOVERY_DATA(self):  # noqa: N802
         """
         The data from the discovery endpoint for the specified issuer.
         """
-        discovery_url = self.ISSUER_URL.rstrip("/") + "/.well-known/openid-configuration"
-        response = httpx.get(discovery_url, verify = self.VERIFY_SSL)
+        discovery_url = (
+            self.ISSUER_URL.rstrip("/") + "/.well-known/openid-configuration"
+        )
+        response = httpx.get(discovery_url, verify=self.VERIFY_SSL)
         response.raise_for_status()
         return response.json()
 
@@ -141,7 +145,7 @@ class AuthenticatorsSetting(ObjectFactorySetting):
                     "LABEL": "OpenID Connect",
                     "HIDDEN": False,
                     "AUTHENTICATOR": {
-                        "FACTORY": "azimuth_auth.authenticator.oidc.AuthorizationCodeAuthenticator",
+                        "FACTORY": "azimuth_auth.authenticator.oidc.AuthorizationCodeAuthenticator",  # noqa: E501
                         "PARAMS": {
                             "AUTHORIZATION_URL": instance.OIDC.AUTHORIZATION_URL,
                             "TOKEN_URL": instance.OIDC.TOKEN_URL,

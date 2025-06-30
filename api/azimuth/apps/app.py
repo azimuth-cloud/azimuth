@@ -4,23 +4,14 @@ import logging
 import typing as t
 
 import dateutil.parser
-
 import httpx
+from easykube import PRESENT, ApiError, Configuration, SyncClient
 
-from easykube import (
-    Configuration,
-    ApiError,
-    SyncClient,
-    PRESENT
-)
-
-from ..acls import allowed_by_acls
-from ..cluster_api import dto as capi_dto
-from ..provider import base as cloud_base
-from ..utils import get_namespace
-
+from ..acls import allowed_by_acls  # noqa: TID252
+from ..cluster_api import dto as capi_dto  # noqa: TID252
+from ..provider import base as cloud_base  # noqa: TID252
+from ..utils import get_namespace  # noqa: TID252
 from . import base, dto, errors
-
 
 logger = logging.getLogger(__name__)
 
@@ -30,8 +21,10 @@ APPS_API_VERSION = "apps.azimuth-cloud.io/v1alpha1"
 
 def convert_exceptions(f):
     """
-    Decorator that converts Kubernetes API exceptions into errors from :py:mod:`..errors`.
+    Decorator that converts Kubernetes API exceptions into errors from
+    :py:mod:`..errors`.
     """
+
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
         try:
@@ -41,8 +34,10 @@ def convert_exceptions(f):
             status_code = exc.response.status_code
             message = (
                 str(exc)
-                    .replace("apptemplates.apps.azimuth-cloud.io", "Kubernetes app template")
-                    .replace("apps.apps.azimuth-cloud.io", "Kubernetes app")
+                .replace(
+                    "apptemplates.apps.azimuth-cloud.io", "Kubernetes app template"
+                )
+                .replace("apps.apps.azimuth-cloud.io", "Kubernetes app")
             )
             if status_code == 400:
                 raise errors.BadInputError(message)
@@ -53,9 +48,10 @@ def convert_exceptions(f):
             else:
                 logger.exception("Unknown error with Kubernetes API.")
                 raise errors.CommunicationError("Unknown error with Kubernetes API.")
-        except httpx.HTTPError as exc:
+        except httpx.HTTPError as exc:  # noqa: F841
             logger.exception("Could not connect to Kubernetes API.")
             raise errors.CommunicationError("Could not connect to Kubernetes API.")
+
     return wrapper
 
 
@@ -63,16 +59,19 @@ class Provider(base.Provider):
     """
     Base class for Cluster API providers.
     """
+
     def __init__(
         self,
         # The label to use to find the default kubeconfig secret
-        default_kubeconfig_secret_label: str = "apps.azimuth-cloud.io/default-kubeconfig"
+        default_kubeconfig_secret_label: str = (
+            "apps.azimuth-cloud.io/default-kubeconfig"
+        ),
     ):
         # Get the easykube configuration from the environment
         self._ekconfig = Configuration.from_environment()
         self._default_kubeconfig_secret_label = default_kubeconfig_secret_label
 
-    def session(self, cloud_session: cloud_base.ScopedSession) -> 'Session':
+    def session(self, cloud_session: cloud_base.ScopedSession) -> "Session":
         """
         Returns a Cluster API session scoped to the given cloud provider session.
         """
@@ -88,24 +87,25 @@ class Session(base.Session):
     """
     Base class for a scoped session.
     """
+
     def __init__(
         self,
         client: SyncClient,
         cloud_session: cloud_base.ScopedSession,
-        default_kubeconfig_secret_label: str
+        default_kubeconfig_secret_label: str,
     ):
         self._client = client
         self._cloud_session = cloud_session
         self._default_kubeconfig_secret_label = default_kubeconfig_secret_label
 
-    def _log(self, message, *args, level = logging.INFO, **kwargs):
+    def _log(self, message, *args, level=logging.INFO, **kwargs):
         logger.log(
             level,
             "[%s] [%s] " + message,
             self._cloud_session.username(),
             self._cloud_session.tenancy().name,
             *args,
-            **kwargs
+            **kwargs,
         )
 
     def _from_api_app_template(self, at):
@@ -118,19 +118,16 @@ class Session(base.Session):
             status.get("label", at.metadata.name),
             status.get("logo"),
             status.get("description"),
-            dto.Chart(
-                at.spec.chart.repo,
-                at.spec.chart.name
-            ),
+            dto.Chart(at.spec.chart.repo, at.spec.chart.name),
             at.spec.get("defaultValues", {}),
             [
                 dto.Version(
                     version["name"],
                     version.get("valuesSchema", {}),
-                    version.get("uiSchema", {})
+                    version.get("uiSchema", {}),
                 )
                 for version in status.get("versions", [])
-            ]
+            ],
         )
 
     @convert_exceptions
@@ -139,7 +136,9 @@ class Session(base.Session):
         Lists the app templates currently available to the tenancy.
         """
         self._log("Fetching available app templates")
-        templates = list(self._client.api(APPS_API_VERSION).resource("apptemplates").list())
+        templates = list(
+            self._client.api(APPS_API_VERSION).resource("apptemplates").list()
+        )
         self._log("Found %s app templates", len(templates))
 
         # Filter templates based on ACL annotations
@@ -154,14 +153,14 @@ class Session(base.Session):
         )
 
     @convert_exceptions
-    def find_app_template(self, id: str) -> dto.AppTemplate:
+    def find_app_template(self, id: str) -> dto.AppTemplate:  # noqa: A002
         """
         Finds an app template by id.
         """
         self._log("Fetching app template with id '%s'", id)
         template = self._client.api(APPS_API_VERSION).resource("apptemplates").fetch(id)
 
-        tenancy =  self._cloud_session.tenancy()
+        tenancy = self._cloud_session.tenancy()
         if not allowed_by_acls(template, tenancy):
             raise errors.ObjectNotFoundError(f"Cannot find app template {id}")
 
@@ -169,18 +168,20 @@ class Session(base.Session):
         if template.get("status", {}).get("versions"):
             return self._from_api_app_template(template)
         else:
-            raise errors.ObjectNotFoundError(f"Kubernetes app template '{id}' not found")
+            raise errors.ObjectNotFoundError(
+                f"Kubernetes app template '{id}' not found"
+            )
 
     def _from_api_app(self, app):
         """
         Converts a Helm release to an app DTO.
         """
         # We want to account for the case where a change has been made but the operator
-        # has not yet caught up by tweaking the status
+        # has not yet caught up by tweaking the status
         app_phase = app.get("status", {}).get("phase")
         if app.metadata.get("deletionTimestamp"):
             # If the app has a deletion timestamp, flag it as uninstalling even if
-            # the operator hasn't yet updated the status
+            # the operator hasn't yet updated the status
             app_phase = "Uninstalling"
         elif not app_phase:
             # If there is no status, then the operator has not caught up after a create
@@ -188,9 +189,9 @@ class Session(base.Session):
         else:
             # Otherwise, we can compare the spec to the last handled configuration
             last_handled_configuration = json.loads(
-                app.metadata
-                    .get("annotations", {})
-                    .get("apps.azimuth-cloud.io/last-handled-configuration", "{}")
+                app.metadata.get("annotations", {}).get(
+                    "apps.azimuth-cloud.io/last-handled-configuration", "{}"
+                )
             )
             last_handled_spec = last_handled_configuration.get("spec")
             if last_handled_spec and app.spec != last_handled_spec:
@@ -208,10 +209,7 @@ class Session(base.Session):
             app_status.get("failureMessage") or None,
             [
                 dto.Service(
-                    name,
-                    service["label"],
-                    service["fqdn"],
-                    service.get("iconUrl")
+                    name, service["label"], service["fqdn"], service.get("iconUrl")
                 )
                 for name, service in app_status.get("services", {}).items()
             ],
@@ -234,7 +232,7 @@ class Session(base.Session):
         return tuple(self._from_api_app(app) for app in apps)
 
     @convert_exceptions
-    def find_app(self, id: str) -> dto.App:
+    def find_app(self, id: str) -> dto.App:  # noqa: A002
         """
         Finds an app by id.
         """
@@ -243,13 +241,15 @@ class Session(base.Session):
         app = self._client.api(APPS_API_VERSION).resource("apps").fetch(id)
         return self._from_api_app(app)
 
-    def _find_default_kubeconfig_secret(self) -> t.Optional[t.Dict[str, t.Any]]:
+    def _find_default_kubeconfig_secret(self) -> dict[str, t.Any] | None:
         """
         Attempts to locate a default kubeconfig secret in the namespace.
         """
         # Find the first secret with the expected label
-        secret = self._client.api("v1").resource("secrets").first(
-            labels = { self._default_kubeconfig_secret_label: PRESENT }
+        secret = (
+            self._client.api("v1")
+            .resource("secrets")
+            .first(labels={self._default_kubeconfig_secret_label: PRESENT})
         )
         if secret:
             # Use the first key in the secret (we expect it to be the only key)
@@ -265,10 +265,10 @@ class Session(base.Session):
         self,
         name: str,
         template: dto.AppTemplate,
-        values: t.Dict[str, t.Any],
+        values: dict[str, t.Any],
         *,
-        kubernetes_cluster: t.Optional[capi_dto.Cluster] = None,
-        zenith_identity_realm_name: t.Optional[str] = None
+        kubernetes_cluster: capi_dto.Cluster | None = None,
+        zenith_identity_realm_name: str | None = None,
     ) -> dto.App:
         """
         Create a new app in the tenancy.
@@ -281,14 +281,16 @@ class Session(base.Session):
             kubeconfig_secret_name = f"{kubernetes_cluster.id}-kubeconfig"
             kubeconfig_secret_key = "value"
         else:
-            kubeconfig_secret_name, kubeconfig_secret_key = self._find_default_kubeconfig_secret()
+            kubeconfig_secret_name, kubeconfig_secret_key = (
+                self._find_default_kubeconfig_secret()
+            )
         # NOTE(mkjpryor)
         # We know that the target namespace exists because it has a cluster in
         return self._from_api_app(
-            self._client
-                .api(APPS_API_VERSION)
-                .resource("apps")
-                .create({
+            self._client.api(APPS_API_VERSION)
+            .resource("apps")
+            .create(
+                {
                     "metadata": {
                         "name": name,
                         "labels": {
@@ -296,7 +298,7 @@ class Session(base.Session):
                         },
                         # If the app belongs to a cluster, store that in an annotation
                         "annotations": (
-                            { "azimuth.stackhpc.com/cluster": kubernetes_cluster.id }
+                            {"azimuth.stackhpc.com/cluster": kubernetes_cluster.id}
                             if kubernetes_cluster
                             else {}
                         ),
@@ -316,16 +318,17 @@ class Session(base.Session):
                         "createdByUsername": self._cloud_session.username(),
                         "createdByUserId": self._cloud_session.user_id(),
                     },
-                })
+                }
+            )
         )
 
     @convert_exceptions
     def update_app(
         self,
-        app: t.Union[dto.App, str],
+        app: dto.App | str,
         template: dto.AppTemplate,
         version: dto.Version,
-        values: t.Dict[str, t.Any]
+        values: dict[str, t.Any],
     ) -> dto.App:
         """
         Update the specified cluster with the given parameters.
@@ -333,27 +336,26 @@ class Session(base.Session):
         if isinstance(app, dto.App):
             app = app.id
         return self._from_api_app(
-            self._client
-                .api(APPS_API_VERSION)
-                .resource("apps")
-                .patch(
-                    app,
-                    {
-                        "spec": {
-                            "template": {
-                                "name": template.id,
-                                "version": version.name,
-                            },
-                            "values": values,
-                            "updatedByUsername": self._cloud_session.username(),
-                            "updatedByUserId": self._cloud_session.user_id(),
+            self._client.api(APPS_API_VERSION)
+            .resource("apps")
+            .patch(
+                app,
+                {
+                    "spec": {
+                        "template": {
+                            "name": template.id,
+                            "version": version.name,
                         },
+                        "values": values,
+                        "updatedByUsername": self._cloud_session.username(),
+                        "updatedByUserId": self._cloud_session.user_id(),
                     },
-                )
+                },
+            )
         )
 
     @convert_exceptions
-    def delete_app(self, app: t.Union[dto.App, str]) -> t.Optional[dto.App]:
+    def delete_app(self, app: dto.App | str) -> dto.App | None:
         """
         Delete the specified app.
         """
@@ -361,8 +363,7 @@ class Session(base.Session):
         if isinstance(app, dto.App):
             app = app.id
         self._client.api(APPS_API_VERSION).resource("apps").delete(
-            app,
-            propagation_policy = "Foreground"
+            app, propagation_policy="Foreground"
         )
         return self.find_app(app)
 

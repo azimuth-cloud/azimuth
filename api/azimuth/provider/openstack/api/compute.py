@@ -62,9 +62,7 @@ class VolumeAttachment(Resource):
         endpoint = "/os-volume_attachments"
         resource_list_key = "volumeAttachments"
         resource_key = "volumeAttachment"
-        aliases = dict(  # noqa: RUF012
-            server_id="serverId", volume_id="volumeId"
-        )
+        aliases = dict(server_id="serverId", volume_id="volumeId")  # noqa: RUF012
 
 
 class Server(ResourceWithDetail):
@@ -81,9 +79,7 @@ class Server(ResourceWithDetail):
             power_state="OS-EXT-STS:power_state",
             attached_volumes="os-extended-volumes:volumes_attached",
         )
-        defaults = dict(  # noqa: RUF012
-            fault=dict
-        )
+        defaults = dict(fault=dict)  # noqa: RUF012
 
     volume_attachments = NestedResource(VolumeAttachment)
 

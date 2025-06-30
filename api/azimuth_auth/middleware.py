@@ -30,14 +30,15 @@ class Middleware:
     @contextlib.contextmanager
     def update_session_token(self, auth_session, request):
         """
-        Context manager that ensures that the most up-to-date token is stored in the session.
+        Context manager that ensures that the most up-to-date token is stored in the
+        session.
         """
         if auth_settings.TOKEN_SESSION_KEY in request.session:
             # Get the original session token before the request processing happens
             original_token = request.session[auth_settings.TOKEN_SESSION_KEY]
             yield
-            # If the session token has changed during the request processing that means a
-            # reauthentication has happened, which takes precedence
+            # If the session token has changed during the request processing that means
+            # a reauthentication has happened, which takes precedence
             # It is also possible that the token has been removed from the session, e.g.
             # during a logout
             session_token = request.session.get(auth_settings.TOKEN_SESSION_KEY)
