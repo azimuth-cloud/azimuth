@@ -129,7 +129,7 @@ export const KubeconfigButton = ({ kubernetesCluster, kubernetesClusterActions, 
                                     command-line tool to access your cluster.
                                 </p>
                                 <p className="mb-0">
-                                    In order to use this configuration file you must have the{" "}
+                                    In order to use this configuration file you may need the{" "}
                                     <a href="https://github.com/int128/kubelogin" target="_blank">oidc-login</a>{" "}
                                     plugin installed.
                                 </p>
