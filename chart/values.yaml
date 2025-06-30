@@ -250,7 +250,9 @@ authentication:
 
 # The cloud provider to use
 provider:
-  # The type of provider to use (currently only openstack is supported)
+  # The type of provider to use - openstack and null are supported
+  # The null provider does not support any cloud functionality, but does support deploying
+  # apps on a pre-configured Kubernetes cluster
   type: openstack
   # Parameters for the openstack provider
   openstack:
@@ -406,10 +408,13 @@ scheduling:
 
 # Settings for the Kubernetes apps provider
 appsProvider:
-  # Indicates whether the apps provider should be enabled
+  # Indicates if the apps provider should be enabled
   enabled: true
-  # The type of provider to use, one of "helmrelease" or "app"
-  type: helmrelease
+  # The apps provider to use - valid options are default, helmrelease and app
+  #   If default is specified then the helmrelease provider is used if Cluster
+  #   API is available (for backwards compatibility), and the app provider is
+  #   used when Cluster API is not available
+  type: default
 
 # Properties for applying themes
 theme:

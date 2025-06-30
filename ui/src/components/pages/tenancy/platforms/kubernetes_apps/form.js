@@ -7,6 +7,8 @@ import InputGroup from 'react-bootstrap/InputGroup';
 import Modal from 'react-bootstrap/Modal';
 import Row from 'react-bootstrap/Row';
 
+import { StatusCodes } from 'http-status-codes';
+
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faExclamationCircle,
@@ -123,8 +125,8 @@ const initialValues = (kubernetesAppTemplate, kubernetesApp) => {
 
 
 const initialState = (kubernetesAppTemplate, kubernetesApp) => ({
-    name: kubernetesApp ? kubernetesApp.name : "",
-    kubernetesCluster: kubernetesApp ? kubernetesApp.kubernetes_cluster.id : "",
+    name: kubernetesApp?.name || "",
+    kubernetesCluster: kubernetesApp?.kubernetes_cluster?.id || "",
     // Use the latest version by default
     version: kubernetesApp ? kubernetesApp.version : kubernetesAppTemplate.versions[0].name,
     values: initialValues(kubernetesAppTemplate, kubernetesApp),
@@ -207,10 +209,27 @@ export const KubernetesAppForm = ({
         selectedVersion.name === formState.kubernetesAppTemplate.versions[0].name
     );
 
+    // Determine if Kubernetes clusters are supported or not
+    // If they are, we require a cluster to be selected when creating an app
+    // If they are not, we allow apps to be created with no cluster selected
+    // NOTE(mkjpryor) this logic assumes that the clusters have been fetched already
+    //                this is a reasonable assumption since they are loaded when the
+    //                platforms page loads
+    const kubernetesClustersSupported = (
+        kubernetesClusters.initialised ||
+        !kubernetesClusters.fetchError ||
+        kubernetesClusters.fetchError.statusCode !== StatusCodes.NOT_FOUND
+    );
+
     return (
         <Form
             {...props}
-            disabled={!kubernetesClusters.initialised || kubernetesClusters.creating}
+            disabled={
+                kubernetesClustersSupported && (
+                    !kubernetesClusters.initialised ||
+                    kubernetesClusters.creating
+                )
+            }
             onSubmit={handleSubmit}
         >
             <Field
@@ -230,28 +249,30 @@ export const KubernetesAppForm = ({
                     autoFocus
                 />
             </Field>
-            <Field
-                name="kubernetes_cluster"
-                label="Kubernetes cluster"
-                helpText="The Kubernetes cluster to deploy the platform on."
-            >
-                <KubernetesClusterSelectControlWithCreate
-                    resource={kubernetesClusters}
-                    resourceActions={kubernetesClusterActions}
-                    required
-                    disabled={formState.isEdit}
-                    value={formState.kubernetesCluster}
-                    onChange={formState.setKubernetesCluster}
-                    kubernetesClusterTemplates={kubernetesClusterTemplates}
-                    kubernetesClusterTemplateActions={kubernetesClusterTemplateActions}
-                    sizes={sizes}
-                    sizeActions={sizeActions}
-                    externalIps={externalIps}
-                    externalIpActions={externalIpActions}
-                    tenancy={tenancy}
-                    capabilities={capabilities}
-                />
-            </Field>
+            {kubernetesClustersSupported && (
+                <Field
+                    name="kubernetes_cluster"
+                    label="Kubernetes cluster"
+                    helpText="The Kubernetes cluster to deploy the platform on."
+                >
+                    <KubernetesClusterSelectControlWithCreate
+                        resource={kubernetesClusters}
+                        resourceActions={kubernetesClusterActions}
+                        required
+                        disabled={formState.isEdit}
+                        value={formState.kubernetesCluster}
+                        onChange={formState.setKubernetesCluster}
+                        kubernetesClusterTemplates={kubernetesClusterTemplates}
+                        kubernetesClusterTemplateActions={kubernetesClusterTemplateActions}
+                        sizes={sizes}
+                        sizeActions={sizeActions}
+                        externalIps={externalIps}
+                        externalIpActions={externalIpActions}
+                        tenancy={tenancy}
+                        capabilities={capabilities}
+                    />
+                </Field>
+            )}
             <Field
                 name="version"
                 label="App version"

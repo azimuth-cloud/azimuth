@@ -29,8 +29,6 @@ RUN gpg2 --keyserver hkp://keyserver.ubuntu.com:80 --keyserver-options timeout=1
 
 FROM ubuntu:jammy
 
-ARG NGINX_VERSION
-
 # Copy the GPG key from the intermediate container
 COPY --from=nginx-gpg-key /usr/share/keyrings/nginx-archive-keyring.gpg /usr/share/keyrings/
 
@@ -45,6 +43,7 @@ COPY --from=nginx-gpg-key /usr/share/keyrings/nginx-archive-keyring.gpg /usr/sha
 #   3. Use a subdirectory of /var/run for the pid file that is writable by the nginx user
 #      When running with a RO filesystem we will mount a writable directory over it,
 #      but we don't want to make all of /var/run writable
+RUN echo "Target NGINX version: ${NGINX_VERSION}"
 RUN apt-get update && \
     apt-get install --no-install-recommends --no-install-suggests -y ca-certificates && \
     echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] https://nginx.org/packages/mainline/ubuntu/ jammy nginx" \

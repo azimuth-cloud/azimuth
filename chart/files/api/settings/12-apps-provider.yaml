@@ -1,8 +1,18 @@
+{{- if .Values.appsProvider.enabled }}
+{{- if eq .Values.appsProvider.type "app" }}
 AZIMUTH:
-  {{- if .Values.appsProvider.enabled }}
   APPS_PROVIDER:
-    FACTORY: azimuth.apps.{{ .Values.appsProvider.type }}.Provider
+    FACTORY: azimuth.apps.app.Provider
     PARAMS: {}
-  {{- else }}
-  APPS_PROVIDER: null
-  {{- end }}
+{{- else if eq .Values.appsProvider.type "helmrelease" }}
+AZIMUTH:
+  APPS_PROVIDER:
+    FACTORY: azimuth.apps.helmrelease.Provider
+    PARAMS: {}
+{{- else if ne .Values.appsProvider.type "default" }}
+{{- fail (printf "Unrecognised apps provider '%s'" .Values.appsProvider.type) }}
+{{- end }}
+{{- else }}
+AZIMUTH:
+  APPS_PROVIDER: ~
+{{- end }}

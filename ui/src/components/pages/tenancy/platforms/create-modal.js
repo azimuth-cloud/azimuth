@@ -298,9 +298,6 @@ const CreatePlatformModal = ({
     const [activeTab, setActiveTab] = useState("platformType");
     const [platformTypeId, setPlatformTypeId] = useState("");
 
-    // Only show kubernetes-related items when there's at least one cluster template visible to the tenancy
-    const showKubernetesModals = tenancy.kubernetesClusterTemplates.data && Object.getOwnPropertyNames(tenancy.kubernetesClusterTemplates.data).length > 0
-
     const reset = () => {
         setActiveTab("platformType");
         setPlatformTypeId("");
@@ -325,6 +322,11 @@ const CreatePlatformModal = ({
         kubernetesAppTemplatesNotFound
     );
 
+    const kubernetesTemplatesAvailable = (
+        tenancy.kubernetesClusterTemplates.initialised &&
+        Object.getOwnPropertyNames(tenancy.kubernetesClusterTemplates.data).length > 0
+    );
+
     // Get the aggregate resource for available cluster types + Kubernetes + Kubernetes apps
     // Kubernetes is just a static resource that is available when Kubernetes templates are
     const resource = {
@@ -342,7 +344,7 @@ const CreatePlatformModal = ({
         data: Object.assign(
             {},
             (
-                (!kubernetesClusterTemplatesNotFound && showKubernetesModals) ?
+                kubernetesTemplatesAvailable ?
                     {
                         kubernetes: {
                             id: "kubernetes",
@@ -369,7 +371,7 @@ const CreatePlatformModal = ({
                     }
                 })
             ),
-            ...Object.entries((showKubernetesModals && tenancy.kubernetesAppTemplates.data) ? tenancy.kubernetesAppTemplates.data : {}).map(
+            ...Object.entries(tenancy.kubernetesAppTemplates.data || {}).map(
                 ([key, value]) => ({
                     [`kubernetesAppTemplates/${key}`]: {
                         id: `kubernetesAppTemplates/${key}`,
