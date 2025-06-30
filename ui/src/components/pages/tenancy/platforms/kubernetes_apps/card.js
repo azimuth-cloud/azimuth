@@ -224,10 +224,12 @@ const StatusCard = ({ kubernetesAppTemplate, kubernetesCluster, kubernetesApp })
                     <th>Name</th>
                     <td>{kubernetesApp.name}</td>
                 </tr>
-                <tr>
-                    <th>Kubernetes cluster</th>
-                    <td>{kubernetesCluster?.name || '-'}</td>
-                </tr>
+                {kubernetesCluster && (
+                    <tr>
+                        <th>Kubernetes cluster</th>
+                        <td>{kubernetesCluster?.name || '-'}</td>
+                    </tr>
+                )}
                 <tr>
                     <th>Template</th>
                     <td>{kubernetesAppTemplate.label}</td>
@@ -466,9 +468,10 @@ export const KubernetesAppCard = ({
         kubernetesAppTemplatePlaceholder
     );
 
-    const kubernetesCluster = get(
-        tenancy.kubernetesClusters.data,
-        kubernetesApp.kubernetes_cluster.id
+    const kubernetesCluster = (
+        kubernetesApp.kubernetes_cluster ?
+            get(tenancy.kubernetesClusters.data, kubernetesApp.kubernetes_cluster.id) :
+            null
     );
 
     // Kubernetes apps expire at the same time as the underlying cluster

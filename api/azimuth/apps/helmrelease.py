@@ -71,6 +71,10 @@ class Provider(base.Provider):
         Returns a Cluster API session scoped to the given cloud provider session.
         """
         client = self._ekconfig.sync_client()
+        # Work out what namespace to target for the tenancy
+        namespace = get_namespace(client, cloud_session.tenancy())
+        # Set the target namespace as the default namespace for the client
+        client.default_namespace = namespace
         return Session(client, cloud_session)
 
 
@@ -258,6 +262,8 @@ class Session(base.Session):
         values: dict[str, t.Any],
         *,
         kubernetes_cluster: capi_dto.Cluster | None = None,
+        # This is ignored for the HelmRelease driver - the realm for the target cluster is used
+        zenith_identity_realm_name: str | None = None
     ) -> dto.App:
         """
         Create a new app in the tenancy.
@@ -367,26 +373,3 @@ class Session(base.Session):
         Closes the session and performs any cleanup.
         """
         self._client.close()
-
-    def __enter__(self):
-        """
-        Called when entering a context manager block.
-        """
-        self._client.__enter__()
-        # Work out what namespace to target for the tenancy
-        namespace = get_namespace(self._client, self._cloud_session.tenancy())
-        # Set the target namespace as the default namespace for the client
-        self._client.default_namespace = namespace
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        """
-        Called when exiting a context manager block. Ensures that close is called.
-        """
-        self._client.__exit__(exc_type, exc_value, traceback)
-
-    def __del__(self):
-        """
-        Ensures that close is called when the session is garbage collected.
-        """
-        self.close()

@@ -1161,7 +1161,10 @@ class CreateKubernetesAppSerializer(serializers.Serializer):
         "^[a-z0-9-]+$",
         write_only=True,
         # The apps driver decides whether the cluster is required or not
+        # So the field is not required and empty strings and null are allowed
         required=False,
+        allow_blank=True,
+        allow_null=True
     )
     values = serializers.JSONField(write_only=True)
 

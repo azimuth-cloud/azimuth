@@ -2,6 +2,8 @@
 Django middlewares for the Azimuth auth package.
 """
 
+import contextlib
+
 from .settings import auth_settings
 
 
@@ -25,6 +27,29 @@ class Middleware:
     def get_session_token(self, request):
         return request.session.get(auth_settings.TOKEN_SESSION_KEY, None)
 
+    @contextlib.contextmanager
+    def update_session_token(self, auth_session, request):
+        """
+        Context manager that ensures that the most up-to-date token is stored in the session.
+        """
+        if auth_settings.TOKEN_SESSION_KEY in request.session:
+            # Get the original session token before the request processing happens
+            original_token = request.session[auth_settings.TOKEN_SESSION_KEY]
+            yield
+            # If the session token has changed during the request processing that means a
+            # reauthentication has happened, which takes precedence
+            # It is also possible that the token has been removed from the session, e.g.
+            # during a logout
+            session_token = request.session.get(auth_settings.TOKEN_SESSION_KEY)
+            if session_token and session_token == original_token:
+                # If the token in the auth session has changed, update it
+                current_token = auth_session.token()
+                if current_token != original_token:
+                    request.session[auth_settings.TOKEN_SESSION_KEY] = current_token
+        else:
+            # If there is no token in the session, we don't put one in
+            yield
+
     def __call__(self, request):
         # Try the bearer token first
         token = self.get_bearer_token(request)
@@ -35,7 +60,8 @@ class Middleware:
         if not token:
             return self.get_response(request)
         # If there is a token, use it to create a session
-        with auth_settings.SESSION_PROVIDER.from_token(token) as session:
-            request.auth_session = session
-            # Process the rest of the response inside the context manager
-            return self.get_response(request)
+        with auth_settings.SESSION_PROVIDER.from_token(token) as auth_session:
+            with self.update_session_token(auth_session, request):
+                request.auth_session = auth_session
+                response = self.get_response(request)
+                return response

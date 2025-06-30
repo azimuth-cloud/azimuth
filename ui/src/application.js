@@ -140,7 +140,7 @@ const ConnectedTenancyResourcePage = connect(
 
     // Ensure that we initialise the resources we need to decide if platforms are supported
     // Platforms are supported if:
-    //   The tenancy has access to at least one cluster type or Kubernetes template
+    //   The tenancy has access to at least one platform type (i.e. CaaS, Kubernetes, Kubernetes app)
     //   OR
     //   There is at least one platform deployed in the tenancy
     useResourceInitialised(
@@ -159,14 +159,24 @@ const ConnectedTenancyResourcePage = connect(
         currentTenancy.kubernetesClusters,
         boundTenancyActions.kubernetesCluster.fetchList
     );
+    useResourceInitialised(
+        currentTenancy.kubernetesAppTemplates,
+        boundTenancyActions.kubernetesAppTemplate.fetchList
+    );
+    useResourceInitialised(
+        currentTenancy.kubernetesApps,
+        boundTenancyActions.kubernetesApp.fetchList
+    );
 
     // Decide whether we have enough information yet to decide if platforms are supported
     let supportsPlatforms;
     if(
         Object.keys(currentTenancy.clusterTypes.data || {}).length > 0 ||
         Object.keys(currentTenancy.kubernetesClusterTemplates.data || {}).length > 0 ||
+        Object.keys(currentTenancy.kubernetesAppTemplates.data || {}).length > 0 ||
         Object.keys(currentTenancy.clusters.data || {}).length > 0 ||
-        Object.keys(currentTenancy.kubernetesClusters.data || {}).length > 0
+        Object.keys(currentTenancy.kubernetesClusters.data || {}).length > 0 ||
+        Object.keys(currentTenancy.kubernetesApps.data || {}).length > 0
     ) {
         // If one of the resources has some data, platforms are supported
         supportsPlatforms = true;
@@ -174,8 +184,10 @@ const ConnectedTenancyResourcePage = connect(
     else if(
         currentTenancy.clusterTypes.initialised &&
         currentTenancy.kubernetesClusterTemplates.initialised &&
+        currentTenancy.kubernetesAppTemplates.initialised &&
         currentTenancy.clusters.initialised &&
-        currentTenancy.kubernetesClusters.initialised
+        currentTenancy.kubernetesClusters.initialised &&
+        currentTenancy.kubernetesApps.initialised
     ) {
         // If none of the resources has any data but they are all initialised, platforms
         // are not supported
@@ -184,8 +196,10 @@ const ConnectedTenancyResourcePage = connect(
     else if(
         currentTenancy.clusterTypes.fetching ||
         currentTenancy.kubernetesClusterTemplates.fetching ||
+        currentTenancy.kubernetesAppTemplates.fetching ||
         currentTenancy.clusters.fetching ||
-        currentTenancy.kubernetesClusters.fetching
+        currentTenancy.kubernetesClusters.fetching ||
+        currentTenancy.kubernetesApps.fetching
     ) {
         // If one of the resources is still fetching, we can't decide yet
         return (
@@ -204,8 +218,10 @@ const ConnectedTenancyResourcePage = connect(
             [
                 currentTenancy.clusterTypes.fetchError,
                 currentTenancy.kubernetesClusterTemplates.fetchError,
+                currentTenancy.kubernetesAppTemplates.fetchError,
                 currentTenancy.clusters.fetchError,
-                currentTenancy.kubernetesClusters.fetchError
+                currentTenancy.kubernetesClusters.fetchError,
+                currentTenancy.kubernetesApps.fetchError
             ].filter(e => !!e)
         );
         if( fetchErrors.length == 0 ) {
