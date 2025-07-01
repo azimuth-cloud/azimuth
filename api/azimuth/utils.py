@@ -1,11 +1,9 @@
-import itertools
 import logging
 import re
 
 import easykube
 
 from .provider import dto
-
 
 MANAGED_BY_LABEL = "app.kubernetes.io/managed-by"
 # A legacy stackhpc.com label and a new-style azimuth-cloud.io label are both supported
@@ -20,6 +18,7 @@ class DuplicateTenancyIDError(Exception):
     """
     Raised when there are multiple namespaces with the same tenancy ID.
     """
+
     def __init__(self, tenancy_id: str):
         super().__init__(f"multiple tenancy namespaces found with ID '{tenancy_id}'")
 
@@ -28,6 +27,7 @@ class NamespaceOwnershipError(Exception):
     """
     Raised when there is a conflict in the namespace ownership.
     """
+
     def __init__(self, namespace: str, expected_owner: str, current_owner: str):
         super().__init__(
             f"expected namespace '{namespace}' to be owned by tenant "
@@ -47,11 +47,11 @@ def unique_namespaces(ekresource, tenancy_id):
     Returns an iterator over the unique namespaces for the given tenancy ID.
     """
     seen_namespaces = set()
-    for namespace in ekresource.list(labels = {TENANCY_ID_LABEL: tenancy_id}):
+    for namespace in ekresource.list(labels={TENANCY_ID_LABEL: tenancy_id}):
         # We won't see any duplicate namespaces in this first loop
         seen_namespaces.add(namespace["metadata"]["name"])
         yield namespace
-    for namespace in ekresource.list(labels = {TENANCY_ID_LABEL_LEGACY: tenancy_id}):
+    for namespace in ekresource.list(labels={TENANCY_ID_LABEL_LEGACY: tenancy_id}):
         # We might see namespaces in this loop that appeared in the previous loop, if a
         # namespace has both labels
         ns_name = namespace["metadata"]["name"]
@@ -95,7 +95,9 @@ def get_namespace(ekclient, tenancy: dto.Tenancy) -> str:
     except easykube.ApiError as exc:
         if exc.status_code == 404:
             # Even if the namespace doesn't exist, it is still the correct one to use
-            logger.info(f"using namespace '{expected_namespace}' for tenant '{tenancy_id}'")
+            logger.info(
+                f"using namespace '{expected_namespace}' for tenant '{tenancy_id}'"
+            )
             return expected_namespace
         else:
             raise
@@ -126,5 +128,5 @@ def ensure_namespace(ekclient, namespace: str, tenancy: dto.Tenancy):
                     TENANCY_ID_LABEL: sanitise(tenancy.id),
                 },
             },
-        }
+        },
     )

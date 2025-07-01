@@ -4,11 +4,10 @@ Root settings file
 Includes settings files from a sibling directory called settings.d.
 """
 
-import os
+import os  # noqa: F401
 from pathlib import Path
 
 from flexi_settings import include, include_dir
-
 
 base_dir = Path(__file__).resolve().parent
 

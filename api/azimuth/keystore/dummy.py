@@ -12,7 +12,8 @@ class DummyKeyStore(KeyStore):
     Args:
         key: The single public key to use for all users.
     """
-    def __init__(self, key = None):
+
+    def __init__(self, key=None):
         self.key = key
 
     def get_key(self, username, **kwargs):

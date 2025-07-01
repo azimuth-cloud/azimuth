@@ -1,5 +1,5 @@
-import re
 import logging
+import re
 
 LOG = logging.getLogger(__name__)
 
@@ -61,6 +61,5 @@ def allowed_by_acls(raw, tenancy):
 
     # If either 'allow' annotation is present and non-empty then default to deny
     return not (
-        annotations.get(ACL_ALLOW_IDS_KEY) or
-        annotations.get(ACL_ALLOW_PATTERN_KEY)
+        annotations.get(ACL_ALLOW_IDS_KEY) or annotations.get(ACL_ALLOW_PATTERN_KEY)
     )

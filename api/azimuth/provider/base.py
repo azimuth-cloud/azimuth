@@ -3,13 +3,14 @@ This module defines the interface for a cloud provider.
 """
 
 import functools
-from typing import Any, Iterable, Mapping, Optional, Union
+from collections.abc import Iterable, Mapping
+from typing import Any
 
+from azimuth_auth.session import dto as auth_dto
+from azimuth_auth.session import errors as auth_errors
 from azimuth_auth.session.base import Session as AuthSession
-from azimuth_auth.session import dto as auth_dto, errors as auth_errors
 
-from ..cluster_engine import dto as clusters_dto
-
+from ..cluster_engine import dto as clusters_dto  # noqa: TID252
 from . import dto, errors
 
 
@@ -17,6 +18,7 @@ def convert_auth_session_errors(f):
     """
     Decorator that converts errors from the auth session into provider errors.
     """
+
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
         try:
@@ -37,6 +39,7 @@ def convert_auth_session_errors(f):
             raise errors.CommunicationError(str(exc)) from exc
         except auth_errors.Error as exc:
             raise errors.Error(str(exc)) from exc
+
     return wrapper
 
 
@@ -44,13 +47,13 @@ class Provider:
     """
     Class for a cloud provider.
     """
+
     def _from_auth_session(
-        self,
-        auth_session: AuthSession,
-        auth_user: auth_dto.User
-    ) -> 'UnscopedSession':
+        self, auth_session: AuthSession, auth_user: auth_dto.User
+    ) -> "UnscopedSession":
         """
-        Private method that creates an unscoped session from the given auth session and user.
+        Private method that creates an unscoped session from the given auth session and
+        user.
 
         This method should be overridden in subclasses to create unscoped sessions.
         Subclasses can assume that the parent class will handle error conditions.
@@ -58,7 +61,7 @@ class Provider:
         raise NotImplementedError
 
     @convert_auth_session_errors
-    def from_auth_session(self, auth_session: AuthSession) -> 'UnscopedSession':
+    def from_auth_session(self, auth_session: AuthSession) -> "UnscopedSession":
         """
         Creates an unscoped session for the given auth session.
         """
@@ -73,6 +76,7 @@ class UnscopedSession:
     By default, an unscoped session wraps an auth session, with only creation of the
     scoped session from the credential provided by the auth session being overridden.
     """
+
     def __init__(self, auth_session: AuthSession, auth_user: auth_dto.User):
         self.auth_session = auth_session
         self.auth_user = auth_user
@@ -99,7 +103,7 @@ class UnscopedSession:
         """
         return self.auth_user.username
 
-    def user_email(self) -> Optional[str]:
+    def user_email(self) -> str | None:
         """
         Returns the email for the user who started the session.
         """
@@ -115,7 +119,8 @@ class UnscopedSession:
     @convert_auth_session_errors
     def update_ssh_public_key(self, public_key: str) -> str:
         """
-        Update the stored SSH public key for the authenticated user and returns the new SSH key.
+        Update the stored SSH public key for the authenticated user and returns the new
+        SSH key.
         """
         return self.auth_session.update_ssh_public_key(public_key)
 
@@ -135,11 +140,8 @@ class UnscopedSession:
         return True
 
     def _scoped_session(
-        self,
-        auth_user: auth_dto.User,
-        tenancy: dto.Tenancy,
-        credential_data: str
-    ) -> 'ScopedSession':
+        self, auth_user: auth_dto.User, tenancy: dto.Tenancy, credential_data: str
+    ) -> "ScopedSession":
         """
         Private method that creates a scoped session for the given tenancy.
 
@@ -149,7 +151,7 @@ class UnscopedSession:
         raise NotImplementedError
 
     @convert_auth_session_errors
-    def scoped_session(self, tenancy: Union[dto.Tenancy, str]) -> 'ScopedSession':
+    def scoped_session(self, tenancy: dto.Tenancy | str) -> "ScopedSession":
         """
         Get a scoped session for the given tenancy.
         """
@@ -159,7 +161,7 @@ class UnscopedSession:
                 tenancy = next(t for t in self.tenancies() if t.id == tenancy)
             except StopIteration:
                 raise errors.ObjectNotFoundError(
-                    "Could not find tenancy with ID {}.".format(tenancy)
+                    f"Could not find tenancy with ID {tenancy}."
                 )
         # If the provider requires a credential, try to find one
         if self._requires_credential():
@@ -206,6 +208,7 @@ class ScopedSession:
     """
     Class for a tenancy-scoped session.
     """
+
     def __init__(self, auth_user: auth_dto.User, tenancy: dto.Tenancy):
         self._auth_user = auth_user
         self._tenancy = tenancy
@@ -253,7 +256,7 @@ class ScopedSession:
         The absence of these resources indicates that there is no specific limit.
         """
         raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
+            f"Operation not supported for provider '{self.provider_name}'"
         )
 
     def images(self) -> Iterable[dto.Image]:
@@ -261,15 +264,15 @@ class ScopedSession:
         Lists the images available to the tenancy.
         """
         raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
+            f"Operation not supported for provider '{self.provider_name}'"
         )
 
-    def find_image(self, id: str) -> dto.Image:
+    def find_image(self, id: str) -> dto.Image:  # noqa: A002
         """
         Finds an image by id.
         """
         raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
+            f"Operation not supported for provider '{self.provider_name}'"
         )
 
     def sizes(self) -> Iterable[dto.Size]:
@@ -277,15 +280,15 @@ class ScopedSession:
         Lists the machine sizes available to the tenancy.
         """
         raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
+            f"Operation not supported for provider '{self.provider_name}'"
         )
 
-    def find_size(self, id: str) -> dto.Size:
+    def find_size(self, id: str) -> dto.Size:  # noqa: A002
         """
         Finds a size by id.
         """
         raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
+            f"Operation not supported for provider '{self.provider_name}'"
         )
 
     def machines(self) -> Iterable[dto.Machine]:
@@ -293,123 +296,118 @@ class ScopedSession:
         Lists the machines in the tenancy.
         """
         raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
+            f"Operation not supported for provider '{self.provider_name}'"
         )
 
-    def find_machine(self, id: str) -> dto.Machine:
+    def find_machine(self, id: str) -> dto.Machine:  # noqa: A002
         """
         Finds a machine by id.
         """
         raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
+            f"Operation not supported for provider '{self.provider_name}'"
         )
 
-    def fetch_logs_for_machine(self, machine: Union[dto.Machine, str]) -> Iterable[str]:
+    def fetch_logs_for_machine(self, machine: dto.Machine | str) -> Iterable[str]:
         """
         Returns the log lines for the given machine.
         """
         raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
+            f"Operation not supported for provider '{self.provider_name}'"
         )
 
     def create_machine(
         self,
         name: str,
-        image: Union[dto.Image, str],
-        size: Union[dto.Size, str],
-        ssh_key: Optional[str] = None,
-        metadata: Optional[Mapping[str, str]] = None,
-        userdata: Optional[str] = None
+        image: dto.Image | str,
+        size: dto.Size | str,
+        ssh_key: str | None = None,
+        metadata: Mapping[str, str] | None = None,
+        userdata: str | None = None,
     ) -> dto.Machine:
         """
         Create a new machine in the tenancy.
         """
         raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
+            f"Operation not supported for provider '{self.provider_name}'"
         )
 
     def resize_machine(
-        self,
-        machine: Union[dto.Machine, str],
-        size: Union[dto.Size, str]
+        self, machine: dto.Machine | str, size: dto.Size | str
     ) -> dto.Machine:
         """
         Change the size of a machine.
         """
         raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
+            f"Operation not supported for provider '{self.provider_name}'"
         )
 
-    def start_machine(self, machine: Union[dto.Machine, str]) -> dto.Machine:
+    def start_machine(self, machine: dto.Machine | str) -> dto.Machine:
         """
         Start the specified machine.
         """
         raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
+            f"Operation not supported for provider '{self.provider_name}'"
         )
 
-    def stop_machine(self, machine: Union[dto.Machine, str]) -> dto.Machine:
+    def stop_machine(self, machine: dto.Machine | str) -> dto.Machine:
         """
         Stop the specified machine.
         """
         raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
+            f"Operation not supported for provider '{self.provider_name}'"
         )
 
-    def restart_machine(self, machine: Union[dto.Machine, str]) -> dto.Machine:
+    def restart_machine(self, machine: dto.Machine | str) -> dto.Machine:
         """
         Restart the specified machine.
         """
         raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
+            f"Operation not supported for provider '{self.provider_name}'"
         )
 
-    def delete_machine(self, machine: Union[dto.Machine, str]) -> Optional[dto.Machine]:
+    def delete_machine(self, machine: dto.Machine | str) -> dto.Machine | None:
         """
         Delete the specified machine.
         """
         raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
+            f"Operation not supported for provider '{self.provider_name}'"
         )
 
     def fetch_firewall_rules_for_machine(
-        self,
-        machine: Union[dto.Machine, str]
+        self, machine: dto.Machine | str
     ) -> Iterable[dto.FirewallGroup]:
         """
         Returns the firewall rules for the machine.
         """
         raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
+            f"Operation not supported for provider '{self.provider_name}'"
         )
 
     def add_firewall_rule_to_machine(
         self,
-        machine: Union[dto.Machine, str],
+        machine: dto.Machine | str,
         # See the DTO for details of the options
         direction: dto.FirewallRuleDirection,
         protocol: dto.FirewallRuleProtocol,
-        port: Optional[int] = None,
-        remote_cidr: Optional[str] = None
+        port: int | None = None,
+        remote_cidr: str | None = None,
     ) -> Iterable[dto.FirewallGroup]:
         """
         Adds a firewall rule to the specified machine and returns the new set of rules.
         """
         raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
+            f"Operation not supported for provider '{self.provider_name}'"
         )
 
     def remove_firewall_rule_from_machine(
-        self,
-        machine: Union[dto.Machine, str],
-        firewall_rule: Union[dto.FirewallRule, str]
+        self, machine: dto.Machine | str, firewall_rule: dto.FirewallRule | str
     ) -> Iterable[dto.FirewallGroup]:
         """
         Removes the specified firewall rule from the machine and returns the new set
         of rules.
         """
         raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
+            f"Operation not supported for provider '{self.provider_name}'"
         )
 
     def external_ips(self) -> Iterable[dto.ExternalIp]:
@@ -418,15 +416,15 @@ class ScopedSession:
         tenancy.
         """
         raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
+            f"Operation not supported for provider '{self.provider_name}'"
         )
 
-    def find_external_ip(self, id: str) -> dto.ExternalIp:
+    def find_external_ip(self, id: str) -> dto.ExternalIp:  # noqa: A002
         """
         Finds an external IP by id.
         """
         raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
+            f"Operation not supported for provider '{self.provider_name}'"
         )
 
     def find_external_ip_by_ip_address(self, ip_address: str):
@@ -434,7 +432,7 @@ class ScopedSession:
         Finds an external IP by the IP address.
         """
         raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
+            f"Operation not supported for provider '{self.provider_name}'"
         )
 
     def allocate_external_ip(self) -> dto.ExternalIp:
@@ -443,28 +441,26 @@ class ScopedSession:
         it.
         """
         raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
+            f"Operation not supported for provider '{self.provider_name}'"
         )
 
     def attach_external_ip(
-        self,
-        ip: Union[dto.ExternalIp, str],
-        machine: Union[dto.Machine, str]
+        self, ip: dto.ExternalIp | str, machine: dto.Machine | str
     ) -> dto.ExternalIp:
         """
         Attaches an external IP to a machine.
         """
         raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
+            f"Operation not supported for provider '{self.provider_name}'"
         )
 
-    def detach_external_ip(self, ip: Union[dto.ExternalIp, str]) -> dto.ExternalIp:
+    def detach_external_ip(self, ip: dto.ExternalIp | str) -> dto.ExternalIp:
         """
         Detaches the given external IP from whichever machine it is currently
         attached to.
         """
         raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
+            f"Operation not supported for provider '{self.provider_name}'"
         )
 
     def volumes(self) -> Iterable[dto.Volume]:
@@ -472,15 +468,15 @@ class ScopedSession:
         Lists the volumes currently available to the tenancy.
         """
         raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
+            f"Operation not supported for provider '{self.provider_name}'"
         )
 
-    def find_volume(self, id: str) -> dto.Volume:
+    def find_volume(self, id: str) -> dto.Volume:  # noqa: A002
         """
         Finds a volume by id.
         """
         raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
+            f"Operation not supported for provider '{self.provider_name}'"
         )
 
     def create_volume(self, name: str, size: int) -> dto.Volume:
@@ -488,35 +484,33 @@ class ScopedSession:
         Create a new volume in the tenancy.
         """
         raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
+            f"Operation not supported for provider '{self.provider_name}'"
         )
 
-    def delete_volume(self, volume: Union[dto.Volume, str]) -> Optional[dto.Volume]:
+    def delete_volume(self, volume: dto.Volume | str) -> dto.Volume | None:
         """
         Delete the specified volume.
         """
         raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
+            f"Operation not supported for provider '{self.provider_name}'"
         )
 
     def attach_volume(
-        self,
-        volume: Union[dto.Volume, str],
-        machine: Union[dto.Machine, str]
+        self, volume: dto.Volume | str, machine: dto.Machine | str
     ) -> dto.Volume:
         """
         Attaches the specified volume to the specified machine.
         """
         raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
+            f"Operation not supported for provider '{self.provider_name}'"
         )
 
-    def detach_volume(self, volume: Union[dto.Volume, str]) -> dto.Volume:
+    def detach_volume(self, volume: dto.Volume | str) -> dto.Volume:
         """
         Detaches the specified volume from the machine it is attached to.
         """
         raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
+            f"Operation not supported for provider '{self.provider_name}'"
         )
 
     def cloud_credential(self, name: str, description: str) -> dto.Credential:
@@ -524,7 +518,7 @@ class ScopedSession:
         Returns a credential with the given name for interacting with the cloud.
         """
         raise errors.UnsupportedOperationError(
-            "Operation not supported for provider '{}'".format(self.provider_name)
+            f"Operation not supported for provider '{self.provider_name}'"
         )
 
     def cluster_parameters(self) -> Mapping[str, Any]:

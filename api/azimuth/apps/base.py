@@ -1,7 +1,7 @@
 import typing as t
 
-from ..cluster_api import dto as capi_dto
-from ..provider import base as cloud_base
+from ..cluster_api import dto as capi_dto  # noqa: TID252
+from ..provider import base as cloud_base  # noqa: TID252
 from . import dto
 
 
@@ -9,7 +9,8 @@ class Provider:
     """
     Base class for apps providers.
     """
-    def session(self, cloud_session: cloud_base.ScopedSession) -> 'Session':
+
+    def session(self, cloud_session: cloud_base.ScopedSession) -> "Session":
         """
         Returns an apps session scoped to the given cloud provider session.
         """
@@ -20,13 +21,14 @@ class Session:
     """
     Base class for a scoped apps session.
     """
+
     def app_templates(self) -> t.Iterable[dto.AppTemplate]:
         """
         Lists the app templates currently available to the tenancy.
         """
         raise NotImplementedError
 
-    def find_app_template(self, id: str) -> dto.AppTemplate:
+    def find_app_template(self, id: str) -> dto.AppTemplate:  # noqa: A002
         """
         Finds an app template by id.
         """
@@ -38,7 +40,7 @@ class Session:
         """
         raise NotImplementedError
 
-    def find_app(self, id: str) -> dto.App:
+    def find_app(self, id: str) -> dto.App:  # noqa: A002
         """
         Finds an app by id.
         """
@@ -48,10 +50,10 @@ class Session:
         self,
         name: str,
         template: dto.AppTemplate,
-        values: t.Dict[str, t.Any],
+        values: dict[str, t.Any],
         *,
-        kubernetes_cluster: t.Optional[capi_dto.Cluster] = None,
-        zenith_identity_realm_name: t.Optional[str] = None
+        kubernetes_cluster: capi_dto.Cluster | None = None,
+        zenith_identity_realm_name: str | None = None,
     ) -> dto.App:
         """
         Create a new app in the tenancy.
@@ -60,17 +62,17 @@ class Session:
 
     def update_app(
         self,
-        app: t.Union[dto.App, str],
+        app: dto.App | str,
         template: dto.AppTemplate,
         version: dto.Version,
-        values: t.Dict[str, t.Any]
+        values: dict[str, t.Any],
     ) -> dto.App:
         """
         Update the specified cluster with the given parameters.
         """
         raise NotImplementedError
 
-    def delete_app(self, app: t.Union[dto.App, str]) -> t.Optional[dto.App]:
+    def delete_app(self, app: dto.App | str) -> dto.App | None:
         """
         Delete the specified app.
         """

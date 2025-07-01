@@ -5,6 +5,7 @@ class Provider(base.Provider):
     """
     Null provider implementation that doesn't implement anything.
     """
+
     provider_name = "null"
 
     def _from_auth_session(self, auth_session, auth_user):
@@ -15,6 +16,7 @@ class UnscopedSession(base.UnscopedSession):
     """
     Unscoped session implementation for the null provider.
     """
+
     provider_name = "null"
 
     def _requires_credential(self):
@@ -29,7 +31,8 @@ class ScopedSession(base.ScopedSession):
     """
     Scoped session implementation for the null provider.
     """
+
     provider_name = "null"
 
     def capabilities(self):
-        return dto.Capabilities(supports_volumes = False)
+        return dto.Capabilities(supports_volumes=False)

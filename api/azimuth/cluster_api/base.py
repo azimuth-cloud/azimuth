@@ -6,23 +6,17 @@ import logging
 import typing as t
 
 import dateutil.parser
-
 import httpx
+from easykube import PRESENT, ApiError, Configuration, SyncClient  # noqa: F401
 
-from easykube import (
-    Configuration,
-    ApiError,
-    SyncClient,
-    PRESENT
-)
-
-from ..provider import base as cloud_base, dto as cloud_dto, errors as cloud_errors
-from ..scheduling import dto as scheduling_dto, k8s as scheduling_k8s
-from .. import utils
-
+from .. import utils  # noqa: TID252
+from ..acls import allowed_by_acls  # noqa: TID252
+from ..provider import base as cloud_base  # noqa: TID252
+from ..provider import dto as cloud_dto  # noqa: TID252
+from ..provider import errors as cloud_errors  # noqa: TID252
+from ..scheduling import dto as scheduling_dto  # noqa: TID252
+from ..scheduling import k8s as scheduling_k8s  # noqa: TID252
 from . import dto, errors
-from ..acls import allowed_by_acls
-
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +27,10 @@ AZIMUTH_API_VERSION = "azimuth.stackhpc.com/v1alpha1"
 
 def convert_exceptions(f):
     """
-    Decorator that converts Kubernetes API exceptions into errors from :py:mod:`..errors`.
+    Decorator that converts Kubernetes API exceptions into errors from
+    :py:mod:`..errors`.
     """
+
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
         try:
@@ -44,8 +40,8 @@ def convert_exceptions(f):
             status_code = exc.response.status_code
             message = (
                 str(exc)
-                    .replace("clustertemplates.azimuth.stackhpc.com", "Cluster template")
-                    .replace("clusters.azimuth.stackhpc.com", "Cluster")
+                .replace("clustertemplates.azimuth.stackhpc.com", "Cluster template")
+                .replace("clusters.azimuth.stackhpc.com", "Cluster")
             )
             if status_code == 400:
                 raise errors.BadInputError(message)
@@ -56,9 +52,10 @@ def convert_exceptions(f):
             else:
                 logger.exception("Unknown error with Kubernetes API.")
                 raise errors.CommunicationError("Unknown error with Kubernetes API.")
-        except httpx.HTTPError as exc:
+        except httpx.HTTPError as exc:  # noqa: F841
             logger.exception("Could not connect to Kubernetes API.")
             raise errors.CommunicationError("Could not connect to Kubernetes API.")
+
     return wrapper
 
 
@@ -66,20 +63,22 @@ class Provider:
     """
     Base class for Cluster API providers.
     """
+
     def __init__(self):
         # Get the easykube configuration from the environment
         self._ekconfig = Configuration.from_environment()
 
-    def get_session_class(self) -> t.Type['Session']:
+    def get_session_class(self) -> type["Session"]:
         """
         Returns the session class for the provider.
 
-        By default, it uses a class called ``Session`` in the same module as the provider.
+        By default, it uses a class called ``Session`` in the same module as the
+        provider.
         """
         module = importlib.import_module(self.__module__)
         return module.Session
 
-    def session(self, cloud_session: cloud_base.ScopedSession) -> 'Session':
+    def session(self, cloud_session: cloud_base.ScopedSession) -> "Session":
         """
         Returns a Cluster API session scoped to the given cloud provider session.
         """
@@ -92,6 +91,7 @@ class NodeGroupSpec(t.TypedDict):
     """
     Type representing a node group specification dict.
     """
+
     #: The name of the node group
     name: str
     #: The size of nodes in the group
@@ -99,29 +99,30 @@ class NodeGroupSpec(t.TypedDict):
     #: Indicates if the node group should autoscale
     autoscale: bool
     #: The fixed number of nodes in the node group when autoscale is false
-    count: t.Optional[int]
+    count: int | None
     #: The minimum number of nodes in the node group when autoscale is true
-    min_count: t.Optional[int]
+    min_count: int | None
     #: The maximum number of nodes in the node group when autoscale is true
-    max_count: t.Optional[int]
+    max_count: int | None
 
 
 class Session:
     """
     Base class for a scoped session.
     """
+
     def __init__(self, client: SyncClient, cloud_session: cloud_base.ScopedSession):
         self._client = client
         self._cloud_session = cloud_session
 
-    def _log(self, message, *args, level = logging.INFO, **kwargs):
+    def _log(self, message, *args, level=logging.INFO, **kwargs):
         logger.log(
             level,
             "[%s] [%s] " + message,
             self._cloud_session.username(),
             self._cloud_session.tenancy().name,
             *args,
-            **kwargs
+            **kwargs,
         )
 
     def _from_api_cluster_template(self, ct):
@@ -142,8 +143,12 @@ class Session:
             ct.spec.get("deprecated", False),
             values.get("controlPlane", {}).get("machineCount", 3),
             etcd_volume_size,
-            values.get("controlPlane", {}).get("machineRootVolume", {}).get("diskSize") or 0,
-            values.get("nodeGroupDefaults", {}).get("machineRootVolume", {}).get("diskSize") or 0,
+            values.get("controlPlane", {}).get("machineRootVolume", {}).get("diskSize")
+            or 0,
+            values.get("nodeGroupDefaults", {})
+            .get("machineRootVolume", {})
+            .get("diskSize")
+            or 0,
             ct.spec.get("tags", []),
             dateutil.parser.parse(ct.metadata["creationTimestamp"]),
         )
@@ -155,10 +160,7 @@ class Session:
         """
         self._log("Fetching available cluster templates")
         templates = list(
-            self._client
-                .api(AZIMUTH_API_VERSION)
-                .resource("clustertemplates")
-                .list()
+            self._client.api(AZIMUTH_API_VERSION).resource("clustertemplates").list()
         )
 
         # Filter cluster templates based on ACL annotations
@@ -169,23 +171,19 @@ class Session:
         return tuple(self._from_api_cluster_template(ct) for ct in templates)
 
     @convert_exceptions
-    def find_cluster_template(self, id: str) -> dto.ClusterTemplate:
+    def find_cluster_template(self, id: str) -> dto.ClusterTemplate:  # noqa: A002
         """
         Finds a cluster template by id.
         """
         self._log("Fetching cluster template with id '%s'", id)
         template = (
-            self._client
-                .api(AZIMUTH_API_VERSION)
-                .resource("clustertemplates")
-                .fetch(id)
+            self._client.api(AZIMUTH_API_VERSION).resource("clustertemplates").fetch(id)
         )
-        
+
         if not allowed_by_acls(template, self._cloud_session.tenancy()):
             raise errors.ObjectNotFoundError(f"Cannot find cluster template {id}")
-        
+
         return self._from_api_cluster_template(template)
-            
 
     def _from_api_cluster(self, cluster, sizes):
         """
@@ -195,11 +193,11 @@ class Session:
         cluster_status = cluster.get("status", {})
 
         # We want to account for the case where a change has been made but the operator
-        # has not yet caught up by tweaking the cluster state against what is reported
+        # has not yet caught up by tweaking the cluster state against what is reported
         cluster_state = cluster_status.get("phase")
         if cluster.metadata.get("deletionTimestamp"):
             # If the cluster has a deletion timestamp, flag it as deleting even if
-            # the operator hasn't yet updated the status
+            # the operator hasn't yet updated the status
             cluster_state = "Deleting"
         elif not cluster_state:
             # If there is no state, then the operator has not caught up after a create
@@ -213,10 +211,10 @@ class Session:
             # the else clause below would decide to do
             #
             # This is because the last-handled-configuration is only updated when the
-            # create/update handler executes successfully, meaning that if an error occurs
-            # in the handler the cluster will stay reconciling forever if using the logic
-            # from the else clause, even when the operator has moved it into the unhealthy
-            # state due to the timeout
+            # create/update handler executes successfully, meaning that if an error
+            # occurs in the handler the cluster will stay reconciling forever if using
+            # the logic from the else clause, even when the operator has moved it into
+            # the unhealthy state due to the timeout
             #
             # This has the undesired effect that when a change is made to an unhealthy
             # cluster, it will not move to reconciling until the operator catches up
@@ -227,9 +225,9 @@ class Session:
             # If the template has changed, we have an upgrade
             # If anything else has changed, we have a reconciliation
             last_handled_configuration = json.loads(
-                cluster.metadata
-                    .get("annotations", {})
-                    .get("azimuth.stackhpc.com/last-handled-configuration", "{}")
+                cluster.metadata.get("annotations", {}).get(
+                    "azimuth.stackhpc.com/last-handled-configuration", "{}"
+                )
             )
             last_handled_spec = last_handled_configuration.get("spec", {})
             if "templateName" not in last_handled_spec:
@@ -258,23 +256,19 @@ class Session:
                     for size in sizes
                     if size.name == cluster.spec["controlPlaneMachineSize"]
                 ),
-                None
+                None,
             ),
             [
                 dto.NodeGroup(
                     ng["name"],
                     next(
-                        (
-                            size.id
-                            for size in sizes
-                            if size.name == ng["machineSize"]
-                        ),
-                        None
+                        (size.id for size in sizes if size.name == ng["machineSize"]),
+                        None,
                     ),
                     ng.get("autoscale", False),
                     ng.get("count"),
                     ng.get("minCount"),
-                    ng.get("maxCount")
+                    ng.get("maxCount"),
                 )
                 for ng in cluster.spec.get("nodeGroups", [])
             ],
@@ -294,17 +288,12 @@ class Session:
                     node["role"],
                     node.get("phase", "Unknown"),
                     next(
-                        (
-                            size.id
-                            for size in sizes
-                            if size.name == node["size"]
-                        ),
-                        None
+                        (size.id for size in sizes if size.name == node["size"]), None
                     ),
                     node.get("ip"),
                     node.get("kubeletVersion"),
                     node.get("nodeGroup"),
-                    dateutil.parser.parse(node["created"])
+                    dateutil.parser.parse(node["created"]),
                 )
                 for name, node in cluster_status.get("nodes", {}).items()
             ],
@@ -313,7 +302,9 @@ class Session:
                 for name, addon in cluster_status.get("addons", {}).items()
             ],
             [
-                dto.Service(name, service["label"], service["fqdn"], service.get("iconUrl"))
+                dto.Service(
+                    name, service["label"], service["fqdn"], service.get("iconUrl")
+                )
                 for name, service in cluster_status.get("services", {}).items()
             ],
             dateutil.parser.parse(cluster.metadata["creationTimestamp"]),
@@ -321,7 +312,7 @@ class Session:
             cluster.spec.get("createdByUserId"),
             cluster.spec.get("updatedByUsername"),
             cluster.spec.get("updatedByUserId"),
-            schedule
+            schedule,
         )
 
     @convert_exceptions
@@ -331,10 +322,7 @@ class Session:
         """
         self._log("Fetching available clusters")
         clusters = list(
-            self._client
-                .api(AZIMUTH_API_VERSION)
-                .resource("clusters")
-                .list()
+            self._client.api(AZIMUTH_API_VERSION).resource("clusters").list()
         )
         self._log("Found %s clusters", len(clusters))
         if clusters:
@@ -344,17 +332,12 @@ class Session:
             return ()
 
     @convert_exceptions
-    def find_cluster(self, id: str) -> dto.Cluster:
+    def find_cluster(self, id: str) -> dto.Cluster:  # noqa: A002
         """
         Finds a cluster by id.
         """
         self._log("Fetching cluster with id '%s'", id)
-        cluster = (
-            self._client
-                .api(AZIMUTH_API_VERSION)
-                .resource("clusters")
-                .fetch(id)
-        )
+        cluster = self._client.api(AZIMUTH_API_VERSION).resource("clusters").fetch(id)
         sizes = list(self._cloud_session.sizes())
         return self._from_api_cluster(cluster, sizes)
 
@@ -366,7 +349,7 @@ class Session:
         """
         credential = self._cloud_session.cloud_credential(
             f"az-kube-{cluster_name}",
-            f"Used by Azimuth to manage Kubernetes cluster '{cluster_name}'."
+            f"Used by Azimuth to manage Kubernetes cluster '{cluster_name}'.",
         )
         return credential.data
 
@@ -405,11 +388,15 @@ class Session:
         if "ingress_enabled" in options:
             addons["ingress"] = options["ingress_enabled"]
         if "ingress_controller_load_balancer_ip" in options:
-            addons["ingressControllerLoadBalancerIp"] = options["ingress_controller_load_balancer_ip"]
+            addons["ingressControllerLoadBalancerIp"] = options[
+                "ingress_controller_load_balancer_ip"
+            ]
         if "monitoring_enabled" in options:
             addons["monitoring"] = options["monitoring_enabled"]
         if "monitoring_metrics_volume_size" in options:
-            addons["monitoringPrometheusVolumeSize"] = options["monitoring_metrics_volume_size"]
+            addons["monitoringPrometheusVolumeSize"] = options[
+                "monitoring_metrics_volume_size"
+            ]
         if "monitoring_logs_volume_size" in options:
             addons["monitoringLokiVolumeSize"] = options["monitoring_logs_volume_size"]
         return spec
@@ -420,26 +407,24 @@ class Session:
         name: str,
         template: dto.ClusterTemplate,
         control_plane_size: cloud_dto.Size,
-        node_groups: t.List[NodeGroupSpec],
+        node_groups: list[NodeGroupSpec],
         resources: scheduling_dto.PlatformResources,
         autohealing_enabled: bool = True,
         dashboard_enabled: bool = False,
         ingress_enabled: bool = False,
-        ingress_controller_load_balancer_ip: t.Optional[str] = None,
+        ingress_controller_load_balancer_ip: str | None = None,
         monitoring_enabled: bool = False,
-        monitoring_metrics_volume_size: t.Optional[int] = None,
-        monitoring_logs_volume_size: t.Optional[int] = None,
-        zenith_identity_realm_name: t.Optional[str] = None,
-        schedule: t.Optional[scheduling_dto.PlatformSchedule] = None
+        monitoring_metrics_volume_size: int | None = None,
+        monitoring_logs_volume_size: int | None = None,
+        zenith_identity_realm_name: str | None = None,
+        schedule: scheduling_dto.PlatformSchedule | None = None,
     ) -> dto.Cluster:
         """
         Create a new cluster in the tenancy.
         """
         # Make sure that the target namespace exists
         utils.ensure_namespace(
-            self._client,
-            self._client.default_namespace,
-            self._cloud_session.tenancy()
+            self._client, self._client.default_namespace, self._cloud_session.tenancy()
         )
         # Make sure any shared resources exist
         self._ensure_shared_resources()
@@ -462,9 +447,7 @@ class Session:
                         # If we are using leases, the lease will delete the appcred
                         # If not, we want the janitor to delete it
                         "janitor.capi.stackhpc.com/credential-policy": (
-                            "keep"
-                            if leases_available
-                            else "delete"
+                            "keep" if leases_available else "delete"
                         ),
                     },
                 },
@@ -473,49 +456,55 @@ class Session:
         )
         # Build the cluster spec
         options = dict(
-            control_plane_size = control_plane_size,
-            node_groups = node_groups,
-            autohealing_enabled = autohealing_enabled,
-            dashboard_enabled = dashboard_enabled,
-            ingress_enabled = ingress_enabled,
-            ingress_controller_load_balancer_ip = ingress_controller_load_balancer_ip,
-            monitoring_enabled = monitoring_enabled
+            control_plane_size=control_plane_size,
+            node_groups=node_groups,
+            autohealing_enabled=autohealing_enabled,
+            dashboard_enabled=dashboard_enabled,
+            ingress_enabled=ingress_enabled,
+            ingress_controller_load_balancer_ip=ingress_controller_load_balancer_ip,
+            monitoring_enabled=monitoring_enabled,
         )
         if monitoring_metrics_volume_size is not None:
-            options.update(monitoring_metrics_volume_size = monitoring_metrics_volume_size)
+            options.update(
+                monitoring_metrics_volume_size=monitoring_metrics_volume_size
+            )
         if monitoring_logs_volume_size is not None:
-            options.update(monitoring_logs_volume_size = monitoring_logs_volume_size)
+            options.update(monitoring_logs_volume_size=monitoring_logs_volume_size)
         cluster_spec = self._build_cluster_spec(**options)
         # Add the create-only pieces
-        cluster_spec.update({
-            "label": name,
-            "templateName": template.id,
-            "cloudCredentialsSecretName": secret.metadata.name,
-            "createdByUsername": self._cloud_session.username(),
-            "createdByUserId": self._cloud_session.user_id(),
-        })
+        cluster_spec.update(
+            {
+                "label": name,
+                "templateName": template.id,
+                "cloudCredentialsSecretName": secret.metadata.name,
+                "createdByUsername": self._cloud_session.username(),
+                "createdByUserId": self._cloud_session.user_id(),
+            }
+        )
         if leases_available:
             cluster_spec["leaseName"] = f"kube-{name}"
         if zenith_identity_realm_name:
             cluster_spec["zenithIdentityRealmName"] = zenith_identity_realm_name
         # Create the cluster
         ekclusters = self._client.api(AZIMUTH_API_VERSION).resource("clusters")
-        cluster = ekclusters.create({
-            "metadata": {
-                "name": name,
-                "labels": {
-                    "app.kubernetes.io/managed-by": "azimuth",
+        cluster = ekclusters.create(
+            {
+                "metadata": {
+                    "name": name,
+                    "labels": {
+                        "app.kubernetes.io/managed-by": "azimuth",
+                    },
+                    # Annotate the cluster with the serialized schedule object
+                    # This is to avoid doing an N+1 query when we retrieve clusters
+                    "annotations": (
+                        {"azimuth.stackhpc.com/schedule": schedule.to_json()}
+                        if schedule
+                        else {}
+                    ),
                 },
-                # Annotate the cluster with the serialized schedule object
-                # This is to avoid doing an N+1 query when we retrieve clusters
-                "annotations": (
-                    { "azimuth.stackhpc.com/schedule": schedule.to_json() }
-                    if schedule
-                    else {}
-                ),
-            },
-            "spec": cluster_spec,
-        })
+                "spec": cluster_spec,
+            }
+        )
         # Create the scheduling resources for the cluster
         # This may or may not create a Blazar lease to reserve the resources
         scheduling_k8s.create_scheduling_resources(
@@ -524,14 +513,14 @@ class Session:
             cluster,
             cluster.spec["cloudCredentialsSecretName"],
             resources,
-            schedule
+            schedule,
         )
         # Use the sizes that we already have
         sizes = [control_plane_size] + [ng["machine_size"] for ng in node_groups]
         return self._from_api_cluster(cluster, sizes)
 
     @convert_exceptions
-    def update_cluster(self, cluster: t.Union[dto.Cluster, str], **options):
+    def update_cluster(self, cluster: dto.Cluster | str, **options):
         """
         Update the specified cluster with the given parameters.
         """
@@ -541,19 +530,16 @@ class Session:
         spec["updatedByUsername"] = self._cloud_session.username()
         spec["updatedByUserId"] = self._cloud_session.user_id()
         cluster = (
-            self._client
-                .api(AZIMUTH_API_VERSION)
-                .resource("clusters")
-                .patch(cluster, { "spec": spec })
+            self._client.api(AZIMUTH_API_VERSION)
+            .resource("clusters")
+            .patch(cluster, {"spec": spec})
         )
         sizes = list(self._cloud_session.sizes())
         return self._from_api_cluster(cluster, sizes)
 
     @convert_exceptions
     def upgrade_cluster(
-        self,
-        cluster: t.Union[dto.Cluster, str],
-        template: t.Union[dto.ClusterTemplate, str]
+        self, cluster: dto.Cluster | str, template: dto.ClusterTemplate | str
     ) -> dto.Cluster:
         """
         Upgrade the specified cluster to the specified template.
@@ -575,16 +561,14 @@ class Session:
         return self._from_api_cluster(cluster, sizes)
 
     @convert_exceptions
-    def delete_cluster(
-        self,
-        cluster: t.Union[dto.Cluster, str]
-    ) -> t.Optional[dto.Cluster]:
+    def delete_cluster(self, cluster: dto.Cluster | str) -> dto.Cluster | None:
         """
         Delete the specified Kubernetes cluster.
         """
         if isinstance(cluster, dto.Cluster):
             cluster = cluster.id
-        # Before deleting the cluster, check if the credential secret has a janitor annotation
+        # Before deleting the cluster, check if the credential secret has a janitor
+        # annotation
         # If it doesn't then it is a very old cluster from before the leases or janitor
         # integration, and we add the annotation so that the janitor removes the appcred
         secrets = self._client.api("v1").resource("secrets")
@@ -604,19 +588,15 @@ class Session:
                                 "janitor.capi.stackhpc.com/credential-policy": "delete",
                             },
                         },
-                    }
+                    },
                 )
         self._client.api(AZIMUTH_API_VERSION).resource("clusters").delete(
-            cluster,
-            propagation_policy = "Foreground"
+            cluster, propagation_policy="Foreground"
         )
         return self.find_cluster(cluster)
 
     @convert_exceptions
-    def generate_kubeconfig(
-        self,
-        cluster: t.Union[dto.Cluster, str]
-    ) -> str:
+    def generate_kubeconfig(self, cluster: dto.Cluster | str) -> str:
         """
         Generate a kubeconfig for the specified cluster.
         """
@@ -624,20 +604,16 @@ class Session:
             cluster = cluster.id
         self._log("Generating kubeconfig for cluster with id '%s'", id)
         cluster = (
-            self._client
-                .api(AZIMUTH_API_VERSION)
-                .resource("clusters")
-                .fetch(cluster)
+            self._client.api(AZIMUTH_API_VERSION).resource("clusters").fetch(cluster)
         )
         # Just get the named secret
         kubeconfig_secret_name = cluster.get("status", {}).get("kubeconfigSecretName")
         if kubeconfig_secret_name:
             try:
                 secret = (
-                    self._client
-                        .api("v1")
-                        .resource("secrets")
-                        .fetch(kubeconfig_secret_name)
+                    self._client.api("v1")
+                    .resource("secrets")
+                    .fetch(kubeconfig_secret_name)
                 )
             except ApiError as exc:
                 if exc.status_code != 404:
@@ -645,7 +621,9 @@ class Session:
             else:
                 # The kubeconfig is base64-encoded in the data
                 return base64.b64decode(secret.data.value)
-        raise errors.ObjectNotFoundError(f"Kubeconfig not available for cluster '{cluster.metadata.name}'")
+        raise errors.ObjectNotFoundError(
+            f"Kubeconfig not available for cluster '{cluster.metadata.name}'"
+        )
 
     def close(self):
         """
