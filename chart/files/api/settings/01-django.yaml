@@ -1,4 +1,4 @@
-SECRET_KEY: {{ .Values.settings.secretKey | default (randAlphaNum 64) }}
+SECRET_KEY: {{ .Values.settings.secretKey | required "No Django secret key specified"  }}
 DEBUG: {{ .Values.settings.debug }}
 CSRF_COOKIE_SECURE: {{ .Values.ingress.tls.enabled }}
 {{- with .Values.settings.csrfCookieName }}
