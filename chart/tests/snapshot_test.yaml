@@ -2,7 +2,6 @@
 # docker run -i --rm -v $(pwd):/apps helmunittest/helm-unittest -u chart
 suite: Manifest snapshot tests
 values:
-  - values.yaml
   - values_test_overrides.yaml
 tests:
   - it: templated manifests should match snapshot

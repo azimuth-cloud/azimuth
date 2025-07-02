@@ -33,10 +33,12 @@ jobs:
             --target-branch ${{ github.event.repository.default_branch }} \
             --charts chart/ \
             --validate-maintainers=false
+
       - name: Run template validation
         run: |-
           helm template foo chart \
             | docker run -i --rm ghcr.io/yannh/kubeconform:latest \
             --strict --summary
+
       - name: Run manifest snapshot test
         run: docker run -i --rm -v $(pwd):/apps helmunittest/helm-unittest chart
