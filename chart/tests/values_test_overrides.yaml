@@ -8,3 +8,4 @@ settings:
 authentication:
   openstack:
     authUrl: https://example.com
+# foo
