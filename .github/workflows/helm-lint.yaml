@@ -37,6 +37,7 @@ jobs:
       - name: Run template validation
         run: |-
           helm template foo chart \
+            -f chart/tests/values_test_overrides.yaml \
             | docker run -i --rm ghcr.io/yannh/kubeconform:latest \
             --strict --summary
 
