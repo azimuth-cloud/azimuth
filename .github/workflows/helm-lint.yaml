@@ -2,6 +2,9 @@
 # act -W .github/workflows/helm-lint.yaml workflow_call -s GITHUB_TOKEN=$(gh auth token)
 name: Helm Lint
 on:
+  # For manual testing
+  workflow_dispatch:
+
   workflow_call:
     inputs:
       ref:
@@ -30,6 +33,8 @@ jobs:
       - name: Run chart-testing (lint)
         run: |-
           ct lint \
+            --print-config \
+            --lint-conf lintconf.yaml \
             --target-branch ${{ github.event.repository.default_branch }} \
             --charts chart/ \
             --validate-maintainers=false
