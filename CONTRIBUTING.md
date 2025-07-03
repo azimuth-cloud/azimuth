@@ -1,6 +1,6 @@
 # Contributing
 
-We welcome contributions and suggestions for improvements to these Helm charts.
+We welcome contributions and suggestions for improvements to this code base.
 Please check for relevant issues and PRs before opening a new one of your own.
 
 ## Making a contribution
