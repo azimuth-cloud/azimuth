@@ -1,0 +1,44 @@
+# NOTE: This workflow can be run locally using https://github.com/nektos/act with:
+# act -W .github/workflows/helm-lint.yaml workflow_call -s GITHUB_TOKEN=$(gh auth token)
+name: Helm Lint
+on:
+  workflow_call:
+    inputs:
+      ref:
+        type: string
+        description: The Git ref under test.
+        required: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.15.3
+
+      - name: Set up chart-testing
+        uses: helm/chart-testing-action@v2
+
+      - name: Run chart-testing (lint)
+        run: |-
+          ct lint \
+            --target-branch ${{ github.event.repository.default_branch }} \
+            --charts chart/ \
+            --validate-maintainers=false
+
+      - name: Run template validation
+        run: |-
+          helm template foo chart \
+            | docker run -i --rm ghcr.io/yannh/kubeconform:latest \
+            --strict --summary
+
+      - name: Run manifest snapshot test
+        run: docker run -i --rm -v $(pwd):/apps helmunittest/helm-unittest chart

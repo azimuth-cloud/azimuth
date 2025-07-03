@@ -142,8 +142,7 @@ trustBundle:
 
 settings:
   # The Django secret key
-  # If not given, a randomly generated key will be used
-  # However this will be different on each deployment which may cause sessions to be terminated
+  # Required for Django to run, and should be kept secret
   secretKey:
   # Use debug mode (recommended false in production)
   debug: false

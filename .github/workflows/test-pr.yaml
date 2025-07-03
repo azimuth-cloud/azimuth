@@ -24,6 +24,12 @@ jobs:
     with:
       ref: ${{ github.event.pull_request.head.sha }}
 
+  # Run the chart linting on every PR, even from external repos
+  lint:
+    uses: ./.github/workflows/lint.yaml
+    with:
+      ref: ${{ github.event.pull_request.head.sha }}
+
   # This job exists so that PRs from outside the main repo are rejected
   fail_on_remote:
     runs-on: ubuntu-latest
