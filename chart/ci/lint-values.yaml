@@ -1,0 +1,10 @@
+---
+ingress:
+  host: example
+
+settings:
+  secretKey: example
+
+authentication:
+  openstack:
+    authUrl: https://example.com
