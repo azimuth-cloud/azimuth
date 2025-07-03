@@ -15,7 +15,7 @@ api:
     pullPolicy: IfNotPresent
     tag: # Defaults to the chart appVersion
   imagePullSecrets: []
-  # The number of replicas for the api deployment
+  # The number of replicas for the api deployment
   replicaCount: 1
   # Pod-level security context for the api component
   podSecurityContext:
@@ -42,7 +42,7 @@ api:
     port: 80
   # Resource requests and limits for the api container
   resources: {}
-  # Node selector for api pods
+  # Node selector for api pods
   nodeSelector: {}
   # Tolerations for api pods
   tolerations: []
@@ -87,7 +87,7 @@ ui:
     pullPolicy: IfNotPresent
     tag: # Defaults to the chart appVersion
   imagePullSecrets: []
-  # The number of replicas for the ui deployment
+  # The number of replicas for the ui deployment
   replicaCount: 1
   # Pod-level security context for the api component
   podSecurityContext:
@@ -114,7 +114,7 @@ ui:
     port: 80
   # Resource requests and limits for ui containers
   resources: {}
-  # Node selector for ui pods
+  # Node selector for ui pods
   nodeSelector: {}
   # Tolerations for ui pods
   tolerations: []
@@ -158,11 +158,11 @@ settings:
   # The metrics URLs, if available
   metrics:
     # The URL for the cloud metrics dashboard
-    # cloudMetricsUrl:
+    # cloudMetricsUrl:
     # The URL template for the tenant metrics dashboards
     # tenantMetricsUrlTemplate:
   # The URL for documentation
-  # By default, the standard Azimuth user documentation will be used
+  # By default, the standard Azimuth user documentation will be used
   documentationUrl:
   supportUrl:
   # The name of the CSRF cookie
@@ -219,9 +219,9 @@ authentication:
       identityProviders:
           # The Keystone identity protocol and provider to use
           # The provider is optional, and if it IS NOT given, URLs will be of the form:
-          #   <auth url>/auth/OS-FEDERATION/websso/<protocol>
+          #   <auth url>/auth/OS-FEDERATION/websso/<protocol>
           # If a provider IS given, URLs will be of the following form:
-          #   <auth_url>/auth/OS-FEDERATION/identity_providers/<provider>/protocols/<protocol>/websso
+          #   <auth_url>/auth/OS-FEDERATION/identity_providers/<provider>/protocols/<protocol>/websso
           # It is recommended to specify a provider if known, as it redirects straight to the IdP
           # instead of via the Keystone selection page
         - protocol: oidc
@@ -258,14 +258,14 @@ provider:
     # The template to use for the name of the internal network
     # If this is given, then auto-created tenant internal networks are disabled
     # The fragment '{tenant_name}' is replaced with the current tenancy name, e.g.:
-    #   internalNetTemplate: "{tenant_name}-private"
+    #   internalNetTemplate: "{tenant_name}-private"
     internalNetTemplate:
     # The template to use for the name of the external network
     # As with internalNetTemplate above, the current tenancy name is interpolated into
-    # the given template
+    # the given template
     # If not given and there is exactly one external network available to a tenant then
     # that is used, otherwise an error is raised when operations requiring an external
-    # network are attempted
+    # network are attempted
     externalNetTemplate:
     # Indicates whether tenant internal networks should be auto-created if not present
     createInternalNet: true
@@ -303,7 +303,7 @@ apps:
 # The cluster engine to use for Cluster-as-a-Service support
 clusterEngine:
   # The type of cluster engine to use
-  #   Currently only CRD is functional, and AWX support is deprecated
+  #   Currently only CRD is functional, and AWX support is deprecated
   type: crd
   # Parameters for the awx cluster engine
   # By default, we use values that will work with the managed AWX
@@ -320,7 +320,7 @@ clusterEngine:
     # Indicates whether teams should be created automatically
     createTeams: true
     # Indicates whether automatically-created teams should be granted access
-    # to all cluster types
+    # to all cluster types
     createTeamAllowAllPermission: true
     # Indicates whether CaaS resources should be created in AWX
     createResources: true
@@ -335,7 +335,7 @@ clusterEngine:
       # image: registry.example.com/azimuth/caas-ee:<tag>
       # # Indicates if the image should be pulled for every job (defaults to false)
       # # This can be useful in development, but in production the recommended method is
-      # # to set this to false and use immutable tags
+      # # to set this to false and use immutable tags
       # alwaysPull: false
       # # Optional credentials if the image is in a private registry
       # credentials:
@@ -350,7 +350,7 @@ clusterEngine:
     defaultProjects:
       # - # The name of the project (required)
       #   name: My Site Appliances
-      #   # The git URL of the project (required)
+      #   # The git URL of the project (required)
       #   gitUrl: https://github.com/myorg/site-appliances.git
       #   # The branch, tag or commit id to use (required)
       #   gitVersion: master
@@ -359,10 +359,10 @@ clusterEngine:
       #   ##
       #   # OPTIONAL KEYS
       #   ##
-      #   # Indicates if the project should be updated to the latest version on each job launch
-      #   # Can be useful during development but recommend to leave as false in production
-      #   # Defaults to false if not given
-      #   alwaysUpdate: true
+      #   # Indicates if the project should be updated to the latest version on each job launch
+      #   # Can be useful during development but recommend to leave as false in production
+      #   # Defaults to false if not given
+      #   alwaysUpdate: true
       #   # List of playbooks to create job templates for
       #   # If not given, a job template is created for each playbook in the project
       #   playbooks: ['cluster1-playbook.yml', 'cluster2-playbook.yml']
