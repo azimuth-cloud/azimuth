@@ -3,8 +3,7 @@ Module implementing a key store that uses the provider's native functionality
 to store public keys.
 """
 
-from ..provider import errors as provider_errors
-
+from ..provider import errors as provider_errors  # noqa: TID252
 from . import base, errors
 
 
@@ -12,6 +11,7 @@ class ProviderKeyStore(base.KeyStore):
     """
     Key store implementation that consumes keypairs using provider functionality.
     """
+
     supports_key_update = True
 
     def get_key(self, username, *, unscoped_session, **kwargs):

@@ -3,7 +3,6 @@ import typing as t
 
 from . import dto
 
-
 SCHEDULE_API_VERSION = "scheduling.azimuth.stackhpc.com/v1alpha1"
 
 
@@ -22,10 +21,10 @@ def leases_available(ekclient):
 def create_scheduling_resources(
     ekclient,
     name: str,
-    owner: t.Dict[str, t.Any],
+    owner: dict[str, t.Any],
     cloud_credentials_secret_name: str,
     resources: dto.PlatformResources,
-    schedule: t.Optional[dto.PlatformSchedule]
+    schedule: dto.PlatformSchedule | None,
 ):
     """
     Creates scheduling resources for the given Kubernetes object.
@@ -93,10 +92,7 @@ def create_scheduling_resources(
                     "endsAt": ends_at,
                     "resources": {
                         "machines": [
-                            {
-                                "sizeId": req.size.id,
-                                "count": req.count
-                            }
+                            {"sizeId": req.size.id, "count": req.count}
                             for req in resources.machines()
                         ],
                     },

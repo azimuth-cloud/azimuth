@@ -74,6 +74,7 @@ class ValidationError(BadInputError):
     """
     Raised when a validation fails.
     """
+
     def __init__(self, message, errors):
         super().__init__(message)
         self._errors = errors

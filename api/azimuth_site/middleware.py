@@ -8,7 +8,6 @@ from django.contrib.sessions.exceptions import SessionInterrupted
 from django.utils.cache import patch_vary_headers
 from django.utils.http import http_date
 
-
 # The maximum number of characters that can go into a single cookie
 # The max is usually 4096 including the cookie name, so this should give some leeway
 MAX_COOKIE_LENGTH = 4000
@@ -19,6 +18,7 @@ class SessionMiddleware:
     Middleware class that initialises the session backend from state that is possibly
     split over multiple cookies.
     """
+
     def __init__(self, get_response):
         self.get_response = get_response
         # Load the session store
@@ -60,13 +60,13 @@ class SessionMiddleware:
             response.set_cookie(
                 settings.SESSION_COOKIE_NAME,
                 data,
-                max_age = max_age,
-                expires = expires,
-                domain = settings.SESSION_COOKIE_DOMAIN,
-                path = settings.SESSION_COOKIE_PATH,
-                secure = settings.SESSION_COOKIE_SECURE or None,
-                httponly = settings.SESSION_COOKIE_HTTPONLY or None,
-                samesite = settings.SESSION_COOKIE_SAMESITE,
+                max_age=max_age,
+                expires=expires,
+                domain=settings.SESSION_COOKIE_DOMAIN,
+                path=settings.SESSION_COOKIE_PATH,
+                secure=settings.SESSION_COOKIE_SECURE or None,
+                httponly=settings.SESSION_COOKIE_HTTPONLY or None,
+                samesite=settings.SESSION_COOKIE_SAMESITE,
             )
             cookies_to_remove.discard(settings.SESSION_COOKIE_NAME)
         else:
@@ -76,13 +76,13 @@ class SessionMiddleware:
                 response.set_cookie(
                     cookie_name,
                     data[:MAX_COOKIE_LENGTH],
-                    max_age = max_age,
-                    expires = expires,
-                    domain = settings.SESSION_COOKIE_DOMAIN,
-                    path = settings.SESSION_COOKIE_PATH,
-                    secure = settings.SESSION_COOKIE_SECURE or None,
-                    httponly = settings.SESSION_COOKIE_HTTPONLY or None,
-                    samesite = settings.SESSION_COOKIE_SAMESITE,
+                    max_age=max_age,
+                    expires=expires,
+                    domain=settings.SESSION_COOKIE_DOMAIN,
+                    path=settings.SESSION_COOKIE_PATH,
+                    secure=settings.SESSION_COOKIE_SECURE or None,
+                    httponly=settings.SESSION_COOKIE_HTTPONLY or None,
+                    samesite=settings.SESSION_COOKIE_SAMESITE,
                 )
                 cookies_to_remove.discard(cookie_name)
                 data = data[MAX_COOKIE_LENGTH:]
@@ -92,9 +92,9 @@ class SessionMiddleware:
         for cookie_name in cookies_to_remove:
             response.delete_cookie(
                 cookie_name,
-                path = settings.SESSION_COOKIE_PATH,
-                domain = settings.SESSION_COOKIE_DOMAIN,
-                samesite = settings.SESSION_COOKIE_SAMESITE,
+                path=settings.SESSION_COOKIE_PATH,
+                domain=settings.SESSION_COOKIE_DOMAIN,
+                samesite=settings.SESSION_COOKIE_SAMESITE,
             )
 
     def delete_session_cookies(self, request, response):
@@ -106,15 +106,15 @@ class SessionMiddleware:
             if cookie_name.startswith(settings.SESSION_COOKIE_NAME):
                 response.delete_cookie(
                     cookie_name,
-                    path = settings.SESSION_COOKIE_PATH,
-                    domain = settings.SESSION_COOKIE_DOMAIN,
-                    samesite = settings.SESSION_COOKIE_SAMESITE,
+                    path=settings.SESSION_COOKIE_PATH,
+                    domain=settings.SESSION_COOKIE_DOMAIN,
+                    samesite=settings.SESSION_COOKIE_SAMESITE,
                 )
 
     def __call__(self, request):
         # NOTE(mkjpryor)
         # Most of this code is borrowed from the Django session middleware
-        # https://github.com/django/django/blob/main/django/contrib/sessions/middleware.py
+        # https://github.com/django/django/blob/main/django/contrib/sessions/middleware.py
 
         # Initialise the session store from the cookie(s)
         session_key = self.get_session_cookie_data(request)
@@ -129,7 +129,8 @@ class SessionMiddleware:
         except AttributeError:
             return response
         # If the session is empty, remove all the session cookies
-        # If not, save the session if it has been modified or configured to save every request
+        # If not, save the session if it has been modified or configured to save every
+        # request
         if empty:
             self.delete_session_cookies(request, response)
             patch_vary_headers(response, ("Cookie",))
@@ -156,10 +157,6 @@ class SessionMiddleware:
                             "out in a concurrent request, for example."
                         )
                     self.set_session_cookies(
-                        request,
-                        response,
-                        request.session.session_key,
-                        max_age,
-                        expires
+                        request, response, request.session.session_key, max_age, expires
                     )
         return response

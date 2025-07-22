@@ -2,27 +2,28 @@
 Module containing service and resource definitions for the OpenStack compute API.
 """
 
-from rackit import RootResource, NestedResource, EmbeddedResource, Endpoint
+from rackit import EmbeddedResource, Endpoint, NestedResource, RootResource
 
 from .core import (
+    Resource,
+    ResourceManager,
+    ResourceWithDetail,
     Service,
     UnmanagedResource,
-    Resource,
-    ResourceWithDetail,
-    ResourceManager
 )
-from .image import Image
+from .image import Image  # noqa: F401
 
 
 class Flavor(ResourceWithDetail):
     """
     Resource for accessing flavors.
     """
+
     class Meta:
-        endpoint = '/flavors'
-        aliases = dict(
-            ephemeral_disk = 'OS-FLV-EXT-DATA:ephemeral',
-            is_disabled = 'OS-FLV-DISABLED:disabled'
+        endpoint = "/flavors"
+        aliases = dict(  # noqa: RUF012
+            ephemeral_disk="OS-FLV-EXT-DATA:ephemeral",
+            is_disabled="OS-FLV-DISABLED:disabled",
         )
 
 
@@ -30,6 +31,7 @@ class KeypairManager(ResourceManager):
     """
     Custom manager for keypairs.
     """
+
     def extract_list(self, response):
         # For some reason, each item in a list response has the data
         # contained under a "keypair" key
@@ -43,77 +45,76 @@ class Keypair(Resource):
     """
     Resource for a keypair.
     """
+
     class Meta:
         manager_cls = KeypairManager
-        endpoint = '/os-keypairs'
-        resource_list_key = 'keypairs'
-        primary_key_field = 'name'
+        endpoint = "/os-keypairs"
+        resource_list_key = "keypairs"
+        primary_key_field = "name"
 
 
 class VolumeAttachment(Resource):
     """
     Resource for a nested resource.
     """
+
     class Meta:
         endpoint = "/os-volume_attachments"
         resource_list_key = "volumeAttachments"
         resource_key = "volumeAttachment"
-        aliases = dict(
-            server_id = 'serverId',
-            volume_id = 'volumeId'
-        )
+        aliases = dict(server_id="serverId", volume_id="volumeId")  # noqa: RUF012
 
 
 class Server(ResourceWithDetail):
     """
     Resource for a server.
     """
+
     class Meta:
-        endpoint = '/servers'
-        aliases = dict(
-            image_id = 'imageRef',
-            flavor_id = 'flavorRef',
-            task_state = 'OS-EXT-STS:task_state',
-            power_state = 'OS-EXT-STS:power_state',
-            attached_volumes = 'os-extended-volumes:volumes_attached'
+        endpoint = "/servers"
+        aliases = dict(  # noqa: RUF012
+            image_id="imageRef",
+            flavor_id="flavorRef",
+            task_state="OS-EXT-STS:task_state",
+            power_state="OS-EXT-STS:power_state",
+            attached_volumes="os-extended-volumes:volumes_attached",
         )
-        defaults = dict(
-            fault = dict
-        )
+        defaults = dict(fault=dict)  # noqa: RUF012
 
     volume_attachments = NestedResource(VolumeAttachment)
 
     def logs(self):
-        endpoint = self._manager.prepare_url(self, 'action')
-        params = { 'os-getConsoleOutput': {} }
-        response = self._manager.connection.api_post(endpoint, json = params)
-        return response.json()['output']
+        endpoint = self._manager.prepare_url(self, "action")
+        params = {"os-getConsoleOutput": {}}
+        response = self._manager.connection.api_post(endpoint, json=params)
+        return response.json()["output"]
 
     def start(self):
-        self._action('action', { 'os-start': None })
+        self._action("action", {"os-start": None})
 
     def stop(self):
-        self._action('action', { 'os-stop': None })
+        self._action("action", {"os-stop": None})
 
     def reboot(self, reboot_type):
-        self._action('action', { 'reboot': { 'type': reboot_type } })
+        self._action("action", {"reboot": {"type": reboot_type}})
 
     def add_security_group(self, name):
-        self._action('action', { 'addSecurityGroup': { 'name': name } })
+        self._action("action", {"addSecurityGroup": {"name": name}})
 
 
 class AbsoluteLimits(UnmanagedResource):
     """
     Represents the absolute limits for a project.
     """
+
     class Meta:
-        aliases = dict(
-            total_cores = 'maxTotalCores',
-            total_cores_used = 'totalCoresUsed',
-            total_ram = 'maxTotalRAMSize',
-            total_ram_used = 'totalRAMUsed',
-            instances = 'maxTotalInstances',
-            instances_used = 'totalInstancesUsed'
+        aliases = dict(  # noqa: RUF012
+            total_cores="maxTotalCores",
+            total_cores_used="totalCoresUsed",
+            total_ram="maxTotalRAMSize",
+            total_ram_used="totalRAMUsed",
+            instances="maxTotalInstances",
+            instances_used="totalInstancesUsed",
         )
 
 
@@ -123,6 +124,7 @@ class Limits(UnmanagedResource):
 
     This is not a REST-ful resource, so is unmanaged.
     """
+
     class Meta:
         endpoint = "/limits"
 
@@ -133,9 +135,10 @@ class ComputeService(Service):
     """
     OpenStack service class for the compute service.
     """
-    catalog_type = 'compute'
-    microversion = '2.61'
-    path_prefix = '/v2.1'
+
+    catalog_type = "compute"
+    microversion = "2.61"
+    path_prefix = "/v2.1"
 
     flavors = RootResource(Flavor)
     keypairs = RootResource(Keypair)

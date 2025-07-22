@@ -11,6 +11,7 @@ class KeyStore:
 
     A key store allows the locating of an SSH public key for a username.
     """
+
     #: Indicates whether the key store supports updating of keys
     supports_key_update = False
 
@@ -18,8 +19,8 @@ class KeyStore:
         self,
         username,
         *,
-        request = None,
-        unscoped_session = None,
+        request=None,
+        unscoped_session=None,
     ):
         """
         Returns the SSH public key for the given username.
@@ -39,8 +40,8 @@ class KeyStore:
         username,
         public_key,
         *,
-        request = None,
-        unscoped_session = None,
+        request=None,
+        unscoped_session=None,
     ):
         """
         Update the SSH public key for the given username.

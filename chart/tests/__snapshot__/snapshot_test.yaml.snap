@@ -1,0 +1,443 @@
+templated manifests should match snapshot:
+  1: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      labels:
+        app.kubernetes.io/component: api
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: azimuth
+        app.kubernetes.io/version: master
+        helm.sh/chart: azimuth-0.1.0
+      name: release-name-azimuth-api
+    rules:
+      - apiGroups:
+          - identity.azimuth.stackhpc.com
+        resources:
+          - realms
+          - platforms
+        verbs:
+          - list
+          - get
+          - create
+          - update
+          - patch
+          - delete
+      - apiGroups:
+          - azimuth.stackhpc.com
+        resources:
+          - clustertemplates
+          - apptemplates
+        verbs:
+          - list
+          - get
+      - apiGroups:
+          - azimuth.stackhpc.com
+        resources:
+          - clusters
+        verbs:
+          - list
+          - get
+          - create
+          - update
+          - patch
+          - delete
+      - apiGroups:
+          - addons.stackhpc.com
+        resources:
+          - helmreleases
+        verbs:
+          - list
+          - get
+          - create
+          - update
+          - patch
+          - delete
+      - apiGroups:
+          - apps.azimuth-cloud.io
+        resources:
+          - apptemplates
+        verbs:
+          - list
+          - get
+      - apiGroups:
+          - apps.azimuth-cloud.io
+        resources:
+          - apps
+        verbs:
+          - list
+          - get
+          - create
+          - update
+          - patch
+          - delete
+      - apiGroups:
+          - ""
+        resources:
+          - namespaces
+        verbs:
+          - list
+          - get
+          - create
+          - patch
+      - apiGroups:
+          - ""
+        resources:
+          - secrets
+        verbs:
+          - list
+          - get
+          - create
+          - update
+          - patch
+          - delete
+      - apiGroups:
+          - caas.azimuth.stackhpc.com
+        resources:
+          - clusters
+          - clustertypes
+        verbs:
+          - list
+          - get
+          - create
+          - update
+          - patch
+          - delete
+      - apiGroups:
+          - scheduling.azimuth.stackhpc.com
+        resources:
+          - schedules
+          - leases
+        verbs:
+          - list
+          - get
+          - create
+          - update
+          - patch
+          - delete
+  2: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      labels:
+        app.kubernetes.io/component: api
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: azimuth
+        app.kubernetes.io/version: master
+        helm.sh/chart: azimuth-0.1.0
+      name: release-name-azimuth-api
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: release-name-azimuth-api
+    subjects:
+      - kind: ServiceAccount
+        name: release-name-azimuth-api
+        namespace: NAMESPACE
+  3: |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        app.kubernetes.io/component: api
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: azimuth
+        app.kubernetes.io/version: master
+        helm.sh/chart: azimuth-0.1.0
+      name: release-name-azimuth-api
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app.kubernetes.io/component: api
+          app.kubernetes.io/instance: RELEASE-NAME
+          app.kubernetes.io/name: azimuth
+      template:
+        metadata:
+          annotations:
+            azimuth.stackhpc.com/settings-checksum: bc5895d098cbdf0ac8bdeb4bb6aa789ae8f37366cbd33a7d56979e08e7680f6c
+            azimuth.stackhpc.com/theme-checksum: ec0f36322392deee39d80b7f77ecd634df60358857af9dc208077860c4e174ab
+            kubectl.kubernetes.io/default-container: api
+          labels:
+            app.kubernetes.io/component: api
+            app.kubernetes.io/instance: RELEASE-NAME
+            app.kubernetes.io/name: azimuth
+        spec:
+          containers:
+            - image: ghcr.io/azimuth-cloud/azimuth-api:master
+              imagePullPolicy: IfNotPresent
+              livenessProbe:
+                httpGet:
+                  path: /_status/
+                  port: http
+              name: api
+              ports:
+                - containerPort: 8080
+                  name: http
+                  protocol: TCP
+              readinessProbe:
+                httpGet:
+                  path: /_status/
+                  port: http
+              resources: {}
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+                readOnlyRootFilesystem: true
+              volumeMounts:
+                - mountPath: /etc/azimuth/settings.d
+                  name: runtime-settings
+                  readOnly: true
+                - mountPath: /var/azimuth/staticfiles/bootstrap.css
+                  name: theme-css
+                  readOnly: true
+                  subPath: bootstrap.css
+                - mountPath: /tmp
+                  name: tmp
+          securityContext:
+            runAsNonRoot: true
+          serviceAccountName: release-name-azimuth-api
+          volumes:
+            - name: runtime-settings
+              secret:
+                secretName: release-name-azimuth-api
+            - configMap:
+                name: release-name-azimuth-theme
+              name: theme-css
+            - emptyDir: {}
+              name: tmp
+  4: |
+    apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        app.kubernetes.io/component: api
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: azimuth
+        app.kubernetes.io/version: master
+        helm.sh/chart: azimuth-0.1.0
+      name: release-name-azimuth-api
+    spec:
+      ports:
+        - name: http
+          port: 80
+          protocol: TCP
+          targetPort: http
+      selector:
+        app.kubernetes.io/component: api
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/name: azimuth
+      type: ClusterIP
+  5: |
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      labels:
+        app.kubernetes.io/component: api
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: azimuth
+        app.kubernetes.io/version: master
+        helm.sh/chart: azimuth-0.1.0
+      name: release-name-azimuth-api
+  6: |
+    apiVersion: v1
+    data:
+      01-django.yaml: |
+        U0VDUkVUX0tFWTogZXhhbXBsZQpERUJVRzogZmFsc2UKQ1NSRl9DT09LSUVfU0VDVVJFOiB0cnVlClNFU1NJT05fQ09PS0lFX1NFQ1VSRTogdHJ1ZQo=
+      02-cloud-common.yaml: |
+        QVpJTVVUSDoKICBBVkFJTEFCTEVfQ0xPVURTOgogICAgZXhhbXBsZToKICAgICAgbGFiZWw6IEV4YW1wbGUKICAgICAgdXJsOiBodHRwczovL2V4YW1wbGUvdGVuYW5jaWVzCiAgQ1VSUkVOVF9DTE9VRDogZXhhbXBsZQo=
+      03-authentication.yaml: |
+        IyBOZXctc3R5bGUgYXV0aGVudGljYXRpb24gY29uZmlndXJhdGlvbgojIEF1dGhlbnRpY2F0aW9uIGlzIGRlZmluZWQgYnkgY2xvdWQgdHlwZSBhbmQgcmV1c2VkIGJ5IGNvbXBvbmVudHMgYXMgbmVlZGVkCkFaSU1VVEhfQVVUSDoKICBBVVRIX1RZUEU6IG9wZW5zdGFjawogIE9QRU5TVEFDSzoKICAgIEFVVEhfVVJMOiAiaHR0cHM6Ly9leGFtcGxlLmNvbSIKICAgIElOVEVSRkFDRTogInB1YmxpYyIKICAgIFZFUklGWV9TU0w6IHRydWUKICAgIEFQUENSRURfSElEREVOOiB0cnVlCiAgICBQQVNTV09SRF9FTkFCTEVEOiB0cnVlCiAgICBQQVNTV09SRF9ET01BSU5TOgogICAgICAtIG5hbWU6ICJkZWZhdWx0IgogICAgICAgIGxhYmVsOiAiVXNlcm5hbWUgKyBQYXNzd29yZCIK
+      04-cloud-provider.yaml: |
+        QVpJTVVUSDoKICBQUk9WSURFUjoKICAgIEZBQ1RPUlk6IGF6aW11dGgucHJvdmlkZXIub3BlbnN0YWNrLlByb3ZpZGVyCiAgICBQQVJBTVM6CiAgICAgIENSRUFURV9JTlRFUk5BTF9ORVQ6IHRydWUKICAgICAgTUFOSUxBX1BST0pFQ1RfU0hBUkVfR0I6IDAK
+      05-apps.yaml: |
+        Cg==
+      06-ssh-key-store.yaml: |
+        QVpJTVVUSDoKICBTU0hfS0VZX1NUT1JFOgogICAgRkFDVE9SWTogYXppbXV0aC5rZXlzdG9yZS5wcm92aWRlci5Qcm92aWRlcktleVN0b3JlCg==
+      07-disable-kubernetes.yaml: |
+        Cg==
+      08-awx.yaml: |
+        Cg==
+      09-awx-passwords.py: |
+        Cg==
+      10-disable-caas.yaml: |
+        QVpJTVVUSDoKICBDTFVTVEVSX0VOR0lORTogbnVsbAo=
+      11-scheduling.yaml: |
+        QVpJTVVUSDoKICBTQ0hFRFVMSU5HOgogICAgRU5BQkxFRDogZmFsc2UK
+      12-apps-provider.yaml: |
+        Cg==
+    kind: Secret
+    metadata:
+      labels:
+        app.kubernetes.io/component: api
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: azimuth
+        app.kubernetes.io/version: master
+        helm.sh/chart: azimuth-0.1.0
+      name: release-name-azimuth-api
+    type: Opaque
+  7: |
+    apiVersion: v1
+    data:
+      bootstrap.css: |
+        @import url(https://cdnjs.cloudflare.com/ajax/libs/bootswatch/5.1.3/pulse/bootstrap.min.css);
+        @import url(/pulse-overrides.css);
+    kind: ConfigMap
+    metadata:
+      labels:
+        app.kubernetes.io/component: theme
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: azimuth
+        app.kubernetes.io/version: master
+        helm.sh/chart: azimuth-0.1.0
+      name: release-name-azimuth-theme
+  8: |
+    apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+      labels:
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: azimuth
+        app.kubernetes.io/version: master
+        helm.sh/chart: azimuth-0.1.0
+      name: release-name-azimuth
+    spec:
+      ingressClassName: nginx
+      rules:
+        - host: example
+          http:
+            paths:
+              - backend:
+                  service:
+                    name: release-name-azimuth-api
+                    port:
+                      name: http
+                path: /api
+                pathType: Prefix
+              - backend:
+                  service:
+                    name: release-name-azimuth-api
+                    port:
+                      name: http
+                path: /auth
+                pathType: Prefix
+              - backend:
+                  service:
+                    name: release-name-azimuth-api
+                    port:
+                      name: http
+                path: /static
+                pathType: Prefix
+              - backend:
+                  service:
+                    name: release-name-azimuth-ui
+                    port:
+                      name: http
+                path: /
+                pathType: Prefix
+      tls:
+        - hosts:
+            - example
+          secretName: release-name-azimuth-tls
+  9: |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        app.kubernetes.io/component: ui
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: azimuth
+        app.kubernetes.io/version: master
+        helm.sh/chart: azimuth-0.1.0
+      name: release-name-azimuth-ui
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app.kubernetes.io/component: ui
+          app.kubernetes.io/instance: RELEASE-NAME
+          app.kubernetes.io/name: azimuth
+      template:
+        metadata:
+          annotations:
+            azimuth.stackhpc.com/theme-checksum: ec0f36322392deee39d80b7f77ecd634df60358857af9dc208077860c4e174ab
+          labels:
+            app.kubernetes.io/component: ui
+            app.kubernetes.io/instance: RELEASE-NAME
+            app.kubernetes.io/name: azimuth
+        spec:
+          containers:
+            - image: ghcr.io/azimuth-cloud/azimuth-ui:master
+              imagePullPolicy: IfNotPresent
+              livenessProbe:
+                httpGet:
+                  path: /
+                  port: http
+              name: ui
+              ports:
+                - containerPort: 8080
+                  name: http
+                  protocol: TCP
+              readinessProbe:
+                httpGet:
+                  path: /
+                  port: http
+              resources: {}
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+                readOnlyRootFilesystem: true
+              volumeMounts:
+                - mountPath: /var/www/bootstrap.css
+                  name: theme-css
+                  subPath: bootstrap.css
+                - mountPath: /var/cache/nginx
+                  name: var-cache-nginx
+                - mountPath: /var/run/nginx
+                  name: var-run-nginx
+          securityContext:
+            runAsNonRoot: true
+          volumes:
+            - configMap:
+                name: release-name-azimuth-theme
+              name: theme-css
+            - emptyDir: {}
+              name: var-cache-nginx
+            - emptyDir: {}
+              name: var-run-nginx
+  10: |
+    apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        app.kubernetes.io/component: ui
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: azimuth
+        app.kubernetes.io/version: master
+        helm.sh/chart: azimuth-0.1.0
+      name: release-name-azimuth-ui
+    spec:
+      ports:
+        - name: http
+          port: 80
+          protocol: TCP
+          targetPort: http
+      selector:
+        app.kubernetes.io/component: ui
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/name: azimuth
+      type: ClusterIP
