@@ -45,7 +45,7 @@ COPY --from=nginx-gpg-key /usr/share/keyrings/nginx-archive-keyring.gpg /usr/sha
 #      but we don't want to make all of /var/run writable
 RUN echo "Target NGINX version: ${NGINX_VERSION}"
 RUN apt-get update && \
-    apt-get install --no-install-recommends --no-install-suggests -y ca-certificates && \
+    apt-get install --no-install-recommends --no-install-suggests -y ca-certificates tini && \
     echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] https://nginx.org/packages/mainline/ubuntu/ noble nginx" \
       > /etc/apt/sources.list.d/nginx.list && \
     apt-get update && \
@@ -65,4 +65,5 @@ COPY ./etc/nginx/conf.d/default.conf /etc/nginx/conf.d/
 
 # The Nginx user has UID 999
 USER 999
+ENTRYPOINT ["tini", "-g", "--"]
 CMD ["nginx", "-g", "daemon off;"]

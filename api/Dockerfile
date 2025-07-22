@@ -41,7 +41,7 @@ RUN groupadd --gid $APP_GID $APP_GROUP && \
       $APP_USER
 
 RUN apt-get update && \
-    apt-get install --no-install-recommends --no-install-suggests -y ca-certificates python3 && \
+    apt-get install --no-install-recommends --no-install-suggests -y ca-certificates python3 tini && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=python-builder /venv /venv
@@ -62,4 +62,5 @@ RUN /venv/bin/django-admin collectstatic
 # By default, serve the app on port 8080 using the app user
 EXPOSE 8080
 USER $APP_UID
+ENTRYPOINT ["tini", "-g", "--"]
 CMD ["/venv/bin/gunicorn", "--config", "/etc/gunicorn/conf.py", "azimuth_site.wsgi:application"]
