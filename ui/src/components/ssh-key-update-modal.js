@@ -48,9 +48,9 @@ const validateSSHKey = (value, allowedKeyTypes, rsaMinBits) => {
 const TextareaWithCustomValidity = withCustomValidity("textarea");
 
 
-const SSHKeyInput = ({ value, onChange, allowedKeyTypes, rsaMinBits, ...props }) => {
+const SSHKeyInput = ({ value, onChange, allowedKeyTypes, rsaMinBits, readOnly, ...props }) => {
     // Calculate the validation message for the current value
-    const validationMessage = validateSSHKey(value, allowedKeyTypes, rsaMinBits) || '';
+    const validationMessage = ( !readOnly ? validateSSHKey(value, allowedKeyTypes, rsaMinBits) : '');
     // Call the onChange handler with the actual value from the field
     const handleChange = (evt) => onChange(evt.target.value);
     return (
@@ -126,43 +126,47 @@ export const SSHKeyUpdateModal = ({
                             </p>
                         </Alert>
                     )}
-                    <Field
-                        name="ssh_public_key"
-                        label="SSH Public Key"
-                        helpText={
-                            sshKey.can_update ?
-                                `Allowed key types: ${sshKey.allowed_key_types.sort().join(', ')}` :
-                                undefined
-                        }
-                    >
-                        {sshKey.fetching ? (
-                            <Loading message="Loading SSH public key..." />
-                        ) : (
-                            <FormControl
-                                as={SSHKeyInput}
-                                rows={8}
-                                value={sshPublicKey}
-                                onChange={setSSHPublicKey}
-                                placeholder="No SSH public key set."
-                                required
-                                readOnly={!sshKey.can_update}
-                                allowedKeyTypes={sshKey.allowed_key_types}
-                                rsaMinBits={sshKey.rsa_min_bits}
-                            />
-                        )}
-                    </Field>
+                    {sshKey.ssh_key_is_public && (
+                        <Field
+                            name="ssh_public_key"
+                            label="SSH Public Key"
+                            helpText={
+                                sshKey.can_update ?
+                                    `Allowed key types: ${sshKey.allowed_key_types.sort().join(', ')}` :
+                                    undefined
+                            }
+                        >
+                            {sshKey.fetching ? (
+                                <Loading message="Loading SSH public key..." />
+                            ) : (
+                                <FormControl
+                                    as={SSHKeyInput}
+                                    rows={8}
+                                    value={sshPublicKey}
+                                    onChange={setSSHPublicKey}
+                                    placeholder="No SSH public key set."
+                                    required
+                                    readOnly={!sshKey.can_update}
+                                    allowedKeyTypes={sshKey.allowed_key_types}
+                                    rsaMinBits={sshKey.rsa_min_bits}
+                                />
+                            )}
+                        </Field>
+                    )}
                 </Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={onCancel}>Cancel</Button>
-                    <Button variant="primary" type="submit">
-                        <FontAwesomeIcon
-                            icon={sshKey.updating ? faSyncAlt : faKey}
-                            spin={sshKey.updating}
-                            className="me-2"
-                        />
-                        Update key
-                    </Button>
-                </Modal.Footer>
+                {sshKey.ssh_key_is_public && (
+                    <Modal.Footer>
+                        <Button variant="secondary" onClick={onCancel}>Cancel</Button>
+                        <Button variant="primary" type="submit">
+                            <FontAwesomeIcon
+                                icon={sshKey.updating ? faSyncAlt : faKey}
+                                spin={sshKey.updating}
+                                className="me-2"
+                            />
+                            Update key
+                        </Button>
+                    </Modal.Footer>
+                )}
             </Form>
         </Modal>
     );
