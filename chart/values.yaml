@@ -269,6 +269,8 @@ provider:
     externalNetTemplate:
     # Indicates whether tenant internal networks should be auto-created if not present
     createInternalNet: true
+    # Indicates whether networks shared into the project may be considered for internal network
+    allowSharedInternalNet: false
     # If larger than zero, project specific manila share should be auto-created
     manilaProjectShareGB: 0
     # The CIDR to use for auto-created tenant internal networks
