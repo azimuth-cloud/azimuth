@@ -137,8 +137,11 @@ class Provider(base.Provider):
                                The current tenancy name can be templated in using the
                                fragment ``{tenant_name}``.
         create_internal_net: If ``True`` (the default), then the internal network is
-                             auto-createdwhen a tagged network or templated network
+                             auto-created when a tagged network or templated network
                              cannot be found.
+        allow_shared_internal_net: If ``True`` (the default is False), then networks
+                                   that are not owned by the project are searched for
+                                   the correct tag.
         manila_project_share_gb: If >0 (the default is 0), then manila project share is
                                  auto created with specified size.
         internal_net_cidr: The CIDR for the internal network when it is auto-created
@@ -155,6 +158,7 @@ class Provider(base.Provider):
         internal_net_template=None,
         external_net_template=None,
         create_internal_net=True,
+        allow_shared_internal_net=False,
         manila_project_share_gb=0,
         internal_net_cidr="192.168.3.0/24",
         internal_net_dns_nameservers=None,
@@ -163,6 +167,7 @@ class Provider(base.Provider):
         self._internal_net_template = internal_net_template
         self._external_net_template = external_net_template
         self._create_internal_net = create_internal_net
+        self._allow_shared_internal_net = allow_shared_internal_net
         self._manila_project_share_gb = 0
         if manila_project_share_gb:
             self._manila_project_share_gb = int(manila_project_share_gb)
@@ -177,6 +182,7 @@ class Provider(base.Provider):
             self._internal_net_template,
             self._external_net_template,
             self._create_internal_net,
+            self._allow_shared_internal_net,
             self._manila_project_share_gb,
             self._internal_net_cidr,
             self._internal_net_dns_nameservers,
@@ -198,6 +204,7 @@ class UnscopedSession(base.UnscopedSession):
         internal_net_template=None,
         external_net_template=None,
         create_internal_net=True,
+        allow_shared_internal_net=False,
         manila_project_share_gb=0,
         internal_net_cidr="192.168.3.0/24",
         internal_net_dns_nameservers=None,
@@ -207,6 +214,7 @@ class UnscopedSession(base.UnscopedSession):
         self._internal_net_template = internal_net_template
         self._external_net_template = external_net_template
         self._create_internal_net = create_internal_net
+        self._allow_shared_internal_net = allow_shared_internal_net
         self._manila_project_share_gb = manila_project_share_gb
         self._internal_net_cidr = internal_net_cidr
         self._internal_net_dns_nameservers = internal_net_dns_nameservers
@@ -221,6 +229,7 @@ class UnscopedSession(base.UnscopedSession):
             self._internal_net_template,
             self._external_net_template,
             self._create_internal_net,
+            self._allow_shared_internal_net,
             self._manila_project_share_gb,
             self._internal_net_cidr,
             self._internal_net_dns_nameservers,
@@ -243,6 +252,7 @@ class ScopedSession(base.ScopedSession):
         internal_net_template=None,
         external_net_template=None,
         create_internal_net=True,
+        allow_shared_internal_net=False,
         manila_project_share_gb=0,
         internal_net_cidr="192.168.3.0/24",
         internal_net_dns_nameservers=None,
@@ -253,6 +263,7 @@ class ScopedSession(base.ScopedSession):
         self._internal_net_template = internal_net_template
         self._external_net_template = external_net_template
         self._create_internal_net = create_internal_net
+        self._allow_shared_internal_net = allow_shared_internal_net
         self._manila_project_share_gb = manila_project_share_gb
         self._internal_net_cidr = internal_net_cidr
         self._internal_net_dns_nameservers = internal_net_dns_nameservers
@@ -456,18 +467,59 @@ class ScopedSession(base.ScopedSession):
         """
         tag = f"portal-{net_type}"
         # By default, networks.all() will only return networks that belong to the
-        # project
-        # For the internal network this is what we want, but for all other types of
-        # network (e.g. external, storage) we want to allow shared networks from other
-        # projects to be selected - setting "project_id = None" allows this to happen
-        kwargs = {} if net_type == "internal" else {"project_id": None}
-        networks = list(self._connection.network.networks.all(tags=tag, **kwargs))
+        # project. we want to allow shared networks from other projects to be
+        # selected - setting "project_id = None" allows this to happen
+        # For the internal network, we can later filter this superset of networks
+        # based on the state of allow_shared_internal_net.
+        networks = list(
+            self._connection.network.networks.all(tags=tag, project_id=None)
+        )
+
+        if net_type == "internal":
+            if self._allow_shared_internal_net:
+                self._log(
+                    "Allowing shared networks with tag '%s'.",
+                    tag,
+                    level=logging.INFO,
+                )
+
+                shared_networks = [
+                    net
+                    for net in networks
+                    if net.project_id != self._connection.project_id
+                ]
+
+                if len(shared_networks) == 1:
+                    net_owner = "shared"
+                    networks = shared_networks
+
+            else:
+                self._log(
+                    "Selecting project networks with tag '%s'.",
+                    tag,
+                    level=logging.INFO,
+                )
+
+                networks = [
+                    net
+                    for net in networks
+                    if net.project_id == self._connection.project_id
+                ]
+
+                net_owner = "project"
+
         if len(networks) == 1:
-            self._log("Using tagged %s network '%s'", net_type, networks[0].name)
+            self._log(
+                "Using tagged %s %s network '%s'", net_owner, net_type, networks[0].name
+            )
             return networks[0]
         elif len(networks) > 1:
+            net_names = [network.name for network in networks]
             self._log(
-                "Found multiple networks with tag '%s'.", tag, level=logging.ERROR
+                "Found multiple networks with tag '%s': %s.",
+                tag,
+                ",".join(net_names),
+                level=logging.ERROR,
             )
             raise errors.InvalidOperationError(
                 f"Found multiple networks with tag '{tag}'."
@@ -486,15 +538,53 @@ class ScopedSession(base.ScopedSession):
         """
         net_name = template.format(tenant_name=self._connection.project_name)
         # By default, networks.all() will only return networks that belong to the
-        # project
-        # For the internal network this is what we want, but for all other types of
-        # network (e.g. external, storage) we want to allow shared networks from other
-        # projects to be selected - setting "project_id = None" allows this to happen
-        kwargs = {} if net_type == "internal" else {"project_id": None}
-        networks = list(self._connection.network.networks.all(name=net_name, **kwargs))
+        # project. we want to allow shared networks from other projects to be
+        # selected - setting "project_id = None" allows this to happen
+        # For the internal network, we can later filter this superset of networks
+        # based on the state of allow_shared_internal_net.
+        networks = list(
+            self._connection.network.networks.all(name=net_name, project_id=None)
+        )
+
+        # Sort list of networks so that shared networks are first
+        networks.sort(key=lambda x: x.project_id == self._connection.project_id)
+
+        if net_type == "internal":
+            if self._allow_shared_internal_net:
+                self._log(
+                    "Allowing shared networks with name '%s'.",
+                    net_name,
+                    level=logging.INFO,
+                )
+                shared_networks = [
+                    net
+                    for net in networks
+                    if net.project_id != self._connection.project_id
+                ]
+
+                if len(shared_networks) == 1:
+                    net_owner = "shared"
+                    networks = shared_networks
+
+            else:
+                self._log(
+                    "Selecting tenant networks with name '%s'.",
+                    net_name,
+                    level=logging.INFO,
+                )
+                networks = [
+                    net
+                    for net in networks
+                    if net.project_id == self._connection.project_id
+                ]
+                net_owner = "project"
+
         if len(networks) == 1:
             self._log(
-                "Found %s network '%s' using template.", net_type, networks[0].name
+                "Found %s %s network '%s' using template.",
+                net_type,
+                net_owner,
+                networks[0].name,
             )
             return networks[0]
         elif len(networks) > 1:
