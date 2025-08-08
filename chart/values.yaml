@@ -391,6 +391,8 @@ sshKeyStore:
   dummy:
     # The SSH public key to use
     key:
+    # Whether the SSH public key should be visible in the Azimuth UI
+    ssh_key_is_public: true
   # Parameters for the LDAP key store
   ldap:
     # The LDAP primary server

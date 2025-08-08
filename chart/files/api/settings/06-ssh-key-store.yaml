@@ -6,6 +6,7 @@ AZIMUTH:
     FACTORY: azimuth.keystore.dummy.DummyKeyStore
     PARAMS:
       KEY: {{ .Values.sshKeyStore.dummy.key | required "No key specified" }}
+      SSH_KEY_IS_PUBLIC: {{ .Values.sshKeyStore.dummy.ssh_key_is_public }}
     {{- else if (eq .Values.sshKeyStore.type "ldap") }}
     FACTORY: azimuth.keystore.ldap.LdapKeyStore
     PARAMS:

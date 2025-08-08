@@ -15,6 +15,9 @@ class KeyStore:
     #: Indicates whether the key store supports updating of keys
     supports_key_update = False
 
+    #: Indicates whether the key store should make the SSH key visible in the UI
+    ssh_key_is_public = True
+
     def get_key(
         self,
         username,

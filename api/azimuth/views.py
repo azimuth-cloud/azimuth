@@ -442,6 +442,7 @@ def ssh_public_key(request):
     content = dict(
         ssh_public_key=ssh_public_key,
         can_update=cloud_settings.SSH_KEY_STORE.supports_key_update,
+        ssh_key_is_public=cloud_settings.SSH_KEY_STORE.ssh_key_is_public,
     )
     if cloud_settings.SSH_KEY_STORE.supports_key_update:
         content.update(
