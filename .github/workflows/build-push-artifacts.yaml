@@ -127,7 +127,7 @@ jobs:
     name: Build and push Helm chart
     runs-on: ubuntu-latest
     # Only build and push the chart if the images built successfully
-    needs: [build_push_jupyter_image]
+    needs: [build_push_jupyterhub_image]
     outputs:
       chart-version: ${{ steps.semver.outputs.version }}
     steps:
