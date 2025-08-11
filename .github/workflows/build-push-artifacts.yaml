@@ -77,11 +77,57 @@ jobs:
           labels: ${{ steps.image-meta.outputs.labels }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+  build_push_jupyterhub_image:
+    name: Build and push jupyter custom image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write         # needed for signing the images with GitHub OIDC Token
+      packages: write         # required for pushing container images
+      security-events: write  # required for pushing SARIF files
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get SemVer version for current commit
+        id: semver
+        uses: azimuth-cloud/github-actions/semver@master
+
+      - name: Calculate metadata for image
+        id: image-meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/azimuth-cloud/azimuth-jupyterhub-k8s-hub
+          # Produce the branch name or tag and the SHA as tags
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=raw,value=${{ steps.semver.outputs.short-sha }}
+
+      - name: Build and push image
+        uses: azimuth-cloud/github-actions/docker-multiarch-build-push@master
+        with:
+          context: azimuth-cloud/azimuth-charts/images/jupyterhub/k8s-hub/
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.image-meta.outputs.tags }}
+          labels: ${{ steps.image-meta.outputs.labels }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
   build_push_chart:
     name: Build and push Helm chart
     runs-on: ubuntu-latest
     # Only build and push the chart if the images built successfully
-    needs: [build_push_images]
+    needs: [build_push_jupyter_image]
     outputs:
       chart-version: ${{ steps.semver.outputs.version }}
     steps:
