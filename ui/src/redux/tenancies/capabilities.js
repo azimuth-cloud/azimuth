@@ -31,6 +31,7 @@ const initialState = {
 
     // Defaults for the actual data
     supports_volumes: false,
+    supports_machines: false,
     supports_clusters: false,
     supports_kubernetes: false,
     supports_apps: false,

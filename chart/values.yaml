@@ -279,6 +279,8 @@ provider:
     # The nameservers to use for auto-created tenant internal networks
     # Defaults to an empty list if not given.
     internalNetDNSNameservers:
+    # Indicates whether support for operations on OpenStack machines is enabled
+    supportsMachines: true
 
 # Settings for apps
 apps:
