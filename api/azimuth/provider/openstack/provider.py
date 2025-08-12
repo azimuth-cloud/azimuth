@@ -148,6 +148,7 @@ class Provider(base.Provider):
                            (default ``192.168.3.0/24``).
         internal_net_dns_nameservers: The DNS nameservers for the internal network when
                                       it is auto-created (default ``None``).
+        supports_machines: If True (the default), then users can manipulate machines
     """
 
     provider_name = "openstack"
@@ -162,6 +163,7 @@ class Provider(base.Provider):
         manila_project_share_gb=0,
         internal_net_cidr="192.168.3.0/24",
         internal_net_dns_nameservers=None,
+        supports_machines=True,
     ):
         self._metadata_prefix = metadata_prefix
         self._internal_net_template = internal_net_template
@@ -173,6 +175,7 @@ class Provider(base.Provider):
             self._manila_project_share_gb = int(manila_project_share_gb)
         self._internal_net_cidr = internal_net_cidr
         self._internal_net_dns_nameservers = internal_net_dns_nameservers
+        self._supports_machines = supports_machines
 
     def _from_auth_session(self, auth_session, auth_user):
         return UnscopedSession(
@@ -186,6 +189,7 @@ class Provider(base.Provider):
             self._manila_project_share_gb,
             self._internal_net_cidr,
             self._internal_net_dns_nameservers,
+            self._supports_machines,
         )
 
 
@@ -208,6 +212,7 @@ class UnscopedSession(base.UnscopedSession):
         manila_project_share_gb=0,
         internal_net_cidr="192.168.3.0/24",
         internal_net_dns_nameservers=None,
+        supports_machines=True,
     ):
         super().__init__(auth_session, auth_user)
         self._metadata_prefix = metadata_prefix
@@ -218,6 +223,7 @@ class UnscopedSession(base.UnscopedSession):
         self._manila_project_share_gb = manila_project_share_gb
         self._internal_net_cidr = internal_net_cidr
         self._internal_net_dns_nameservers = internal_net_dns_nameservers
+        self._supports_machines = supports_machines
 
     @convert_exceptions
     def _scoped_session(self, auth_user, tenancy, credential_data):
@@ -233,6 +239,7 @@ class UnscopedSession(base.UnscopedSession):
             self._manila_project_share_gb,
             self._internal_net_cidr,
             self._internal_net_dns_nameservers,
+            self._supports_machines,
         )
 
 
@@ -256,6 +263,7 @@ class ScopedSession(base.ScopedSession):
         manila_project_share_gb=0,
         internal_net_cidr="192.168.3.0/24",
         internal_net_dns_nameservers=None,
+        supports_machines=True,
     ):
         super().__init__(auth_user, tenancy)
         self._connection = connection
@@ -267,6 +275,7 @@ class ScopedSession(base.ScopedSession):
         self._manila_project_share_gb = manila_project_share_gb
         self._internal_net_cidr = internal_net_cidr
         self._internal_net_dns_nameservers = internal_net_dns_nameservers
+        self._supports_machines = supports_machines
 
         # TODO(johngarbutt): consider moving some of this to config
         # and/or hopefully having this feature on by default
@@ -292,13 +301,25 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.capabilities`.
         """
         # Check if the relevant services are available to the project
-        try:
-            _ = self._connection.block_store
-        except api.ServiceNotSupported:
-            supports_volumes = False
-        else:
+        self._log("Fetching tenancy capabilities ")
+
+        if self._supports_machines:
+            # If machines support is enabled, then volumes are supported
+            # unless the connection to the openstack block-store fails.
             supports_volumes = True
-        return dto.Capabilities(supports_volumes=supports_volumes)
+
+            try:
+                _ = self._connection.block_store
+            except api.ServiceNotSupported:
+                supports_volumes = False
+        else:
+            # If machine support is disabled, then volumes are too
+            supports_volumes = False
+
+        return dto.Capabilities(
+            supports_volumes=supports_volumes,
+            supports_machines=self._supports_machines,
+        )
 
     @convert_exceptions
     def quotas(self):

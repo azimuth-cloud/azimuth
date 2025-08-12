@@ -35,4 +35,7 @@ class ScopedSession(base.ScopedSession):
     provider_name = "null"
 
     def capabilities(self):
-        return dto.Capabilities(supports_volumes=False)
+        return dto.Capabilities(
+            supports_volumes=False,
+            supports_machines=False,
+        )

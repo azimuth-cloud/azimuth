@@ -17,6 +17,9 @@ class Capabilities:
     #: Indicates if the cloud supports volumes
     supports_volumes: bool = False
 
+    #: Indicates if machines are enabled for the cloud
+    supports_machines: bool = True
+
 
 @dataclass(frozen=True)
 class Tenancy:

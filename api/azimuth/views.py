@@ -665,10 +665,20 @@ def machines(request, tenant):
             "size_id": "<id of size>"
         }
     """
-    if request.method == "POST":
-        input_serializer = serializers.CreateMachineSerializer(data=request.data)
-        input_serializer.is_valid(raise_exception=True)
-        with request.auth.scoped_session(tenant) as session:
+
+    with request.auth.scoped_session(tenant) as session:
+        if not session.capabilities().supports_machines:
+            return response.Response(
+                {
+                    "detail": "Machine support has been disabled by the administrator.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if request.method == "POST":
+            input_serializer = serializers.CreateMachineSerializer(data=request.data)
+            input_serializer.is_valid(raise_exception=True)
             machine = session.create_machine(
                 name=input_serializer.validated_data["name"],
                 image=input_serializer.validated_data["image_id"],
@@ -679,18 +689,19 @@ def machines(request, tenant):
                     unscoped_session=request.auth,
                 ),
             )
-        output_serializer = serializers.MachineSerializer(
-            machine, context={"request": request, "tenant": tenant}
-        )
-        return response.Response(output_serializer.data, status=status.HTTP_201_CREATED)
-    else:
-        with request.auth.scoped_session(tenant) as session:
+            output_serializer = serializers.MachineSerializer(
+                machine, context={"request": request, "tenant": tenant}
+            )
+            return response.Response(
+                output_serializer.data, status=status.HTTP_201_CREATED
+            )
+        else:
             serializer = serializers.MachineSerializer(
                 session.machines(),
                 many=True,
                 context={"request": request, "tenant": tenant},
             )
-        return response.Response(serializer.data)
+            return response.Response(serializer.data)
 
 
 @provider_api_view(["GET", "DELETE"])
@@ -700,23 +711,31 @@ def machine_details(request, tenant, machine):
 
     On ``DELETE`` requests, delete the specified machine.
     """
-    if request.method == "DELETE":
-        with request.auth.scoped_session(tenant) as session:
-            deleted = session.delete_machine(machine)
-        if deleted:
-            serializer = serializers.MachineSerializer(
-                deleted, context={"request": request, "tenant": tenant}
+    with request.auth.scoped_session(tenant) as session:
+        if not session.capabilities().supports_machines:
+            return response.Response(
+                {
+                    "detail": "Machine support has been disabled by the administrator.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
             )
-            return response.Response(serializer.data)
+
+        if request.method == "DELETE":
+            deleted = session.delete_machine(machine)
+            if deleted:
+                serializer = serializers.MachineSerializer(
+                    deleted, context={"request": request, "tenant": tenant}
+                )
+                return response.Response(serializer.data)
+            else:
+                return response.Response()
         else:
-            return response.Response()
-    else:
-        with request.auth.scoped_session(tenant) as session:
             serializer = serializers.MachineSerializer(
                 session.find_machine(machine),
                 context={"request": request, "tenant": tenant},
             )
-        return response.Response(serializer.data)
+            return response.Response(serializer.data)
 
 
 @provider_api_view(["GET"])
@@ -725,6 +744,14 @@ def machine_logs(request, tenant, machine):
     Return the logs for the specified machine as a list of lines.
     """
     with request.auth.scoped_session(tenant) as session:
+        if not session.capabilities().supports_machines:
+            return response.Response(
+                {
+                    "detail": "Machine support has been disabled by the administrator.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
         machine_logs = session.fetch_logs_for_machine(machine)
     return response.Response(dict(logs=machine_logs))
 
@@ -744,10 +771,21 @@ def machine_firewall_rules(request, tenant, machine):
             "remote_cidr": "0.0.0.0/0"
         }
     """
-    if request.method == "POST":
-        input_serializer = serializers.CreateFirewallRuleSerializer(data=request.data)
-        input_serializer.is_valid(raise_exception=True)
-        with request.auth.scoped_session(tenant) as session:
+    with request.auth.scoped_session(tenant) as session:
+        if not session.capabilities().supports_machines:
+            return response.Response(
+                {
+                    "detail": "Machine support has been disabled by the administrator.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if request.method == "POST":
+            input_serializer = serializers.CreateFirewallRuleSerializer(
+                data=request.data
+            )
+            input_serializer.is_valid(raise_exception=True)
             output_serializer = serializers.FirewallGroupSerializer(
                 session.add_firewall_rule_to_machine(
                     machine,
@@ -759,15 +797,16 @@ def machine_firewall_rules(request, tenant, machine):
                 many=True,
                 context={"request": request, "tenant": tenant},
             )
-        return response.Response(output_serializer.data, status=status.HTTP_201_CREATED)
-    else:
-        with request.auth.scoped_session(tenant) as session:
+            return response.Response(
+                output_serializer.data, status=status.HTTP_201_CREATED
+            )
+        else:
             serializer = serializers.FirewallGroupSerializer(
                 session.fetch_firewall_rules_for_machine(machine),
                 many=True,
                 context={"request": request, "tenant": tenant},
             )
-        return response.Response(serializer.data)
+            return response.Response(serializer.data)
 
 
 @provider_api_view(["DELETE"])
@@ -776,6 +815,15 @@ def machine_firewall_rule_details(request, tenant, machine, rule):
     Delete the specified firewall rule.
     """
     with request.auth.scoped_session(tenant) as session:
+        if not session.capabilities().supports_machines:
+            return response.Response(
+                {
+                    "detail": "Machine support has been disabled by the administrator.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         output_serializer = serializers.FirewallGroupSerializer(
             session.remove_firewall_rule_from_machine(machine, rule),
             many=True,
@@ -790,6 +838,15 @@ def machine_start(request, tenant, machine):
     Start (power on) the specified machine.
     """
     with request.auth.scoped_session(tenant) as session:
+        if not session.capabilities().supports_machines:
+            return response.Response(
+                {
+                    "detail": "Machine support has been disabled by the administrator.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         serializer = serializers.MachineSerializer(
             session.start_machine(machine),
             context={"request": request, "tenant": tenant},
@@ -803,6 +860,15 @@ def machine_stop(request, tenant, machine):
     Stop (power off) the specified machine.
     """
     with request.auth.scoped_session(tenant) as session:
+        if not session.capabilities().supports_machines:
+            return response.Response(
+                {
+                    "detail": "Machine support has been disabled by the administrator.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         serializer = serializers.MachineSerializer(
             session.stop_machine(machine),
             context={"request": request, "tenant": tenant},
@@ -815,7 +881,16 @@ def machine_restart(request, tenant, machine):
     """
     Restart (power cycle) the specified machine.
     """
+
     with request.auth.scoped_session(tenant) as session:
+        if not session.capabilities().supports_machines:
+            return response.Response(
+                {
+                    "detail": "Machine support has been disabled by the administrator.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
         serializer = serializers.MachineSerializer(
             session.restart_machine(machine),
             context={"request": request, "tenant": tenant},
@@ -861,11 +936,20 @@ def external_ip_details(request, tenant, ip):
 
         { "machine_id": "<machine id>" }
     """
-    if request.method == "PATCH":
-        input_serializer = serializers.ExternalIPSerializer(data=request.data)
-        input_serializer.is_valid(raise_exception=True)
-        machine_id = input_serializer.validated_data["machine_id"]
-        with request.auth.scoped_session(tenant) as session:
+    with request.auth.scoped_session(tenant) as session:
+        if not session.capabilities().supports_machines:
+            return response.Response(
+                {
+                    "detail": "Machine support has been disabled by the administrator.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if request.method == "PATCH":
+            input_serializer = serializers.ExternalIPSerializer(data=request.data)
+            input_serializer.is_valid(raise_exception=True)
+            machine_id = input_serializer.validated_data["machine_id"]
             if machine_id:
                 # If attaching, we need to check if NAT is permitted for the machine
                 machine = session.find_machine(machine_id)
@@ -882,17 +966,16 @@ def external_ip_details(request, tenant, ip):
                 ip = session.attach_external_ip(ip, str(machine_id))
             else:
                 ip = session.detach_external_ip(ip)
-        output_serializer = serializers.ExternalIPSerializer(
-            ip, context={"request": request, "tenant": tenant}
-        )
-        return response.Response(output_serializer.data)
-    else:
-        with request.auth.scoped_session(tenant) as session:
+            output_serializer = serializers.ExternalIPSerializer(
+                ip, context={"request": request, "tenant": tenant}
+            )
+            return response.Response(output_serializer.data)
+        else:
             serializer = serializers.ExternalIPSerializer(
                 session.find_external_ip(ip),
                 context={"request": request, "tenant": tenant},
             )
-        return response.Response(serializer.data)
+            return response.Response(serializer.data)
 
 
 @provider_api_view(["GET", "POST"])
@@ -909,10 +992,26 @@ def volumes(request, tenant):
 
     The size of the volume is given in GB.
     """
-    if request.method == "POST":
-        input_serializer = serializers.CreateVolumeSerializer(data=request.data)
-        input_serializer.is_valid(raise_exception=True)
-        with request.auth.scoped_session(tenant) as session:
+    with request.auth.scoped_session(tenant) as session:
+        if (
+            not session.capabilities().supports_volumes
+            or not session.capabilities().supports_machines
+        ):
+            return response.Response(
+                {
+                    "detail": (
+                        "Volumes are not supported by this provider, "
+                        "or support has been disabled by the administrator."
+                    ),
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if request.method == "POST":
+            input_serializer = serializers.CreateVolumeSerializer(data=request.data)
+            input_serializer.is_valid(raise_exception=True)
+
             output_serializer = serializers.VolumeSerializer(
                 session.create_volume(
                     input_serializer.validated_data["name"],
@@ -920,15 +1019,16 @@ def volumes(request, tenant):
                 ),
                 context={"request": request, "tenant": tenant},
             )
-        return response.Response(output_serializer.data, status=status.HTTP_201_CREATED)
-    else:
-        with request.auth.scoped_session(tenant) as session:
+            return response.Response(
+                output_serializer.data, status=status.HTTP_201_CREATED
+            )
+        else:
             serializer = serializers.VolumeSerializer(
                 session.volumes(),
                 many=True,
                 context={"request": request, "tenant": tenant},
             )
-        return response.Response(serializer.data)
+            return response.Response(serializer.data)
 
 
 @provider_api_view(["GET", "PATCH", "DELETE"])
@@ -949,36 +1049,49 @@ def volume_details(request, tenant, volume):
 
     On ``DELETE`` requests, delete the specified volume.
     """
-    if request.method == "PATCH":
-        input_serializer = serializers.UpdateVolumeSerializer(data=request.data)
-        input_serializer.is_valid(raise_exception=True)
-        machine_id = input_serializer.validated_data["machine_id"]
-        with request.auth.scoped_session(tenant) as session:
+    with request.auth.scoped_session(tenant) as session:
+        if (
+            not session.capabilities().supports_volumes
+            or not session.capabilities().supports_machines
+        ):
+            return response.Response(
+                {
+                    "detail": (
+                        "Volumes are not supported by this provider, "
+                        "or support has been disabled by the administrator."
+                    ),
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if request.method == "PATCH":
+            input_serializer = serializers.UpdateVolumeSerializer(data=request.data)
+            input_serializer.is_valid(raise_exception=True)
+            machine_id = input_serializer.validated_data["machine_id"]
             if machine_id:
                 volume = session.attach_volume(volume, str(machine_id))
             else:
                 volume = session.detach_volume(volume)
-        output_serializer = serializers.VolumeSerializer(
-            volume, context={"request": request, "tenant": tenant}
-        )
-        return response.Response(output_serializer.data)
-    elif request.method == "DELETE":
-        with request.auth.scoped_session(tenant) as session:
-            deleted = session.delete_volume(volume)
-        if deleted:
-            serializer = serializers.VolumeSerializer(
-                deleted, context={"request": request, "tenant": tenant}
+            output_serializer = serializers.VolumeSerializer(
+                volume, context={"request": request, "tenant": tenant}
             )
-            return response.Response(serializer.data)
+            return response.Response(output_serializer.data)
+        elif request.method == "DELETE":
+            deleted = session.delete_volume(volume)
+            if deleted:
+                serializer = serializers.VolumeSerializer(
+                    deleted, context={"request": request, "tenant": tenant}
+                )
+                return response.Response(serializer.data)
+            else:
+                return response.Response()
         else:
-            return response.Response()
-    else:
-        with request.auth.scoped_session(tenant) as session:
             serializer = serializers.VolumeSerializer(
                 session.find_volume(volume),
                 context={"request": request, "tenant": tenant},
             )
-        return response.Response(serializer.data)
+            return response.Response(serializer.data)
 
 
 @provider_api_view(["GET"])
