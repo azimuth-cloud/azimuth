@@ -679,7 +679,13 @@ class ScopedSession(base.ScopedSession):
                 router._add_interface(subnet_id=subnet.id)
             return network
         else:
-            raise errors.InvalidOperationError("Could not find internal network.")
+            if not self._supports_machines:
+                self._log(
+                    "Could not find internal network", level=logging.WARN, exc_info=True
+                )
+                return None
+            else:
+                raise errors.InvalidOperationError("Could not find internal network.")
 
     def _project_share(self, create_share=True):  # noqa: C901
         """
