@@ -488,48 +488,25 @@ class ScopedSession(base.ScopedSession):
         """
         tag = f"portal-{net_type}"
         # By default, networks.all() will only return networks that belong to the
-        # project. we want to allow shared networks from other projects to be
-        # selected - setting "project_id = None" allows this to happen
-        # For the internal network, we can later filter this superset of networks
-        # based on the state of allow_shared_internal_net.
-        networks = list(
-            self._connection.network.networks.all(tags=tag, project_id=None)
+        # project
+        # For the internal network this is what we want, but for all other types of
+        # network (e.g. external, storage) we want to allow shared networks from other
+        # projects to be selected - setting "project_id = None" allows this to happen
+        kwargs = (
+            {}
+            if net_type == "internal" and not self._allow_shared_internal_net
+            else {"project_id": None}
         )
 
-        if net_type == "internal":
-            if self._allow_shared_internal_net:
-                self._log(
-                    "Allowing shared networks with tag '%s'.",
-                    tag,
-                    level=logging.INFO,
-                )
-
-                shared_networks = [
-                    net
-                    for net in networks
-                    if net.project_id != self._connection.project_id
-                ]
-
-                if len(shared_networks) == 1:
-                    net_owner = "shared"
-                    networks = shared_networks
-
-            else:
-                self._log(
-                    "Selecting project networks with tag '%s'.",
-                    tag,
-                    level=logging.INFO,
-                )
-
-                networks = [
-                    net
-                    for net in networks
-                    if net.project_id == self._connection.project_id
-                ]
-
-                net_owner = "project"
+        networks = list(self._connection.network.networks.all(tags=tag, **kwargs))
 
         if len(networks) == 1:
+            net_owner = (
+                "project"
+                if networks[0].project_id == self._connection.project_id
+                else "shared"
+            )
+
             self._log(
                 "Using tagged %s %s network '%s'", net_owner, net_type, networks[0].name
             )
@@ -558,49 +535,25 @@ class ScopedSession(base.ScopedSession):
         raised.
         """
         net_name = template.format(tenant_name=self._connection.project_name)
+
         # By default, networks.all() will only return networks that belong to the
-        # project. we want to allow shared networks from other projects to be
-        # selected - setting "project_id = None" allows this to happen
-        # For the internal network, we can later filter this superset of networks
-        # based on the state of allow_shared_internal_net.
-        networks = list(
-            self._connection.network.networks.all(name=net_name, project_id=None)
+        # project
+        # For the internal network this is what we want, but for all other types of
+        # network (e.g. external, storage) we want to allow shared networks from other
+        # projects to be selected - setting "project_id = None" allows this to happen
+        kwargs = (
+            {}
+            if net_type == "internal" and not self._allow_shared_internal_net
+            else {"project_id": None}
         )
-
-        # Sort list of networks so that shared networks are first
-        networks.sort(key=lambda x: x.project_id == self._connection.project_id)
-
-        if net_type == "internal":
-            if self._allow_shared_internal_net:
-                self._log(
-                    "Allowing shared networks with name '%s'.",
-                    net_name,
-                    level=logging.INFO,
-                )
-                shared_networks = [
-                    net
-                    for net in networks
-                    if net.project_id != self._connection.project_id
-                ]
-
-                if len(shared_networks) == 1:
-                    net_owner = "shared"
-                    networks = shared_networks
-
-            else:
-                self._log(
-                    "Selecting tenant networks with name '%s'.",
-                    net_name,
-                    level=logging.INFO,
-                )
-                networks = [
-                    net
-                    for net in networks
-                    if net.project_id == self._connection.project_id
-                ]
-                net_owner = "project"
+        networks = list(self._connection.network.networks.all(name=net_name, **kwargs))
 
         if len(networks) == 1:
+            net_owner = (
+                "project"
+                if networks[0].project_id == self._connection.project_id
+                else "shared"
+            )
             self._log(
                 "Found %s %s network '%s' using template.",
                 net_type,

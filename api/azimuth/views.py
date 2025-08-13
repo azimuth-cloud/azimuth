@@ -470,7 +470,6 @@ def capabilities(request, tenant):
     """
     with request.auth.scoped_session(tenant) as session:
         response_data = dict(
-            dataclasses.asdict(session.capabilities()),
             # Clusters are supported if a cluster engine is configured
             supports_clusters=bool(cloud_settings.CLUSTER_ENGINE),
             # Kubernetes is supported if a Cluster API provider is configured
@@ -480,6 +479,20 @@ def capabilities(request, tenant):
             # Scheduling must be specifically enabled
             supports_scheduling=bool(cloud_settings.SCHEDULING.ENABLED),
         )
+        # If a capability is enabled in config, allow it to be disabled for a
+        # session/tenant. If a capability is disabled in config, do not allow
+        # it to be overridden by a session capability.
+        for cap, value in dataclasses.asdict(session.capabilities()).items():
+            # Capability is set in config
+            if cap in response_data:
+                # Capability is enabled (True) in config and can be set to whatever
+                # we get back from our session capabilities
+                if response_data[cap]:
+                    response_data[cap] = value
+            # Capability is a session capability and is not set in config
+            else:
+                response_data[cap] = value
+
     response_data["links"] = {"self": request.build_absolute_uri()}
     return response.Response(response_data)
 
@@ -1422,15 +1435,19 @@ def kubernetes_cluster_templates(request, tenant):
     """
     Return a list of the available Kubernetes cluster templates for the tenancy.
     """
-    if not cloud_settings.CLUSTER_API_PROVIDER:
-        return response.Response(
-            {
-                "detail": "Kubernetes clusters are not supported.",
-                "code": "unsupported_operation",
-            },
-            status=status.HTTP_404_NOT_FOUND,
-        )
     with request.auth.scoped_session(tenant) as session:
+        if (
+            not bool(cloud_settings.CLUSTER_API_PROVIDER)
+            or not session.capabilities().supports_kubernetes
+        ):
+            return response.Response(
+                {
+                    "detail": "Kubernetes clusters are not supported.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             serializer = serializers.KubernetesClusterTemplateSerializer(
                 capi_session.cluster_templates(),
@@ -1445,15 +1462,19 @@ def kubernetes_cluster_template_details(request, tenant, template):
     """
     Return the details for the specified Kubernetes cluster template.
     """
-    if not cloud_settings.CLUSTER_API_PROVIDER:
-        return response.Response(
-            {
-                "detail": "Kubernetes clusters are not supported.",
-                "code": "unsupported_operation",
-            },
-            status=status.HTTP_404_NOT_FOUND,
-        )
     with request.auth.scoped_session(tenant) as session:
+        if (
+            not bool(cloud_settings.CLUSTER_API_PROVIDER)
+            or not session.capabilities().supports_kubernetes
+        ):
+            return response.Response(
+                {
+                    "detail": "Kubernetes clusters are not supported.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             serializer = serializers.KubernetesClusterTemplateSerializer(
                 capi_session.find_cluster_template(template),
@@ -1518,15 +1539,19 @@ def kubernetes_cluster_schedule_new(request, tenant):
     """
     Returns scheduling information for creating a new Kubernetes cluster.
     """
-    if not cloud_settings.CLUSTER_API_PROVIDER:
-        return response.Response(
-            {
-                "detail": "Kubernetes clusters are not supported.",
-                "code": "unsupported_operation",
-            },
-            status=status.HTTP_404_NOT_FOUND,
-        )
     with request.auth.scoped_session(tenant) as session:
+        if (
+            not bool(cloud_settings.CLUSTER_API_PROVIDER)
+            or not session.capabilities().supports_kubernetes
+        ):
+            return response.Response(
+                {
+                    "detail": "Kubernetes clusters are not supported.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             input_serializer = serializers.CreateKubernetesClusterSerializer(
                 data=request.data,
@@ -1552,15 +1577,19 @@ def kubernetes_cluster_schedule_existing(request, tenant, cluster):
     """
     Returns scheduling information for updating the specified Kubernetes cluster.
     """
-    if not cloud_settings.CLUSTER_API_PROVIDER:
-        return response.Response(
-            {
-                "detail": "Kubernetes clusters are not supported.",
-                "code": "unsupported_operation",
-            },
-            status=status.HTTP_404_NOT_FOUND,
-        )
     with request.auth.scoped_session(tenant) as session:
+        if (
+            not bool(cloud_settings.CLUSTER_API_PROVIDER)
+            or not session.capabilities().supports_kubernetes
+        ):
+            return response.Response(
+                {
+                    "detail": "Kubernetes clusters are not supported.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             cluster = capi_session.find_cluster(cluster)
             input_serializer = serializers.UpdateKubernetesClusterSerializer(
@@ -1594,15 +1623,18 @@ def kubernetes_clusters(request, tenant):
 
     On ``POST`` requests, create a new Kubernetes cluster.
     """
-    if not cloud_settings.CLUSTER_API_PROVIDER:
-        return response.Response(
-            {
-                "detail": "Kubernetes clusters are not supported.",
-                "code": "unsupported_operation",
-            },
-            status=status.HTTP_404_NOT_FOUND,
-        )
     with request.auth.scoped_session(tenant) as session:
+        if (
+            not bool(cloud_settings.CLUSTER_API_PROVIDER)
+            or not session.capabilities().supports_kubernetes
+        ):
+            return response.Response(
+                {
+                    "detail": "Kubernetes clusters are not supported.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             if request.method == "POST":
                 input_serializer = serializers.CreateKubernetesClusterSerializer(
@@ -1653,15 +1685,19 @@ def kubernetes_cluster_details(request, tenant, cluster):
 
     On ``DELETE`` requests, delete the specified Kubernetes cluster.
     """
-    if not cloud_settings.CLUSTER_API_PROVIDER:
-        return response.Response(
-            {
-                "detail": "Kubernetes clusters are not supported.",
-                "code": "unsupported_operation",
-            },
-            status=status.HTTP_404_NOT_FOUND,
-        )
     with request.auth.scoped_session(tenant) as session:
+        if (
+            not bool(cloud_settings.CLUSTER_API_PROVIDER)
+            or not session.capabilities().supports_kubernetes
+        ):
+            return response.Response(
+                {
+                    "detail": "Kubernetes clusters are not supported.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             if request.method == "PATCH":
                 cluster = capi_session.find_cluster(cluster)
@@ -1722,15 +1758,19 @@ def kubernetes_cluster_generate_kubeconfig(request, tenant, cluster):
     """
     Generate a kubeconfig file for the specified Kubernetes cluster.
     """
-    if not cloud_settings.CLUSTER_API_PROVIDER:
-        return response.Response(
-            {
-                "detail": "Kubernetes clusters are not supported.",
-                "code": "unsupported_operation",
-            },
-            status=status.HTTP_404_NOT_FOUND,
-        )
     with request.auth.scoped_session(tenant) as session:
+        if (
+            not bool(cloud_settings.CLUSTER_API_PROVIDER)
+            or not session.capabilities().supports_kubernetes
+        ):
+            return response.Response(
+                {
+                    "detail": "Kubernetes clusters are not supported.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             kubeconfig = capi_session.generate_kubeconfig(cluster)
     return response.Response({"kubeconfig": kubeconfig})
@@ -1742,23 +1782,25 @@ def kubernetes_cluster_service(request, tenant, cluster, service):
     """
     Redirects the user to the specified service on the specified Kubernetes cluster.
     """
-    if not cloud_settings.CLUSTER_API_PROVIDER:
-        return response.Response(
-            {
-                "detail": "Kubernetes clusters are not supported.",
-                "code": "unsupported_operation",
-            },
-            status=status.HTTP_404_NOT_FOUND,
-        )
+    with request.auth.scoped_session(tenant) as session:
+        if (
+            not bool(cloud_settings.CLUSTER_API_PROVIDER)
+            or not session.capabilities().supports_kubernetes
+        ):
+            return response.Response(
+                {
+                    "detail": "Kubernetes clusters are not supported.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
     service_fqdn = None
     service_label = None
     try:
         if cloud_settings.CLUSTER_API_PROVIDER:
-            with request.auth.scoped_session(tenant) as session:
-                with cloud_settings.CLUSTER_API_PROVIDER.session(
-                    session
-                ) as capi_session:
-                    cluster = capi_session.find_cluster(cluster)
+            with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
+                cluster = capi_session.find_cluster(cluster)
         service_obj = next(s for s in cluster.services if s.name == service)
         service_fqdn = service_obj.fqdn
         service_label = service_obj.label
@@ -1774,15 +1816,19 @@ def kubernetes_app_templates(request, tenant):
     """
     Return a list of the available Kubernetes app templates for the tenancy.
     """
-    if not cloud_settings.APPS_PROVIDER:
-        return response.Response(
-            {
-                "detail": "Kubernetes apps are not supported.",
-                "code": "unsupported_operation",
-            },
-            status=status.HTTP_404_NOT_FOUND,
-        )
     with request.auth.scoped_session(tenant) as session:
+        if (
+            not bool(cloud_settings.APPS_PROVIDER)
+            or not session.capabilities().supports_kubernetes
+        ):
+            return response.Response(
+                {
+                    "detail": "Kubernetes clusters are not supported.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         with cloud_settings.APPS_PROVIDER.session(session) as apps_session:
             serializer = serializers.KubernetesAppTemplateSerializer(
                 apps_session.app_templates(),
@@ -1797,15 +1843,19 @@ def kubernetes_app_template_details(request, tenant, template):
     """
     Return the details for the specified Kubernetes app template.
     """
-    if not cloud_settings.APPS_PROVIDER:
-        return response.Response(
-            {
-                "detail": "Kubernetes apps are not supported.",
-                "code": "unsupported_operation",
-            },
-            status=status.HTTP_404_NOT_FOUND,
-        )
     with request.auth.scoped_session(tenant) as session:
+        if (
+            not bool(cloud_settings.APPS_PROVIDER)
+            or not session.capabilities().supports_kubernetes
+        ):
+            return response.Response(
+                {
+                    "detail": "Kubernetes clusters are not supported.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         with cloud_settings.APPS_PROVIDER.session(session) as apps_session:
             serializer = serializers.KubernetesAppTemplateSerializer(
                 apps_session.find_app_template(template),
@@ -1819,7 +1869,10 @@ def optional_capi_session(cloud_session):
     Returns a context manager that yields either a CAPI session or None.
     """
     # If a CAPI provider is available, get a session
-    if cloud_settings.CLUSTER_API_PROVIDER:
+    if (
+        bool(cloud_settings.CLUSTER_API_PROVIDER)
+        and cloud_session.capabilities().supports_kubernetes
+    ):
         return cloud_settings.CLUSTER_API_PROVIDER.session(cloud_session)
     else:
         return contextlib.nullcontext()
@@ -1832,15 +1885,19 @@ def kubernetes_apps(request, tenant):
 
     On ``POST`` requests, create a new Kubernetes app.
     """
-    if not cloud_settings.APPS_PROVIDER:
-        return response.Response(
-            {
-                "detail": "Kubernetes apps are not supported.",
-                "code": "unsupported_operation",
-            },
-            status=status.HTTP_404_NOT_FOUND,
-        )
     with request.auth.scoped_session(tenant) as session:
+        if (
+            not bool(cloud_settings.APPS_PROVIDER)
+            or not session.capabilities().supports_kubernetes
+        ):
+            return response.Response(
+                {
+                    "detail": "Kubernetes apps are not supported.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         with cloud_settings.APPS_PROVIDER.session(session) as apps_session:
             if request.method == "POST":
                 with optional_capi_session(session) as capi_session:
@@ -1882,15 +1939,19 @@ def kubernetes_app_details(request, tenant, app):
 
     On ``DELETE`` requests, delete the specified Kubernetes app.
     """
-    if not cloud_settings.APPS_PROVIDER:
-        return response.Response(
-            {
-                "detail": "Kubernetes apps are not supported.",
-                "code": "unsupported_operation",
-            },
-            status=status.HTTP_404_NOT_FOUND,
-        )
     with request.auth.scoped_session(tenant) as session:
+        if (
+            not bool(cloud_settings.APPS_PROVIDER)
+            or not session.capabilities().supports_kubernetes
+        ):
+            return response.Response(
+                {
+                    "detail": "Kubernetes apps are not supported.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         with cloud_settings.APPS_PROVIDER.session(session) as apps_session:
             if request.method == "PATCH":
                 app = apps_session.find_app(app)
@@ -1935,25 +1996,33 @@ def kubernetes_app_service(request, tenant, app, service):
     """
     Redirects the user to the specified service for the specified Kubernetes app.
     """
-    if not cloud_settings.APPS_PROVIDER:
-        return response.Response(
-            {
-                "detail": "Kubernetes apps are not supported.",
-                "code": "unsupported_operation",
-            },
-            status=status.HTTP_404_NOT_FOUND,
-        )
-    service_fqdn = None
-    service_label = None
-    try:
-        with request.auth.scoped_session(tenant) as session:
+    with request.auth.scoped_session(tenant) as session:
+        if (
+            not bool(cloud_settings.APPS_PROVIDER)
+            or not session.capabilities().supports_kubernetes
+        ):
+            return response.Response(
+                {
+                    "detail": "Kubernetes apps are not supported.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        service_fqdn = None
+        service_label = None
+        try:
             with cloud_settings.APPS_PROVIDER.session(session) as apps_session:
                 app = apps_session.find_app(app)
-        service_obj = next(s for s in app.services if s.name == service)
-        service_fqdn = service_obj.fqdn
-        service_label = service_obj.label
-    except (cluster_api_errors.ObjectNotFoundError, StopIteration):
-        pass
-    return redirect_to_zenith_service(
-        request, "kubernetes_app", service, service_fqdn, service_label=service_label
-    )
+            service_obj = next(s for s in app.services if s.name == service)
+            service_fqdn = service_obj.fqdn
+            service_label = service_obj.label
+        except (cluster_api_errors.ObjectNotFoundError, StopIteration):
+            pass
+        return redirect_to_zenith_service(
+            request,
+            "kubernetes_app",
+            service,
+            service_fqdn,
+            service_label=service_label,
+        )
