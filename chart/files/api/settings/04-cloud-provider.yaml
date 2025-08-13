@@ -11,6 +11,7 @@ AZIMUTH:
       {{- end }}
       CREATE_INTERNAL_NET: {{ .Values.provider.openstack.createInternalNet }}
       ALLOW_SHARED_INTERNAL_NET: {{ .Values.provider.openstack.allowSharedInternalNet }}
+      ALLOW_NO_CLUSTER_NETWORK: {{ .Values.provider.openstack.allowNoClusterNetwork }}
       MANILA_PROJECT_SHARE_GB: {{ .Values.provider.openstack.manilaProjectShareGB }}
       {{- with .Values.provider.openstack.internalNetCidr }}
       INTERNAL_NET_CIDR: {{ . | quote }}

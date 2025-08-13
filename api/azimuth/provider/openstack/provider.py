@@ -160,6 +160,7 @@ class Provider(base.Provider):
         external_net_template=None,
         create_internal_net=True,
         allow_shared_internal_net=False,
+        allow_no_cluster_network=False,
         manila_project_share_gb=0,
         internal_net_cidr="192.168.3.0/24",
         internal_net_dns_nameservers=None,
@@ -170,6 +171,7 @@ class Provider(base.Provider):
         self._external_net_template = external_net_template
         self._create_internal_net = create_internal_net
         self._allow_shared_internal_net = allow_shared_internal_net
+        self._allow_no_cluster_network = allow_no_cluster_network
         self._manila_project_share_gb = 0
         if manila_project_share_gb:
             self._manila_project_share_gb = int(manila_project_share_gb)
@@ -186,6 +188,7 @@ class Provider(base.Provider):
             self._external_net_template,
             self._create_internal_net,
             self._allow_shared_internal_net,
+            self._allow_no_cluster_network,
             self._manila_project_share_gb,
             self._internal_net_cidr,
             self._internal_net_dns_nameservers,
@@ -209,6 +212,7 @@ class UnscopedSession(base.UnscopedSession):
         external_net_template=None,
         create_internal_net=True,
         allow_shared_internal_net=False,
+        allow_no_cluster_network=False,
         manila_project_share_gb=0,
         internal_net_cidr="192.168.3.0/24",
         internal_net_dns_nameservers=None,
@@ -220,6 +224,7 @@ class UnscopedSession(base.UnscopedSession):
         self._external_net_template = external_net_template
         self._create_internal_net = create_internal_net
         self._allow_shared_internal_net = allow_shared_internal_net
+        self._allow_no_cluster_network = allow_no_cluster_network
         self._manila_project_share_gb = manila_project_share_gb
         self._internal_net_cidr = internal_net_cidr
         self._internal_net_dns_nameservers = internal_net_dns_nameservers
@@ -236,6 +241,7 @@ class UnscopedSession(base.UnscopedSession):
             self._external_net_template,
             self._create_internal_net,
             self._allow_shared_internal_net,
+            self._allow_no_cluster_network,
             self._manila_project_share_gb,
             self._internal_net_cidr,
             self._internal_net_dns_nameservers,
@@ -260,6 +266,7 @@ class ScopedSession(base.ScopedSession):
         external_net_template=None,
         create_internal_net=True,
         allow_shared_internal_net=False,
+        allow_no_cluster_network=False,
         manila_project_share_gb=0,
         internal_net_cidr="192.168.3.0/24",
         internal_net_dns_nameservers=None,
@@ -272,6 +279,7 @@ class ScopedSession(base.ScopedSession):
         self._external_net_template = external_net_template
         self._create_internal_net = create_internal_net
         self._allow_shared_internal_net = allow_shared_internal_net
+        self._allow_no_cluster_network = allow_no_cluster_network
         self._manila_project_share_gb = manila_project_share_gb
         self._internal_net_cidr = internal_net_cidr
         self._internal_net_dns_nameservers = internal_net_dns_nameservers
@@ -301,25 +309,48 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.capabilities`.
         """
         # Check if the relevant services are available to the project
-        self._log("Fetching tenancy capabilities ")
+        self._log("Determining tenancy capabilities")
 
-        if self._supports_machines:
-            # If machines support is enabled, then volumes are supported
-            # unless the connection to the openstack block-store fails.
-            supports_volumes = True
+        supports_machines = supports_volumes = self._supports_machines
+        supports_kubernetes = True
 
+        # If there is no internal network, then disable machines and
+        # kubernetes
+        if self._tenant_network() is None:
+            self._log(
+                (
+                    "Disabling machines and kubernetes support because "
+                    "an internal network could not be found and network "
+                    "creation is disabled."
+                ),
+                level=logging.WARN,
+            )
+            supports_machines = supports_kubernetes = False
+        # If machines support is enabled, then volumes are supported
+        # unless the connection to the openstack block-store fails.
+        if supports_machines:
             try:
                 _ = self._connection.block_store
             except api.ServiceNotSupported:
+                self._log(
+                    (
+                        "Disabling volumes support because no block-storage "
+                        "service could be found from the cloud provider."
+                    ),
+                    level=logging.WARN,
+                )
                 supports_volumes = False
         else:
-            # If machine support is disabled, then volumes are too
             supports_volumes = False
 
-        return dto.Capabilities(
-            supports_volumes=supports_volumes,
-            supports_machines=self._supports_machines,
-        )
+        capabilities = {
+            "supports_volumes": supports_volumes,
+            "supports_machines": supports_machines,
+            "supports_kubernetes": supports_kubernetes,
+            "supports_apps": supports_kubernetes,
+        }
+
+        return dto.Capabilities(**capabilities)
 
     @convert_exceptions
     def quotas(self):
@@ -499,7 +530,7 @@ class ScopedSession(base.ScopedSession):
         if net_type == "internal":
             if self._allow_shared_internal_net:
                 self._log(
-                    "Allowing shared networks with tag '%s'.",
+                    "Allowing shared internal networks with tag '%s'.",
                     tag,
                     level=logging.INFO,
                 )
@@ -511,12 +542,11 @@ class ScopedSession(base.ScopedSession):
                 ]
 
                 if len(shared_networks) == 1:
-                    net_owner = "shared"
                     networks = shared_networks
 
             else:
                 self._log(
-                    "Selecting project networks with tag '%s'.",
+                    "Selecting project internal networks with tag '%s'.",
                     tag,
                     level=logging.INFO,
                 )
@@ -527,23 +557,20 @@ class ScopedSession(base.ScopedSession):
                     if net.project_id == self._connection.project_id
                 ]
 
-                net_owner = "project"
-
         if len(networks) == 1:
+            net_owner = (
+                "project"
+                if networks[0].project_id == self._connection.project_id
+                else "shared"
+            )
             self._log(
                 "Using tagged %s %s network '%s'", net_owner, net_type, networks[0].name
             )
             return networks[0]
         elif len(networks) > 1:
-            net_names = [network.name for network in networks]
-            self._log(
-                "Found multiple networks with tag '%s': %s.",
-                tag,
-                ",".join(net_names),
-                level=logging.ERROR,
-            )
+            net_ids = ",".join([network.id for network in networks])
             raise errors.InvalidOperationError(
-                f"Found multiple networks with tag '{tag}'."
+                f"Found multiple networks with tag '{tag}': {net_ids}."
             )
         else:
             self._log("Failed to find tagged %s network.", net_type, level=logging.WARN)
@@ -584,7 +611,6 @@ class ScopedSession(base.ScopedSession):
                 ]
 
                 if len(shared_networks) == 1:
-                    net_owner = "shared"
                     networks = shared_networks
 
             else:
@@ -598,9 +624,13 @@ class ScopedSession(base.ScopedSession):
                     for net in networks
                     if net.project_id == self._connection.project_id
                 ]
-                net_owner = "project"
 
         if len(networks) == 1:
+            net_owner = (
+                "project"
+                if networks[0].project_id == self._connection.project_id
+                else "shared"
+            )
             self._log(
                 "Found %s %s network '%s' using template.",
                 net_type,
@@ -612,8 +642,9 @@ class ScopedSession(base.ScopedSession):
             self._log(
                 "Found multiple networks named '%s'.", net_name, level=logging.ERROR
             )
+            net_ids = ",".join([net.id for net in networks])
             raise errors.InvalidOperationError(
-                f"Found multiple networks named '{net_name}'."
+                f"Found multiple networks named '{net_name}':{net_ids}."
             )
         else:
             self._log(
@@ -679,13 +710,7 @@ class ScopedSession(base.ScopedSession):
                 router._add_interface(subnet_id=subnet.id)
             return network
         else:
-            if not self._supports_machines:
-                self._log(
-                    "Could not find internal network", level=logging.WARN, exc_info=True
-                )
-                return None
-            else:
-                raise errors.InvalidOperationError("Could not find internal network.")
+            raise errors.InvalidOperationError("Could not find internal network.")
 
     def _project_share(self, create_share=True):  # noqa: C901
         """
@@ -975,9 +1000,12 @@ class ScopedSession(base.ScopedSession):
         size = size.id if isinstance(size, dto.Size) else size
         params.update(flavor_id=size)
         self._log("Creating machine '%s' (image: %s, size: %s)", name, image.name, size)
-        # Get the networks to use
-        # Always use the tenant network, creating it if required
-        params.update(networks=[{"uuid": self._tenant_network(True).id}])
+        # Use the tenant network, and raise an error if it does not exist
+        tenant_network = self._tenant_network()
+        if tenant_network is not None:
+            params.update(networks=[{"uuid": tenant_network.id}])
+        else:
+            raise errors.ObjectNotFoundError("Internal network could not be found")
         # Get the keypair to inject
         if ssh_key:
             keypair = self._get_or_create_keypair(ssh_key)
@@ -1483,13 +1511,28 @@ class ScopedSession(base.ScopedSession):
         """
         # Inject information about the networks to use
         external_network = self._external_network().name
+        tenant_network = self._tenant_network()
         params = dict(
             # Legacy name
             cluster_floating_network=external_network,
             # New name
             cluster_external_network=external_network,
-            cluster_network=self._tenant_network(True).name,
         )
+        if tenant_network is not None:
+            params["cluster_network"] = tenant_network.name
+        else:
+            self._log(
+                (
+                    "The cluster_network parameter is undefined for "
+                    "clusters in this project because the internal "
+                    "network could not be found."
+                ),
+                level=logging.WARN,
+            )
+            if not self._allow_no_cluster_network:
+                raise errors.ImproperlyConfiguredError(
+                    "Unable to find internal network for this project."
+                )
 
         # Inject storage direct network, if exists
         storage_network = self._storage_network()

@@ -271,6 +271,9 @@ provider:
     createInternalNet: true
     # Indicates whether networks shared into the project may be considered for internal network
     allowSharedInternalNet: false
+    # Allow clusters to be created when no internal network can be found. Setting this to true
+    # means that no clusters should make use of the cluster_network extravar
+    allowNoClusterNetwork: false
     # If larger than zero, project specific manila share should be auto-created
     manilaProjectShareGB: 0
     # The CIDR to use for auto-created tenant internal networks
