@@ -40,7 +40,7 @@ jobs:
       security-events: write  # required for pushing SARIF files
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ inputs.ref || github.ref }}
 
@@ -86,7 +86,7 @@ jobs:
       chart-version: ${{ steps.semver.outputs.version }}
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ inputs.ref || github.ref }}
           # This is important for the semver action to work correctly
