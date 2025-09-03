@@ -91,9 +91,13 @@ const TenancyNav = ({
     const [userExpanded, setUserExpanded] = useState(false);
     const toggleUserExpanded = () => setUserExpanded(expanded => !expanded);
     const selectedResourceIsAdvanced = ['machines', 'volumes'].includes(selectedResource);
+    
     // If the cloud doesn't support platforms, always show the advanced resources
-    // If the user is on an advanced tab, show the items even if they are not expanded
-    const showAdvanced = (userExpanded || !supportsPlatforms || selectedResourceIsAdvanced);
+    // If the cloud doesn't support machines or volumes, don't show the advanced tab
+    const showAdvanced = (capabilities.supports_machines && capabilities.supports_volumes) || !supportsPlatforms
+    // If the cloud doesn't support platforms, always show the advanced resources
+    // If the user is on an advanced tab, expand the items even if they are not expanded
+    const expandAdvanced = (userExpanded || !supportsPlatforms || selectedResourceIsAdvanced);
 
     return (
         <div className={`sidebar${sidebarExpanded ? " expanded" : ""}`}>
@@ -151,13 +155,13 @@ const TenancyNav = ({
                         </Nav.Link>
                     </Nav.Item>
                 )}
-                {supportsPlatforms && (
+                {showAdvanced && (
                     <Nav.Item as="li">
                         <Nav.Link
                             title="Advanced"
                             onClick={toggleUserExpanded}
                             disabled={selectedResourceIsAdvanced}
-                            className={`nav-toggle toggle-${showAdvanced ? "show" : "hide"}`}
+                            className={`nav-toggle toggle-${expandAdvanced ? "show" : "hide"}`}
                         >
                             <FontAwesomeIcon
                                 icon={faTools}
@@ -167,7 +171,7 @@ const TenancyNav = ({
                         </Nav.Link>
                     </Nav.Item>
                 )}
-                {showAdvanced && (
+                {expandAdvanced && (
                     <>
                         <Nav.Item as="li" className={supportsPlatforms ? "nav-item-nested" : undefined}>
                             <LinkContainer to={`/tenancies/${currentTenancy.id}/machines`}>

@@ -137,14 +137,18 @@ class Provider(base.Provider):
                                The current tenancy name can be templated in using the
                                fragment ``{tenant_name}``.
         create_internal_net: If ``True`` (the default), then the internal network is
-                             auto-createdwhen a tagged network or templated network
+                             auto-created when a tagged network or templated network
                              cannot be found.
+        allow_shared_internal_net: If ``True`` (the default is False), then networks
+                                   that are not owned by the project are searched for
+                                   the correct tag.
         manila_project_share_gb: If >0 (the default is 0), then manila project share is
                                  auto created with specified size.
         internal_net_cidr: The CIDR for the internal network when it is auto-created
                            (default ``192.168.3.0/24``).
         internal_net_dns_nameservers: The DNS nameservers for the internal network when
                                       it is auto-created (default ``None``).
+        supports_machines: If True (the default), then users can manipulate machines
     """
 
     provider_name = "openstack"
@@ -155,19 +159,23 @@ class Provider(base.Provider):
         internal_net_template=None,
         external_net_template=None,
         create_internal_net=True,
+        allow_shared_internal_net=False,
         manila_project_share_gb=0,
         internal_net_cidr="192.168.3.0/24",
         internal_net_dns_nameservers=None,
+        supports_machines=True,
     ):
         self._metadata_prefix = metadata_prefix
         self._internal_net_template = internal_net_template
         self._external_net_template = external_net_template
         self._create_internal_net = create_internal_net
+        self._allow_shared_internal_net = allow_shared_internal_net
         self._manila_project_share_gb = 0
         if manila_project_share_gb:
             self._manila_project_share_gb = int(manila_project_share_gb)
         self._internal_net_cidr = internal_net_cidr
         self._internal_net_dns_nameservers = internal_net_dns_nameservers
+        self._supports_machines = supports_machines
 
     def _from_auth_session(self, auth_session, auth_user):
         return UnscopedSession(
@@ -177,9 +185,11 @@ class Provider(base.Provider):
             self._internal_net_template,
             self._external_net_template,
             self._create_internal_net,
+            self._allow_shared_internal_net,
             self._manila_project_share_gb,
             self._internal_net_cidr,
             self._internal_net_dns_nameservers,
+            self._supports_machines,
         )
 
 
@@ -198,18 +208,22 @@ class UnscopedSession(base.UnscopedSession):
         internal_net_template=None,
         external_net_template=None,
         create_internal_net=True,
+        allow_shared_internal_net=False,
         manila_project_share_gb=0,
         internal_net_cidr="192.168.3.0/24",
         internal_net_dns_nameservers=None,
+        supports_machines=True,
     ):
         super().__init__(auth_session, auth_user)
         self._metadata_prefix = metadata_prefix
         self._internal_net_template = internal_net_template
         self._external_net_template = external_net_template
         self._create_internal_net = create_internal_net
+        self._allow_shared_internal_net = allow_shared_internal_net
         self._manila_project_share_gb = manila_project_share_gb
         self._internal_net_cidr = internal_net_cidr
         self._internal_net_dns_nameservers = internal_net_dns_nameservers
+        self._supports_machines = supports_machines
 
     @convert_exceptions
     def _scoped_session(self, auth_user, tenancy, credential_data):
@@ -221,9 +235,11 @@ class UnscopedSession(base.UnscopedSession):
             self._internal_net_template,
             self._external_net_template,
             self._create_internal_net,
+            self._allow_shared_internal_net,
             self._manila_project_share_gb,
             self._internal_net_cidr,
             self._internal_net_dns_nameservers,
+            self._supports_machines,
         )
 
 
@@ -243,9 +259,11 @@ class ScopedSession(base.ScopedSession):
         internal_net_template=None,
         external_net_template=None,
         create_internal_net=True,
+        allow_shared_internal_net=False,
         manila_project_share_gb=0,
         internal_net_cidr="192.168.3.0/24",
         internal_net_dns_nameservers=None,
+        supports_machines=True,
     ):
         super().__init__(auth_user, tenancy)
         self._connection = connection
@@ -253,9 +271,11 @@ class ScopedSession(base.ScopedSession):
         self._internal_net_template = internal_net_template
         self._external_net_template = external_net_template
         self._create_internal_net = create_internal_net
+        self._allow_shared_internal_net = allow_shared_internal_net
         self._manila_project_share_gb = manila_project_share_gb
         self._internal_net_cidr = internal_net_cidr
         self._internal_net_dns_nameservers = internal_net_dns_nameservers
+        self._supports_machines = supports_machines
 
         # TODO(johngarbutt): consider moving some of this to config
         # and/or hopefully having this feature on by default
@@ -281,13 +301,25 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.capabilities`.
         """
         # Check if the relevant services are available to the project
-        try:
-            _ = self._connection.block_store
-        except api.ServiceNotSupported:
-            supports_volumes = False
-        else:
+        self._log("Fetching tenancy capabilities ")
+
+        if self._supports_machines:
+            # If machines support is enabled, then volumes are supported
+            # unless the connection to the openstack block-store fails.
             supports_volumes = True
-        return dto.Capabilities(supports_volumes=supports_volumes)
+
+            try:
+                _ = self._connection.block_store
+            except api.ServiceNotSupported:
+                supports_volumes = False
+        else:
+            # If machine support is disabled, then volumes are too
+            supports_volumes = False
+
+        return dto.Capabilities(
+            supports_volumes=supports_volumes,
+            supports_machines=self._supports_machines,
+        )
 
     @convert_exceptions
     def quotas(self):
@@ -460,14 +492,32 @@ class ScopedSession(base.ScopedSession):
         # For the internal network this is what we want, but for all other types of
         # network (e.g. external, storage) we want to allow shared networks from other
         # projects to be selected - setting "project_id = None" allows this to happen
-        kwargs = {} if net_type == "internal" else {"project_id": None}
+        kwargs = (
+            {}
+            if net_type == "internal" and not self._allow_shared_internal_net
+            else {"project_id": None}
+        )
+
         networks = list(self._connection.network.networks.all(tags=tag, **kwargs))
+
         if len(networks) == 1:
-            self._log("Using tagged %s network '%s'", net_type, networks[0].name)
+            net_owner = (
+                "project"
+                if networks[0].project_id == self._connection.project_id
+                else "shared"
+            )
+
+            self._log(
+                "Using tagged %s %s network '%s'", net_owner, net_type, networks[0].name
+            )
             return networks[0]
         elif len(networks) > 1:
+            net_names = [network.name for network in networks]
             self._log(
-                "Found multiple networks with tag '%s'.", tag, level=logging.ERROR
+                "Found multiple networks with tag '%s': %s.",
+                tag,
+                ",".join(net_names),
+                level=logging.ERROR,
             )
             raise errors.InvalidOperationError(
                 f"Found multiple networks with tag '{tag}'."
@@ -485,16 +535,30 @@ class ScopedSession(base.ScopedSession):
         raised.
         """
         net_name = template.format(tenant_name=self._connection.project_name)
+
         # By default, networks.all() will only return networks that belong to the
         # project
         # For the internal network this is what we want, but for all other types of
         # network (e.g. external, storage) we want to allow shared networks from other
         # projects to be selected - setting "project_id = None" allows this to happen
-        kwargs = {} if net_type == "internal" else {"project_id": None}
+        kwargs = (
+            {}
+            if net_type == "internal" and not self._allow_shared_internal_net
+            else {"project_id": None}
+        )
         networks = list(self._connection.network.networks.all(name=net_name, **kwargs))
+
         if len(networks) == 1:
+            net_owner = (
+                "project"
+                if networks[0].project_id == self._connection.project_id
+                else "shared"
+            )
             self._log(
-                "Found %s network '%s' using template.", net_type, networks[0].name
+                "Found %s %s network '%s' using template.",
+                net_type,
+                net_owner,
+                networks[0].name,
             )
             return networks[0]
         elif len(networks) > 1:

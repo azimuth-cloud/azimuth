@@ -10,6 +10,7 @@ AZIMUTH:
       EXTERNAL_NET_TEMPLATE: {{ . | quote }}
       {{- end }}
       CREATE_INTERNAL_NET: {{ .Values.provider.openstack.createInternalNet }}
+      ALLOW_SHARED_INTERNAL_NET: {{ .Values.provider.openstack.allowSharedInternalNet }}
       MANILA_PROJECT_SHARE_GB: {{ .Values.provider.openstack.manilaProjectShareGB }}
       {{- with .Values.provider.openstack.internalNetCidr }}
       INTERNAL_NET_CIDR: {{ . | quote }}
@@ -17,6 +18,7 @@ AZIMUTH:
       {{- with .Values.provider.openstack.internalNetDNSNameservers }}
       INTERNAL_NET_DNS_NAMESERVERS: {{ toYaml . | nindent 8 }}
       {{- end }}
+      SUPPORTS_MACHINES: {{ .Values.provider.openstack.supportsMachines }}
     {{- else if (eq .Values.provider.type "null")}}
     FACTORY: azimuth.provider.null.Provider
     PARAMS: {}
