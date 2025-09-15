@@ -2,7 +2,7 @@ anyio==4.10.0
 asgiref==3.9.1
 attrs==25.3.0
 certifi==2025.8.3
-cffi==1.17.1
+cffi==2.0.0
 charset-normalizer==3.4.3
 cryptography==45.0.7
 Django==5.1.7
@@ -21,13 +21,13 @@ idna==3.10
 jasmin-ldap @ git+https://github.com/cedadev/jasmin-ldap.git@3e1d2659731e9e1a65e8723b4e72c776ae7f7b25
 Jinja2==3.1.6
 jsonschema==4.25.1
-jsonschema-specifications==2025.4.1
+jsonschema-specifications==2025.9.1
 ldap3==2.9.1
 MarkupSafe==3.0.2
 oauthlib==3.3.1
 packaging==25.0
 pyasn1==0.6.1
-pycparser==2.22
+pycparser==2.23
 pyrsistent==0.20.0
 python-dateutil==2.9.0.post0
 pytz==2025.2
@@ -44,4 +44,4 @@ typing_extensions==4.15.0
 tzdata==2025.2
 urllib3==2.5.0
 voluptuous==0.15.2
-whitenoise==6.9.0
+whitenoise==6.10.0
