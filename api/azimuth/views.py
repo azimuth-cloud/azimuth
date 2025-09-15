@@ -470,7 +470,6 @@ def capabilities(request, tenant):
     """
     with request.auth.scoped_session(tenant) as session:
         response_data = dict(
-            dataclasses.asdict(session.capabilities()),
             # Clusters are supported if a cluster engine is configured
             supports_clusters=bool(cloud_settings.CLUSTER_ENGINE),
             # Kubernetes is supported if a Cluster API provider is configured
@@ -480,6 +479,20 @@ def capabilities(request, tenant):
             # Scheduling must be specifically enabled
             supports_scheduling=bool(cloud_settings.SCHEDULING.ENABLED),
         )
+        # If a capability is enabled in config, allow it to be disabled for a
+        # session/tenant. If a capability is disabled in config, do not allow
+        # it to be overridden by a session capability.
+        for cap, value in dataclasses.asdict(session.capabilities()).items():
+            # Capability is set in config
+            if cap in response_data:
+                # Capability is enabled (True) in config and can be set to whatever
+                # we get back from our session capabilities
+                if response_data[cap]:
+                    response_data[cap] = value
+            # Capability is a session capability and is not set in config
+            else:
+                response_data[cap] = value
+
     response_data["links"] = {"self": request.build_absolute_uri()}
     return response.Response(response_data)
 
@@ -665,10 +678,20 @@ def machines(request, tenant):
             "size_id": "<id of size>"
         }
     """
-    if request.method == "POST":
-        input_serializer = serializers.CreateMachineSerializer(data=request.data)
-        input_serializer.is_valid(raise_exception=True)
-        with request.auth.scoped_session(tenant) as session:
+
+    with request.auth.scoped_session(tenant) as session:
+        if not session.capabilities().supports_machines:
+            return response.Response(
+                {
+                    "detail": "Machine support has been disabled by the administrator.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if request.method == "POST":
+            input_serializer = serializers.CreateMachineSerializer(data=request.data)
+            input_serializer.is_valid(raise_exception=True)
             machine = session.create_machine(
                 name=input_serializer.validated_data["name"],
                 image=input_serializer.validated_data["image_id"],
@@ -679,18 +702,19 @@ def machines(request, tenant):
                     unscoped_session=request.auth,
                 ),
             )
-        output_serializer = serializers.MachineSerializer(
-            machine, context={"request": request, "tenant": tenant}
-        )
-        return response.Response(output_serializer.data, status=status.HTTP_201_CREATED)
-    else:
-        with request.auth.scoped_session(tenant) as session:
+            output_serializer = serializers.MachineSerializer(
+                machine, context={"request": request, "tenant": tenant}
+            )
+            return response.Response(
+                output_serializer.data, status=status.HTTP_201_CREATED
+            )
+        else:
             serializer = serializers.MachineSerializer(
                 session.machines(),
                 many=True,
                 context={"request": request, "tenant": tenant},
             )
-        return response.Response(serializer.data)
+            return response.Response(serializer.data)
 
 
 @provider_api_view(["GET", "DELETE"])
@@ -700,23 +724,31 @@ def machine_details(request, tenant, machine):
 
     On ``DELETE`` requests, delete the specified machine.
     """
-    if request.method == "DELETE":
-        with request.auth.scoped_session(tenant) as session:
-            deleted = session.delete_machine(machine)
-        if deleted:
-            serializer = serializers.MachineSerializer(
-                deleted, context={"request": request, "tenant": tenant}
+    with request.auth.scoped_session(tenant) as session:
+        if not session.capabilities().supports_machines:
+            return response.Response(
+                {
+                    "detail": "Machine support has been disabled by the administrator.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
             )
-            return response.Response(serializer.data)
+
+        if request.method == "DELETE":
+            deleted = session.delete_machine(machine)
+            if deleted:
+                serializer = serializers.MachineSerializer(
+                    deleted, context={"request": request, "tenant": tenant}
+                )
+                return response.Response(serializer.data)
+            else:
+                return response.Response()
         else:
-            return response.Response()
-    else:
-        with request.auth.scoped_session(tenant) as session:
             serializer = serializers.MachineSerializer(
                 session.find_machine(machine),
                 context={"request": request, "tenant": tenant},
             )
-        return response.Response(serializer.data)
+            return response.Response(serializer.data)
 
 
 @provider_api_view(["GET"])
@@ -725,6 +757,14 @@ def machine_logs(request, tenant, machine):
     Return the logs for the specified machine as a list of lines.
     """
     with request.auth.scoped_session(tenant) as session:
+        if not session.capabilities().supports_machines:
+            return response.Response(
+                {
+                    "detail": "Machine support has been disabled by the administrator.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
         machine_logs = session.fetch_logs_for_machine(machine)
     return response.Response(dict(logs=machine_logs))
 
@@ -744,10 +784,21 @@ def machine_firewall_rules(request, tenant, machine):
             "remote_cidr": "0.0.0.0/0"
         }
     """
-    if request.method == "POST":
-        input_serializer = serializers.CreateFirewallRuleSerializer(data=request.data)
-        input_serializer.is_valid(raise_exception=True)
-        with request.auth.scoped_session(tenant) as session:
+    with request.auth.scoped_session(tenant) as session:
+        if not session.capabilities().supports_machines:
+            return response.Response(
+                {
+                    "detail": "Machine support has been disabled by the administrator.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if request.method == "POST":
+            input_serializer = serializers.CreateFirewallRuleSerializer(
+                data=request.data
+            )
+            input_serializer.is_valid(raise_exception=True)
             output_serializer = serializers.FirewallGroupSerializer(
                 session.add_firewall_rule_to_machine(
                     machine,
@@ -759,15 +810,16 @@ def machine_firewall_rules(request, tenant, machine):
                 many=True,
                 context={"request": request, "tenant": tenant},
             )
-        return response.Response(output_serializer.data, status=status.HTTP_201_CREATED)
-    else:
-        with request.auth.scoped_session(tenant) as session:
+            return response.Response(
+                output_serializer.data, status=status.HTTP_201_CREATED
+            )
+        else:
             serializer = serializers.FirewallGroupSerializer(
                 session.fetch_firewall_rules_for_machine(machine),
                 many=True,
                 context={"request": request, "tenant": tenant},
             )
-        return response.Response(serializer.data)
+            return response.Response(serializer.data)
 
 
 @provider_api_view(["DELETE"])
@@ -776,6 +828,15 @@ def machine_firewall_rule_details(request, tenant, machine, rule):
     Delete the specified firewall rule.
     """
     with request.auth.scoped_session(tenant) as session:
+        if not session.capabilities().supports_machines:
+            return response.Response(
+                {
+                    "detail": "Machine support has been disabled by the administrator.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         output_serializer = serializers.FirewallGroupSerializer(
             session.remove_firewall_rule_from_machine(machine, rule),
             many=True,
@@ -790,6 +851,15 @@ def machine_start(request, tenant, machine):
     Start (power on) the specified machine.
     """
     with request.auth.scoped_session(tenant) as session:
+        if not session.capabilities().supports_machines:
+            return response.Response(
+                {
+                    "detail": "Machine support has been disabled by the administrator.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         serializer = serializers.MachineSerializer(
             session.start_machine(machine),
             context={"request": request, "tenant": tenant},
@@ -803,6 +873,15 @@ def machine_stop(request, tenant, machine):
     Stop (power off) the specified machine.
     """
     with request.auth.scoped_session(tenant) as session:
+        if not session.capabilities().supports_machines:
+            return response.Response(
+                {
+                    "detail": "Machine support has been disabled by the administrator.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         serializer = serializers.MachineSerializer(
             session.stop_machine(machine),
             context={"request": request, "tenant": tenant},
@@ -815,7 +894,16 @@ def machine_restart(request, tenant, machine):
     """
     Restart (power cycle) the specified machine.
     """
+
     with request.auth.scoped_session(tenant) as session:
+        if not session.capabilities().supports_machines:
+            return response.Response(
+                {
+                    "detail": "Machine support has been disabled by the administrator.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
         serializer = serializers.MachineSerializer(
             session.restart_machine(machine),
             context={"request": request, "tenant": tenant},
@@ -861,11 +949,20 @@ def external_ip_details(request, tenant, ip):
 
         { "machine_id": "<machine id>" }
     """
-    if request.method == "PATCH":
-        input_serializer = serializers.ExternalIPSerializer(data=request.data)
-        input_serializer.is_valid(raise_exception=True)
-        machine_id = input_serializer.validated_data["machine_id"]
-        with request.auth.scoped_session(tenant) as session:
+    with request.auth.scoped_session(tenant) as session:
+        if not session.capabilities().supports_machines:
+            return response.Response(
+                {
+                    "detail": "Machine support has been disabled by the administrator.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if request.method == "PATCH":
+            input_serializer = serializers.ExternalIPSerializer(data=request.data)
+            input_serializer.is_valid(raise_exception=True)
+            machine_id = input_serializer.validated_data["machine_id"]
             if machine_id:
                 # If attaching, we need to check if NAT is permitted for the machine
                 machine = session.find_machine(machine_id)
@@ -882,17 +979,16 @@ def external_ip_details(request, tenant, ip):
                 ip = session.attach_external_ip(ip, str(machine_id))
             else:
                 ip = session.detach_external_ip(ip)
-        output_serializer = serializers.ExternalIPSerializer(
-            ip, context={"request": request, "tenant": tenant}
-        )
-        return response.Response(output_serializer.data)
-    else:
-        with request.auth.scoped_session(tenant) as session:
+            output_serializer = serializers.ExternalIPSerializer(
+                ip, context={"request": request, "tenant": tenant}
+            )
+            return response.Response(output_serializer.data)
+        else:
             serializer = serializers.ExternalIPSerializer(
                 session.find_external_ip(ip),
                 context={"request": request, "tenant": tenant},
             )
-        return response.Response(serializer.data)
+            return response.Response(serializer.data)
 
 
 @provider_api_view(["GET", "POST"])
@@ -909,10 +1005,26 @@ def volumes(request, tenant):
 
     The size of the volume is given in GB.
     """
-    if request.method == "POST":
-        input_serializer = serializers.CreateVolumeSerializer(data=request.data)
-        input_serializer.is_valid(raise_exception=True)
-        with request.auth.scoped_session(tenant) as session:
+    with request.auth.scoped_session(tenant) as session:
+        if (
+            not session.capabilities().supports_volumes
+            or not session.capabilities().supports_machines
+        ):
+            return response.Response(
+                {
+                    "detail": (
+                        "Volumes are not supported by this provider, "
+                        "or support has been disabled by the administrator."
+                    ),
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if request.method == "POST":
+            input_serializer = serializers.CreateVolumeSerializer(data=request.data)
+            input_serializer.is_valid(raise_exception=True)
+
             output_serializer = serializers.VolumeSerializer(
                 session.create_volume(
                     input_serializer.validated_data["name"],
@@ -920,15 +1032,16 @@ def volumes(request, tenant):
                 ),
                 context={"request": request, "tenant": tenant},
             )
-        return response.Response(output_serializer.data, status=status.HTTP_201_CREATED)
-    else:
-        with request.auth.scoped_session(tenant) as session:
+            return response.Response(
+                output_serializer.data, status=status.HTTP_201_CREATED
+            )
+        else:
             serializer = serializers.VolumeSerializer(
                 session.volumes(),
                 many=True,
                 context={"request": request, "tenant": tenant},
             )
-        return response.Response(serializer.data)
+            return response.Response(serializer.data)
 
 
 @provider_api_view(["GET", "PATCH", "DELETE"])
@@ -949,36 +1062,49 @@ def volume_details(request, tenant, volume):
 
     On ``DELETE`` requests, delete the specified volume.
     """
-    if request.method == "PATCH":
-        input_serializer = serializers.UpdateVolumeSerializer(data=request.data)
-        input_serializer.is_valid(raise_exception=True)
-        machine_id = input_serializer.validated_data["machine_id"]
-        with request.auth.scoped_session(tenant) as session:
+    with request.auth.scoped_session(tenant) as session:
+        if (
+            not session.capabilities().supports_volumes
+            or not session.capabilities().supports_machines
+        ):
+            return response.Response(
+                {
+                    "detail": (
+                        "Volumes are not supported by this provider, "
+                        "or support has been disabled by the administrator."
+                    ),
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if request.method == "PATCH":
+            input_serializer = serializers.UpdateVolumeSerializer(data=request.data)
+            input_serializer.is_valid(raise_exception=True)
+            machine_id = input_serializer.validated_data["machine_id"]
             if machine_id:
                 volume = session.attach_volume(volume, str(machine_id))
             else:
                 volume = session.detach_volume(volume)
-        output_serializer = serializers.VolumeSerializer(
-            volume, context={"request": request, "tenant": tenant}
-        )
-        return response.Response(output_serializer.data)
-    elif request.method == "DELETE":
-        with request.auth.scoped_session(tenant) as session:
-            deleted = session.delete_volume(volume)
-        if deleted:
-            serializer = serializers.VolumeSerializer(
-                deleted, context={"request": request, "tenant": tenant}
+            output_serializer = serializers.VolumeSerializer(
+                volume, context={"request": request, "tenant": tenant}
             )
-            return response.Response(serializer.data)
+            return response.Response(output_serializer.data)
+        elif request.method == "DELETE":
+            deleted = session.delete_volume(volume)
+            if deleted:
+                serializer = serializers.VolumeSerializer(
+                    deleted, context={"request": request, "tenant": tenant}
+                )
+                return response.Response(serializer.data)
+            else:
+                return response.Response()
         else:
-            return response.Response()
-    else:
-        with request.auth.scoped_session(tenant) as session:
             serializer = serializers.VolumeSerializer(
                 session.find_volume(volume),
                 context={"request": request, "tenant": tenant},
             )
-        return response.Response(serializer.data)
+            return response.Response(serializer.data)
 
 
 @provider_api_view(["GET"])
@@ -1309,15 +1435,19 @@ def kubernetes_cluster_templates(request, tenant):
     """
     Return a list of the available Kubernetes cluster templates for the tenancy.
     """
-    if not cloud_settings.CLUSTER_API_PROVIDER:
-        return response.Response(
-            {
-                "detail": "Kubernetes clusters are not supported.",
-                "code": "unsupported_operation",
-            },
-            status=status.HTTP_404_NOT_FOUND,
-        )
     with request.auth.scoped_session(tenant) as session:
+        if (
+            not bool(cloud_settings.CLUSTER_API_PROVIDER)
+            or not session.capabilities().supports_kubernetes
+        ):
+            return response.Response(
+                {
+                    "detail": "Kubernetes clusters are not supported.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             serializer = serializers.KubernetesClusterTemplateSerializer(
                 capi_session.cluster_templates(),
@@ -1332,15 +1462,19 @@ def kubernetes_cluster_template_details(request, tenant, template):
     """
     Return the details for the specified Kubernetes cluster template.
     """
-    if not cloud_settings.CLUSTER_API_PROVIDER:
-        return response.Response(
-            {
-                "detail": "Kubernetes clusters are not supported.",
-                "code": "unsupported_operation",
-            },
-            status=status.HTTP_404_NOT_FOUND,
-        )
     with request.auth.scoped_session(tenant) as session:
+        if (
+            not bool(cloud_settings.CLUSTER_API_PROVIDER)
+            or not session.capabilities().supports_kubernetes
+        ):
+            return response.Response(
+                {
+                    "detail": "Kubernetes clusters are not supported.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             serializer = serializers.KubernetesClusterTemplateSerializer(
                 capi_session.find_cluster_template(template),
@@ -1405,15 +1539,19 @@ def kubernetes_cluster_schedule_new(request, tenant):
     """
     Returns scheduling information for creating a new Kubernetes cluster.
     """
-    if not cloud_settings.CLUSTER_API_PROVIDER:
-        return response.Response(
-            {
-                "detail": "Kubernetes clusters are not supported.",
-                "code": "unsupported_operation",
-            },
-            status=status.HTTP_404_NOT_FOUND,
-        )
     with request.auth.scoped_session(tenant) as session:
+        if (
+            not bool(cloud_settings.CLUSTER_API_PROVIDER)
+            or not session.capabilities().supports_kubernetes
+        ):
+            return response.Response(
+                {
+                    "detail": "Kubernetes clusters are not supported.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             input_serializer = serializers.CreateKubernetesClusterSerializer(
                 data=request.data,
@@ -1439,15 +1577,19 @@ def kubernetes_cluster_schedule_existing(request, tenant, cluster):
     """
     Returns scheduling information for updating the specified Kubernetes cluster.
     """
-    if not cloud_settings.CLUSTER_API_PROVIDER:
-        return response.Response(
-            {
-                "detail": "Kubernetes clusters are not supported.",
-                "code": "unsupported_operation",
-            },
-            status=status.HTTP_404_NOT_FOUND,
-        )
     with request.auth.scoped_session(tenant) as session:
+        if (
+            not bool(cloud_settings.CLUSTER_API_PROVIDER)
+            or not session.capabilities().supports_kubernetes
+        ):
+            return response.Response(
+                {
+                    "detail": "Kubernetes clusters are not supported.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             cluster = capi_session.find_cluster(cluster)
             input_serializer = serializers.UpdateKubernetesClusterSerializer(
@@ -1481,15 +1623,18 @@ def kubernetes_clusters(request, tenant):
 
     On ``POST`` requests, create a new Kubernetes cluster.
     """
-    if not cloud_settings.CLUSTER_API_PROVIDER:
-        return response.Response(
-            {
-                "detail": "Kubernetes clusters are not supported.",
-                "code": "unsupported_operation",
-            },
-            status=status.HTTP_404_NOT_FOUND,
-        )
     with request.auth.scoped_session(tenant) as session:
+        if (
+            not bool(cloud_settings.CLUSTER_API_PROVIDER)
+            or not session.capabilities().supports_kubernetes
+        ):
+            return response.Response(
+                {
+                    "detail": "Kubernetes clusters are not supported.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             if request.method == "POST":
                 input_serializer = serializers.CreateKubernetesClusterSerializer(
@@ -1540,15 +1685,19 @@ def kubernetes_cluster_details(request, tenant, cluster):
 
     On ``DELETE`` requests, delete the specified Kubernetes cluster.
     """
-    if not cloud_settings.CLUSTER_API_PROVIDER:
-        return response.Response(
-            {
-                "detail": "Kubernetes clusters are not supported.",
-                "code": "unsupported_operation",
-            },
-            status=status.HTTP_404_NOT_FOUND,
-        )
     with request.auth.scoped_session(tenant) as session:
+        if (
+            not bool(cloud_settings.CLUSTER_API_PROVIDER)
+            or not session.capabilities().supports_kubernetes
+        ):
+            return response.Response(
+                {
+                    "detail": "Kubernetes clusters are not supported.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             if request.method == "PATCH":
                 cluster = capi_session.find_cluster(cluster)
@@ -1609,15 +1758,19 @@ def kubernetes_cluster_generate_kubeconfig(request, tenant, cluster):
     """
     Generate a kubeconfig file for the specified Kubernetes cluster.
     """
-    if not cloud_settings.CLUSTER_API_PROVIDER:
-        return response.Response(
-            {
-                "detail": "Kubernetes clusters are not supported.",
-                "code": "unsupported_operation",
-            },
-            status=status.HTTP_404_NOT_FOUND,
-        )
     with request.auth.scoped_session(tenant) as session:
+        if (
+            not bool(cloud_settings.CLUSTER_API_PROVIDER)
+            or not session.capabilities().supports_kubernetes
+        ):
+            return response.Response(
+                {
+                    "detail": "Kubernetes clusters are not supported.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
             kubeconfig = capi_session.generate_kubeconfig(cluster)
     return response.Response({"kubeconfig": kubeconfig})
@@ -1629,23 +1782,25 @@ def kubernetes_cluster_service(request, tenant, cluster, service):
     """
     Redirects the user to the specified service on the specified Kubernetes cluster.
     """
-    if not cloud_settings.CLUSTER_API_PROVIDER:
-        return response.Response(
-            {
-                "detail": "Kubernetes clusters are not supported.",
-                "code": "unsupported_operation",
-            },
-            status=status.HTTP_404_NOT_FOUND,
-        )
+    with request.auth.scoped_session(tenant) as session:
+        if (
+            not bool(cloud_settings.CLUSTER_API_PROVIDER)
+            or not session.capabilities().supports_kubernetes
+        ):
+            return response.Response(
+                {
+                    "detail": "Kubernetes clusters are not supported.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
     service_fqdn = None
     service_label = None
     try:
         if cloud_settings.CLUSTER_API_PROVIDER:
-            with request.auth.scoped_session(tenant) as session:
-                with cloud_settings.CLUSTER_API_PROVIDER.session(
-                    session
-                ) as capi_session:
-                    cluster = capi_session.find_cluster(cluster)
+            with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
+                cluster = capi_session.find_cluster(cluster)
         service_obj = next(s for s in cluster.services if s.name == service)
         service_fqdn = service_obj.fqdn
         service_label = service_obj.label
@@ -1661,15 +1816,19 @@ def kubernetes_app_templates(request, tenant):
     """
     Return a list of the available Kubernetes app templates for the tenancy.
     """
-    if not cloud_settings.APPS_PROVIDER:
-        return response.Response(
-            {
-                "detail": "Kubernetes apps are not supported.",
-                "code": "unsupported_operation",
-            },
-            status=status.HTTP_404_NOT_FOUND,
-        )
     with request.auth.scoped_session(tenant) as session:
+        if (
+            not bool(cloud_settings.APPS_PROVIDER)
+            or not session.capabilities().supports_kubernetes
+        ):
+            return response.Response(
+                {
+                    "detail": "Kubernetes clusters are not supported.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         with cloud_settings.APPS_PROVIDER.session(session) as apps_session:
             serializer = serializers.KubernetesAppTemplateSerializer(
                 apps_session.app_templates(),
@@ -1684,15 +1843,19 @@ def kubernetes_app_template_details(request, tenant, template):
     """
     Return the details for the specified Kubernetes app template.
     """
-    if not cloud_settings.APPS_PROVIDER:
-        return response.Response(
-            {
-                "detail": "Kubernetes apps are not supported.",
-                "code": "unsupported_operation",
-            },
-            status=status.HTTP_404_NOT_FOUND,
-        )
     with request.auth.scoped_session(tenant) as session:
+        if (
+            not bool(cloud_settings.APPS_PROVIDER)
+            or not session.capabilities().supports_kubernetes
+        ):
+            return response.Response(
+                {
+                    "detail": "Kubernetes clusters are not supported.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         with cloud_settings.APPS_PROVIDER.session(session) as apps_session:
             serializer = serializers.KubernetesAppTemplateSerializer(
                 apps_session.find_app_template(template),
@@ -1706,7 +1869,10 @@ def optional_capi_session(cloud_session):
     Returns a context manager that yields either a CAPI session or None.
     """
     # If a CAPI provider is available, get a session
-    if cloud_settings.CLUSTER_API_PROVIDER:
+    if (
+        bool(cloud_settings.CLUSTER_API_PROVIDER)
+        and cloud_session.capabilities().supports_kubernetes
+    ):
         return cloud_settings.CLUSTER_API_PROVIDER.session(cloud_session)
     else:
         return contextlib.nullcontext()
@@ -1719,15 +1885,19 @@ def kubernetes_apps(request, tenant):
 
     On ``POST`` requests, create a new Kubernetes app.
     """
-    if not cloud_settings.APPS_PROVIDER:
-        return response.Response(
-            {
-                "detail": "Kubernetes apps are not supported.",
-                "code": "unsupported_operation",
-            },
-            status=status.HTTP_404_NOT_FOUND,
-        )
     with request.auth.scoped_session(tenant) as session:
+        if (
+            not bool(cloud_settings.APPS_PROVIDER)
+            or not session.capabilities().supports_kubernetes
+        ):
+            return response.Response(
+                {
+                    "detail": "Kubernetes apps are not supported.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         with cloud_settings.APPS_PROVIDER.session(session) as apps_session:
             if request.method == "POST":
                 with optional_capi_session(session) as capi_session:
@@ -1769,15 +1939,19 @@ def kubernetes_app_details(request, tenant, app):
 
     On ``DELETE`` requests, delete the specified Kubernetes app.
     """
-    if not cloud_settings.APPS_PROVIDER:
-        return response.Response(
-            {
-                "detail": "Kubernetes apps are not supported.",
-                "code": "unsupported_operation",
-            },
-            status=status.HTTP_404_NOT_FOUND,
-        )
     with request.auth.scoped_session(tenant) as session:
+        if (
+            not bool(cloud_settings.APPS_PROVIDER)
+            or not session.capabilities().supports_kubernetes
+        ):
+            return response.Response(
+                {
+                    "detail": "Kubernetes apps are not supported.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         with cloud_settings.APPS_PROVIDER.session(session) as apps_session:
             if request.method == "PATCH":
                 app = apps_session.find_app(app)
@@ -1822,25 +1996,33 @@ def kubernetes_app_service(request, tenant, app, service):
     """
     Redirects the user to the specified service for the specified Kubernetes app.
     """
-    if not cloud_settings.APPS_PROVIDER:
-        return response.Response(
-            {
-                "detail": "Kubernetes apps are not supported.",
-                "code": "unsupported_operation",
-            },
-            status=status.HTTP_404_NOT_FOUND,
-        )
-    service_fqdn = None
-    service_label = None
-    try:
-        with request.auth.scoped_session(tenant) as session:
+    with request.auth.scoped_session(tenant) as session:
+        if (
+            not bool(cloud_settings.APPS_PROVIDER)
+            or not session.capabilities().supports_kubernetes
+        ):
+            return response.Response(
+                {
+                    "detail": "Kubernetes apps are not supported.",
+                    "code": "unsupported_operation",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        service_fqdn = None
+        service_label = None
+        try:
             with cloud_settings.APPS_PROVIDER.session(session) as apps_session:
                 app = apps_session.find_app(app)
-        service_obj = next(s for s in app.services if s.name == service)
-        service_fqdn = service_obj.fqdn
-        service_label = service_obj.label
-    except (cluster_api_errors.ObjectNotFoundError, StopIteration):
-        pass
-    return redirect_to_zenith_service(
-        request, "kubernetes_app", service, service_fqdn, service_label=service_label
-    )
+            service_obj = next(s for s in app.services if s.name == service)
+            service_fqdn = service_obj.fqdn
+            service_label = service_obj.label
+        except (cluster_api_errors.ObjectNotFoundError, StopIteration):
+            pass
+        return redirect_to_zenith_service(
+            request,
+            "kubernetes_app",
+            service,
+            service_fqdn,
+            service_label=service_label,
+        )

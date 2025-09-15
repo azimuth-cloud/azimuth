@@ -17,6 +17,15 @@ class Capabilities:
     #: Indicates if the cloud supports volumes
     supports_volumes: bool = False
 
+    #: Indicates if machines are enabled for the cloud
+    supports_machines: bool = True
+
+    #: Indicates if kubernetes is enabled for the cloud
+    supports_kubernetes: bool = True
+
+    #: Indicates if kubernetes apps are enabled for the cloud
+    supports_apps: bool = True
+
 
 @dataclass(frozen=True)
 class Tenancy:
