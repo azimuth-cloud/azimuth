@@ -4,6 +4,9 @@ CSRF_COOKIE_SECURE: {{ .Values.ingress.tls.enabled }}
 {{- with .Values.settings.csrfCookieName }}
 CSRF_COOKIE_NAME: {{ . }}
 {{- end }}
+{{- if or (and (eq .Values.authentication.type "openstack") (.Values.authentication.openstack.federated.enabled)) (eq .Values.authentication.type "oidc") }}
+SESSION_COOKIE_SAMESITE: None
+{{- end }}
 SESSION_COOKIE_SECURE: {{ .Values.ingress.tls.enabled }}
 {{- with .Values.settings.sessionCookieName }}
 SESSION_COOKIE_NAME: {{ . }}
