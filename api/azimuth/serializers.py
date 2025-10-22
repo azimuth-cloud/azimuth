@@ -244,7 +244,7 @@ class TenancySerializer(make_dto_serializer(dto.Tenancy)):
                     "metrics": (
                         cloud_settings.METRICS.TENANT_METRICS_URL_TEMPLATE.format(
                             tenant_id=obj.id
-                        ),
+                        )
                     )
                 }
             )
