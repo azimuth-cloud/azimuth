@@ -290,6 +290,13 @@ class ScopedSession(base.ScopedSession):
         project_id_safe = self._connection.project_id.replace("-", "")
         self._project_share_user = prefix + project_id_safe
 
+        # Get Coral bearer token if enabled
+        if not cloud_settings.CORAL_CREDITS.ADMIN_PASSWORD is None:
+            self._coral_auth_token = requests.post(cloud_settings.CORAL_CREDITS.CORAL_URI+"/api-token-auth/",json={
+                "username": "admin",
+                "password": cloud_settings.CORAL_CREDITS.ADMIN_PASSWORD
+            }).json()["token"]
+
     def _log(self, message, *args, level=logging.INFO, **kwargs):
         logger.log(
             level,
@@ -371,7 +378,7 @@ class ScopedSession(base.ScopedSession):
         )
         # Get coral credits if available
         if not cloud_settings.CORAL_CREDITS.CORAL_URI is None:
-            headers = {"Authorization": "Bearer "+cloud_settings.CORAL_CREDITS.AUTH_TOKEN}
+            headers = {"Authorization": "Bearer "+self._coral_auth_token}
             accounts = requests.get(cloud_settings.CORAL_CREDITS.CORAL_URI + "/resource_provider_account", headers=headers).json()
             tenancy_account = next(filter(lambda a: a["project_id"].replace('-', '') == self._tenancy.id,accounts))["account"]
             all_allocations = requests.get(cloud_settings.CORAL_CREDITS.CORAL_URI + "/allocation", headers=headers).json()

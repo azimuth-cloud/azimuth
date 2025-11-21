@@ -1,6 +1,8 @@
 {{- with .Values.settings.coralCredits }}
 AZIMUTH:
   CORAL_CREDITS:
-    AUTH_TOKEN: {{ quote .token }}
     CORAL_URI: {{ quote .uri }}
+    {{- with .passwordSecretRef }}
+    ADMIN_PASSWORD: {{ index (lookup "v1" "Secret" .namespace .name).data .key | b64dec }}
+    {{- end }}
 {{- end }}
