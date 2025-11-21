@@ -35,3 +35,5 @@ data:
     {{- tpl (.Files.Get "files/api/settings/11-scheduling.yaml") . | b64enc | nindent 4 }}
   12-apps-provider.yaml: |
     {{- tpl (.Files.Get "files/api/settings/12-apps-provider.yaml") . | b64enc | nindent 4 }}
+  13-coral-credits.yaml: |
+    {{- tpl (.Files.Get "files/api/settings/13-coral-credits.yaml") . | b64enc | nindent 4 }}
