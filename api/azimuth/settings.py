@@ -215,6 +215,9 @@ class SchedulingSettings(SettingsObject):
     #: Indicates whether advanced scheduling should be enabled
     ENABLED = Setting(default=False)
 
+class CoralCreditsSetting(SettingsObject):
+    AUTH_TOKEN = Setting(default=None)
+    CORAL_URI = Setting(default=None)
 
 class AzimuthSettings(SettingsObject):
     """
@@ -294,6 +297,8 @@ class AzimuthSettings(SettingsObject):
 
     #: Configuration for advanced scheduling
     SCHEDULING = NestedSetting(SchedulingSettings)
+
+    CORAL_CREDITS = NestedSetting(CoralCreditsSetting)
 
     #: URL for documentation
     DOCUMENTATION_URL = Setting(

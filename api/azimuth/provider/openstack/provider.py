@@ -4,6 +4,8 @@ This module contains the provider implementation for OpenStack.
 
 import base64
 import dataclasses
+import datetime
+from django.utils.timezone import make_aware
 import functools
 import hashlib
 import logging
@@ -14,10 +16,12 @@ import time
 import certifi
 import dateutil.parser
 import rackit
+import requests
 import yaml
 
 from .. import base, dto, errors  # noqa: TID252
 from . import api
+from ...settings import cloud_settings
 
 logger = logging.getLogger(__name__)
 
@@ -365,6 +369,30 @@ class ScopedSession(base.ScopedSession):
                 len(list(self._connection.network.floatingips.all())),
             )
         )
+        # Get coral credits if available
+        if not cloud_settings.CORAL_CREDITS.CORAL_URI is None:
+            headers = {"Authorization": "Bearer "+cloud_settings.CORAL_CREDITS.AUTH_TOKEN}
+            accounts = requests.get(cloud_settings.CORAL_CREDITS.CORAL_URI + "/resource_provider_account", headers=headers).json()
+            tenancy_account = next(filter(lambda a: a["project_id"].replace('-', '') == self._tenancy.id,accounts))["account"]
+            all_allocations = requests.get(cloud_settings.CORAL_CREDITS.CORAL_URI + "/allocation", headers=headers).json()
+            account_allocations = filter(lambda a:a["account"] == tenancy_account,all_allocations)
+            datetime_format = "%Y-%m-%dT%H:%M:%SZ"
+            current_time = make_aware(datetime.datetime.now())
+            target_tz = current_time.tzinfo
+            active_allocation = next(filter(
+                lambda a: datetime.datetime.strptime(a["start"],datetime_format).replace(tzinfo=target_tz) < current_time and
+                current_time < datetime.datetime.strptime(a["end"],datetime_format).replace(tzinfo=target_tz),
+                account_allocations))["id"]
+            for resource in requests.get(cloud_settings.CORAL_CREDITS.CORAL_URI + "/allocation/"+ str(active_allocation) +"/resources", headers=headers).json():
+                quotas.append(
+                    dto.Quota(
+                        resource["resource_class"]["name"],
+                        resource["resource_class"]["name"]+" hours",
+                        "resource hours",
+                        resource["allocated_resource_hours"],
+                        resource["allocated_resource_hours"] - resource["resource_hours"]
+                    )
+                )
         # The volume service is optional
         # In the case where the service is not enabled, just don't add the quotas
         try:

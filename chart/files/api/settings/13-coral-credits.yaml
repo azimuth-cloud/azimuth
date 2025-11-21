@@ -1,0 +1,6 @@
+{{- with .Values.settings.coralCredits }}
+AZIMUTH:
+  CORAL_CREDITS:
+    AUTH_TOKEN: {{ quote .token }}
+    CORAL_URI: {{ quote .uri }}
+{{- end }}
