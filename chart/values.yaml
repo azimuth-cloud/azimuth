@@ -183,8 +183,11 @@ settings:
     #   description: >-
     #     {{ cpus }} CPUs, {{ ram }} RAM, {{ disk }} disk, {{ ephemeral_disk }} ephemeral disk
   coralCredits:
-    # uri:
-    # token:
+    uri:
+    passwordSecretRef:
+      name:
+      namespace:
+      key:
 
 # Configuration for authentication
 authentication:

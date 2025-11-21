@@ -216,7 +216,7 @@ class SchedulingSettings(SettingsObject):
     ENABLED = Setting(default=False)
 
 class CoralCreditsSetting(SettingsObject):
-    AUTH_TOKEN = Setting(default=None)
+    ADMIN_PASSWORD = Setting(default=None)
     CORAL_URI = Setting(default=None)
 
 class AzimuthSettings(SettingsObject):
