@@ -378,28 +378,7 @@ class ScopedSession(base.ScopedSession):
         )
         # Get coral credits if available
         if not cloud_settings.CORAL_CREDITS.CORAL_URI is None:
-            headers = {"Authorization": "Bearer "+self._coral_auth_token}
-            accounts = requests.get(cloud_settings.CORAL_CREDITS.CORAL_URI + "/resource_provider_account", headers=headers).json()
-            tenancy_account = next(filter(lambda a: a["project_id"].replace('-', '') == self._tenancy.id,accounts))["account"]
-            all_allocations = requests.get(cloud_settings.CORAL_CREDITS.CORAL_URI + "/allocation", headers=headers).json()
-            account_allocations = filter(lambda a:a["account"] == tenancy_account,all_allocations)
-            datetime_format = "%Y-%m-%dT%H:%M:%SZ"
-            current_time = make_aware(datetime.datetime.now())
-            target_tz = current_time.tzinfo
-            active_allocation = next(filter(
-                lambda a: datetime.datetime.strptime(a["start"],datetime_format).replace(tzinfo=target_tz) < current_time and
-                current_time < datetime.datetime.strptime(a["end"],datetime_format).replace(tzinfo=target_tz),
-                account_allocations))["id"]
-            for resource in requests.get(cloud_settings.CORAL_CREDITS.CORAL_URI + "/allocation/"+ str(active_allocation) +"/resources", headers=headers).json():
-                quotas.append(
-                    dto.Quota(
-                        resource["resource_class"]["name"],
-                        resource["resource_class"]["name"]+" hours",
-                        "resource hours",
-                        resource["allocated_resource_hours"],
-                        resource["allocated_resource_hours"] - resource["resource_hours"]
-                    )
-                )
+            quotas.extend(self.get_coral_quotas())
         # The volume service is optional
         # In the case where the service is not enabled, just don't add the quotas
         try:
@@ -424,6 +403,41 @@ class ScopedSession(base.ScopedSession):
             )
         except api.ServiceNotSupported:
             pass
+        return quotas
+    
+    def get_coral_quotas(self):
+        headers = {"Authorization": "Bearer "+self._coral_auth_token}
+        accounts = requests.get(cloud_settings.CORAL_CREDITS.CORAL_URI + "/resource_provider_account", headers=headers).json()
+
+        tenancy_account_list = list(filter(lambda a: a["project_id"].replace('-', '') == self._tenancy.id,accounts))
+        if len(tenancy_account_list) != 1:
+            return []
+        tenancy_account = tenancy_account_list[0]["account"]
+        all_allocations = requests.get(cloud_settings.CORAL_CREDITS.CORAL_URI + "/allocation", headers=headers).json()
+        account_allocations = filter(lambda a:a["account"] == tenancy_account,all_allocations)
+
+        datetime_format = "%Y-%m-%dT%H:%M:%SZ"
+        current_time = make_aware(datetime.datetime.now())
+        target_tz = current_time.tzinfo
+
+        active_allocation_list = list(filter(
+            lambda a: datetime.datetime.strptime(a["start"],datetime_format).replace(tzinfo=target_tz) < current_time and
+            current_time < datetime.datetime.strptime(a["end"],datetime_format).replace(tzinfo=target_tz),
+            account_allocations))
+        
+        quotas = []
+        if len(active_allocation_list) == 1:
+            active_allocation_id = active_allocation_list[0]["id"]
+            for resource in requests.get(cloud_settings.CORAL_CREDITS.CORAL_URI + "/allocation/"+ str(active_allocation_id) +"/resources", headers=headers).json():
+                quotas.append(
+                    dto.Quota(
+                        resource["resource_class"]["name"],
+                        resource["resource_class"]["name"]+" hours",
+                        "resource hours",
+                        resource["allocated_resource_hours"],
+                        resource["allocated_resource_hours"] - resource["resource_hours"]
+                    )
+                )
         return quotas
 
     def _from_api_image(self, api_image):
