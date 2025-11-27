@@ -67,7 +67,9 @@ class Quota:
     allocated: int
     #: The amount of the resource that has been used
     used: int
-
+    #: Openstack resource class associated with the Coral credits quota which
+    #: this quota is also controlled by
+    linked_credits_resource: str = None
 
 @dataclass(frozen=True)
 class Image:

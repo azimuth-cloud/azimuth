@@ -348,6 +348,7 @@ class ScopedSession(base.ScopedSession):
                 None,
                 compute_limits.total_cores,
                 compute_limits.total_cores_used,
+                linked_credits_resource="VCPU"
             ),
             dto.Quota(
                 "ram",
@@ -355,6 +356,7 @@ class ScopedSession(base.ScopedSession):
                 "MB",
                 compute_limits.total_ram,
                 compute_limits.total_ram_used,
+                linked_credits_resource="MEMORY_MB"
             ),
             dto.Quota(
                 "machines",
