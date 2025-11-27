@@ -64,6 +64,9 @@ const Quotas = ({ resourceData }) => {
             return [index >= 0 ? index : quotaOrdering.length, q.resource];
         }
     );
+
+    // Add labels showing quota type (Coral or resource quota) if Coral
+    // quotas included
     const hasMixedCoralAndResourceQuotas = new Set(sortedQuotas.map((q) => q.is_coral_quota)).size > 1
     if(hasMixedCoralAndResourceQuotas){
         for(let i = 0;i < sortedQuotas.length;i++){
@@ -71,6 +74,14 @@ const Quotas = ({ resourceData }) => {
             sortedQuotas[i].label = prefix + sortedQuotas[i].label;
         }
     }
+    
+    // If quota is unlimited but has an associated Coral quota, hide it
+    const resourceNames = sortedQuotas.map((q) => q.resource)
+    sortedQuotas = sortedQuotas.filter((q) =>
+        q.linked_credits_resource == null || 
+        !(resourceNames.includes(q.linked_credits_resource) && q.allocated < 0)
+    )
+
     return (
         // The volume service is optional, so quotas might not always be available for it
         <Row className="g-3 justify-content-center">
