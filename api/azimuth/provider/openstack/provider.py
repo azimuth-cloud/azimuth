@@ -427,14 +427,20 @@ class ScopedSession(base.ScopedSession):
             current_time < datetime.datetime.strptime(a["end"],datetime_format).replace(tzinfo=target_tz),
             account_allocations))
         
+        human_readable_names = {
+            "MEMORY_MB": "RAM (MB)",
+            "DISK_GB": "Root disk (GB)" # TODO: is this always the root disk?
+        }
+        
         quotas = []
         if len(active_allocation_list) == 1:
             active_allocation_id = active_allocation_list[0]["id"]
             for resource in requests.get(cloud_settings.CORAL_CREDITS.CORAL_URI + "/allocation/"+ str(active_allocation_id) +"/resources", headers=headers).json():
+                resource_name = resource["resource_class"]["name"]
                 quotas.append(
                     dto.Quota(
-                        resource["resource_class"]["name"],
-                        resource["resource_class"]["name"]+" hours",
+                        resource_name,
+                        human_readable_names.get(resource_name, resource_name)+" hours (credits)",
                         "resource hours",
                         resource["allocated_resource_hours"],
                         resource["allocated_resource_hours"] - resource["resource_hours"]
