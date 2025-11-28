@@ -215,6 +215,9 @@ class SchedulingSettings(SettingsObject):
     #: Indicates whether advanced scheduling should be enabled
     ENABLED = Setting(default=False)
 
+    # Maximum duration of platform in hours, unlimited if unset
+    MAX_PLATFORM_DURATION_HOURS = Setting(default=None)
+
 class CoralCreditsSetting(SettingsObject):
     ADMIN_PASSWORD = Setting(default=None)
     CORAL_URI = Setting(default=None)

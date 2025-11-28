@@ -416,6 +416,8 @@ sshKeyStore:
 scheduling:
   # Indicates whether scheduling should be enabled
   enabled: false
+  # Maximum duration of platform in hours (int), unlimited if unset
+  maxPlatformDurationHours:
 
 # Settings for the Kubernetes apps provider
 appsProvider:
