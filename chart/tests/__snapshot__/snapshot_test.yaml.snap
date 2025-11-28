@@ -158,7 +158,7 @@ templated manifests should match snapshot:
       template:
         metadata:
           annotations:
-            azimuth.stackhpc.com/settings-checksum: 4456f249ad2b10af8275e59c37bb0435e01dcc236bdb926b6ebc3c19ba8eeea6
+            azimuth.stackhpc.com/settings-checksum: ba9764bba470b2cacf65a4646a795dd5a62707a4879baac5749a8884af5dc0cd
             azimuth.stackhpc.com/theme-checksum: ec0f36322392deee39d80b7f77ecd634df60358857af9dc208077860c4e174ab
             kubectl.kubernetes.io/default-container: api
           labels:
@@ -272,6 +272,8 @@ templated manifests should match snapshot:
       11-scheduling.yaml: |
         QVpJTVVUSDoKICBTQ0hFRFVMSU5HOgogICAgRU5BQkxFRDogZmFsc2UK
       12-apps-provider.yaml: |
+        Cg==
+      13-coral-credits.yaml: |
         Cg==
     kind: Secret
     metadata:

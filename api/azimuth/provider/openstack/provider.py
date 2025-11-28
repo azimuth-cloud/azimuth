@@ -467,7 +467,7 @@ class ScopedSession(base.ScopedSession):
                         resource["allocated_resource_hours"],
                         resource["allocated_resource_hours"]
                         - resource["resource_hours"],
-                        is_coral_quota=True
+                        is_coral_quota=True,
                     )
                 )
         return quotas
