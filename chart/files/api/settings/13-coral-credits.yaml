@@ -1,0 +1,8 @@
+{{- with .Values.settings.coralCredits }}
+AZIMUTH:
+  CORAL_CREDITS:
+    CORAL_URI: {{ quote .uri }}
+    {{- with .tokenSecretRef }}
+    TOKEN: {{ index (lookup "v1" "Secret" .namespace .name).data .key | b64dec }}
+    {{- end }}
+{{- end }}
