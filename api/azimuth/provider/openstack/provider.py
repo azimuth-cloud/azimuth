@@ -5,7 +5,6 @@ This module contains the provider implementation for OpenStack.
 import base64
 import dataclasses
 import datetime
-from django.utils.timezone import make_aware
 import functools
 import hashlib
 import logging
@@ -18,10 +17,12 @@ import dateutil.parser
 import rackit
 import requests
 import yaml
+from django.utils.timezone import make_aware
+
+from azimuth.settings import cloud_settings
 
 from .. import base, dto, errors  # noqa: TID252
 from . import api
-from ...settings import cloud_settings
 
 logger = logging.getLogger(__name__)
 
@@ -370,7 +371,10 @@ class ScopedSession(base.ScopedSession):
             )
         )
         # Get coral credits if available
-        if not (cloud_settings.CORAL_CREDITS.CORAL_URI is None or cloud_settings.CORAL_CREDITS.TOKEN is None):
+        if not (
+            cloud_settings.CORAL_CREDITS.CORAL_URI is None
+            or cloud_settings.CORAL_CREDITS.TOKEN is None
+        ):
             quotas.extend(self.get_coral_quotas())
         # The volume service is optional
         # In the case where the service is not enabled, just don't add the quotas
@@ -397,44 +401,72 @@ class ScopedSession(base.ScopedSession):
         except api.ServiceNotSupported:
             pass
         return quotas
-    
-    def get_coral_quotas(self):
-        headers = {"Authorization": "Bearer "+cloud_settings.CORAL_CREDITS.TOKEN}
-        accounts = requests.get(cloud_settings.CORAL_CREDITS.CORAL_URI + "/resource_provider_account", headers=headers).json()
 
-        tenancy_account_list = list(filter(lambda a: a["project_id"].replace('-', '') == self._tenancy.id,accounts))
+    def get_coral_quotas(self):
+        headers = {"Authorization": "Bearer " + cloud_settings.CORAL_CREDITS.TOKEN}
+        accounts = requests.get(
+            cloud_settings.CORAL_CREDITS.CORAL_URI + "/resource_provider_account",
+            headers=headers,
+        ).json()
+
+        tenancy_account_list = list(
+            filter(
+                lambda a: a["project_id"].replace("-", "") == self._tenancy.id, accounts
+            )
+        )
         if len(tenancy_account_list) != 1:
             return []
         tenancy_account = tenancy_account_list[0]["account"]
-        all_allocations = requests.get(cloud_settings.CORAL_CREDITS.CORAL_URI + "/allocation", headers=headers).json()
-        account_allocations = filter(lambda a:a["account"] == tenancy_account,all_allocations)
+        all_allocations = requests.get(
+            cloud_settings.CORAL_CREDITS.CORAL_URI + "/allocation", headers=headers
+        ).json()
+        account_allocations = filter(
+            lambda a: a["account"] == tenancy_account, all_allocations
+        )
 
         datetime_format = "%Y-%m-%dT%H:%M:%SZ"
         current_time = make_aware(datetime.datetime.now())
         target_tz = current_time.tzinfo
 
-        active_allocation_list = list(filter(
-            lambda a: datetime.datetime.strptime(a["start"],datetime_format).replace(tzinfo=target_tz) < current_time and
-            current_time < datetime.datetime.strptime(a["end"],datetime_format).replace(tzinfo=target_tz),
-            account_allocations))
-        
+        active_allocation_list = list(
+            filter(
+                lambda a: datetime.datetime.strptime(
+                    a["start"], datetime_format
+                ).replace(tzinfo=target_tz)
+                < current_time
+                and current_time
+                < datetime.datetime.strptime(a["end"], datetime_format).replace(
+                    tzinfo=target_tz
+                ),
+                account_allocations,
+            )
+        )
+
         human_readable_names = {
             "MEMORY_MB": "RAM (MB)",
-            "DISK_GB": "Root disk (GB)" # TODO: is this always the root disk?
+            "DISK_GB": "Root disk (GB)",  # TODO: is this always the root disk?
         }
-        
+
         quotas = []
         if len(active_allocation_list) == 1:
             active_allocation_id = active_allocation_list[0]["id"]
-            for resource in requests.get(cloud_settings.CORAL_CREDITS.CORAL_URI + "/allocation/"+ str(active_allocation_id) +"/resources", headers=headers).json():
+            for resource in requests.get(
+                cloud_settings.CORAL_CREDITS.CORAL_URI
+                + "/allocation/"
+                + str(active_allocation_id)
+                + "/resources",
+                headers=headers,
+            ).json():
                 resource_name = resource["resource_class"]["name"]
                 quotas.append(
                     dto.Quota(
                         resource_name,
-                        human_readable_names.get(resource_name, resource_name)+" hours (credits)",
+                        human_readable_names.get(resource_name, resource_name)
+                        + " hours (credits)",
                         "resource hours",
                         resource["allocated_resource_hours"],
-                        resource["allocated_resource_hours"] - resource["resource_hours"]
+                        resource["allocated_resource_hours"]
+                        - resource["resource_hours"],
                     )
                 )
         return quotas
