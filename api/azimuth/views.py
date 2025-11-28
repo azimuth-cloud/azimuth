@@ -1245,7 +1245,7 @@ def clusters(request, tenant):
                 )
                 input_serializer.is_valid(raise_exception=True)
                 
-                if not check_max_platform_duration(input_serializer.validated_data):
+                if not _check_max_platform_duration(input_serializer.validated_data):
                     return response.Response(
                         {
                             "detail": "Platform exceeds max duration of "+str(cloud_settings.SCHEDULING.MAX_PLATFORM_DURATION_HOURS)+" hours."
@@ -1492,7 +1492,7 @@ def kubernetes_cluster_template_details(request, tenant, template):
             )
     return response.Response(serializer.data)
 
-def check_max_platform_duration(platform_data):
+def _check_max_platform_duration(platform_data):
     if cloud_settings.SCHEDULING.MAX_PLATFORM_DURATION_HOURS == None or cloud_settings.SCHEDULING.ENABLED == False:
         return True
     end_time = platform_data["schedule"].end_time
@@ -1662,7 +1662,7 @@ def kubernetes_clusters(request, tenant):
                     context={"session": session, "capi_session": capi_session},
                 )
                 input_serializer.is_valid(raise_exception=True)
-                if not check_max_platform_duration(input_serializer.validated_data):
+                if not _check_max_platform_duration(input_serializer.validated_data):
                     return response.Response(
                         {
                             "detail": "Platform exceeds max duration of "+str(cloud_settings.SCHEDULING.MAX_PLATFORM_DURATION_HOURS)+" hours."
