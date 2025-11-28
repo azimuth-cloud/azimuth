@@ -71,6 +71,7 @@ class Quota:
     #: this quota is also controlled by
     linked_credits_resource: str = None
 
+
 @dataclass(frozen=True)
 class Image:
     """
