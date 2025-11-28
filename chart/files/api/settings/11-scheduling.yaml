@@ -1,3 +1,6 @@
 AZIMUTH:
   SCHEDULING:
     ENABLED: {{ ternary "true" "false" .Values.scheduling.enabled }}
+    {{- with .Values.scheduling.maxPlatformDurationHours }}
+    MAX_PLATFORM_DURATION_HOURS: {{ . }}
+    {{- end }}
