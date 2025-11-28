@@ -401,8 +401,8 @@ class ScopedSession(base.ScopedSession):
         except api.ServiceNotSupported:
             pass
         return quotas
-    
-    def coral_quotas_from_allocation(self,allocation,headers):
+
+    def coral_quotas_from_allocation(self, allocation, headers):
         quotas = []
 
         human_readable_names = {
@@ -413,20 +413,22 @@ class ScopedSession(base.ScopedSession):
         # Add quota for time until allocation expiry
         current_time = make_aware(datetime.datetime.now())
         target_tz = current_time.tzinfo
-        start_time = parse_time_and_correct_tz(allocation["start"],target_tz)
-        end_time = parse_time_and_correct_tz(allocation["end"],target_tz)
-        
+        start_time = parse_time_and_correct_tz(allocation["start"], target_tz)
+        end_time = parse_time_and_correct_tz(allocation["end"], target_tz)
+
         allocated_duration = (end_time - start_time).total_seconds() / 3600
         used_duration = (current_time - start_time).total_seconds() / 3600
 
-        quotas.append(dto.Quota(
-            "expiry",
-            "Allocated time used (hours)",
-            "hours",
-            int(allocated_duration),
-            int(used_duration),
-            is_coral_quota=True
-        ))
+        quotas.append(
+            dto.Quota(
+                "expiry",
+                "Allocated time used (hours)",
+                "hours",
+                int(allocated_duration),
+                int(used_duration),
+                is_coral_quota=True,
+            )
+        )
 
         # Add quotas for Coral resource quotas
         active_allocation_id = allocation["id"]
@@ -445,8 +447,7 @@ class ScopedSession(base.ScopedSession):
                     human_readable_names.get(resource_name, resource_name) + " hours",
                     "resource hours",
                     resource["allocated_resource_hours"],
-                    resource["allocated_resource_hours"]
-                    - resource["resource_hours"],
+                    resource["allocated_resource_hours"] - resource["resource_hours"],
                     is_coral_quota=True,
                 )
             )
@@ -479,16 +480,15 @@ class ScopedSession(base.ScopedSession):
 
         active_allocation_list = list(
             filter(
-                lambda a: 
-                parse_time_and_correct_tz(a["start"],target_tz) < current_time
-                and 
-                current_time < parse_time_and_correct_tz(a["end"],target_tz),
+                lambda a: parse_time_and_correct_tz(a["start"], target_tz)
+                < current_time
+                and current_time < parse_time_and_correct_tz(a["end"], target_tz),
                 account_allocations,
             )
         )
 
         if len(active_allocation_list) == 1:
-            return self.coral_quotas_from_allocation(active_allocation_list[0],headers)
+            return self.coral_quotas_from_allocation(active_allocation_list[0], headers)
         else:
             return []
 
@@ -1606,5 +1606,6 @@ class ScopedSession(base.ScopedSession):
         # Make sure the underlying api connection is closed
         self._connection.close()
 
-def parse_time_and_correct_tz(time_str,tz):
+
+def parse_time_and_correct_tz(time_str, tz):
     return datetime.datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=tz)
