@@ -184,7 +184,7 @@ settings:
     #     {{ cpus }} CPUs, {{ ram }} RAM, {{ disk }} disk, {{ ephemeral_disk }} ephemeral disk
   coralCredits:
     # uri:
-    # passwordSecretRef:
+    # tokenSecretRef:
     #   name:
     #   namespace:
     #   key:

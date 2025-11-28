@@ -290,13 +290,6 @@ class ScopedSession(base.ScopedSession):
         project_id_safe = self._connection.project_id.replace("-", "")
         self._project_share_user = prefix + project_id_safe
 
-        # Get Coral bearer token if enabled
-        if not cloud_settings.CORAL_CREDITS.ADMIN_PASSWORD is None:
-            self._coral_auth_token = requests.post(cloud_settings.CORAL_CREDITS.CORAL_URI+"/api-token-auth/",json={
-                "username": "admin",
-                "password": cloud_settings.CORAL_CREDITS.ADMIN_PASSWORD
-            }).json()["token"]
-
     def _log(self, message, *args, level=logging.INFO, **kwargs):
         logger.log(
             level,
@@ -377,7 +370,7 @@ class ScopedSession(base.ScopedSession):
             )
         )
         # Get coral credits if available
-        if not cloud_settings.CORAL_CREDITS.CORAL_URI is None:
+        if not (cloud_settings.CORAL_CREDITS.CORAL_URI is None or cloud_settings.CORAL_CREDITS.TOKEN is None):
             quotas.extend(self.get_coral_quotas())
         # The volume service is optional
         # In the case where the service is not enabled, just don't add the quotas
@@ -406,7 +399,7 @@ class ScopedSession(base.ScopedSession):
         return quotas
     
     def get_coral_quotas(self):
-        headers = {"Authorization": "Bearer "+self._coral_auth_token}
+        headers = {"Authorization": "Bearer "+cloud_settings.CORAL_CREDITS.TOKEN}
         accounts = requests.get(cloud_settings.CORAL_CREDITS.CORAL_URI + "/resource_provider_account", headers=headers).json()
 
         tenancy_account_list = list(filter(lambda a: a["project_id"].replace('-', '') == self._tenancy.id,accounts))

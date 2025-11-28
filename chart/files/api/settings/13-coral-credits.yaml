@@ -2,7 +2,7 @@
 AZIMUTH:
   CORAL_CREDITS:
     CORAL_URI: {{ quote .uri }}
-    {{- with .passwordSecretRef }}
-    ADMIN_PASSWORD: {{ index (lookup "v1" "Secret" .namespace .name).data .key | b64dec }}
+    {{- with .tokenSecretRef }}
+    TOKEN: {{ index (lookup "v1" "Secret" .namespace .name).data .key | b64dec }}
     {{- end }}
 {{- end }}
