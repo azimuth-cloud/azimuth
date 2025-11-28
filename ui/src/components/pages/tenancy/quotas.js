@@ -56,7 +56,7 @@ const quotaOrdering = ["machines", "volumes", "external_ips", "cpus", "ram", "st
 
 
 const Quotas = ({ resourceData }) => {
-    const sortedQuotas = sortBy(
+    let sortedQuotas = sortBy(
         Object.values(resourceData),
         q => {
             // Use a tuple of (index, name) so we can support unknown quotas
@@ -64,6 +64,13 @@ const Quotas = ({ resourceData }) => {
             return [index >= 0 ? index : quotaOrdering.length, q.resource];
         }
     );
+    const hasMixedCoralAndResourceQuotas = new Set(sortedQuotas.map((q) => q.is_coral_quota)).size > 1
+    if(hasMixedCoralAndResourceQuotas){
+        for(let i = 0;i < sortedQuotas.length;i++){
+            const prefix = sortedQuotas[i].is_coral_quota ? "Credits: " : "Quota: ";
+            sortedQuotas[i].label = prefix + sortedQuotas[i].label;
+        }
+    }
     return (
         // The volume service is optional, so quotas might not always be available for it
         <Row className="g-3 justify-content-center">

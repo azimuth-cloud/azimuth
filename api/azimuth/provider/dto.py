@@ -67,6 +67,9 @@ class Quota:
     allocated: int
     #: The amount of the resource that has been used
     used: int
+    #: Indicates if this is a quota for Coral credits, as opposed to
+    #: an Openstack resource
+    is_coral_quota: bool = False
 
 
 @dataclass(frozen=True)

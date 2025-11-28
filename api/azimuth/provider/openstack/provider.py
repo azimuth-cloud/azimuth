@@ -444,7 +444,7 @@ class ScopedSession(base.ScopedSession):
 
         human_readable_names = {
             "MEMORY_MB": "RAM (MB)",
-            "DISK_GB": "Root disk (GB)",  # TODO: is this always the root disk?
+            "DISK_GB": "Root disk (GB)",
         }
 
         quotas = []
@@ -462,11 +462,12 @@ class ScopedSession(base.ScopedSession):
                     dto.Quota(
                         resource_name,
                         human_readable_names.get(resource_name, resource_name)
-                        + " hours (credits)",
+                        + " hours",
                         "resource hours",
                         resource["allocated_resource_hours"],
                         resource["allocated_resource_hours"]
                         - resource["resource_hours"],
+                        is_coral_quota=True
                     )
                 )
         return quotas
