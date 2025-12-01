@@ -4,6 +4,7 @@ Django views for interacting with the configured cloud provider.
 
 import contextlib
 import dataclasses
+import datetime
 import functools
 import logging
 import math
@@ -1243,6 +1244,17 @@ def clusters(request, tenant):
                     context={"session": session, "cluster_manager": cluster_manager},
                 )
                 input_serializer.is_valid(raise_exception=True)
+
+                if not _check_max_platform_duration(input_serializer.validated_data):
+                    return response.Response(
+                        {
+                            "detail": "Platform exceeds max duration of "
+                            + str(cloud_settings.SCHEDULING.MAX_PLATFORM_DURATION_HOURS)
+                            + " hours."
+                        },
+                        status=status.HTTP_409_CONFLICT,
+                    )
+
                 # Check that the cluster fits within quota
                 calculator = scheduling.CaaSClusterCalculator(session)
                 resources = calculator.calculate(
@@ -1483,6 +1495,21 @@ def kubernetes_cluster_template_details(request, tenant, template):
     return response.Response(serializer.data)
 
 
+def _check_max_platform_duration(platform_data):
+    if (
+        cloud_settings.SCHEDULING.MAX_PLATFORM_DURATION_HOURS is None
+        or not cloud_settings.SCHEDULING.ENABLED
+    ):
+        return True
+    end_time = platform_data["schedule"].end_time
+    now = datetime.datetime.now(tz=datetime.timezone.utc)
+    duration = (end_time - now).total_seconds() / 3600
+    if duration < cloud_settings.SCHEDULING.MAX_PLATFORM_DURATION_HOURS:
+        return True
+    else:
+        return False
+
+
 def kubernetes_cluster_check_quotas(session, cluster, template, **data):
     """
     Check the quotas for a Kubernetes cluster.
@@ -1642,6 +1669,15 @@ def kubernetes_clusters(request, tenant):
                     context={"session": session, "capi_session": capi_session},
                 )
                 input_serializer.is_valid(raise_exception=True)
+                if not _check_max_platform_duration(input_serializer.validated_data):
+                    return response.Response(
+                        {
+                            "detail": "Platform exceeds max duration of "
+                            + str(cloud_settings.SCHEDULING.MAX_PLATFORM_DURATION_HOURS)
+                            + " hours."
+                        },
+                        status=status.HTTP_409_CONFLICT,
+                    )
                 # Check that the cluster fits within quota
                 resources, fits, _ = kubernetes_cluster_check_quotas(
                     session, None, **input_serializer.validated_data
