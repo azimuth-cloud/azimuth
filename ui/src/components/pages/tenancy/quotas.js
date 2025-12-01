@@ -78,8 +78,8 @@ const Quotas = ({ resourceData }) => {
     // If quota is unlimited but has an associated Coral quota, hide it
     const resourceNames = sortedQuotas.map((q) => q.resource)
     sortedQuotas = sortedQuotas.filter((q) =>
-        q.linked_credits_resource == null || 
-        !(resourceNames.includes(q.linked_credits_resource) && q.allocated < 0)
+        !(q.related_resource_names.some(r => resourceNames.includes(r))
+          && q.allocated > 0)
     )
 
     return (

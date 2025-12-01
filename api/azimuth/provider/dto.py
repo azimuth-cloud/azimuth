@@ -4,7 +4,7 @@ This module defines data-transfer objects used by providers.
 
 import enum
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 
 
@@ -70,9 +70,10 @@ class Quota:
     #: Indicates if this is a quota for Coral credits, as opposed to
     #: an Openstack resource
     is_coral_quota: bool = False
-    #: Openstack resource class associated with the Coral credits quota which
+    #: Openstack resource classes associated with the Coral credits quota which
     #: this quota is also controlled by
-    linked_credits_resource: str = None
+    related_resource_names: list = field(default_factory=list)
+
 
 @dataclass(frozen=True)
 class Image:
