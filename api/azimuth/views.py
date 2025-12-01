@@ -3,8 +3,8 @@ Django views for interacting with the configured cloud provider.
 """
 
 import contextlib
-import datetime
 import dataclasses
+import datetime
 import functools
 import logging
 import math
@@ -1244,15 +1244,17 @@ def clusters(request, tenant):
                     context={"session": session, "cluster_manager": cluster_manager},
                 )
                 input_serializer.is_valid(raise_exception=True)
-                
+
                 if not _check_max_platform_duration(input_serializer.validated_data):
                     return response.Response(
                         {
-                            "detail": "Platform exceeds max duration of "+str(cloud_settings.SCHEDULING.MAX_PLATFORM_DURATION_HOURS)+" hours."
+                            "detail": "Platform exceeds max duration of "
+                            + str(cloud_settings.SCHEDULING.MAX_PLATFORM_DURATION_HOURS)
+                            + " hours."
                         },
                         status=status.HTTP_409_CONFLICT,
                     )
-                
+
                 # Check that the cluster fits within quota
                 calculator = scheduling.CaaSClusterCalculator(session)
                 resources = calculator.calculate(
@@ -1492,8 +1494,12 @@ def kubernetes_cluster_template_details(request, tenant, template):
             )
     return response.Response(serializer.data)
 
+
 def _check_max_platform_duration(platform_data):
-    if cloud_settings.SCHEDULING.MAX_PLATFORM_DURATION_HOURS == None or cloud_settings.SCHEDULING.ENABLED == False:
+    if (
+        cloud_settings.SCHEDULING.MAX_PLATFORM_DURATION_HOURS is None
+        or not cloud_settings.SCHEDULING.ENABLED
+    ):
         return True
     end_time = platform_data["schedule"].end_time
     now = datetime.datetime.now(tz=datetime.timezone.utc)
@@ -1502,6 +1508,7 @@ def _check_max_platform_duration(platform_data):
         return True
     else:
         return False
+
 
 def kubernetes_cluster_check_quotas(session, cluster, template, **data):
     """
@@ -1665,7 +1672,9 @@ def kubernetes_clusters(request, tenant):
                 if not _check_max_platform_duration(input_serializer.validated_data):
                     return response.Response(
                         {
-                            "detail": "Platform exceeds max duration of "+str(cloud_settings.SCHEDULING.MAX_PLATFORM_DURATION_HOURS)+" hours."
+                            "detail": "Platform exceeds max duration of "
+                            + str(cloud_settings.SCHEDULING.MAX_PLATFORM_DURATION_HOURS)
+                            + " hours."
                         },
                         status=status.HTTP_409_CONFLICT,
                     )
