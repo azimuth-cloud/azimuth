@@ -79,7 +79,7 @@ const Quotas = ({ resourceData }) => {
     const resourceNames = sortedQuotas.map((q) => q.resource)
     sortedQuotas = sortedQuotas.filter((q) =>
         !(q.related_resource_names.some(r => resourceNames.includes(r))
-          && q.allocated > 0)
+          && q.allocated < 0)
     )
 
     return (
