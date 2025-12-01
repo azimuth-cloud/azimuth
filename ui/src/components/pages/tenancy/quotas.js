@@ -16,7 +16,7 @@ import { sortBy, usePageTitle, formatSize } from '../../utils';
 import { ResourcePanel } from './resource-utils';
 
 
-const QuotaProgress = ({ quota: { label, units, allocated, used } }) => {
+const QuotaProgress = ({ quota: { label, units, allocated, used, is_coral_quota }, addPrefix }) => {
     const percent = allocated > 0 ? (used * 100) / allocated : 0;
     const formatAmount = amount => (
         ["MB", "GB"].includes(units) ?
@@ -29,10 +29,17 @@ const QuotaProgress = ({ quota: { label, units, allocated, used } }) => {
             `${formatAmount(used)} used`
     );
     const colour = (percent <= 60 ? '#5cb85c' : (percent <= 80 ? '#f0ad4e' : '#d9534f'));
+    
+    let labelPrefix = ""
+    if(addPrefix){
+        labelPrefix = is_coral_quota ? "Credits: " : "Quota: ";
+    }
+
+    const displayLabel = labelPrefix + label
     return (
         <Col className="quota-card-wrapper">
             <Card className="h-100">
-                <Card.Header><strong>{label}</strong></Card.Header>
+                <Card.Header><strong>{displayLabel}</strong></Card.Header>
                 <Card.Body>
                     <CircularProgressbar
                         className={allocated < 0 ? "quota-no-limit" : undefined}
@@ -64,18 +71,14 @@ const Quotas = ({ resourceData }) => {
             return [index >= 0 ? index : quotaOrdering.length, q.resource];
         }
     );
-    const hasMixedCoralAndResourceQuotas = new Set(sortedQuotas.map((q) => q.is_coral_quota)).size > 1
-    if(hasMixedCoralAndResourceQuotas){
-        for(let i = 0;i < sortedQuotas.length;i++){
-            const prefix = sortedQuotas[i].is_coral_quota ? "Credits: " : "Quota: ";
-            sortedQuotas[i].label = prefix + sortedQuotas[i].label;
-        }
-    }
+    const hasMixedCoralAndResourceQuotas = new Set(
+        sortedQuotas.map((q) => q.is_coral_quota)
+    ).size > 1
     return (
         // The volume service is optional, so quotas might not always be available for it
         <Row className="g-3 justify-content-center">
             {sortedQuotas.map(quota => (
-                <QuotaProgress key={quota.resource} quota={quota} />)
+                <QuotaProgress key={quota.resource} quota={quota} addPrefix={hasMixedCoralAndResourceQuotas}/>)
             )}
         </Row>
     );
