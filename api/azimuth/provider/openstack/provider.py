@@ -342,6 +342,7 @@ class ScopedSession(base.ScopedSession):
                 None,
                 compute_limits.total_cores,
                 compute_limits.total_cores_used,
+                dto.QuotaType.NOVA,
             ),
             dto.Quota(
                 "ram",
@@ -349,6 +350,7 @@ class ScopedSession(base.ScopedSession):
                 "MB",
                 compute_limits.total_ram,
                 compute_limits.total_ram_used,
+                dto.QuotaType.NOVA,
             ),
             dto.Quota(
                 "machines",
@@ -356,6 +358,7 @@ class ScopedSession(base.ScopedSession):
                 None,
                 compute_limits.instances,
                 compute_limits.instances_used,
+                dto.QuotaType.NOVA,
             ),
         ]
         # Get the floating ip quota
@@ -368,6 +371,7 @@ class ScopedSession(base.ScopedSession):
                 network_quotas.floatingip,
                 # Just get the length of the list of IPs
                 len(list(self._connection.network.floatingips.all())),
+                dto.QuotaType.NOVA,
             )
         )
         # Get coral credits if available
@@ -375,7 +379,7 @@ class ScopedSession(base.ScopedSession):
             cloud_settings.CORAL_CREDITS.CORAL_URI is None
             or cloud_settings.CORAL_CREDITS.TOKEN is None
         ):
-            quotas.extend(self.get_coral_quotas())
+            quotas.extend(self._get_coral_quotas())
         # The volume service is optional
         # In the case where the service is not enabled, just don't add the quotas
         try:
@@ -388,6 +392,7 @@ class ScopedSession(base.ScopedSession):
                         "GB",
                         volume_limits.total_volume_gigabytes,
                         volume_limits.total_gigabytes_used,
+                        dto.QuotaType.CINDER,
                     ),
                     dto.Quota(
                         "volumes",
@@ -395,6 +400,7 @@ class ScopedSession(base.ScopedSession):
                         None,
                         volume_limits.volumes,
                         volume_limits.volumes_used,
+                        dto.QuotaType.CINDER,
                     ),
                 ]
             )
@@ -402,7 +408,7 @@ class ScopedSession(base.ScopedSession):
             pass
         return quotas
 
-    def coral_quotas_from_allocation(self, allocation, headers):
+    def _coral_quotas_from_allocation(self, allocation, headers):
         quotas = []
 
         human_readable_names = {
@@ -426,20 +432,26 @@ class ScopedSession(base.ScopedSession):
                 "hours",
                 int(allocated_duration),
                 int(used_duration),
-                is_coral_quota=True,
+                dto.QuotaType.CORAL,
             )
         )
 
         # Add quotas for Coral resource quotas
         active_allocation_id = allocation["id"]
 
-        for resource in requests.get(
+        allocation_resources = requests.get(
             cloud_settings.CORAL_CREDITS.CORAL_URI
             + "/allocation/"
             + str(active_allocation_id)
             + "/resources",
             headers=headers,
-        ).json():
+        ).json()
+
+        if len(allocation_resources) == 0:
+            self._log("Allocated resources found in allocation", level=logging.WARN)
+            return []
+
+        for resource in allocation_resources:
             resource_name = resource["resource_class"]["name"]
             quotas.append(
                 dto.Quota(
@@ -448,12 +460,12 @@ class ScopedSession(base.ScopedSession):
                     "resource hours",
                     resource["allocated_resource_hours"],
                     resource["allocated_resource_hours"] - resource["resource_hours"],
-                    is_coral_quota=True,
+                    dto.QuotaType.CORAL,
                 )
             )
         return quotas
 
-    def get_coral_quotas(self):
+    def _get_coral_quotas(self):
         headers = {"Authorization": "Bearer " + cloud_settings.CORAL_CREDITS.TOKEN}
         accounts = requests.get(
             cloud_settings.CORAL_CREDITS.CORAL_URI + "/resource_provider_account",
@@ -466,6 +478,14 @@ class ScopedSession(base.ScopedSession):
             )
         )
         if len(tenancy_account_list) != 1:
+            self._log(
+                (
+                    "There should be exactly one resource provider account associated "
+                    "with the tenancy, there are currently %s"
+                ),
+                len(tenancy_account_list),
+                level=logging.WARN,
+            )
             return []
         tenancy_account = tenancy_account_list[0]["account"]
         all_allocations = requests.get(
@@ -488,8 +508,18 @@ class ScopedSession(base.ScopedSession):
         )
 
         if len(active_allocation_list) == 1:
-            return self.coral_quotas_from_allocation(active_allocation_list[0], headers)
+            return self._coral_quotas_from_allocation(
+                active_allocation_list[0], headers
+            )
         else:
+            self._log(
+                (
+                    "There should be exactly one active allocation associated "
+                    "with the tenancy, there are currently %s"
+                ),
+                len(active_allocation_list),
+                level=logging.WARN,
+            )
             return []
 
     def _from_api_image(self, api_image):

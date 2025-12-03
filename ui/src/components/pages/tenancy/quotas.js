@@ -16,7 +16,7 @@ import { sortBy, usePageTitle, formatSize } from '../../utils';
 import { ResourcePanel } from './resource-utils';
 
 
-const QuotaProgress = ({ quota: { label, units, allocated, used, is_coral_quota }, addPrefix }) => {
+const QuotaProgress = ({ quota: { label, units, allocated, used, quota_type }, addPrefix }) => {
     const percent = allocated > 0 ? (used * 100) / allocated : 0;
     const formatAmount = amount => (
         ["MB", "GB"].includes(units) ?
@@ -32,7 +32,7 @@ const QuotaProgress = ({ quota: { label, units, allocated, used, is_coral_quota 
     
     let labelPrefix = ""
     if(addPrefix){
-        labelPrefix = is_coral_quota ? "Credits: " : "Quota: ";
+        labelPrefix = quota_type == "CORAL" ? "Credits: " : "Quota: ";
     }
 
     const displayLabel = labelPrefix + label
@@ -71,14 +71,12 @@ const Quotas = ({ resourceData }) => {
             return [index >= 0 ? index : quotaOrdering.length, q.resource];
         }
     );
-    const hasMixedCoralAndResourceQuotas = new Set(
-        sortedQuotas.map((q) => q.is_coral_quota)
-    ).size > 1
+    const containsCoralQuotas = sortedQuotas.some(q => q.quota_type == "CORAL")
     return (
         // The volume service is optional, so quotas might not always be available for it
         <Row className="g-3 justify-content-center">
             {sortedQuotas.map(quota => (
-                <QuotaProgress key={quota.resource} quota={quota} addPrefix={hasMixedCoralAndResourceQuotas}/>)
+                <QuotaProgress key={quota.resource} quota={quota} addPrefix={containsCoralQuotas}/>)
             )}
         </Row>
     );

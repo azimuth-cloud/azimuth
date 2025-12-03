@@ -251,7 +251,8 @@ class TenancySerializer(make_dto_serializer(dto.Tenancy)):
         return result
 
 
-QuotaSerializer = make_dto_serializer(dto.Quota)
+class QuotaSerializer(make_dto_serializer(dto.Quota, exclude=["quota_type"])):
+    quota_type = serializers.ReadOnlyField(source="quota_type.name")
 
 
 class ImageRefSerializer(RefSerializer):
