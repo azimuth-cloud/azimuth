@@ -342,7 +342,7 @@ class ScopedSession(base.ScopedSession):
                 None,
                 compute_limits.total_cores,
                 compute_limits.total_cores_used,
-                dto.QuotaType.NOVA,
+                dto.QuotaType.COMPUTE,
             ),
             dto.Quota(
                 "ram",
@@ -350,7 +350,7 @@ class ScopedSession(base.ScopedSession):
                 "MB",
                 compute_limits.total_ram,
                 compute_limits.total_ram_used,
-                dto.QuotaType.NOVA,
+                dto.QuotaType.COMPUTE,
             ),
             dto.Quota(
                 "machines",
@@ -358,7 +358,7 @@ class ScopedSession(base.ScopedSession):
                 None,
                 compute_limits.instances,
                 compute_limits.instances_used,
-                dto.QuotaType.NOVA,
+                dto.QuotaType.COMPUTE,
             ),
         ]
         # Get the floating ip quota
@@ -371,7 +371,7 @@ class ScopedSession(base.ScopedSession):
                 network_quotas.floatingip,
                 # Just get the length of the list of IPs
                 len(list(self._connection.network.floatingips.all())),
-                dto.QuotaType.NOVA,
+                dto.QuotaType.NETWORK,
             )
         )
         # Get coral credits if available
@@ -392,7 +392,7 @@ class ScopedSession(base.ScopedSession):
                         "GB",
                         volume_limits.total_volume_gigabytes,
                         volume_limits.total_gigabytes_used,
-                        dto.QuotaType.CINDER,
+                        dto.QuotaType.BLOCK_STORAGE,
                     ),
                     dto.Quota(
                         "volumes",
@@ -400,7 +400,7 @@ class ScopedSession(base.ScopedSession):
                         None,
                         volume_limits.volumes,
                         volume_limits.volumes_used,
-                        dto.QuotaType.CINDER,
+                        dto.QuotaType.BLOCK_STORAGE,
                     ),
                 ]
             )
@@ -432,7 +432,7 @@ class ScopedSession(base.ScopedSession):
                 "hours",
                 int(allocated_duration),
                 int(used_duration),
-                dto.QuotaType.CORAL,
+                dto.QuotaType.CORAL_CREDITS,
             )
         )
 
@@ -460,7 +460,7 @@ class ScopedSession(base.ScopedSession):
                     "resource hours",
                     resource["allocated_resource_hours"],
                     resource["allocated_resource_hours"] - resource["resource_hours"],
-                    dto.QuotaType.CORAL,
+                    dto.QuotaType.CORAL_CREDITS,
                 )
             )
         return quotas

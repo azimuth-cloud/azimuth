@@ -56,9 +56,10 @@ class QuotaType(enum.Enum):
     Enum representing the possible quota types.
     """
 
-    NOVA = "NOVA"
-    CINDER = "CINDER"
-    CORAL = "CORAL"
+    COMPUTE = "COMPUTE"
+    BLOCK_STORAGE = "BLOCK_STORAGE"
+    CORAL_CREDITS = "CORAL_CREDITS"
+    NETWORK = "NETWORK"
 
 
 @dataclass(frozen=True)

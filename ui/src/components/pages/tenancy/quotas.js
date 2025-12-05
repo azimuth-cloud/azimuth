@@ -32,7 +32,7 @@ const QuotaProgress = ({ quota: { label, units, allocated, used, quota_type }, a
     
     let labelPrefix = ""
     if(addPrefix){
-        labelPrefix = quota_type == "CORAL" ? "Credits: " : "Quota: ";
+        labelPrefix = quota_type == "CORAL_CREDITS" ? "Credits: " : "Quota: ";
     }
 
     const displayLabel = labelPrefix + label
@@ -71,7 +71,7 @@ const Quotas = ({ resourceData }) => {
             return [index >= 0 ? index : quotaOrdering.length, q.resource];
         }
     );
-    const containsCoralQuotas = sortedQuotas.some(q => q.quota_type == "CORAL")
+    const containsCoralQuotas = sortedQuotas.some(q => q.quota_type == "CORAL_CREDITS")
     return (
         // The volume service is optional, so quotas might not always be available for it
         <Row className="g-3 justify-content-center">
