@@ -4,6 +4,9 @@ CSRF_COOKIE_SECURE: {{ .Values.ingress.tls.enabled }}
 {{- with .Values.settings.csrfCookieName }}
 CSRF_COOKIE_NAME: {{ . }}
 {{- end }}
+{{- with .Values.settings.sessionCookieSameSite }}
+SESSION_COOKIE_SAMESITE: {{ . | quote }}
+{{- end }}
 SESSION_COOKIE_SECURE: {{ .Values.ingress.tls.enabled }}
 {{- with .Values.settings.sessionCookieName }}
 SESSION_COOKIE_NAME: {{ . }}

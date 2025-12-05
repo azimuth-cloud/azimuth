@@ -169,6 +169,8 @@ settings:
   csrfCookieName:
   # The name of the session cookie
   sessionCookieName:
+  # The SameSite policy for the session cookie (e.g. Lax, Strict, None)
+  sessionCookieSameSite:
   # The name of the next URL cookie
   nextUrlCookieName:
   # List of curated sizes
