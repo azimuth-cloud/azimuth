@@ -78,11 +78,11 @@ class Quota:
     allocated: int
     #: The amount of the resource that has been used
     used: int
+    #: Category of quota for filtering in UI
+    quota_type: QuotaType
     #: Openstack resource classes associated with the Coral credits quota which
     #: this quota is also controlled by
     related_resource_names: list = field(default_factory=list)
-    #: Category of quota for filtering in UI
-    quota_type: QuotaType
 
 
 @dataclass(frozen=True)
