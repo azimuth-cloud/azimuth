@@ -71,7 +71,16 @@ const Quotas = ({ resourceData }) => {
             return [index >= 0 ? index : quotaOrdering.length, q.resource];
         }
     );
+
     const containsCoralQuotas = sortedQuotas.some(q => q.quota_type == "CORAL_CREDITS")
+    
+    // If quota is unlimited but has an associated Coral quota, hide it
+    const resourceNames = sortedQuotas.map((q) => q.resource)
+    sortedQuotas = sortedQuotas.filter((q) =>
+        !(q.related_resource_names.some(r => resourceNames.includes(r))
+          && q.allocated < 0)
+    )
+
     return (
         // The volume service is optional, so quotas might not always be available for it
         <Row className="g-3 justify-content-center">

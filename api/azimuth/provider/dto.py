@@ -4,7 +4,7 @@ This module defines data-transfer objects used by providers.
 
 import enum
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 
 
@@ -80,6 +80,9 @@ class Quota:
     used: int
     #: Category of quota for filtering in UI
     quota_type: QuotaType
+    #: Openstack resource classes associated with the Coral credits quota which
+    #: this quota is also controlled by
+    related_resource_names: list = field(default_factory=list)
 
 
 @dataclass(frozen=True)
