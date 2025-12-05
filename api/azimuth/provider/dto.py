@@ -51,6 +51,17 @@ class Credential:
     data: dict
 
 
+class QuotaType(enum.Enum):
+    """
+    Enum representing the possible quota types.
+    """
+
+    COMPUTE = "COMPUTE"
+    BLOCK_STORAGE = "BLOCK_STORAGE"
+    CORAL_CREDITS = "CORAL_CREDITS"
+    NETWORK = "NETWORK"
+
+
 @dataclass(frozen=True)
 class Quota:
     """
@@ -67,12 +78,11 @@ class Quota:
     allocated: int
     #: The amount of the resource that has been used
     used: int
-    #: Indicates if this is a quota for Coral credits, as opposed to
-    #: an Openstack resource
-    is_coral_quota: bool = False
     #: Openstack resource classes associated with the Coral credits quota which
     #: this quota is also controlled by
     related_resource_names: list = field(default_factory=list)
+    #: Category of quota for filtering in UI
+    quota_type: QuotaType
 
 
 @dataclass(frozen=True)
