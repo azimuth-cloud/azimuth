@@ -182,6 +182,12 @@ settings:
     #   # and "ephemeral_disk" for the current flavor
     #   description: >-
     #     {{ cpus }} CPUs, {{ ram }} RAM, {{ disk }} disk, {{ ephemeral_disk }} ephemeral disk
+  coralCredits:
+    # uri:
+    # tokenSecretRef:
+    #   name:
+    #   namespace:
+    #   key:
 
 # Configuration for authentication
 authentication:

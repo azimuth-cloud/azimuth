@@ -51,6 +51,17 @@ class Credential:
     data: dict
 
 
+class QuotaType(enum.Enum):
+    """
+    Enum representing the possible quota types.
+    """
+
+    COMPUTE = "COMPUTE"
+    BLOCK_STORAGE = "BLOCK_STORAGE"
+    CORAL_CREDITS = "CORAL_CREDITS"
+    NETWORK = "NETWORK"
+
+
 @dataclass(frozen=True)
 class Quota:
     """
@@ -67,6 +78,8 @@ class Quota:
     allocated: int
     #: The amount of the resource that has been used
     used: int
+    #: Category of quota for filtering in UI
+    quota_type: QuotaType
 
 
 @dataclass(frozen=True)

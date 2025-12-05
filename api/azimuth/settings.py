@@ -219,6 +219,11 @@ class SchedulingSettings(SettingsObject):
     MAX_PLATFORM_DURATION_HOURS = Setting(default=None)
 
 
+class CoralCreditsSetting(SettingsObject):
+    TOKEN = Setting(default=None)
+    CORAL_URI = Setting(default=None)
+
+
 class AzimuthSettings(SettingsObject):
     """
     Settings object for the ``AZIMUTH`` setting.
@@ -297,6 +302,8 @@ class AzimuthSettings(SettingsObject):
 
     #: Configuration for advanced scheduling
     SCHEDULING = NestedSetting(SchedulingSettings)
+
+    CORAL_CREDITS = NestedSetting(CoralCreditsSetting)
 
     #: URL for documentation
     DOCUMENTATION_URL = Setting(

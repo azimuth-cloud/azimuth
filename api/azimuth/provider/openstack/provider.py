@@ -4,6 +4,7 @@ This module contains the provider implementation for OpenStack.
 
 import base64
 import dataclasses
+import datetime
 import functools
 import hashlib
 import logging
@@ -14,7 +15,11 @@ import time
 import certifi
 import dateutil.parser
 import rackit
+import requests
 import yaml
+from django.utils.timezone import make_aware
+
+from azimuth.settings import cloud_settings
 
 from .. import base, dto, errors  # noqa: TID252
 from . import api
@@ -337,6 +342,7 @@ class ScopedSession(base.ScopedSession):
                 None,
                 compute_limits.total_cores,
                 compute_limits.total_cores_used,
+                dto.QuotaType.COMPUTE,
             ),
             dto.Quota(
                 "ram",
@@ -344,6 +350,7 @@ class ScopedSession(base.ScopedSession):
                 "MB",
                 compute_limits.total_ram,
                 compute_limits.total_ram_used,
+                dto.QuotaType.COMPUTE,
             ),
             dto.Quota(
                 "machines",
@@ -351,6 +358,7 @@ class ScopedSession(base.ScopedSession):
                 None,
                 compute_limits.instances,
                 compute_limits.instances_used,
+                dto.QuotaType.COMPUTE,
             ),
         ]
         # Get the floating ip quota
@@ -363,8 +371,15 @@ class ScopedSession(base.ScopedSession):
                 network_quotas.floatingip,
                 # Just get the length of the list of IPs
                 len(list(self._connection.network.floatingips.all())),
+                dto.QuotaType.NETWORK,
             )
         )
+        # Get coral credits if available
+        if not (
+            cloud_settings.CORAL_CREDITS.CORAL_URI is None
+            or cloud_settings.CORAL_CREDITS.TOKEN is None
+        ):
+            quotas.extend(self._get_coral_quotas())
         # The volume service is optional
         # In the case where the service is not enabled, just don't add the quotas
         try:
@@ -377,6 +392,7 @@ class ScopedSession(base.ScopedSession):
                         "GB",
                         volume_limits.total_volume_gigabytes,
                         volume_limits.total_gigabytes_used,
+                        dto.QuotaType.BLOCK_STORAGE,
                     ),
                     dto.Quota(
                         "volumes",
@@ -384,12 +400,127 @@ class ScopedSession(base.ScopedSession):
                         None,
                         volume_limits.volumes,
                         volume_limits.volumes_used,
+                        dto.QuotaType.BLOCK_STORAGE,
                     ),
                 ]
             )
         except api.ServiceNotSupported:
             pass
         return quotas
+
+    def _coral_quotas_from_allocation(self, allocation, headers):
+        quotas = []
+
+        human_readable_names = {
+            "MEMORY_MB": "RAM (MB)",
+            "DISK_GB": "Root disk (GB)",
+        }
+
+        # Add quota for time until allocation expiry
+        current_time = make_aware(datetime.datetime.now())
+        target_tz = current_time.tzinfo
+        start_time = parse_time_and_correct_tz(allocation["start"], target_tz)
+        end_time = parse_time_and_correct_tz(allocation["end"], target_tz)
+
+        allocated_duration = (end_time - start_time).total_seconds() / 3600
+        used_duration = (current_time - start_time).total_seconds() / 3600
+
+        quotas.append(
+            dto.Quota(
+                "expiry",
+                "Allocated time used (hours)",
+                "hours",
+                int(allocated_duration),
+                int(used_duration),
+                dto.QuotaType.CORAL_CREDITS,
+            )
+        )
+
+        # Add quotas for Coral resource quotas
+        active_allocation_id = allocation["id"]
+
+        allocation_resources = requests.get(
+            cloud_settings.CORAL_CREDITS.CORAL_URI
+            + "/allocation/"
+            + str(active_allocation_id)
+            + "/resources",
+            headers=headers,
+        ).json()
+
+        if len(allocation_resources) == 0:
+            self._log("Allocated resources found in allocation", level=logging.WARN)
+            return []
+
+        for resource in allocation_resources:
+            resource_name = resource["resource_class"]["name"]
+            quotas.append(
+                dto.Quota(
+                    resource_name,
+                    human_readable_names.get(resource_name, resource_name) + " hours",
+                    "resource hours",
+                    resource["allocated_resource_hours"],
+                    resource["allocated_resource_hours"] - resource["resource_hours"],
+                    dto.QuotaType.CORAL_CREDITS,
+                )
+            )
+        return quotas
+
+    def _get_coral_quotas(self):
+        headers = {"Authorization": "Bearer " + cloud_settings.CORAL_CREDITS.TOKEN}
+        accounts = requests.get(
+            cloud_settings.CORAL_CREDITS.CORAL_URI + "/resource_provider_account",
+            headers=headers,
+        ).json()
+
+        tenancy_account_list = list(
+            filter(
+                lambda a: a["project_id"].replace("-", "") == self._tenancy.id, accounts
+            )
+        )
+        if len(tenancy_account_list) != 1:
+            self._log(
+                (
+                    "There should be exactly one resource provider account associated "
+                    "with the tenancy, there are currently %s"
+                ),
+                len(tenancy_account_list),
+                level=logging.WARN,
+            )
+            return []
+        tenancy_account = tenancy_account_list[0]["account"]
+        all_allocations = requests.get(
+            cloud_settings.CORAL_CREDITS.CORAL_URI + "/allocation", headers=headers
+        ).json()
+        account_allocations = filter(
+            lambda a: a["account"] == tenancy_account, all_allocations
+        )
+
+        current_time = make_aware(datetime.datetime.now())
+        target_tz = current_time.tzinfo
+
+        active_allocation_list = list(
+            filter(
+                lambda a: parse_time_and_correct_tz(a["start"], target_tz)
+                < current_time
+                and current_time < parse_time_and_correct_tz(a["end"], target_tz),
+                account_allocations,
+            )
+        )
+
+        if len(active_allocation_list) == 1:
+            return self._coral_quotas_from_allocation(
+                active_allocation_list[0], headers
+            )
+        else:
+            self._log(
+                (
+                    "There should be exactly one active allocation associated "
+                    "with the tenancy, there are currently %s"
+                ),
+                len(active_allocation_list),
+                level=logging.WARN,
+            )
+            return []
 
     def _from_api_image(self, api_image):
         """
@@ -1504,3 +1635,7 @@ class ScopedSession(base.ScopedSession):
         """
         # Make sure the underlying api connection is closed
         self._connection.close()
+
+
+def parse_time_and_correct_tz(time_str, tz):
+    return datetime.datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=tz)
