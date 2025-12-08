@@ -343,6 +343,7 @@ class ScopedSession(base.ScopedSession):
                 compute_limits.total_cores,
                 compute_limits.total_cores_used,
                 dto.QuotaType.COMPUTE,
+                related_resource_names=["VCPU", "PCPU"],
             ),
             dto.Quota(
                 "ram",
@@ -351,6 +352,7 @@ class ScopedSession(base.ScopedSession):
                 compute_limits.total_ram,
                 compute_limits.total_ram_used,
                 dto.QuotaType.COMPUTE,
+                related_resource_names=["MEMORY_MB"],
             ),
             dto.Quota(
                 "machines",
