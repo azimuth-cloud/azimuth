@@ -244,14 +244,15 @@ class TenancySerializer(make_dto_serializer(dto.Tenancy)):
                     "metrics": (
                         cloud_settings.METRICS.TENANT_METRICS_URL_TEMPLATE.format(
                             tenant_id=obj.id
-                        ),
+                        )
                     )
                 }
             )
         return result
 
 
-QuotaSerializer = make_dto_serializer(dto.Quota)
+class QuotaSerializer(make_dto_serializer(dto.Quota, exclude=["quota_type"])):
+    quota_type = serializers.ReadOnlyField(source="quota_type.name")
 
 
 class ImageRefSerializer(RefSerializer):

@@ -62,7 +62,7 @@ const ProjectedQuotaProgressBar = ({ quota }) => {
 
 
 const ProjectedQuotas = ({ quotas }) => {
-    const sortedQuotas = sortBy(
+    let sortedQuotas = sortBy(
         quotas,
         q => {
             // Use a tuple of (index, name) so we can support unknown quotas
@@ -70,6 +70,13 @@ const ProjectedQuotas = ({ quotas }) => {
             return [index >= 0 ? index : quotaOrdering.length, q.resource];
         }
     );
+
+    // These components don't seem to get optional fields from the UI
+    // to filter for Coral credits resources with so just showing known
+    // quotas for now until we have a way to calculate projections for Coral
+    // or otherwise unknown quotas
+    sortedQuotas = sortedQuotas.filter((q) => quotaOrdering.includes(q.resource));
+    
     return sortedQuotas.map(
         quota => <ProjectedQuotaProgressBar
             key={quota.resource}

@@ -4,6 +4,7 @@ This module contains the provider implementation for OpenStack.
 
 import base64
 import dataclasses
+import datetime
 import functools
 import hashlib
 import logging
@@ -14,7 +15,11 @@ import time
 import certifi
 import dateutil.parser
 import rackit
+import requests
 import yaml
+from django.utils.timezone import make_aware
+
+from azimuth.settings import cloud_settings
 
 from .. import base, dto, errors  # noqa: TID252
 from . import api
@@ -137,14 +142,18 @@ class Provider(base.Provider):
                                The current tenancy name can be templated in using the
                                fragment ``{tenant_name}``.
         create_internal_net: If ``True`` (the default), then the internal network is
-                             auto-createdwhen a tagged network or templated network
+                             auto-created when a tagged network or templated network
                              cannot be found.
+        allow_shared_internal_net: If ``True`` (the default is False), then networks
+                                   that are not owned by the project are searched for
+                                   the correct tag.
         manila_project_share_gb: If >0 (the default is 0), then manila project share is
                                  auto created with specified size.
         internal_net_cidr: The CIDR for the internal network when it is auto-created
                            (default ``192.168.3.0/24``).
         internal_net_dns_nameservers: The DNS nameservers for the internal network when
                                       it is auto-created (default ``None``).
+        supports_machines: If True (the default), then users can manipulate machines
     """
 
     provider_name = "openstack"
@@ -155,19 +164,23 @@ class Provider(base.Provider):
         internal_net_template=None,
         external_net_template=None,
         create_internal_net=True,
+        allow_shared_internal_net=False,
         manila_project_share_gb=0,
         internal_net_cidr="192.168.3.0/24",
         internal_net_dns_nameservers=None,
+        supports_machines=True,
     ):
         self._metadata_prefix = metadata_prefix
         self._internal_net_template = internal_net_template
         self._external_net_template = external_net_template
         self._create_internal_net = create_internal_net
+        self._allow_shared_internal_net = allow_shared_internal_net
         self._manila_project_share_gb = 0
         if manila_project_share_gb:
             self._manila_project_share_gb = int(manila_project_share_gb)
         self._internal_net_cidr = internal_net_cidr
         self._internal_net_dns_nameservers = internal_net_dns_nameservers
+        self._supports_machines = supports_machines
 
     def _from_auth_session(self, auth_session, auth_user):
         return UnscopedSession(
@@ -177,9 +190,11 @@ class Provider(base.Provider):
             self._internal_net_template,
             self._external_net_template,
             self._create_internal_net,
+            self._allow_shared_internal_net,
             self._manila_project_share_gb,
             self._internal_net_cidr,
             self._internal_net_dns_nameservers,
+            self._supports_machines,
         )
 
 
@@ -198,18 +213,22 @@ class UnscopedSession(base.UnscopedSession):
         internal_net_template=None,
         external_net_template=None,
         create_internal_net=True,
+        allow_shared_internal_net=False,
         manila_project_share_gb=0,
         internal_net_cidr="192.168.3.0/24",
         internal_net_dns_nameservers=None,
+        supports_machines=True,
     ):
         super().__init__(auth_session, auth_user)
         self._metadata_prefix = metadata_prefix
         self._internal_net_template = internal_net_template
         self._external_net_template = external_net_template
         self._create_internal_net = create_internal_net
+        self._allow_shared_internal_net = allow_shared_internal_net
         self._manila_project_share_gb = manila_project_share_gb
         self._internal_net_cidr = internal_net_cidr
         self._internal_net_dns_nameservers = internal_net_dns_nameservers
+        self._supports_machines = supports_machines
 
     @convert_exceptions
     def _scoped_session(self, auth_user, tenancy, credential_data):
@@ -221,9 +240,11 @@ class UnscopedSession(base.UnscopedSession):
             self._internal_net_template,
             self._external_net_template,
             self._create_internal_net,
+            self._allow_shared_internal_net,
             self._manila_project_share_gb,
             self._internal_net_cidr,
             self._internal_net_dns_nameservers,
+            self._supports_machines,
         )
 
 
@@ -243,9 +264,11 @@ class ScopedSession(base.ScopedSession):
         internal_net_template=None,
         external_net_template=None,
         create_internal_net=True,
+        allow_shared_internal_net=False,
         manila_project_share_gb=0,
         internal_net_cidr="192.168.3.0/24",
         internal_net_dns_nameservers=None,
+        supports_machines=True,
     ):
         super().__init__(auth_user, tenancy)
         self._connection = connection
@@ -253,9 +276,11 @@ class ScopedSession(base.ScopedSession):
         self._internal_net_template = internal_net_template
         self._external_net_template = external_net_template
         self._create_internal_net = create_internal_net
+        self._allow_shared_internal_net = allow_shared_internal_net
         self._manila_project_share_gb = manila_project_share_gb
         self._internal_net_cidr = internal_net_cidr
         self._internal_net_dns_nameservers = internal_net_dns_nameservers
+        self._supports_machines = supports_machines
 
         # TODO(johngarbutt): consider moving some of this to config
         # and/or hopefully having this feature on by default
@@ -281,13 +306,25 @@ class ScopedSession(base.ScopedSession):
         See :py:meth:`.base.ScopedSession.capabilities`.
         """
         # Check if the relevant services are available to the project
-        try:
-            _ = self._connection.block_store
-        except api.ServiceNotSupported:
-            supports_volumes = False
-        else:
+        self._log("Fetching tenancy capabilities ")
+
+        if self._supports_machines:
+            # If machines support is enabled, then volumes are supported
+            # unless the connection to the openstack block-store fails.
             supports_volumes = True
-        return dto.Capabilities(supports_volumes=supports_volumes)
+
+            try:
+                _ = self._connection.block_store
+            except api.ServiceNotSupported:
+                supports_volumes = False
+        else:
+            # If machine support is disabled, then volumes are too
+            supports_volumes = False
+
+        return dto.Capabilities(
+            supports_volumes=supports_volumes,
+            supports_machines=self._supports_machines,
+        )
 
     @convert_exceptions
     def quotas(self):
@@ -305,6 +342,8 @@ class ScopedSession(base.ScopedSession):
                 None,
                 compute_limits.total_cores,
                 compute_limits.total_cores_used,
+                dto.QuotaType.COMPUTE,
+                related_resource_names=["VCPU", "PCPU"],
             ),
             dto.Quota(
                 "ram",
@@ -312,6 +351,8 @@ class ScopedSession(base.ScopedSession):
                 "MB",
                 compute_limits.total_ram,
                 compute_limits.total_ram_used,
+                dto.QuotaType.COMPUTE,
+                related_resource_names=["MEMORY_MB"],
             ),
             dto.Quota(
                 "machines",
@@ -319,6 +360,7 @@ class ScopedSession(base.ScopedSession):
                 None,
                 compute_limits.instances,
                 compute_limits.instances_used,
+                dto.QuotaType.COMPUTE,
             ),
         ]
         # Get the floating ip quota
@@ -331,8 +373,15 @@ class ScopedSession(base.ScopedSession):
                 network_quotas.floatingip,
                 # Just get the length of the list of IPs
                 len(list(self._connection.network.floatingips.all())),
+                dto.QuotaType.NETWORK,
             )
         )
+        # Get coral credits if available
+        if not (
+            cloud_settings.CORAL_CREDITS.CORAL_URI is None
+            or cloud_settings.CORAL_CREDITS.TOKEN is None
+        ):
+            quotas.extend(self._get_coral_quotas())
         # The volume service is optional
         # In the case where the service is not enabled, just don't add the quotas
         try:
@@ -345,6 +394,7 @@ class ScopedSession(base.ScopedSession):
                         "GB",
                         volume_limits.total_volume_gigabytes,
                         volume_limits.total_gigabytes_used,
+                        dto.QuotaType.BLOCK_STORAGE,
                     ),
                     dto.Quota(
                         "volumes",
@@ -352,12 +402,127 @@ class ScopedSession(base.ScopedSession):
                         None,
                         volume_limits.volumes,
                         volume_limits.volumes_used,
+                        dto.QuotaType.BLOCK_STORAGE,
                     ),
                 ]
             )
         except api.ServiceNotSupported:
             pass
         return quotas
+
+    def _coral_quotas_from_allocation(self, allocation, headers):
+        quotas = []
+
+        human_readable_names = {
+            "MEMORY_MB": "RAM (MB)",
+            "DISK_GB": "Root disk (GB)",
+        }
+
+        # Add quota for time until allocation expiry
+        current_time = make_aware(datetime.datetime.now())
+        target_tz = current_time.tzinfo
+        start_time = parse_time_and_correct_tz(allocation["start"], target_tz)
+        end_time = parse_time_and_correct_tz(allocation["end"], target_tz)
+
+        allocated_duration = (end_time - start_time).total_seconds() / 3600
+        used_duration = (current_time - start_time).total_seconds() / 3600
+
+        quotas.append(
+            dto.Quota(
+                "expiry",
+                "Allocated time used (hours)",
+                "hours",
+                int(allocated_duration),
+                int(used_duration),
+                dto.QuotaType.CORAL_CREDITS,
+            )
+        )
+
+        # Add quotas for Coral resource quotas
+        active_allocation_id = allocation["id"]
+
+        allocation_resources = requests.get(
+            cloud_settings.CORAL_CREDITS.CORAL_URI
+            + "/allocation/"
+            + str(active_allocation_id)
+            + "/resources",
+            headers=headers,
+        ).json()
+
+        if len(allocation_resources) == 0:
+            self._log("Allocated resources found in allocation", level=logging.WARN)
+            return []
+
+        for resource in allocation_resources:
+            resource_name = resource["resource_class"]["name"]
+            quotas.append(
+                dto.Quota(
+                    resource_name,
+                    human_readable_names.get(resource_name, resource_name) + " hours",
+                    "resource hours",
+                    resource["allocated_resource_hours"],
+                    resource["allocated_resource_hours"] - resource["resource_hours"],
+                    dto.QuotaType.CORAL_CREDITS,
+                )
+            )
+        return quotas
+
+    def _get_coral_quotas(self):
+        headers = {"Authorization": "Bearer " + cloud_settings.CORAL_CREDITS.TOKEN}
+        accounts = requests.get(
+            cloud_settings.CORAL_CREDITS.CORAL_URI + "/resource_provider_account",
+            headers=headers,
+        ).json()
+
+        tenancy_account_list = list(
+            filter(
+                lambda a: a["project_id"].replace("-", "") == self._tenancy.id, accounts
+            )
+        )
+        if len(tenancy_account_list) != 1:
+            self._log(
+                (
+                    "There should be exactly one resource provider account associated "
+                    "with the tenancy, there are currently %s"
+                ),
+                len(tenancy_account_list),
+                level=logging.WARN,
+            )
+            return []
+        tenancy_account = tenancy_account_list[0]["account"]
+        all_allocations = requests.get(
+            cloud_settings.CORAL_CREDITS.CORAL_URI + "/allocation", headers=headers
+        ).json()
+        account_allocations = filter(
+            lambda a: a["account"] == tenancy_account, all_allocations
+        )
+
+        current_time = make_aware(datetime.datetime.now())
+        target_tz = current_time.tzinfo
+
+        active_allocation_list = list(
+            filter(
+                lambda a: parse_time_and_correct_tz(a["start"], target_tz)
+                < current_time
+                and current_time < parse_time_and_correct_tz(a["end"], target_tz),
+                account_allocations,
+            )
+        )
+
+        if len(active_allocation_list) == 1:
+            return self._coral_quotas_from_allocation(
+                active_allocation_list[0], headers
+            )
+        else:
+            self._log(
+                (
+                    "There should be exactly one active allocation associated "
+                    "with the tenancy, there are currently %s"
+                ),
+                len(active_allocation_list),
+                level=logging.WARN,
+            )
+            return []
 
     def _from_api_image(self, api_image):
         """
@@ -460,14 +625,32 @@ class ScopedSession(base.ScopedSession):
         # For the internal network this is what we want, but for all other types of
         # network (e.g. external, storage) we want to allow shared networks from other
         # projects to be selected - setting "project_id = None" allows this to happen
-        kwargs = {} if net_type == "internal" else {"project_id": None}
+        kwargs = (
+            {}
+            if net_type == "internal" and not self._allow_shared_internal_net
+            else {"project_id": None}
+        )
+
         networks = list(self._connection.network.networks.all(tags=tag, **kwargs))
+
         if len(networks) == 1:
-            self._log("Using tagged %s network '%s'", net_type, networks[0].name)
+            net_owner = (
+                "project"
+                if networks[0].project_id == self._connection.project_id
+                else "shared"
+            )
+
+            self._log(
+                "Using tagged %s %s network '%s'", net_owner, net_type, networks[0].name
+            )
             return networks[0]
         elif len(networks) > 1:
+            net_names = [network.name for network in networks]
             self._log(
-                "Found multiple networks with tag '%s'.", tag, level=logging.ERROR
+                "Found multiple networks with tag '%s': %s.",
+                tag,
+                ",".join(net_names),
+                level=logging.ERROR,
             )
             raise errors.InvalidOperationError(
                 f"Found multiple networks with tag '{tag}'."
@@ -485,16 +668,30 @@ class ScopedSession(base.ScopedSession):
         raised.
         """
         net_name = template.format(tenant_name=self._connection.project_name)
+
         # By default, networks.all() will only return networks that belong to the
         # project
         # For the internal network this is what we want, but for all other types of
         # network (e.g. external, storage) we want to allow shared networks from other
         # projects to be selected - setting "project_id = None" allows this to happen
-        kwargs = {} if net_type == "internal" else {"project_id": None}
+        kwargs = (
+            {}
+            if net_type == "internal" and not self._allow_shared_internal_net
+            else {"project_id": None}
+        )
         networks = list(self._connection.network.networks.all(name=net_name, **kwargs))
+
         if len(networks) == 1:
+            net_owner = (
+                "project"
+                if networks[0].project_id == self._connection.project_id
+                else "shared"
+            )
             self._log(
-                "Found %s network '%s' using template.", net_type, networks[0].name
+                "Found %s %s network '%s' using template.",
+                net_type,
+                net_owner,
+                networks[0].name,
             )
             return networks[0]
         elif len(networks) > 1:
@@ -1440,3 +1637,7 @@ class ScopedSession(base.ScopedSession):
         """
         # Make sure the underlying api connection is closed
         self._connection.close()
+
+
+def parse_time_and_correct_tz(time_str, tz):
+    return datetime.datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=tz)

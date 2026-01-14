@@ -169,6 +169,8 @@ settings:
   csrfCookieName:
   # The name of the session cookie
   sessionCookieName:
+  # The SameSite policy for the session cookie (e.g. Lax, Strict, None)
+  sessionCookieSameSite:
   # The name of the next URL cookie
   nextUrlCookieName:
   # List of curated sizes
@@ -182,6 +184,12 @@ settings:
     #   # and "ephemeral_disk" for the current flavor
     #   description: >-
     #     {{ cpus }} CPUs, {{ ram }} RAM, {{ disk }} disk, {{ ephemeral_disk }} ephemeral disk
+  coralCredits:
+    # uri:
+    # tokenSecretRef:
+    #   name:
+    #   namespace:
+    #   key:
 
 # Configuration for authentication
 authentication:
@@ -269,6 +277,8 @@ provider:
     externalNetTemplate:
     # Indicates whether tenant internal networks should be auto-created if not present
     createInternalNet: true
+    # Indicates whether networks shared into the project may be considered for internal network
+    allowSharedInternalNet: false
     # If larger than zero, project specific manila share should be auto-created
     manilaProjectShareGB: 0
     # The CIDR to use for auto-created tenant internal networks
@@ -277,6 +287,8 @@ provider:
     # The nameservers to use for auto-created tenant internal networks
     # Defaults to an empty list if not given.
     internalNetDNSNameservers:
+    # Indicates whether support for operations on OpenStack machines is enabled
+    supportsMachines: true
 
 # Settings for apps
 apps:
@@ -406,6 +418,8 @@ sshKeyStore:
 scheduling:
   # Indicates whether scheduling should be enabled
   enabled: false
+  # Maximum duration of platform in hours (int), unlimited if unset
+  maxPlatformDurationHours:
 
 # Settings for the Kubernetes apps provider
 appsProvider:

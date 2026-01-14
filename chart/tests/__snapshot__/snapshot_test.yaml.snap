@@ -158,7 +158,7 @@ templated manifests should match snapshot:
       template:
         metadata:
           annotations:
-            azimuth.stackhpc.com/settings-checksum: bc5895d098cbdf0ac8bdeb4bb6aa789ae8f37366cbd33a7d56979e08e7680f6c
+            azimuth.stackhpc.com/settings-checksum: ba9764bba470b2cacf65a4646a795dd5a62707a4879baac5749a8884af5dc0cd
             azimuth.stackhpc.com/theme-checksum: ec0f36322392deee39d80b7f77ecd634df60358857af9dc208077860c4e174ab
             kubectl.kubernetes.io/default-container: api
           labels:
@@ -256,7 +256,7 @@ templated manifests should match snapshot:
       03-authentication.yaml: |
         IyBOZXctc3R5bGUgYXV0aGVudGljYXRpb24gY29uZmlndXJhdGlvbgojIEF1dGhlbnRpY2F0aW9uIGlzIGRlZmluZWQgYnkgY2xvdWQgdHlwZSBhbmQgcmV1c2VkIGJ5IGNvbXBvbmVudHMgYXMgbmVlZGVkCkFaSU1VVEhfQVVUSDoKICBBVVRIX1RZUEU6IG9wZW5zdGFjawogIE9QRU5TVEFDSzoKICAgIEFVVEhfVVJMOiAiaHR0cHM6Ly9leGFtcGxlLmNvbSIKICAgIElOVEVSRkFDRTogInB1YmxpYyIKICAgIFZFUklGWV9TU0w6IHRydWUKICAgIEFQUENSRURfSElEREVOOiB0cnVlCiAgICBQQVNTV09SRF9FTkFCTEVEOiB0cnVlCiAgICBQQVNTV09SRF9ET01BSU5TOgogICAgICAtIG5hbWU6ICJkZWZhdWx0IgogICAgICAgIGxhYmVsOiAiVXNlcm5hbWUgKyBQYXNzd29yZCIK
       04-cloud-provider.yaml: |
-        QVpJTVVUSDoKICBQUk9WSURFUjoKICAgIEZBQ1RPUlk6IGF6aW11dGgucHJvdmlkZXIub3BlbnN0YWNrLlByb3ZpZGVyCiAgICBQQVJBTVM6CiAgICAgIENSRUFURV9JTlRFUk5BTF9ORVQ6IHRydWUKICAgICAgTUFOSUxBX1BST0pFQ1RfU0hBUkVfR0I6IDAK
+        QVpJTVVUSDoKICBQUk9WSURFUjoKICAgIEZBQ1RPUlk6IGF6aW11dGgucHJvdmlkZXIub3BlbnN0YWNrLlByb3ZpZGVyCiAgICBQQVJBTVM6CiAgICAgIENSRUFURV9JTlRFUk5BTF9ORVQ6IHRydWUKICAgICAgQUxMT1dfU0hBUkVEX0lOVEVSTkFMX05FVDogZmFsc2UKICAgICAgTUFOSUxBX1BST0pFQ1RfU0hBUkVfR0I6IDAKICAgICAgU1VQUE9SVFNfTUFDSElORVM6IHRydWUK
       05-apps.yaml: |
         Cg==
       06-ssh-key-store.yaml: |
@@ -272,6 +272,8 @@ templated manifests should match snapshot:
       11-scheduling.yaml: |
         QVpJTVVUSDoKICBTQ0hFRFVMSU5HOgogICAgRU5BQkxFRDogZmFsc2UK
       12-apps-provider.yaml: |
+        Cg==
+      13-coral-credits.yaml: |
         Cg==
     kind: Secret
     metadata:

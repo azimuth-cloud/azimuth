@@ -4,7 +4,7 @@ This module defines data-transfer objects used by providers.
 
 import enum
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 
 
@@ -16,6 +16,15 @@ class Capabilities:
 
     #: Indicates if the cloud supports volumes
     supports_volumes: bool = False
+
+    #: Indicates if machines are enabled for the cloud
+    supports_machines: bool = True
+
+    #: Indicates if kubernetes is enabled for the cloud
+    supports_kubernetes: bool = True
+
+    #: Indicates if kubernetes apps are enabled for the cloud
+    supports_apps: bool = True
 
 
 @dataclass(frozen=True)
@@ -42,6 +51,17 @@ class Credential:
     data: dict
 
 
+class QuotaType(enum.Enum):
+    """
+    Enum representing the possible quota types.
+    """
+
+    COMPUTE = "COMPUTE"
+    BLOCK_STORAGE = "BLOCK_STORAGE"
+    CORAL_CREDITS = "CORAL_CREDITS"
+    NETWORK = "NETWORK"
+
+
 @dataclass(frozen=True)
 class Quota:
     """
@@ -58,6 +78,11 @@ class Quota:
     allocated: int
     #: The amount of the resource that has been used
     used: int
+    #: Category of quota for filtering in UI
+    quota_type: QuotaType
+    #: Openstack resource classes associated with the Coral credits quota which
+    #: this quota is also controlled by
+    related_resource_names: list = field(default_factory=list)
 
 
 @dataclass(frozen=True)

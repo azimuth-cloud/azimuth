@@ -16,7 +16,7 @@ import { sortBy, usePageTitle, formatSize } from '../../utils';
 import { ResourcePanel } from './resource-utils';
 
 
-const QuotaProgress = ({ quota: { label, units, allocated, used } }) => {
+const QuotaProgress = ({ quota: { label, units, allocated, used, quota_type }, addPrefix }) => {
     const percent = allocated > 0 ? (used * 100) / allocated : 0;
     const formatAmount = amount => (
         ["MB", "GB"].includes(units) ?
@@ -29,10 +29,17 @@ const QuotaProgress = ({ quota: { label, units, allocated, used } }) => {
             `${formatAmount(used)} used`
     );
     const colour = (percent <= 60 ? '#5cb85c' : (percent <= 80 ? '#f0ad4e' : '#d9534f'));
+    
+    let labelPrefix = ""
+    if(addPrefix){
+        labelPrefix = quota_type == "CORAL_CREDITS" ? "Credits: " : "Quota: ";
+    }
+
+    const displayLabel = labelPrefix + label
     return (
         <Col className="quota-card-wrapper">
             <Card className="h-100">
-                <Card.Header><strong>{label}</strong></Card.Header>
+                <Card.Header><strong>{displayLabel}</strong></Card.Header>
                 <Card.Body>
                     <CircularProgressbar
                         className={allocated < 0 ? "quota-no-limit" : undefined}
@@ -56,7 +63,7 @@ const quotaOrdering = ["machines", "volumes", "external_ips", "cpus", "ram", "st
 
 
 const Quotas = ({ resourceData }) => {
-    const sortedQuotas = sortBy(
+    let sortedQuotas = sortBy(
         Object.values(resourceData),
         q => {
             // Use a tuple of (index, name) so we can support unknown quotas
@@ -64,11 +71,21 @@ const Quotas = ({ resourceData }) => {
             return [index >= 0 ? index : quotaOrdering.length, q.resource];
         }
     );
+
+    const containsCoralQuotas = sortedQuotas.some(q => q.quota_type == "CORAL_CREDITS")
+    
+    // If quota is unlimited but has an associated Coral quota, hide it
+    const resourceNames = sortedQuotas.map((q) => q.resource)
+    sortedQuotas = sortedQuotas.filter((q) =>
+        !(q.related_resource_names.some(r => resourceNames.includes(r))
+          && q.allocated < 0)
+    )
+
     return (
         // The volume service is optional, so quotas might not always be available for it
         <Row className="g-3 justify-content-center">
             {sortedQuotas.map(quota => (
-                <QuotaProgress key={quota.resource} quota={quota} />)
+                <QuotaProgress key={quota.resource} quota={quota} addPrefix={containsCoralQuotas}/>)
             )}
         </Row>
     );
