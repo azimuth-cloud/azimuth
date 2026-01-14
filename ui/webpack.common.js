@@ -45,6 +45,7 @@ module.exports = {
         // Required for sshpk
         new webpack.ProvidePlugin({
             Buffer: ['buffer', 'Buffer'],
+	    process: 'process/browser',
         }),
         new HtmlWebpackPlugin({
             title: 'Cloud Portal',
