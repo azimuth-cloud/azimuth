@@ -64,7 +64,8 @@
     "reselect": "^5.1.1",
     "rxjs": "7.8.2",
     "sprintf-js": "^1.1.3",
-    "sshpk": "^1.18.0"
+    "sshpk": "^1.18.0",
+    "vm-browserify": "^1.1.2"
   },
   "main": "./src/main.js"
 }
