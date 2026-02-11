@@ -383,8 +383,6 @@ class Session:
         if "autohealing_enabled" in options:
             spec["autohealing"] = options["autohealing_enabled"]
         addons = spec.setdefault("addons", {})
-        if "dashboard_enabled" in options:
-            addons["dashboard"] = options["dashboard_enabled"]
         if "ingress_enabled" in options:
             addons["ingress"] = options["ingress_enabled"]
         if "ingress_controller_load_balancer_ip" in options:
@@ -410,7 +408,6 @@ class Session:
         node_groups: list[NodeGroupSpec],
         resources: scheduling_dto.PlatformResources,
         autohealing_enabled: bool = True,
-        dashboard_enabled: bool = False,
         ingress_enabled: bool = False,
         ingress_controller_load_balancer_ip: str | None = None,
         monitoring_enabled: bool = False,
@@ -459,7 +456,6 @@ class Session:
             control_plane_size=control_plane_size,
             node_groups=node_groups,
             autohealing_enabled=autohealing_enabled,
-            dashboard_enabled=dashboard_enabled,
             ingress_enabled=ingress_enabled,
             ingress_controller_load_balancer_ip=ingress_controller_load_balancer_ip,
             monitoring_enabled=monitoring_enabled,
