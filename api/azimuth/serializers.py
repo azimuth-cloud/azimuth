@@ -824,66 +824,6 @@ class NodeGroupSpecSerializer(serializers.Serializer):
 
 class KubernetesClusterValidationMixin:
     def validate(self, data):
-        # If ingress is being enabled, an IP must be specified and that IP must be free
-        if (
-            # Ingress is being enabled by the change
-            data.get("ingress_enabled", False)
-            and
-            # Ingress is not currently enabled
-            not getattr(self.instance, "ingress_enabled", False)
-        ):
-            ip_address = data.get("ingress_controller_load_balancer_ip")
-            # No ingress controller IP is given
-            if not ip_address:
-                raise serializers.ValidationError(
-                    {
-                        "ingress_controller_load_balancer_ip": (
-                            "Required when ingress is enabled."
-                        ),
-                    }
-                )
-            # The given IP is not free
-            session = self.context["session"]
-            try:
-                ip = session.find_external_ip_by_ip_address(ip_address)
-            except errors.ObjectNotFoundError as exc:
-                raise serializers.ValidationError(
-                    {
-                        "ingress_controller_load_balancer_ip": str(exc),
-                    }
-                )
-            else:
-                if not ip.available:
-                    raise serializers.ValidationError(
-                        {
-                            "ingress_controller_load_balancer_ip": (
-                                f"{ip_address} is already associated with "
-                                "another platform or machine."
-                            )
-                        }
-                    )
-
-        # OCCM does not respect changes to the ingress loadbalancer IP, so disallow it
-        if (
-            # Ingress is currently enabled
-            getattr(self.instance, "ingress_enabled", False)
-            and
-            # Ingress will still be enabled after the changes
-            data.get("ingress_enabled", True)
-            and
-            # The ingress IP is being changed
-            "ingress_controller_load_balancer_ip" in data
-            and data["ingress_controller_load_balancer_ip"]
-            != self.instance.ingress_controller_load_balancer_ip
-        ):
-            raise serializers.ValidationError(
-                {
-                    "ingress_controller_load_balancer_ip": (
-                        "Changing the IP address of the load balancer is not supported."
-                    ),
-                }
-            )
-
         # The size of the metrics volume is not permitted to decrease
         if (
             # The metrics volume size is present and needs validating
@@ -963,10 +903,6 @@ class CreateKubernetesClusterSerializer(
     node_groups = NodeGroupSpecSerializer(many=True)
     autohealing_enabled = serializers.BooleanField(default=True)
     dashboard_enabled = serializers.BooleanField(default=False)
-    ingress_enabled = serializers.BooleanField(default=False)
-    ingress_controller_load_balancer_ip = serializers.IPAddressField(
-        protocol="IPv4", allow_null=True, default=None
-    )
     monitoring_enabled = serializers.BooleanField(default=False)
     monitoring_metrics_volume_size = serializers.IntegerField(min_value=1, default=10)
     monitoring_logs_volume_size = serializers.IntegerField(min_value=1, default=10)
@@ -989,10 +925,6 @@ class UpdateKubernetesClusterSerializer(
     node_groups = NodeGroupSpecSerializer(many=True, required=False)
     autohealing_enabled = serializers.BooleanField(required=False)
     dashboard_enabled = serializers.BooleanField(required=False)
-    ingress_enabled = serializers.BooleanField(required=False)
-    ingress_controller_load_balancer_ip = serializers.IPAddressField(
-        protocol="IPv4", allow_null=True, required=False
-    )
     monitoring_enabled = serializers.BooleanField(required=False)
     monitoring_metrics_volume_size = serializers.IntegerField(
         required=False, min_value=1

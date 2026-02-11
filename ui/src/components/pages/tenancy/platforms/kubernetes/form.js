@@ -239,8 +239,6 @@ const initialState = kubernetesCluster => {
             })),
             autohealing_enabled: kubernetesCluster.autohealing_enabled,
             dashboard_enabled: kubernetesCluster.dashboard_enabled,
-            ingress_enabled: kubernetesCluster.ingress_enabled,
-            ingress_controller_load_balancer_ip: kubernetesCluster.ingress_controller_load_balancer_ip,
             monitoring_enabled: kubernetesCluster.monitoring_enabled,
             monitoring_metrics_volume_size: kubernetesCluster.monitoring_metrics_volume_size,
             monitoring_logs_volume_size: kubernetesCluster.monitoring_logs_volume_size
@@ -255,8 +253,6 @@ const initialState = kubernetesCluster => {
             node_groups: [],
             autohealing_enabled: true,
             dashboard_enabled: true,
-            ingress_enabled: false,
-            ingress_controller_load_balancer_ip: null,
             monitoring_enabled: true,
             monitoring_metrics_volume_size: 10,
             monitoring_logs_volume_size: 10
@@ -398,27 +394,6 @@ export const KubernetesClusterForm = ({
     const setStateKey = key => value => formState.setData(state => ({ ...state, [key]: value }));
     const setStateKeyFromInputEvent = key => evt => setStateKey(key)(evt.target.value);
     const setStateFromCheckboxEvent = key => evt => setStateKey(key)(evt.target.checked);
-    const setIngressEnabled = evt => formState.setData(state => {
-        if( evt.target.checked ) {
-            return {
-                ...state,
-                ingress_enabled: true,
-                // When ingress moves to enabled, restore the previous IP if there is one
-                ingress_controller_load_balancer_ip: (
-                    formState.kubernetesCluster?.ingress_controller_load_balancer_ip ||
-                    null
-                )
-            };
-        }
-        else {
-            return {
-                ...state,
-                ingress_enabled: false,
-                // When ingress is disabled, make sure the IP is set to null
-                ingress_controller_load_balancer_ip: null
-            };
-        }
-    });
 
     const cancelNodeGroupEdit = () => formState.setNodeGroupEditIdx(-1);
     const handleNodeGroupEdit = ngState => {
@@ -637,54 +612,6 @@ export const KubernetesClusterForm = ({
                                 label="Enable auto-healing?"
                                 checked={getStateKey('autohealing_enabled')}
                                 onChange={setStateFromCheckboxEvent('autohealing_enabled')}
-                            />
-                        </Field>
-                        <Field
-                            name="ingress_enabled"
-                            helpText={
-                                <>
-                                    Allows the use of{" "}
-                                    <a
-                                        href="https://kubernetes.io/docs/concepts/services-networking/ingress/"
-                                        target="_blank"
-                                    >
-                                        Kubernetes Ingress
-                                    </a>{" "}
-                                    to expose services in the cluster via a load balancer.
-                                </>
-                            }
-                        >
-                            <BSForm.Check
-                                label="Enable Kubernetes Ingress?"
-                                checked={getStateKey('ingress_enabled')}
-                                onChange={setIngressEnabled}
-                            />
-                        </Field>
-                        <Field
-                            name="ingress_controller_load_balancer_ip"
-                            label="Ingress controller external IP"
-                            helpText={
-                                <>
-                                    The IP address that will be associated with the ingress controller.
-                                    <br />
-                                    Each <code>Ingress</code> resource created in your Kubernetes cluster{" "}
-                                    must have a DNS record pointing to this IP address.{" "}
-                                    This will <strong>not</strong> happen automatically.
-                                </>
-                            }
-                        >
-                            <ExternalIpSelectControl
-                                resource={externalIps}
-                                resourceActions={externalIpActions}
-                                required={getStateKey('ingress_enabled')}
-                                disabled={
-                                    !getStateKey('ingress_enabled') ||
-                                    formState.kubernetesCluster?.ingress_enabled
-                                }
-                                value={getStateKey('ingress_controller_load_balancer_ip')}
-                                onChange={setStateKey('ingress_controller_load_balancer_ip')}
-                                // Use the IP address itself as the value
-                                getOptionValue={ip => ip.external_ip}
                             />
                         </Field>
                         <Field

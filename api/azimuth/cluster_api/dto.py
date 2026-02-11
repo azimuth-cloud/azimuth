@@ -126,10 +126,6 @@ class Cluster:
     autohealing_enabled: bool
     #: Indicates if the Kubernetes dashboard is enabled
     dashboard_enabled: bool
-    #: Indicates if ingress is enabled
-    ingress_enabled: bool
-    #: The IP address of the ingress controller load balancer
-    ingress_controller_load_balancer_ip: str | None
     #: Indicates if monitoring is enabled
     monitoring_enabled: bool
     #: The size of the volume to use for metrics data
