@@ -273,7 +273,6 @@ class Session:
                 for ng in cluster.spec.get("nodeGroups", [])
             ],
             cluster.spec["autohealing"],
-            cluster_addons.get("dashboard", False),
             cluster_addons.get("ingress", False),
             cluster_addons.get("ingressControllerLoadBalancerIp"),
             cluster_addons.get("monitoring", False),
