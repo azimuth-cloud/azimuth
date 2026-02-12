@@ -238,7 +238,6 @@ const initialState = kubernetesCluster => {
                 max_count: ng.max_count
             })),
             autohealing_enabled: kubernetesCluster.autohealing_enabled,
-            dashboard_enabled: kubernetesCluster.dashboard_enabled,
             ingress_enabled: kubernetesCluster.ingress_enabled,
             ingress_controller_load_balancer_ip: kubernetesCluster.ingress_controller_load_balancer_ip,
             monitoring_enabled: kubernetesCluster.monitoring_enabled,
@@ -254,7 +253,6 @@ const initialState = kubernetesCluster => {
             control_plane_size: '',
             node_groups: [],
             autohealing_enabled: true,
-            dashboard_enabled: true,
             ingress_enabled: false,
             ingress_controller_load_balancer_ip: null,
             monitoring_enabled: true,
@@ -601,16 +599,6 @@ export const KubernetesClusterForm = ({
                     className="mb-3"
                 >
                     <Card.Body className="pb-0">
-                        <Field
-                            name="dashboard_enabled"
-                            helpText="Allows you to view and manage resources in your cluster using a web browser."
-                        >
-                            <BSForm.Check
-                                label="Enable Kubernetes Dashboard?"
-                                checked={getStateKey('dashboard_enabled')}
-                                onChange={setStateFromCheckboxEvent('dashboard_enabled')}
-                            />
-                        </Field>
                         <Field
                             name="monitoring_enabled"
                             helpText="Enables collection of cluster metrics and web-based dashboards for visualisation."

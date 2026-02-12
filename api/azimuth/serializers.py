@@ -962,7 +962,6 @@ class CreateKubernetesClusterSerializer(
     control_plane_size = serializers.RegexField(ID_REGEX)
     node_groups = NodeGroupSpecSerializer(many=True)
     autohealing_enabled = serializers.BooleanField(default=True)
-    dashboard_enabled = serializers.BooleanField(default=False)
     ingress_enabled = serializers.BooleanField(default=False)
     ingress_controller_load_balancer_ip = serializers.IPAddressField(
         protocol="IPv4", allow_null=True, default=None
@@ -988,7 +987,6 @@ class UpdateKubernetesClusterSerializer(
     control_plane_size = serializers.RegexField(ID_REGEX, required=False)
     node_groups = NodeGroupSpecSerializer(many=True, required=False)
     autohealing_enabled = serializers.BooleanField(required=False)
-    dashboard_enabled = serializers.BooleanField(required=False)
     ingress_enabled = serializers.BooleanField(required=False)
     ingress_controller_load_balancer_ip = serializers.IPAddressField(
         protocol="IPv4", allow_null=True, required=False
