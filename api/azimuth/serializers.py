@@ -824,13 +824,13 @@ class NodeGroupSpecSerializer(serializers.Serializer):
 
 class KubernetesClusterValidationMixin:
     def validate(self, data):
-        # Only allow ingress to be turned off
+        # Stop ingress being turned on, only allow it to be turned off
         if (
             # Ingress is being enabled by the change
             data.get("ingress_enabled", False)
             and
-            # Ingress is currently enabled
-            getattr(self.instance, "ingress_enabled", False)
+            # Ingress is not currently enabled
+            not getattr(self.instance, "ingress_enabled", False)
         ):
             raise serializers.ValidationError(
                 {
@@ -839,44 +839,6 @@ class KubernetesClusterValidationMixin:
                     ),
                 }
             )
-        # If ingress is being enabled, an IP must be specified and that IP must be free
-        if (
-            # Ingress is being enabled by the change
-            data.get("ingress_enabled", False)
-            and
-            # Ingress is not currently enabled
-            not getattr(self.instance, "ingress_enabled", False)
-        ):
-            ip_address = data.get("ingress_controller_load_balancer_ip")
-            # No ingress controller IP is given
-            if not ip_address:
-                raise serializers.ValidationError(
-                    {
-                        "ingress_controller_load_balancer_ip": (
-                            "Required when ingress is enabled."
-                        ),
-                    }
-                )
-            # The given IP is not free
-            session = self.context["session"]
-            try:
-                ip = session.find_external_ip_by_ip_address(ip_address)
-            except errors.ObjectNotFoundError as exc:
-                raise serializers.ValidationError(
-                    {
-                        "ingress_controller_load_balancer_ip": str(exc),
-                    }
-                )
-            else:
-                if not ip.available:
-                    raise serializers.ValidationError(
-                        {
-                            "ingress_controller_load_balancer_ip": (
-                                f"{ip_address} is already associated with "
-                                "another platform or machine."
-                            )
-                        }
-                    )
 
         # OCCM does not respect changes to the ingress loadbalancer IP, so disallow it
         if (
