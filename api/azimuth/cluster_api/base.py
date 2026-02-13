@@ -274,6 +274,8 @@ class Session:
             ],
             cluster.spec["autohealing"],
             cluster_addons.get("dashboard", False),
+            cluster_addons.get("ingress", False),
+            cluster_addons.get("ingressControllerLoadBalancerIp"),
             cluster_addons.get("monitoring", False),
             cluster_addons.get("monitoringPrometheusVolumeSize", 10),
             cluster_addons.get("monitoringLokiVolumeSize", 10),
@@ -383,6 +385,12 @@ class Session:
         addons = spec.setdefault("addons", {})
         if "dashboard_enabled" in options:
             addons["dashboard"] = options["dashboard_enabled"]
+        if "ingress_enabled" in options:
+            addons["ingress"] = options["ingress_enabled"]
+        if "ingress_controller_load_balancer_ip" in options:
+            addons["ingressControllerLoadBalancerIp"] = options[
+                "ingress_controller_load_balancer_ip"
+            ]
         if "monitoring_enabled" in options:
             addons["monitoring"] = options["monitoring_enabled"]
         if "monitoring_metrics_volume_size" in options:
@@ -403,6 +411,8 @@ class Session:
         resources: scheduling_dto.PlatformResources,
         autohealing_enabled: bool = True,
         dashboard_enabled: bool = False,
+        ingress_enabled: bool = False,
+        ingress_controller_load_balancer_ip: str | None = None,
         monitoring_enabled: bool = False,
         monitoring_metrics_volume_size: int | None = None,
         monitoring_logs_volume_size: int | None = None,
@@ -450,6 +460,8 @@ class Session:
             node_groups=node_groups,
             autohealing_enabled=autohealing_enabled,
             dashboard_enabled=dashboard_enabled,
+            ingress_enabled=ingress_enabled,
+            ingress_controller_load_balancer_ip=ingress_controller_load_balancer_ip,
             monitoring_enabled=monitoring_enabled,
         )
         if monitoring_metrics_volume_size is not None:
