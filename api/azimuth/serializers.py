@@ -824,6 +824,21 @@ class NodeGroupSpecSerializer(serializers.Serializer):
 
 class KubernetesClusterValidationMixin:
     def validate(self, data):
+        # Only allow ingress to be turned off
+        if (
+            # Ingress is being enabled by the change
+            data.get("ingress_enabled", False)
+            and
+            # Ingress is currently enabled
+            getattr(self.instance, "ingress_enabled", False)
+        ):
+            raise serializers.ValidationError(
+                {
+                    "ingress_enabled": (
+                        "Ingress is deprecated. It cannot be added to new clusters."
+                    ),
+                }
+            )
         # If ingress is being enabled, an IP must be specified and that IP must be free
         if (
             # Ingress is being enabled by the change
