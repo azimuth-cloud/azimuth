@@ -658,6 +658,9 @@ export const KubernetesClusterForm = ({
                                 label="Enable Kubernetes Ingress?"
                                 checked={getStateKey('ingress_enabled')}
                                 onChange={setIngressEnabled}
+                                // we only want to allow people to turn off ingress
+                                // no new clusters should be allowed to add ingress
+                                disabled={!getStateKey('ingress_enabled')}
                             />
                         </Field>
                         <Field
