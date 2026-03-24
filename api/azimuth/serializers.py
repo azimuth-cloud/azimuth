@@ -824,7 +824,7 @@ class NodeGroupSpecSerializer(serializers.Serializer):
 
 class KubernetesClusterValidationMixin:
     def validate(self, data):
-        # If ingress is being enabled, an IP must be specified and that IP must be free
+        # Stop ingress being turned on, only allow it to be turned off
         if (
             # Ingress is being enabled by the change
             data.get("ingress_enabled", False)
@@ -832,36 +832,13 @@ class KubernetesClusterValidationMixin:
             # Ingress is not currently enabled
             not getattr(self.instance, "ingress_enabled", False)
         ):
-            ip_address = data.get("ingress_controller_load_balancer_ip")
-            # No ingress controller IP is given
-            if not ip_address:
-                raise serializers.ValidationError(
-                    {
-                        "ingress_controller_load_balancer_ip": (
-                            "Required when ingress is enabled."
-                        ),
-                    }
-                )
-            # The given IP is not free
-            session = self.context["session"]
-            try:
-                ip = session.find_external_ip_by_ip_address(ip_address)
-            except errors.ObjectNotFoundError as exc:
-                raise serializers.ValidationError(
-                    {
-                        "ingress_controller_load_balancer_ip": str(exc),
-                    }
-                )
-            else:
-                if not ip.available:
-                    raise serializers.ValidationError(
-                        {
-                            "ingress_controller_load_balancer_ip": (
-                                f"{ip_address} is already associated with "
-                                "another platform or machine."
-                            )
-                        }
-                    )
+            raise serializers.ValidationError(
+                {
+                    "ingress_enabled": (
+                        "Ingress is deprecated. It cannot be added to new clusters."
+                    ),
+                }
+            )
 
         # OCCM does not respect changes to the ingress loadbalancer IP, so disallow it
         if (
@@ -962,7 +939,6 @@ class CreateKubernetesClusterSerializer(
     control_plane_size = serializers.RegexField(ID_REGEX)
     node_groups = NodeGroupSpecSerializer(many=True)
     autohealing_enabled = serializers.BooleanField(default=True)
-    dashboard_enabled = serializers.BooleanField(default=False)
     ingress_enabled = serializers.BooleanField(default=False)
     ingress_controller_load_balancer_ip = serializers.IPAddressField(
         protocol="IPv4", allow_null=True, default=None
@@ -988,7 +964,6 @@ class UpdateKubernetesClusterSerializer(
     control_plane_size = serializers.RegexField(ID_REGEX, required=False)
     node_groups = NodeGroupSpecSerializer(many=True, required=False)
     autohealing_enabled = serializers.BooleanField(required=False)
-    dashboard_enabled = serializers.BooleanField(required=False)
     ingress_enabled = serializers.BooleanField(required=False)
     ingress_controller_load_balancer_ip = serializers.IPAddressField(
         protocol="IPv4", allow_null=True, required=False
