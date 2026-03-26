@@ -34,7 +34,7 @@ pytz==2026.1.post1
 PyYAML==6.0.3
 rackit @ git+https://github.com/stackhpc/rackit.git@cb2da480f9fc99f36cc777d58dfbccec33434879
 referencing==0.37.0
-requests==2.32.5
+requests==2.33.0
 rfc3986==2.0.0
 rpds-py==0.30.0
 six==1.17.0
