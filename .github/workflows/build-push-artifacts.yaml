@@ -40,12 +40,12 @@ jobs:
       security-events: write  # required for pushing SARIF files
     steps:
       - name: Check out the repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ inputs.ref || github.ref }}
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 #v4.0.0
+        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -53,11 +53,11 @@ jobs:
 
       - name: Get SemVer version for current commit
         id: semver
-        uses: azimuth-cloud/github-actions/semver@ece168c7442cf319ce3bfea0301db3e67a438ded #
+        uses: azimuth-cloud/github-actions/semver@master
 
       - name: Calculate metadata for image
         id: image-meta
-        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf #v6.0.0
+        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6.0.0
         with:
           images: ghcr.io/azimuth-cloud/azimuth-${{ matrix.component }}
           # Produce the branch name or tag and the SHA as tags
@@ -67,7 +67,7 @@ jobs:
             type=raw,value=${{ steps.semver.outputs.short-sha }}
 
       - name: Build and push image
-        uses: azimuth-cloud/github-actions/docker-multiarch-build-push@ece168c7442cf319ce3bfea0301db3e67a438ded #
+        uses: azimuth-cloud/github-actions/docker-multiarch-build-push@master
         with:
           cache-key: ${{ matrix.component }}
           context: ./${{ matrix.component }}
@@ -86,7 +86,7 @@ jobs:
       chart-version: ${{ steps.semver.outputs.version }}
     steps:
       - name: Check out the repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ inputs.ref || github.ref }}
           # This is important for the semver action to work correctly
@@ -95,10 +95,10 @@ jobs:
 
       - name: Get SemVer version for current commit
         id: semver
-        uses: azimuth-cloud/github-actions/semver@ece168c7442cf319ce3bfea0301db3e67a438ded #
+        uses: azimuth-cloud/github-actions/semver@master
 
       - name: Publish Helm charts
-        uses: azimuth-cloud/github-actions/helm-publish@ece168c7442cf319ce3bfea0301db3e67a438ded #
+        uses: azimuth-cloud/github-actions/helm-publish@master
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           version: ${{ steps.semver.outputs.version }}
