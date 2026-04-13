@@ -27,6 +27,9 @@ jobs:
             repository: prometheus/statsd_exporter
             version_jsonpath: api.monitoring.statsd.image.tag
             component: api
+    permissions:
+      contents: write
+      pull-requests: write
 
     name: ${{ matrix.key }}
     steps:
