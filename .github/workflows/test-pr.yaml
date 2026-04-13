@@ -43,6 +43,11 @@ jobs:
     with:
       ref: ${{ github.event.pull_request.head.sha }}
     secrets: inherit
+    permissions:
+      contents: read
+      id-token: write         # needed for signing the images with GitHub OIDC Token
+      packages: write         # required for pushing container images
+      security-events: write  # required for pushing SARIF files
 
   run_azimuth_tests:
     needs: [publish_artifacts]
