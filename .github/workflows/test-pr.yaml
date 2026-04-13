@@ -44,7 +44,7 @@ jobs:
       ref: ${{ github.event.pull_request.head.sha }}
     secrets: inherit
     permissions:
-      contents: read
+      contents: write
       id-token: write         # needed for signing the images with GitHub OIDC Token
       packages: write         # required for pushing container images
       security-events: write  # required for pushing SARIF files
