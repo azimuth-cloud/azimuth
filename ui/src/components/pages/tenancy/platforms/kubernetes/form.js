@@ -229,6 +229,7 @@ const initialState = kubernetesCluster => {
             name: kubernetesCluster.name,
             template: kubernetesCluster.template.id,
             control_plane_size: kubernetesCluster.control_plane_size ? kubernetesCluster.control_plane_size.id : "",
+            control_plane_count: kubernetesCluster.control_plane_count || 3,
             node_groups: kubernetesCluster.node_groups.map(ng => ({
                 name: ng.name,
                 machine_size: ng.machine_size ? ng.machine_size.id : "",
@@ -251,6 +252,7 @@ const initialState = kubernetesCluster => {
             name: '',
             template: '',
             control_plane_size: '',
+            control_plane_count: 3,
             node_groups: [],
             autohealing_enabled: true,
             ingress_enabled: false,
@@ -505,6 +507,30 @@ export const KubernetesClusterForm = ({
                         value={getStateKey('control_plane_size')}
                         onChange={setStateKey('control_plane_size')}
                     />
+                </Field>
+                <Field
+                    name="control_plane_count"
+                    label="Control plane count"
+                    helpText="Number of control plane nodes. Use 3 for high availability (recommended for production)."
+                >
+                    <div>
+                        <BSForm.Check
+                            inline
+                            type="radio"
+                            id="control_plane_count_1"
+                            label="1 (single node)"
+                            checked={getStateKey('control_plane_count') === 1}
+                            onChange={() => setStateKey('control_plane_count')(1)}
+                        />
+                        <BSForm.Check
+                            inline
+                            type="radio"
+                            id="control_plane_count_3"
+                            label="3 (HA)"
+                            checked={getStateKey('control_plane_count') === 3}
+                            onChange={() => setStateKey('control_plane_count')(3)}
+                        />
+                    </div>
                 </Field>
                 <Card className="mb-3">
                     <Card.Header>Node groups</Card.Header>
