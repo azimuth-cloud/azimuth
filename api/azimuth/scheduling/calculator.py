@@ -85,7 +85,7 @@ class KubernetesClusterCalculator:
         Calculates the resources required to make the specified Kubernetes cluster.
         """
         resources = dto.PlatformResources()
-        # Use the user-selected count if given, otherwise fall back to the template value
+        # Use the user-selected count, otherwise fall back to the template value
         cp_count = control_plane_count if control_plane_count is not None else template.control_plane_count
         # First, deal with the control plane
         resources.add_machines(cp_count, control_plane_size)
