@@ -1,7 +1,7 @@
 anyio==4.13.0
 asgiref==3.11.1
 attrs==26.1.0
-certifi==2026.2.25
+certifi==2026.4.22
 cffi==2.0.0
 charset-normalizer==3.4.7
 cryptography==46.0.7
@@ -17,7 +17,7 @@ gunicorn==25.3.0
 h11==0.16.0
 httpcore==1.0.9
 httpx==0.28.1
-idna==3.11
+idna==3.13
 jasmin-ldap @ git+https://github.com/cedadev/jasmin-ldap.git@v1.0.3
 Jinja2==3.1.6
 jsonschema==4.26.0
