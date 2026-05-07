@@ -20,7 +20,7 @@ FROM ubuntu:24.04 AS nginx-gpg-key
 ENV NGINX_GPG_KEY="2FD21310B49F6B46"
 
 RUN apt-get update && \
-    apt-get install -y gnupg2 && \
+    apt-get install --no-install-recommends --no-install-suggests -y gnupg2 && \
     rm -rf /var/lib/apt/lists/*
 
 RUN gpg2 --keyserver hkp://keyserver.ubuntu.com:80 --keyserver-options timeout=10 --recv-keys "$NGINX_GPG_KEY" && \
