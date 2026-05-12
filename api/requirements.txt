@@ -17,7 +17,7 @@ gunicorn==26.0.0
 h11==0.16.0
 httpcore==1.0.9
 httpx==0.28.1
-idna==3.13
+idna==3.14
 jasmin-ldap @ git+https://github.com/cedadev/jasmin-ldap.git@v1.0.3
 Jinja2==3.1.6
 jsonschema==4.26.0
@@ -34,7 +34,7 @@ pytz==2026.2
 PyYAML==6.0.3
 rackit @ git+https://github.com/stackhpc/rackit.git@cb2da480f9fc99f36cc777d58dfbccec33434879
 referencing==0.37.0
-requests==2.33.1
+requests==2.34.0
 rfc3986==2.0.0
 rpds-py==0.30.0
 six==1.17.0
