@@ -370,9 +370,9 @@ class Session:
         if "control_plane_count" in options:
             spec["controlPlaneMachineCount"] = options["control_plane_count"]
         if "control_plane_etcd_volume_size" in options:
-            spec["controlPlaneEtcdVolumeSize"] = (
-                options["control_plane_etcd_volume_size"]
-            )
+            spec["controlPlaneEtcdVolumeSize"] = options[
+                "control_plane_etcd_volume_size"
+            ]
         if "node_groups" in options:
             spec["nodeGroups"] = [
                 {
