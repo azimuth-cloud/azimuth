@@ -79,6 +79,7 @@ class KubernetesClusterCalculator:
         monitoring_metrics_volume_size: int,
         monitoring_logs_volume_size: int,
         control_plane_count: int | None = None,
+        control_plane_etcd_volume_size: int | None = None,
         **kwargs,
     ) -> dto.PlatformResources:
         """
@@ -93,8 +94,16 @@ class KubernetesClusterCalculator:
         )
         # First, deal with the control plane
         resources.add_machines(cp_count, control_plane_size)
-        if template.etcd_volume_size > 0:
-            resources.add_volumes(cp_count, template.etcd_volume_size)
+        # When control_plane_count is explicitly set, etcd is configured on a dedicated
+        # Cinder volume at the cluster level (cluster-values.yaml), overriding the
+        # template value. Otherwise fall back to the template's etcd volume size.
+        etcd_size = (
+            (control_plane_etcd_volume_size or 20)
+            if control_plane_count is not None
+            else template.etcd_volume_size
+        )
+        if etcd_size > 0:
+            resources.add_volumes(cp_count, etcd_size)
         if template.control_plane_root_volume_size > 0:
             resources.add_volumes(cp_count, template.control_plane_root_volume_size)
         # Next, the node groups

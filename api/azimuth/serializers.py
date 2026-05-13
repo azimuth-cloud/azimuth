@@ -938,6 +938,7 @@ class CreateKubernetesClusterSerializer(
     template = serializers.RegexField("^[a-z0-9-]+$")
     control_plane_size = serializers.RegexField(ID_REGEX)
     control_plane_count = serializers.ChoiceField(choices=[1, 3], default=3)
+    control_plane_etcd_volume_size = serializers.IntegerField(min_value=1, default=20)
     node_groups = NodeGroupSpecSerializer(many=True)
     autohealing_enabled = serializers.BooleanField(default=True)
     ingress_enabled = serializers.BooleanField(default=False)

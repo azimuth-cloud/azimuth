@@ -369,6 +369,8 @@ class Session:
             spec["controlPlaneMachineSize"] = options["control_plane_size"].name
         if "control_plane_count" in options:
             spec["controlPlaneMachineCount"] = options["control_plane_count"]
+        if "control_plane_etcd_volume_size" in options:
+            spec["controlPlaneEtcdVolumeSize"] = options["control_plane_etcd_volume_size"]
         if "node_groups" in options:
             spec["nodeGroups"] = [
                 {
@@ -409,6 +411,7 @@ class Session:
         node_groups: list[NodeGroupSpec],
         resources: scheduling_dto.PlatformResources,
         control_plane_count: int = 3,
+        control_plane_etcd_volume_size: int = 20,
         autohealing_enabled: bool = True,
         ingress_enabled: bool = False,
         ingress_controller_load_balancer_ip: str | None = None,
@@ -457,6 +460,7 @@ class Session:
         options = dict(
             control_plane_size=control_plane_size,
             control_plane_count=control_plane_count,
+            control_plane_etcd_volume_size=control_plane_etcd_volume_size,
             node_groups=node_groups,
             autohealing_enabled=autohealing_enabled,
             ingress_enabled=ingress_enabled,
