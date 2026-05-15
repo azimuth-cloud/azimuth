@@ -3533,10 +3533,10 @@ jest-worker@^27.4.5:
     merge-stream "^2.0.0"
     supports-color "^8.0.0"
 
-js-cookie@3.0.5:
-  version "3.0.5"
-  resolved "https://registry.npmjs.org/js-cookie/-/js-cookie-3.0.5.tgz"
-  integrity sha512-cEiJEAEoIbWfCZYKWhVwFuvPX1gETRYPw6LlaTKoxD3s2AkXzkCjnp6h0V77ozyqj0jakteJ4YqDJT830+lVGw==
+js-cookie@3.0.6:
+  version "3.0.6"
+  resolved "https://registry.yarnpkg.com/js-cookie/-/js-cookie-3.0.6.tgz#ee61fd31363d8e14acf9849a38e33b7c079b5447"
+  integrity sha512-mYhz0Og/Wv8bZJcBC6rRzYG+rYf8DyQSK3rcUbuGHQIgSsX6uynAIVoaPgqf0udH2AGS953hGFy3w6on1rJzMw==
 
 "js-tokens@^3.0.0 || ^4.0.0", js-tokens@^4.0.0:
   version "4.0.0"
@@ -4611,10 +4611,10 @@ react-markdown@^10.1.0:
     unist-util-visit "^5.0.0"
     vfile "^6.0.0"
 
-react-redux@9.2.0:
-  version "9.2.0"
-  resolved "https://registry.npmjs.org/react-redux/-/react-redux-9.2.0.tgz"
-  integrity sha512-ROY9fvHhwOD9ySfrF0wmvu//bKCQ6AeZZq1nJNtbDC+kk5DuSuNX/n6YWYF/SYy7bSba4D4FSz8DJeKY/S/r+g==
+react-redux@9.3.0:
+  version "9.3.0"
+  resolved "https://registry.yarnpkg.com/react-redux/-/react-redux-9.3.0.tgz#a30113bb6d95c0a715d54dda4308d450fca6ce09"
+  integrity sha512-KQopgqFo/p/fgmAs5qz6p5RWaNAzq40WAu7fJIXnQpYxFPbJYtsJPWvGeF2rOBaY/kEuV77AVsX8TsQzKm+A/g==
   dependencies:
     "@types/use-sync-external-store" "^0.0.6"
     use-sync-external-store "^1.4.0"
@@ -4626,17 +4626,17 @@ react-router-bootstrap@^0.26.3:
   dependencies:
     prop-types "^15.7.2"
 
-react-router-dom@7.15.0:
-  version "7.15.0"
-  resolved "https://registry.yarnpkg.com/react-router-dom/-/react-router-dom-7.15.0.tgz#a4b95c4402d896c2ad437014aff9076b94673063"
-  integrity sha512-VcrVg64Fo8nwBvDscajG8gRTLIuTC6N50nb22l2HOOV4PTOHgoGp8mUjy9wLiHYoYTSYI36tUnXZgasSRFZorQ==
+react-router-dom@7.15.1:
+  version "7.15.1"
+  resolved "https://registry.yarnpkg.com/react-router-dom/-/react-router-dom-7.15.1.tgz#cf5aee65a44e407a17a2e9718d5350482b1e281f"
+  integrity sha512-AzF62gjY6U9rkMq4RfP/r2EVtQ7DMfNMjyOp/flLTCrtRylLiK4wT4pSq6O8rOXZ2eXdZYJPEYe+ifomiv+Igg==
   dependencies:
-    react-router "7.15.0"
+    react-router "7.15.1"
 
-react-router@7.15.0:
-  version "7.15.0"
-  resolved "https://registry.yarnpkg.com/react-router/-/react-router-7.15.0.tgz#cb438ff254ab5a1e356ef5a23d7821d8f6fbe652"
-  integrity sha512-HW9vYwuM8f4yx66Izy8xfrzCM+SBJluoZcCbww9A1TySax11S5Vgw6fi3ZjMONw9J4gQwngL7PzkyIpJJpJ7RQ==
+react-router@7.15.1:
+  version "7.15.1"
+  resolved "https://registry.yarnpkg.com/react-router/-/react-router-7.15.1.tgz#0a12fece05887a47c54970480745385c793bcaac"
+  integrity sha512-R8rl9HhgikFYoPJymnUtPXWbnDb3oget6lQnfIoupbt61aT9aOhRkDsY2XRhZRyX1Z/8a5sL74fXmFNm3NRK5A==
   dependencies:
     cookie "^1.0.1"
     set-cookie-parser "^2.6.0"
@@ -4805,10 +4805,10 @@ requires-port@^1.0.0:
   resolved "https://registry.npmjs.org/requires-port/-/requires-port-1.0.0.tgz"
   integrity sha512-KigOCHcocU3XODJxsu8i/j8T9tzT4adHiecwORRQ0ZZFcp7ahwXuRU1m+yuO90C5ZUyGeGfocHDI14M3L3yDAQ==
 
-reselect@^5.1.1:
-  version "5.1.1"
-  resolved "https://registry.npmjs.org/reselect/-/reselect-5.1.1.tgz"
-  integrity sha512-K/BG6eIky/SBpzfHZv/dd+9JBFiS4SWV7FIujVyJRux6e45+73RaUHXLmIR1f7WOMaQ0U1km6qwklRQxpJJY0w==
+reselect@^5.2.0:
+  version "5.2.0"
+  resolved "https://registry.yarnpkg.com/reselect/-/reselect-5.2.0.tgz#f380ef7664332d26ea06c1cba04bdbbdcaa955f1"
+  integrity sha512-AgZ3UOZm3YndfrJ4OYjgrT7bmCm/1iqkjvEfH/oYjzh6PD2qw4QuT3jjnXIrpdt4MTpMXclMT3lXbmRY+XRakw==
 
 resolve-cwd@^3.0.0:
   version "3.0.0"
@@ -5264,10 +5264,10 @@ tapable@^2.0.0, tapable@^2.3.0:
   resolved "https://registry.npmjs.org/tapable/-/tapable-2.3.0.tgz"
   integrity sha512-g9ljZiwki/LfxmQADO3dEY1CbpmXT5Hm2fJ+QaGKwSXUylMybePR7/67YW7jOrrvjEgL1Fmz5kzyAjWVWLlucg==
 
-terser-webpack-plugin@5.5.0, terser-webpack-plugin@^5.3.17:
-  version "5.5.0"
-  resolved "https://registry.yarnpkg.com/terser-webpack-plugin/-/terser-webpack-plugin-5.5.0.tgz#d92b8e2c892dd09c683c38120394267e8d8660ef"
-  integrity sha512-UYhptBwhWvfIjKd/UuFo6D8uq9xpGLDK+z8EDsj/zWhrTaH34cKEbrkMKfV5YWqGBvAYA3tlzZbs2R+qYrbQJA==
+terser-webpack-plugin@5.6.0, terser-webpack-plugin@^5.3.17:
+  version "5.6.0"
+  resolved "https://registry.yarnpkg.com/terser-webpack-plugin/-/terser-webpack-plugin-5.6.0.tgz#8e7caad248183ab9e91ff08a83b0fc9f0439c3c3"
+  integrity sha512-Eum+5ajkaOhf5KbM26osvv21kLD7BaGqQ1UA4Ami4arYwylmGUQTgHFpHDdmJod1q4QXa66p0to/FBKID+J1vA==
   dependencies:
     "@jridgewell/trace-mapping" "^0.3.25"
     jest-worker "^27.4.5"
@@ -5607,10 +5607,10 @@ webpack-dev-middleware@^7.4.2:
     range-parser "^1.2.1"
     schema-utils "^4.0.0"
 
-webpack-dev-server@^5.2.3:
-  version "5.2.3"
-  resolved "https://registry.npmjs.org/webpack-dev-server/-/webpack-dev-server-5.2.3.tgz"
-  integrity sha512-9Gyu2F7+bg4Vv+pjbovuYDhHX+mqdqITykfzdM9UyKqKHlsE5aAjRhR+oOEfXW5vBeu8tarzlJFIZva4ZjAdrQ==
+webpack-dev-server@^5.2.4:
+  version "5.2.4"
+  resolved "https://registry.yarnpkg.com/webpack-dev-server/-/webpack-dev-server-5.2.4.tgz#6e6306ce59848ed322c235e48b326632b1eed6d6"
+  integrity sha512-GqDPGZN9bRqKBTkp4aWkobDDHMsrXKoGSdOH56smIri8qR0JG8gfL8/v/f/OZR3/OKXjG8uwJbFVhKm/FNU/UA==
   dependencies:
     "@types/bonjour" "^3.5.13"
     "@types/connect-history-api-fallback" "^1.5.4"
