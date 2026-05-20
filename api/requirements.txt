@@ -1,7 +1,7 @@
 anyio==4.13.0
 asgiref==3.11.1
 attrs==26.1.0
-certifi==2026.4.22
+certifi==2026.5.20
 cffi==2.0.0
 charset-normalizer==3.4.7
 cryptography==48.0.0
@@ -17,7 +17,7 @@ gunicorn==26.0.0
 h11==0.16.0
 httpcore==1.0.9
 httpx==0.28.1
-idna==3.13
+idna==3.15
 jasmin-ldap @ git+https://github.com/cedadev/jasmin-ldap.git@v1.0.3
 Jinja2==3.1.6
 jsonschema==4.26.0
@@ -34,7 +34,7 @@ pytz==2026.2
 PyYAML==6.0.3
 rackit @ git+https://github.com/stackhpc/rackit.git@cb2da480f9fc99f36cc777d58dfbccec33434879
 referencing==0.37.0
-requests==2.33.1
+requests==2.34.2
 rfc3986==2.0.0
 rpds-py==0.30.0
 six==1.17.0
