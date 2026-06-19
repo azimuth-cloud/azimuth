@@ -16,6 +16,10 @@ updates:
     labels:
       - automation
       - gha-update
+    # Only allow updates for actions maintained by GitHub
+    allow:
+      - dependency-name: "actions/*"
+      - dependency-name: "azimuth-cloud/github-actions/*"
 
   # Automatically propose PRs for Python dependencies
   - package-ecosystem: pip
