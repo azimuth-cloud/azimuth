@@ -82,16 +82,14 @@ templated manifests should match snapshot:
           - create
           - patch
       - apiGroups:
-          - ""
+          - rbac.authorization.k8s.io
         resources:
-          - secrets
+          - roles
+          - rolebindings
         verbs:
-          - list
           - get
           - create
-          - update
           - patch
-          - delete
       - apiGroups:
           - caas.azimuth.stackhpc.com
         resources:
@@ -158,7 +156,7 @@ templated manifests should match snapshot:
       template:
         metadata:
           annotations:
-            azimuth.stackhpc.com/settings-checksum: ba9764bba470b2cacf65a4646a795dd5a62707a4879baac5749a8884af5dc0cd
+            azimuth.stackhpc.com/settings-checksum: 65ccb797a35210f0ae53ea1af4483f357627b78cc7c97b321de04fb78bdd6ed8
             azimuth.stackhpc.com/theme-checksum: ec0f36322392deee39d80b7f77ecd634df60358857af9dc208077860c4e174ab
             kubectl.kubernetes.io/default-container: api
           labels:
@@ -167,7 +165,16 @@ templated manifests should match snapshot:
             app.kubernetes.io/name: azimuth
         spec:
           containers:
-            - image: ghcr.io/azimuth-cloud/azimuth-api:master
+            - env:
+                - name: AZIMUTH_SA_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: spec.serviceAccountName
+                - name: AZIMUTH_SA_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+              image: ghcr.io/azimuth-cloud/azimuth-api:master
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -261,13 +268,7 @@ templated manifests should match snapshot:
         Cg==
       06-ssh-key-store.yaml: |
         QVpJTVVUSDoKICBTU0hfS0VZX1NUT1JFOgogICAgRkFDVE9SWTogYXppbXV0aC5rZXlzdG9yZS5wcm92aWRlci5Qcm92aWRlcktleVN0b3JlCg==
-      07-disable-kubernetes.yaml: |
-        Cg==
-      08-awx.yaml: |
-        Cg==
-      09-awx-passwords.py: |
-        Cg==
-      10-disable-caas.yaml: |
+      07-feature-flags.yaml: |
         QVpJTVVUSDoKICBDTFVTVEVSX0VOR0lORTogbnVsbAo=
       11-scheduling.yaml: |
         QVpJTVVUSDoKICBTQ0hFRFVMSU5HOgogICAgRU5BQkxFRDogZmFsc2UK
