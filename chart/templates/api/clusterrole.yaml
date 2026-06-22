@@ -74,16 +74,14 @@ rules:
       - create
       - patch
   - apiGroups:
-      - ""
+      - rbac.authorization.k8s.io
     resources:
-      - secrets
+      - roles
+      - rolebindings
     verbs:
-      - list
       - get
       - create
-      - update
       - patch
-      - delete
   - apiGroups:
       - caas.azimuth.stackhpc.com
     resources:

@@ -1,4 +1,5 @@
 import logging
+import os
 import re
 
 import easykube
@@ -111,6 +112,67 @@ def get_namespace(ekclient, tenancy: dto.Tenancy) -> str:
         raise NamespaceOwnershipError(expected_namespace, tenancy_id, owner_id)
 
 
+_SECRETS_ROLE_NAME = "azimuth-api-secrets"
+
+
+def ensure_secrets_rbac(ekclient, namespace: str):
+    """
+    Ensures the API service account has the necessary secrets permissions in
+    the given namespace via a namespaced Role + RoleBinding.
+
+    The service account identity is read from env vars injected by the Helm
+    chart via the Kubernetes downward API (AZIMUTH_SA_NAME / AZIMUTH_SA_NAMESPACE).
+    If either variable is absent the function is a no-op so that local test
+    runs outside a cluster are not broken.
+    """
+    sa_name = os.environ.get("AZIMUTH_SA_NAME")
+    sa_namespace = os.environ.get("AZIMUTH_SA_NAMESPACE")
+    if not sa_name or not sa_namespace:
+        logger.warning(
+            "AZIMUTH_SA_NAME or AZIMUTH_SA_NAMESPACE not set; "
+            "skipping per-namespace secrets RBAC in '%s'",
+            namespace,
+        )
+        return
+
+    rbac = ekclient.api("rbac.authorization.k8s.io/v1")
+
+    rbac.resource("roles").create_or_patch(
+        _SECRETS_ROLE_NAME,
+        {
+            "metadata": {"name": _SECRETS_ROLE_NAME},
+            "rules": [
+                {
+                    "apiGroups": [""],
+                    "resources": ["secrets"],
+                    "verbs": ["list", "get", "create", "update", "patch", "delete"],
+                }
+            ],
+        },
+        namespace=namespace,
+    )
+
+    rbac.resource("rolebindings").create_or_patch(
+        _SECRETS_ROLE_NAME,
+        {
+            "metadata": {"name": _SECRETS_ROLE_NAME},
+            "subjects": [
+                {
+                    "kind": "ServiceAccount",
+                    "name": sa_name,
+                    "namespace": sa_namespace,
+                }
+            ],
+            "roleRef": {
+                "apiGroup": "rbac.authorization.k8s.io",
+                "kind": "Role",
+                "name": _SECRETS_ROLE_NAME,
+            },
+        },
+        namespace=namespace,
+    )
+
+
 def ensure_namespace(ekclient, namespace: str, tenancy: dto.Tenancy):
     """
     Ensures that the specified namespace exists and is labelled correctly for
@@ -130,3 +192,4 @@ def ensure_namespace(ekclient, namespace: str, tenancy: dto.Tenancy):
             },
         },
     )
+    ensure_secrets_rbac(ekclient, namespace)
