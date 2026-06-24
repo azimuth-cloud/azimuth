@@ -82,6 +82,8 @@ rules:
       - get
       - create
       - patch
+      - bind
+      - escalate
   - apiGroups:
       - caas.azimuth.stackhpc.com
     resources:

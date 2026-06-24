@@ -137,40 +137,60 @@ def ensure_secrets_rbac(ekclient, namespace: str):
 
     rbac = ekclient.api("rbac.authorization.k8s.io/v1")
 
-    rbac.resource("roles").create_or_patch(
-        _SECRETS_ROLE_NAME,
-        {
-            "metadata": {"name": _SECRETS_ROLE_NAME},
-            "rules": [
-                {
-                    "apiGroups": [""],
-                    "resources": ["secrets"],
-                    "verbs": ["list", "get", "create", "update", "patch", "delete"],
-                }
-            ],
-        },
-        namespace=namespace,
-    )
-
-    rbac.resource("rolebindings").create_or_patch(
-        _SECRETS_ROLE_NAME,
-        {
-            "metadata": {"name": _SECRETS_ROLE_NAME},
-            "subjects": [
-                {
-                    "kind": "ServiceAccount",
-                    "name": sa_name,
-                    "namespace": sa_namespace,
-                }
-            ],
-            "roleRef": {
-                "apiGroup": "rbac.authorization.k8s.io",
-                "kind": "Role",
-                "name": _SECRETS_ROLE_NAME,
+    try:
+        rbac.resource("roles").create_or_patch(
+            _SECRETS_ROLE_NAME,
+            {
+                "metadata": {"name": _SECRETS_ROLE_NAME},
+                "rules": [
+                    {
+                        "apiGroups": [""],
+                        "resources": ["secrets"],
+                        "verbs": ["list", "get", "create", "update", "patch", "delete"],
+                    }
+                ],
             },
-        },
-        namespace=namespace,
-    )
+            namespace=namespace,
+        )
+    except easykube.ApiError as exc:
+        if exc.response.status_code == 403:
+            raise RuntimeError(
+                f"Permission denied creating secrets Role '{_SECRETS_ROLE_NAME}' "
+                f"in namespace '{namespace}': the API ClusterRole must include "
+                f"'escalate' on roles (Kubernetes escalation-prevention). "
+                f"Kubernetes said: {exc}"
+            ) from exc
+        raise
+
+    try:
+        rbac.resource("rolebindings").create_or_patch(
+            _SECRETS_ROLE_NAME,
+            {
+                "metadata": {"name": _SECRETS_ROLE_NAME},
+                "subjects": [
+                    {
+                        "kind": "ServiceAccount",
+                        "name": sa_name,
+                        "namespace": sa_namespace,
+                    }
+                ],
+                "roleRef": {
+                    "apiGroup": "rbac.authorization.k8s.io",
+                    "kind": "Role",
+                    "name": _SECRETS_ROLE_NAME,
+                },
+            },
+            namespace=namespace,
+        )
+    except easykube.ApiError as exc:
+        if exc.response.status_code == 403:
+            raise RuntimeError(
+                f"Permission denied creating secrets RoleBinding '{_SECRETS_ROLE_NAME}' "
+                f"in namespace '{namespace}': the API ClusterRole must include "
+                f"'bind' on roles (Kubernetes bind-prevention). "
+                f"Kubernetes said: {exc}"
+            ) from exc
+        raise
 
 
 def ensure_namespace(ekclient, namespace: str, tenancy: dto.Tenancy):
