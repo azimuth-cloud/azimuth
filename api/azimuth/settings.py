@@ -307,7 +307,12 @@ class AzimuthSettings(SettingsObject):
 
     #: URL for documentation
     DOCUMENTATION_URL = Setting(
-        default="https://azimuth-cloud.github.io/azimuth-user-docs/"
+        # NOTE(sd109): Our user docs are woefully out of date so to
+        # avoid misleading users we've decided to disable the docs for
+        # now.
+        # TODO: Re-enabled once we've updated the user docs
+        # default="https://azimuth-cloud.github.io/azimuth-user-docs/"
+        default=""
     )
 
     #: URL for Support
