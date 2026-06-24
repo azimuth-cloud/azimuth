@@ -185,10 +185,10 @@ def ensure_secrets_rbac(ekclient, namespace: str):
     except easykube.ApiError as exc:
         if exc.response.status_code == 403:
             raise RuntimeError(
-                f"Permission denied creating secrets RoleBinding '{_SECRETS_ROLE_NAME}' "
-                f"in namespace '{namespace}': the API ClusterRole must include "
-                f"'bind' on roles (Kubernetes bind-prevention). "
-                f"Kubernetes said: {exc}"
+                f"Permission denied creating secrets RoleBinding"
+                f" '{_SECRETS_ROLE_NAME}' in namespace '{namespace}':"
+                f" the API ClusterRole must include 'bind' on roles"
+                f" (Kubernetes bind-prevention). Kubernetes said: {exc}"
             ) from exc
         raise
 
