@@ -1,11 +1,11 @@
-anyio==4.13.0
+anyio==4.14.1
 asgiref==3.11.1
 attrs==26.1.0
-certifi==2026.5.20
+certifi==2026.6.17
 cffi==2.0.0
 charset-normalizer==3.4.7
-cryptography==48.0.0
-Django==6.0.5
+cryptography==49.0.0
+Django==6.0.6
 django-flexi-settings @ git+https://github.com/cedadev/django-flexi-settings.git@68eb74b00e28448279e7d800889d6e39466bf0ce
 django-settings-object @ git+https://github.com/azimuth-cloud/django-settings-object.git@e7d2b6be4f4141e79b1f437be423354a6265a8dc
 djangorestframework==3.17.1
@@ -17,7 +17,7 @@ gunicorn==26.0.0
 h11==0.16.0
 httpcore==1.0.9
 httpx==0.28.1
-idna==3.17
+idna==3.18
 jasmin-ldap @ git+https://github.com/cedadev/jasmin-ldap.git@v1.0.3
 Jinja2==3.1.6
 jsonschema==4.26.0
