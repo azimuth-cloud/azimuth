@@ -502,9 +502,10 @@ class ScopedSession(base.ScopedSession):
 
         active_allocation_list = list(
             filter(
-                lambda a: parse_time_and_correct_tz(a["start"], target_tz)
-                < current_time
-                and current_time < parse_time_and_correct_tz(a["end"], target_tz),
+                lambda a: (
+                    parse_time_and_correct_tz(a["start"], target_tz) < current_time
+                    and current_time < parse_time_and_correct_tz(a["end"], target_tz)
+                ),
                 account_allocations,
             )
         )

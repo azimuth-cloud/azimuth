@@ -1,4 +1,4 @@
-{{- if not (has .Values.clusterEngine.type (list "crd" "awx")) -}}
+{{- if ne .Values.clusterEngine.type "crd" -}}
 {{- fail (printf "Unsupported cluster engine '%s'" .Values.clusterEngine.type) }}
 {{- end }}
 
@@ -23,14 +23,8 @@ data:
     {{- tpl (.Files.Get "files/api/settings/05-apps.yaml") . | b64enc | nindent 4 }}
   06-ssh-key-store.yaml: |
     {{- tpl (.Files.Get "files/api/settings/06-ssh-key-store.yaml") . | b64enc | nindent 4 }}
-  07-disable-kubernetes.yaml: |
-    {{- tpl (.Files.Get "files/api/settings/07-disable-kubernetes.yaml") . | b64enc | nindent 4 }}
-  08-awx.yaml: |
-    {{- tpl (.Files.Get "files/api/settings/08-awx.yaml") . | b64enc | nindent 4 }}
-  09-awx-passwords.py: |
-    {{- tpl (.Files.Get "files/api/settings/09-awx-passwords.py") . | b64enc | nindent 4 }}
-  10-disable-caas.yaml: |
-    {{- tpl (.Files.Get "files/api/settings/10-disable-caas.yaml") . | b64enc | nindent 4 }}
+  07-feature-flags.yaml: |
+    {{- tpl (.Files.Get "files/api/settings/07-feature-flags.yaml") . | b64enc | nindent 4 }}
   11-scheduling.yaml: |
     {{- tpl (.Files.Get "files/api/settings/11-scheduling.yaml") . | b64enc | nindent 4 }}
   12-apps-provider.yaml: |

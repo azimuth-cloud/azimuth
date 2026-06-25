@@ -78,22 +78,34 @@ class KubernetesClusterCalculator:
         monitoring_enabled: bool,
         monitoring_metrics_volume_size: int,
         monitoring_logs_volume_size: int,
+        control_plane_count: int | None = None,
+        control_plane_etcd_volume_size: int | None = None,
         **kwargs,
     ) -> dto.PlatformResources:
         """
         Calculates the resources required to make the specified Kubernetes cluster.
         """
         resources = dto.PlatformResources()
+        # Use the user-selected count, otherwise fall back to the template value
+        cp_count = (
+            control_plane_count
+            if control_plane_count is not None
+            else template.control_plane_count
+        )
         # First, deal with the control plane
-        resources.add_machines(template.control_plane_count, control_plane_size)
-        if template.etcd_volume_size > 0:
-            resources.add_volumes(
-                template.control_plane_count, template.etcd_volume_size
-            )
+        resources.add_machines(cp_count, control_plane_size)
+        # When control_plane_count is explicitly set, etcd is configured on a dedicated
+        # Cinder volume at the cluster level (cluster-values.yaml), overriding the
+        # template value. Otherwise fall back to the template's etcd volume size.
+        etcd_size = (
+            (control_plane_etcd_volume_size or 20)
+            if control_plane_count is not None
+            else template.etcd_volume_size
+        )
+        if etcd_size > 0:
+            resources.add_volumes(cp_count, etcd_size)
         if template.control_plane_root_volume_size > 0:
-            resources.add_volumes(
-                template.control_plane_count, template.control_plane_root_volume_size
-            )
+            resources.add_volumes(cp_count, template.control_plane_root_volume_size)
         # Next, the node groups
         for ng in node_groups:
             # When autoscaling, make sure there is enough space for the max size of the
