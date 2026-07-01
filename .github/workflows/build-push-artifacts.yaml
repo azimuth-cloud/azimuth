@@ -8,6 +8,7 @@ on:
       - master
     tags:
       - "*"
+  workflow_dispatch:
   # Also allow publication to be done via a workflow call
   # In this case, the chart version is returned as an output
   workflow_call:
