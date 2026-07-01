@@ -1,6 +1,5 @@
 {{- $component := "api" -}}
 {{- $values := get .Values $component -}}
-{{- $clusterEngine := .Values.clusterEngine -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -50,30 +49,15 @@ spec:
           securityContext: {{ toYaml $values.securityContext | nindent 12 }}
           image: {{ printf "%s:%s" $values.image.repository (default .Chart.AppVersion $values.image.tag) }}
           imagePullPolicy: {{ $values.image.pullPolicy }}
-          {{-
-            if or
-              $values.monitoring.enabled
-              (and
-                (eq .Values.authentication.type "oidc")
-                (hasPrefix "http://" .Values.authentication.oidc.issuerUrl)
-              )
-              (and .Values.tags.clusters (eq $clusterEngine.type "awx"))
-          }}
           env:
-            {{- if and .Values.tags.clusters (eq $clusterEngine.type "awx") }}
-            - name: AWX_PASSWORD
+            - name: AZIMUTH_SA_NAME
               valueFrom:
-                secretKeyRef:
-                  name: {{ required "clusterEngine.awx.passwordSecretName is required" $clusterEngine.awx.passwordSecretName | quote }}
-                  key: password
-            {{- with $clusterEngine.awx.adminPasswordSecretName }}
-            - name: AWX_ADMIN_PASSWORD
+                fieldRef:
+                  fieldPath: spec.serviceAccountName
+            - name: AZIMUTH_SA_NAMESPACE
               valueFrom:
-                secretKeyRef:
-                  name: {{ quote . }}
-                  key: password
-            {{- end }}
-            {{- end }}
+                fieldRef:
+                  fieldPath: metadata.namespace
             {{- if $values.monitoring.enabled }}
             - name: GUNICORN_STATSD_HOST
               value: "localhost:9125"
@@ -86,7 +70,6 @@ spec:
             - name: OAUTHLIB_INSECURE_TRANSPORT
               value: "1"
             {{- end }}
-          {{- end }}
           ports:
             - name: http
               containerPort: 8080

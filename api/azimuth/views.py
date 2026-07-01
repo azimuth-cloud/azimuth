@@ -1426,12 +1426,11 @@ def cluster_service(request, tenant, cluster, service):
     service_fqdn = None
     service_label = None
     try:
-        if cloud_settings.CLUSTER_ENGINE:
-            with request.auth.scoped_session(tenant) as session:
-                with cloud_settings.CLUSTER_ENGINE.create_manager(
-                    session
-                ) as cluster_manager:
-                    cluster = cluster_manager.find_cluster(cluster)
+        with request.auth.scoped_session(tenant) as session:
+            with cloud_settings.CLUSTER_ENGINE.create_manager(
+                session
+            ) as cluster_manager:
+                cluster = cluster_manager.find_cluster(cluster)
         service_obj = next(s for s in cluster.services if s.name == service)
         service_fqdn = service_obj.fqdn
         service_label = service_obj.label
@@ -1834,9 +1833,8 @@ def kubernetes_cluster_service(request, tenant, cluster, service):
     service_fqdn = None
     service_label = None
     try:
-        if cloud_settings.CLUSTER_API_PROVIDER:
-            with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
-                cluster = capi_session.find_cluster(cluster)
+        with cloud_settings.CLUSTER_API_PROVIDER.session(session) as capi_session:
+            cluster = capi_session.find_cluster(cluster)
         service_obj = next(s for s in cluster.services if s.name == service)
         service_fqdn = service_obj.fqdn
         service_label = service_obj.label
