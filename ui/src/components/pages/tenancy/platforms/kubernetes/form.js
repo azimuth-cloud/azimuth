@@ -606,7 +606,7 @@ export const KubernetesClusterForm = ({
                             helpText="Allows you to view and manage resources in your cluster using a web browser."
                         >
                             <BSForm.Check
-                                label="Enable Kubernetes Dashboard?"
+                                label="Enable Headlamp Dashboard?"
                                 checked={getStateKey('dashboard_enabled')}
                                 onChange={setStateFromCheckboxEvent('dashboard_enabled')}
                             />

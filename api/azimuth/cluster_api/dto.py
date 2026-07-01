@@ -124,7 +124,7 @@ class Cluster:
     node_groups: list[NodeGroup]
     #: Indicates if autohealing is enabled
     autohealing_enabled: bool
-    #: Indicates if the Kubernetes dashboard is enabled
+    #: Indicates if the Headlamp dashboard is enabled
     dashboard_enabled: bool
     #: Indicates if ingress is enabled
     ingress_enabled: bool
