@@ -67,7 +67,7 @@ jobs:
             type=raw,value=${{ steps.semver.outputs.short-sha }}
 
       - name: Build and push image
-        uses: azimuth-cloud/github-actions/docker-multiarch-build-push@ignore-cache-errors
+        uses: azimuth-cloud/github-actions/docker-multiarch-build-push@191fd264f30d6e9ba4311119361b095407ab72be
         with:
           cache-key: ${{ matrix.component }}
           context: ./${{ matrix.component }}
