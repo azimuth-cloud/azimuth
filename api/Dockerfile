@@ -6,17 +6,24 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get install --no-install-recommends --no-install-suggests -y \
     python3
 
-RUN python3 -m venv /venv && \
-    /venv/bin/pip install -U pip setuptools
+ENV UV_COMPILE_BYTECODE=1
+ENV UV_LINK_MODE=copy
+ENV UV_CACHE_DIR=/uv-cache/
+
+RUN --mount=from=ghcr.io/astral-sh/uv@sha256:3d868e555f8f1dbc324afa005066cd11e1053fc4743b9808ca8025283e65efa5,source=/uv,target=/bin/uv --mount=type=cache,target=/uv-cache/ \
+    uv venv /venv
+
+ENV VIRTUAL_ENV=/venv
 
 COPY requirements.txt /app/requirements.txt
-RUN  /venv/bin/pip install --requirement /app/requirements.txt
+RUN --mount=from=ghcr.io/astral-sh/uv@sha256:3d868e555f8f1dbc324afa005066cd11e1053fc4743b9808ca8025283e65efa5,source=/uv,target=/bin/uv --mount=type=cache,target=/uv-cache/ \
+    uv pip install --requirements /app/requirements.txt
 
 # Django fails to load templates if this is installed the "regular" way
 # If we use an editable mode install then it works
 COPY . /app
-RUN /venv/bin/pip install -e /app
-
+RUN --mount=from=ghcr.io/astral-sh/uv@sha256:3d868e555f8f1dbc324afa005066cd11e1053fc4743b9808ca8025283e65efa5,source=/uv,target=/bin/uv --mount=type=cache,target=/uv-cache/ \
+    uv pip install --editable /app
 
 FROM ubuntu:24.04
 
