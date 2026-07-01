@@ -1,8 +1,10 @@
 FROM ubuntu:24.04 AS python-builder
 
-RUN apt-get update && \
-    apt-get install -y git python3 python3-venv && \
-    rm -rf /var/lib/apt/lists/*
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt update && \
+    apt-get install --no-install-recommends --no-install-suggests -y \
+    python3
 
 RUN python3 -m venv /venv && \
     /venv/bin/pip install -U pip setuptools
@@ -40,9 +42,13 @@ RUN groupadd --gid $APP_GID $APP_GROUP && \
       --uid $APP_UID \
       $APP_USER
 
-RUN apt-get update && \
-    apt-get install --no-install-recommends --no-install-suggests -y ca-certificates python3 tini && \
-    rm -rf /var/lib/apt/lists/*
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt update && \
+    apt-get install --no-install-recommends --no-install-suggests -y \
+    python3 \
+    tini \
+    ca-certificates
 
 COPY --from=python-builder /venv /venv
 COPY --from=python-builder /app /app

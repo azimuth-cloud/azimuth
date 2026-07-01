@@ -19,9 +19,11 @@ FROM ubuntu:24.04 AS nginx-gpg-key
 
 ENV NGINX_GPG_KEY="2FD21310B49F6B46"
 
-RUN apt-get update && \
-    apt-get install -y gnupg2 && \
-    rm -rf /var/lib/apt/lists/*
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt update && \
+    apt-get install --no-install-recommends --no-install-suggests -y \
+    gnupg2
 
 RUN gpg2 --keyserver hkp://keyserver.ubuntu.com:80 --keyserver-options timeout=10 --recv-keys "$NGINX_GPG_KEY" && \
     gpg2 --export "$NGINX_GPG_KEY" > /usr/share/keyrings/nginx-archive-keyring.gpg
@@ -44,13 +46,20 @@ COPY --from=nginx-gpg-key /usr/share/keyrings/nginx-archive-keyring.gpg /usr/sha
 #      When running with a RO filesystem we will mount a writable directory over it,
 #      but we don't want to make all of /var/run writable
 RUN echo "Target NGINX version: ${NGINX_VERSION}"
-RUN apt-get update && \
-    apt-get install --no-install-recommends --no-install-suggests -y ca-certificates tini && \
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt update && \
+    apt-get install --no-install-recommends --no-install-suggests -y \
+    ca-certificates \
+    tini && \
     echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] https://nginx.org/packages/mainline/ubuntu/ noble nginx" \
       > /etc/apt/sources.list.d/nginx.list && \
-    apt-get update && \
-    apt-get install --no-install-recommends --no-install-suggests -y "nginx=${NGINX_VERSION}*" && \
-    rm -rf /var/lib/apt/lists/* && \
+    apt update && \
+    apt-get install --no-install-recommends --no-install-suggests -y \
+    "nginx=${NGINX_VERSION}*"
+
+RUN \
     ln -sf /dev/stdout /var/log/nginx/access.log && \
     ln -sf /dev/stderr /var/log/nginx/error.log && \
     sed -i '/^user /d' /etc/nginx/nginx.conf && \
