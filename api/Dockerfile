@@ -4,7 +4,9 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt update && \
     apt-get install --no-install-recommends --no-install-suggests -y \
-    python3
+    python3 \
+    git \
+    ca-certificates
 
 ENV UV_COMPILE_BYTECODE=1
 ENV UV_LINK_MODE=copy
