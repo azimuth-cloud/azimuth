@@ -8,7 +8,7 @@ import json
 import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 import requests
@@ -16,6 +16,7 @@ import yaml
 
 from ..provider import dto as cloud_dto  # noqa: TID252
 from ..scheduling import dto as scheduling_dto  # noqa: TID252
+from ..scheduling import util as scheduling_util  # noqa: TID252
 
 
 @dataclass(frozen=True)
@@ -105,9 +106,11 @@ class ClusterType:
     usage_template: str | None
     #: Used by the Azimuth CRD to support patching
     version: str | None
+    # The maximum allowable lifetime for clusters
+    max_lifetime: timedelta | None
 
     @classmethod
-    def from_dict(cls, name, spec, version=None):
+    def from_dict(cls, name, spec, version=None, *, annotations):
         """
         Returns a new cluster type from the given dictionary specification.
 
@@ -117,6 +120,7 @@ class ClusterType:
         Returns:
             A :py:class:`ClusterType`.
         """
+        # Parse the max lifetime from the annotations on the clustertype.
         return cls(
             name,
             spec.get("label", name),
@@ -149,6 +153,7 @@ class ClusterType:
             ),
             spec.get("usage_template", spec.get("usageTemplate", None)),
             version,
+            scheduling_util.lifetime_from_annotations(annotations),
         )
 
     @classmethod
