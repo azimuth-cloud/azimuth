@@ -34,9 +34,10 @@ def get_k8s_client(ctx: dto.Context, ensure_namespace: bool = False):
 def _get_cluster_type_dto(raw):
     if raw.get("status") and raw.get("status", {}).get("phase") == "Available":
         return dto.ClusterType.from_dict(
-            raw.metadata.name,
-            raw.status.uiMeta,
-            raw.metadata.resourceVersion,
+            name=raw.metadata.name,
+            spec=raw.status.uiMeta,
+            version=raw.metadata.resourceVersion,
+            annotations=raw.metadata.get("annotations", {}),
         )
 
 
