@@ -1,17 +1,21 @@
 FROM node:24 AS build
 
+# yarn is provided by corepack
+RUN corepack enable
+
 # Install the dependencies separately using only the required files
 # This allows better use of the build cache
-COPY package.json yarn.lock /application/
+COPY package.json yarn.lock .yarnrc.yml /application/
 RUN cd /application && \
-    yarn install --frozen-lockfile --network-timeout 3600000 && \
+    yarn install --immutable --network-timeout 3600000 && \
     cd /
+
+RUN ls -a /application
 
 # Build the application
 COPY . /application
 RUN cd /application && \
     yarn build
-
 
 # This intermediate image is used to fetch the GPG key for the NGINX repo
 # without polluting the runtime image with GPG packages
