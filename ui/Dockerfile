@@ -4,7 +4,9 @@ FROM docker.io/library/node:24 AS build
 RUN corepack enable
 
 # Install the dependencies separately using only the required files
-# This allows better use of the build cache
+# This allows better use of the build cache (by making them seperate
+# steps, install of deps does not have to happen if application code
+# changes.
 COPY package.json yarn.lock .yarnrc.yml /application/
 RUN cd /application && \
     yarn install --immutable --network-timeout 3600000 && \
