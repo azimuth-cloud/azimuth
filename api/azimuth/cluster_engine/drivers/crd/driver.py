@@ -27,7 +27,12 @@ def get_k8s_client(ctx: dto.Context, ensure_namespace: bool = False):
     client = ekconfig.sync_client()
     client.default_namespace = utils.get_namespace(client, ctx.tenancy)
     if ensure_namespace:
-        utils.ensure_namespace(client, client.default_namespace, ctx.tenancy)
+        try:
+            utils.ensure_namespace(client, client.default_namespace, ctx.tenancy)
+        except easykube.ApiError as exc:
+            raise errors.CommunicationError(str(exc)) from exc
+        except RuntimeError as exc:
+            raise errors.CommunicationError(str(exc)) from exc
     return client
 
 
