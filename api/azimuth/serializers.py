@@ -628,9 +628,7 @@ class CreateClusterSerializer(serializers.Serializer):
 
     def validate_schedule(self, value):
         if self.context.get("validate_schedule", True):
-            if cloud_settings.SCHEDULING.ENABLED and not value:
-                raise serializers.ValidationError("This field is required.")
-            elif not cloud_settings.SCHEDULING.ENABLED and value:
+            if not cloud_settings.SCHEDULING.ENABLED and value:
                 raise serializers.ValidationError("Scheduling is not supported.")
         return value
 
@@ -644,6 +642,14 @@ class CreateClusterSerializer(serializers.Serializer):
             )
         except clusters_errors.ValidationError as exc:
             raise serializers.ValidationError({"parameter_values": exc.errors})
+        # A schedule is only mandatory when the cluster type enforces a max lifetime
+        if (
+            self.context.get("validate_schedule", True)
+            and cloud_settings.SCHEDULING.ENABLED
+            and data["cluster_type"].max_lifetime is not None
+            and not data.get("schedule")
+        ):
+            raise serializers.ValidationError({"schedule": "This field is required."})
         return data
 
 
@@ -976,11 +982,21 @@ class CreateKubernetesClusterSerializer(
 
     def validate_schedule(self, value):
         if self.context.get("validate_schedule", True):
-            if cloud_settings.SCHEDULING.ENABLED and not value:
-                raise serializers.ValidationError("This field is required.")
-            elif not cloud_settings.SCHEDULING.ENABLED and value:
+            if not cloud_settings.SCHEDULING.ENABLED and value:
                 raise serializers.ValidationError("Scheduling is not supported.")
         return value
+
+    def validate(self, data):
+        data = super().validate(data)
+        # A schedule is only mandatory when the cluster template enforces a max lifetime
+        if (
+            self.context.get("validate_schedule", True)
+            and cloud_settings.SCHEDULING.ENABLED
+            and data["template"].max_lifetime is not None
+            and not data.get("schedule")
+        ):
+            raise serializers.ValidationError({"schedule": "This field is required."})
+        return data
 
 
 class UpdateKubernetesClusterSerializer(

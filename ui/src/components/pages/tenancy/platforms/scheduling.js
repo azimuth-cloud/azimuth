@@ -158,13 +158,16 @@ export const PlatformSchedulingModal = ({
     const { loading, fits, quotas, error } = useSchedulingData();
 
     const [platformDuration, setPlatformDuration] = useState(null);
+    // Only relevant when there is no enforced max lifetime, in which case the
+    // platform can be created with no auto-deletion time at all
+    const [noExpiry, setNoExpiry] = useState(false);
 
     const maxLifetime = maxLifetimeSeconds != null ? parseFloat(maxLifetimeSeconds) : null;
     const maxLifetimeHours = maxLifetime != null ? Math.floor(maxLifetime / 3600) : null;
 
     const handleConfirm = () => {
         let newSchedule = null;
-        if( platformDuration ) {
+        if( platformDuration && !(maxLifetime == null && noExpiry) ) {
             // On confirmation, convert the duration to an ISO-formatted end time
             const duration = { [platformDuration.units]: platformDuration.count };
             const endTime = DateTime.now().plus(duration);
@@ -185,26 +188,40 @@ export const PlatformSchedulingModal = ({
                     onSubmit={handleConfirm}
                 >
                     {(isEdit || !supportsScheduling) ? undefined : (
-                        <Field
-                            name="platform_duration"
-                            label="Platform auto-deletion time"
-                            helpText={
-                                <>
-                                    The platform will be automatically deleted after this time.<br />
-                                    It can still be manually deleted when no longer required.
-                                    {maxLifetimeHours != null && (
-                                        <><br /><div className="text-danger">Maximum allowed lifetime: {maxLifetimeHours} hours.</div></>
-                                    )}
-                                </>
-                            }
-                        >
-                            <PlatformDurationControl
-                                required
-                                value={platformDuration}
-                                onChange={setPlatformDuration}
-                                maxLifetimeSeconds={maxLifetime}
-                            />
-                        </Field>
+                        <>
+                            {!noExpiry && (
+                                <Field
+                                    name="platform_duration"
+                                    label="Platform auto-deletion time"
+                                    helpText={
+                                        <>
+                                            The platform will be automatically deleted after this time.<br />
+                                            It can still be manually deleted when no longer required.
+                                            {maxLifetimeHours != null && (
+                                                <><br /><div className="text-danger">Maximum allowed lifetime: {maxLifetimeHours} hours.</div></>
+                                            )}
+                                        </>
+                                    }
+                                >
+                                    <PlatformDurationControl
+                                        required
+                                        value={platformDuration}
+                                        onChange={setPlatformDuration}
+                                        maxLifetimeSeconds={maxLifetime}
+                                    />
+                                </Field>
+                            )}
+                            {maxLifetime == null && (
+                                <Field name="no_expiry">
+                                    <BSForm.Check
+                                        type="checkbox"
+                                        label="Never automatically delete this platform"
+                                        checked={noExpiry}
+                                        onChange={evt => setNoExpiry(evt.target.checked)}
+                                    />
+                                </Field>
+                            )}
+                        </>
                     )}
                     <Card>
                         <Card.Header>Platform resource consumption</Card.Header>
