@@ -22,6 +22,8 @@ import {
 
 import Cookies from 'js-cookie';
 
+import get from 'lodash/get';
+
 import { Error, Form, Field, withCustomValidity } from '../../../../utils';
 
 import {
@@ -452,6 +454,8 @@ export const KubernetesClusterForm = ({
     const handleCancel = () => setShowScheduling(false);
     const handleConfirm = schedule => onSubmit({ ...formState.data, schedule });
 
+    const selectedTemplate = get(kubernetesClusterTemplates.data, formState.data.template);
+
     return (
         <>
             <Form
@@ -772,6 +776,7 @@ export const KubernetesClusterForm = ({
                     isEdit={formState.isEdit}
                     onCancel={handleCancel}
                     onConfirm={handleConfirm}
+                    maxLifetimeSeconds={selectedTemplate?.max_lifetime}
                 />
             )}
         </>
