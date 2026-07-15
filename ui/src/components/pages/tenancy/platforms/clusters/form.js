@@ -198,6 +198,7 @@ export const ClusterForm = ({
                     isEdit={formState.isEdit}
                     onCancel={handleCancel}
                     onConfirm={handleConfirm}
+                    maxLifetimeSeconds={formState.clusterType.max_lifetime}
                 />
             )}
         </>
