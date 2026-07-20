@@ -1,5 +1,5 @@
 anyio==4.14.2
-asgiref==3.11.1
+asgiref==3.12.1
 attrs==26.1.0
 certifi==2026.6.17
 cffi==2.1.0
