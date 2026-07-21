@@ -1,6 +1,6 @@
 import datetime as dt
 
-from ..settings import cloud_settings
+from ..settings import cloud_settings  # noqa: TID252
 
 
 def lifetime_from_annotations(annotations: dict[str, str]) -> dt.timedelta | None:
