@@ -63,3 +63,4 @@ node_modules
 
 Chart.lock
 chart/charts
+.stestr
