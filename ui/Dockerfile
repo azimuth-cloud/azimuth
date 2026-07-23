@@ -2,13 +2,13 @@ FROM node:24 AS build
 
 # Install the dependencies separately using only the required files
 # This allows better use of the build cache
-COPY package.json yarn.lock /application/
+COPY ui/package.json ui/yarn.lock /application/
 RUN cd /application && \
     yarn install --frozen-lockfile --network-timeout 3600000 && \
     cd /
 
 # Build the application
-COPY . /application
+COPY ui /application
 RUN cd /application && \
     yarn build
 
@@ -61,7 +61,7 @@ RUN apt-get update && \
 # Copy the dist folder from the build stage
 COPY --from=build /application/dist/ /var/www
 # Install the Nginx configuration
-COPY ./etc/nginx/conf.d/default.conf /etc/nginx/conf.d/
+COPY ./ui/etc/nginx/conf.d/default.conf /etc/nginx/conf.d/
 
 # The Nginx user has UID 999
 USER 999
