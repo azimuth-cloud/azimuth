@@ -10,7 +10,6 @@ import typing as t
 
 import dateutil.parser
 import easykube
-
 from azimuth import utils
 from azimuth.acls import allowed_by_acls
 from azimuth.cluster_engine import dto, errors
@@ -187,6 +186,12 @@ def create_cluster(
         cluster_spec["extraVars"] = {}
         for key, value in params.items():
             cluster_spec["extraVars"][key] = value
+
+    # Inject scheduling info cluster into the cluster parameters
+    if schedule is not None:
+        cluster_spec.setdefault("extraVars", {})[
+            "scheduled_deletion_time"
+        ] = schedule.end_time.isoformat()
 
     cluster_resource = client.api(CAAS_API_VERSION).resource("clusters")
     cluster = cluster_resource.create(
