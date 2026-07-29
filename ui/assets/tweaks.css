@@ -259,7 +259,6 @@
 }
 .details-table > :not(caption) > * > * {
     padding: 0.5rem 1rem;
-    white-space: nowrap;
     vertical-align: middle;
 }
 .details-table > * > * > *:first-child {
