@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useId, useState } from 'react';
 
 import Badge from 'react-bootstrap/Badge';
 import Button from 'react-bootstrap/Button';
@@ -6,11 +6,14 @@ import Card from 'react-bootstrap/Card';
 import Col from 'react-bootstrap/Col';
 import Modal from 'react-bootstrap/Modal';
 import Nav from 'react-bootstrap/Nav';
+import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
+import Popover from 'react-bootstrap/Popover';
 import Row from 'react-bootstrap/Row';
 import Table from 'react-bootstrap/Table';
 import Tab from 'react-bootstrap/Tab';
 
 import get from 'lodash/get';
+import { DateTime } from 'luxon';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -247,6 +250,78 @@ const WorkersStatus = ({ kubernetesCluster }) => {
 };
 
 
+const CertificateExpiry = ({ expiryDate }) => {
+    const expired = expiryDate <= DateTime.now();
+    const expiresSoon = expiryDate <= DateTime.now().plus({ days: 30 });
+
+    if( expired ) {
+        return (
+            <strong className="text-danger">
+                <FontAwesomeIcon icon={faTimesCircle} className="me-2" />
+                Expired on {expiryDate.toFormat('d LLLL yyyy')}
+            </strong>
+        );
+    }
+    else if( expiresSoon ) {
+        return (
+            <strong className="text-warning">
+                <FontAwesomeIcon icon={faExclamationTriangle} className="me-2" />
+                Expires {expiryDate.toFormat('d LLLL yyyy')}
+            </strong>
+        );
+    }
+    else {
+        return <>Expires {expiryDate.toFormat('d LLLL yyyy')}</>;
+    }
+};
+
+
+const CertificateRenewal = ({ renewalDate }) => {
+    const popoverId = useId();
+    return (
+        <>
+            <OverlayTrigger
+                placement="top"
+                overlay={(
+                    <Popover id={popoverId}>
+                        <Popover.Header>
+                            <FontAwesomeIcon
+                                icon={faExclamationTriangle}
+                                className="text-warning me-2"
+                            />
+                            Automatic certificate renewal
+                        </Popover.Header>
+                        <Popover.Body>
+                            Azimuth renews Kubernetes API server certificates by replacing
+                            the affected control plane nodes. During renewal, the control
+                            plane may temporarily operate with reduced redundancy. Renewal
+                            starts automatically before the certificates expire to prevent
+                            loss of access to the Kubernetes API.
+                        </Popover.Body>
+                    </Popover>
+                )}
+                trigger="click"
+                rootClose
+            >
+                <Button
+                    type="button"
+                    variant="link"
+                    className={
+                        "certificate-renewal-trigger small text-muted text-start " +
+                        "text-decoration-underline p-0 align-baseline"
+                    }
+                >
+                Will renew automatically on
+                </Button>
+            </OverlayTrigger>
+            <span className="d-block small text-muted text-nowrap">
+                {renewalDate.toFormat('d LLLL yyyy')}
+            </span>
+        </>
+    );
+};
+
+
 const ClusterOverviewCard = ({ kubernetesCluster, kubernetesClusterTemplates }) => (
     <Card className="mb-3">
         <Card.Header className="text-center">Cluster details</Card.Header>
@@ -349,6 +424,34 @@ const ControlPlaneCard = ({ kubernetesCluster, sizes }) => (
                     <th>Node Count</th>
                     <td>{kubernetesCluster.nodes.filter(n => n.role === "control-plane").length}</td>
                 </tr>
+                {(kubernetesCluster.control_plane_certificate_expiry_date ||
+                    kubernetesCluster.control_plane_certificate_rotation_date) && (
+                    <tr>
+                        <th className="align-top">Kubernetes API Certificate</th>
+                        <td>
+                            {kubernetesCluster.control_plane_certificate_expiry_date && (
+                                <CertificateExpiry
+                                    expiryDate={
+                                        kubernetesCluster
+                                            .control_plane_certificate_expiry_date
+                                    }
+                                />
+                            )}
+                            {kubernetesCluster.control_plane_certificate_rotation_date && (
+                                <>
+                                    {kubernetesCluster
+                                        .control_plane_certificate_expiry_date && <br />}
+                                    <CertificateRenewal
+                                        renewalDate={
+                                            kubernetesCluster
+                                                .control_plane_certificate_rotation_date
+                                        }
+                                    />
+                                </>
+                            )}
+                        </td>
+                    </tr>
+                )}
             </tbody>
         </Table>
     </Card>

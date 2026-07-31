@@ -142,6 +142,12 @@ class Cluster:
     status: str | None
     #: The status of the control plane
     control_plane_status: str | None
+    #: The earliest known kube-api server certificate expiry date
+    control_plane_certificate_expiry_date: datetime.datetime | None
+    #: The number of days before expiry when automatic certificate rotation starts
+    control_plane_certificate_rotation_days: int | None
+    #: The expected start date for automatic control plane certificate rotation
+    control_plane_certificate_rotation_date: datetime.datetime | None
     #: The nodes in the cluster
     nodes: list[Node]
     #: The addons for the cluster
