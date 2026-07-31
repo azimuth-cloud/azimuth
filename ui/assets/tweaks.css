@@ -30,6 +30,12 @@
 .btn-link { padding: 0 !important; }
 .btn-link:focus { box-shadow: none !important; }
 
+/* Keep keyboard focus visible on the certificate renewal popover trigger */
+.certificate-renewal-trigger:focus-visible {
+    outline: 0.25rem solid rgba(var(--bs-primary-rgb), 0.25);
+    outline-offset: 0.125rem;
+}
+
 
 /**
  * Styles for rendering pre elements in a modal.

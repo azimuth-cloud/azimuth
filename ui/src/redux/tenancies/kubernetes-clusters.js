@@ -37,6 +37,16 @@ const {
         ),
         created_at: DateTime.fromISO(cluster.created_at),
         updated_at: !!cluster.updated_at ? DateTime.fromISO(cluster.updated_at) : undefined,
+        control_plane_certificate_expiry_date: (
+            !!cluster.control_plane_certificate_expiry_date ?
+                DateTime.fromISO(cluster.control_plane_certificate_expiry_date) :
+                undefined
+        ),
+        control_plane_certificate_rotation_date: (
+            !!cluster.control_plane_certificate_rotation_date ?
+                DateTime.fromISO(cluster.control_plane_certificate_rotation_date) :
+                undefined
+        ),
         schedule: !!cluster.schedule ? transformSchedule(cluster.schedule) : null
     })
 });
