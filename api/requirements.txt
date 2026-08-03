@@ -1,7 +1,7 @@
 anyio==4.14.2
 asgiref==3.12.1
 attrs==26.1.0
-certifi==2026.6.17
+certifi==2026.7.22
 cffi==2.1.0
 charset-normalizer==3.4.9
 cryptography==49.0.0
@@ -30,7 +30,7 @@ pyasn1==0.6.4
 pycparser==3.0
 pyrsistent==0.20.0
 python-dateutil==2.9.0.post0
-pytz==2026.2
+pytz==2026.3.post1
 PyYAML==6.0.3
 rackit @ git+https://github.com/stackhpc/rackit.git@cb2da480f9fc99f36cc777d58dfbccec33434879
 referencing==0.37.0
