@@ -1247,7 +1247,7 @@ def clusters(request, tenant):
 
                 cluster_type = input_serializer.validated_data["cluster_type"]
 
-                if not scheduling_util.check_max_platform_duration(
+                if not scheduling_util.check_max_platform_lifetime(
                     platform_data=input_serializer.validated_data,
                     max_lifetime=cluster_type.max_lifetime,
                 ):
@@ -1256,7 +1256,7 @@ def clusters(request, tenant):
                     )
                     return response.Response(
                         {
-                            "detail": "Platform exceeds max duration of "
+                            "detail": "Platform exceeds max lifetime of "
                             f"{max_life_hours} hours."
                         },
                         status=status.HTTP_409_CONFLICT,
@@ -1664,7 +1664,7 @@ def kubernetes_clusters(request, tenant):
 
                 cluster_template = input_serializer.validated_data["cluster_template"]
 
-                if not scheduling_util.check_max_platform_duration(
+                if not scheduling_util.check_max_platform_lifetime(
                     platform_data=input_serializer.validated_data,
                     max_lifetime=cluster_template.max_lifetime,
                 ):
@@ -1673,7 +1673,7 @@ def kubernetes_clusters(request, tenant):
                     )
                     return response.Response(
                         {
-                            "detail": "Platform exceeds max duration of "
+                            "detail": "Platform exceeds max lifetime of "
                             f"{max_life_hours} hours."
                         },
                         status=status.HTTP_409_CONFLICT,
