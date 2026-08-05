@@ -48,7 +48,7 @@ class BlockStoreService(Service):
     OpenStack service class for the block store service.
     """
 
-    name = "block_store"
+    name = "block_storage"
     catalog_type = "volumev3"
     path_prefix = "/v3/{project_id}"
 
