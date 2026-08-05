@@ -5,7 +5,7 @@ from types import SimpleNamespace
 from unittest import TestCase, mock
 
 from azimuth.scheduling.util import (
-    check_max_platform_duration,
+    check_max_platform_lifetime,
     lifetime_from_annotations,
 )
 
@@ -18,18 +18,18 @@ class LifetimeFromAnnotationsTestCase(TestCase):
     """Test serialisation to/from the lifetime annotation."""
 
     def test_valid_annotation(self):
-        annotations = {"scheduling.azimuth.stackhpc.com/max-duration-hours": "12"}
+        annotations = {"scheduling.azimuth.stackhpc.com/max-lifetime-hours": "12"}
         self.assertEqual(lifetime_from_annotations(annotations), dt.timedelta(hours=12))
 
     def test_no_annotation(self):
         self.assertIsNone(lifetime_from_annotations({}))
 
     def test_empty_annotation(self):
-        annotations = {"scheduling.azimuth.stackhpc.com/max-duration-hours": ""}
+        annotations = {"scheduling.azimuth.stackhpc.com/max-lifetime-hours": ""}
         self.assertIsNone(lifetime_from_annotations(annotations))
 
 
-class CheckMaxPlatformDurationTestCase(TestCase):
+class CheckMaxPlatformLifetimeTestCase(TestCase):
     def setUp(self):
         # Patch now to be fixed.
         patcher = mock.patch("azimuth.scheduling.util.dt.datetime")
@@ -45,7 +45,7 @@ class CheckMaxPlatformDurationTestCase(TestCase):
             platform_data = self.platform_data(
                 end_time=FIXED_NOW + dt.timedelta(hours=1000)
             )
-            self.assertTrue(check_max_platform_duration(platform_data, None))
+            self.assertTrue(check_max_platform_lifetime(platform_data, None))
 
     def test_scheduling_disabled(self):
         with override_cloud_settings(SCHEDULING={"ENABLED": False}):
@@ -53,30 +53,30 @@ class CheckMaxPlatformDurationTestCase(TestCase):
                 end_time=FIXED_NOW + dt.timedelta(hours=1000)
             )
             self.assertTrue(
-                check_max_platform_duration(platform_data, dt.timedelta(hours=1))
+                check_max_platform_lifetime(platform_data, dt.timedelta(hours=1))
             )
 
-    def test_duration_within_max(self):
+    def test_lifetime_within_max(self):
         with override_cloud_settings(SCHEDULING={"ENABLED": True}):
             platform_data = self.platform_data(
                 end_time=FIXED_NOW + dt.timedelta(hours=1)
             )
             self.assertTrue(
-                check_max_platform_duration(platform_data, dt.timedelta(hours=12))
+                check_max_platform_lifetime(platform_data, dt.timedelta(hours=12))
             )
 
-    def test_duration_at_max_boundary(self):
+    def test_lifetime_at_max_boundary(self):
         # Existing behaviour- boundary is < not <=.
         with override_cloud_settings(SCHEDULING={"ENABLED": True}):
             max_lifetime = dt.timedelta(hours=12)
             platform_data = self.platform_data(end_time=FIXED_NOW + max_lifetime)
-            self.assertFalse(check_max_platform_duration(platform_data, max_lifetime))
+            self.assertFalse(check_max_platform_lifetime(platform_data, max_lifetime))
 
-    def test_duration_exceeds_max(self):
+    def test_lifetime_exceeds_max(self):
         with override_cloud_settings(SCHEDULING={"ENABLED": True}):
             platform_data = self.platform_data(
                 end_time=FIXED_NOW + dt.timedelta(hours=24)
             )
             self.assertFalse(
-                check_max_platform_duration(platform_data, dt.timedelta(hours=12))
+                check_max_platform_lifetime(platform_data, dt.timedelta(hours=12))
             )
