@@ -1251,13 +1251,13 @@ def clusters(request, tenant):
                     platform_data=input_serializer.validated_data,
                     max_lifetime=cluster_type.max_lifetime,
                 ):
-                    max_life_hours: float = (
+                    max_lifetime_hours: float = (
                         cluster_type.max_lifetime.total_seconds() / 3600
                     )
                     return response.Response(
                         {
                             "detail": "Platform exceeds max lifetime of "
-                            f"{max_life_hours} hours."
+                            f"{max_lifetime_hours} hours."
                         },
                         status=status.HTTP_409_CONFLICT,
                     )
@@ -1668,13 +1668,13 @@ def kubernetes_clusters(request, tenant):
                     platform_data=input_serializer.validated_data,
                     max_lifetime=cluster_template.max_lifetime,
                 ):
-                    max_life_hours: float = (
+                    max_lifetime_hours: float = (
                         cluster_template.max_lifetime.total_seconds() / 3600
                     )
                     return response.Response(
                         {
                             "detail": "Platform exceeds max lifetime of "
-                            f"{max_life_hours} hours."
+                            f"{max_lifetime_hours} hours."
                         },
                         status=status.HTTP_409_CONFLICT,
                     )
