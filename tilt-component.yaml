@@ -1,3 +1,4 @@
+---
 #####
 # NOTE
 #
@@ -15,11 +16,13 @@ chart: ./chart
 
 images:
   azimuth-api:
-    context: ./api
+    context: .
+    dockerfile: api/Dockerfile
     chart_path: api.image
 
   azimuth-ui:
-    context: ./ui
+    context: .
+    dockerfile: ui/Dockerfile
     chart_path: ui.image
 
 port_forwards:

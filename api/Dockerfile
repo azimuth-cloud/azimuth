@@ -1,66 +1,96 @@
-FROM ubuntu:24.04 AS python-builder
+# Build args which are used in FROM statements must come before
+# All FROM statements in the dockerfile.
+ARG FINAL_IMAGE_TAG=nonroot
 
-RUN apt-get update && \
-    apt-get install -y git python3 python3-venv && \
-    rm -rf /var/lib/apt/lists/*
+############################
+## INSTALL AND BUILD APP ###
+############################
+FROM ghcr.io/astral-sh/uv:trixie AS build
+# Note: distro should match final image stage to ensure build compat. trixie=debian13
+# Non-slim version required for git.
 
-RUN python3 -m venv /venv && \
-    /venv/bin/pip install -U pip setuptools
+# These env vars setup UV for a docker installation as opposed to
+# the defaults which are optimised for local development.
+# https://docs.astral.sh/uv/guides/integration/docker/#optimizations
+# https://docs.astral.sh/uv/reference/environment/
+ENV UV_NO_DEV=1 \
+    UV_NO_EDITABLE=1 \
+    UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_FROZEN=1 \
+    UV_CACHE_DIR=/uv-cache/ \
+    UV_PYTHON_INSTALL_DIR=/python \
+    UV_PYTHON_INSTALL_BIN=0 \
+    UV_PYTHON_PREFERENCE=only-managed
 
-COPY requirements.txt /app/requirements.txt
-RUN  /venv/bin/pip install --requirement /app/requirements.txt
+WORKDIR /app-source
 
-# Django fails to load templates if this is installed the "regular" way
-# If we use an editable mode install then it works
-COPY . /app
-RUN /venv/bin/pip install -e /app
+### INSTALL PINNED PYTHON ###
+# https://docs.astral.sh/uv/guides/install-python/
+COPY .python-version /app-source
+RUN uv python install \
+    && chmod -R ugo=rX /python
 
+### INSTALL PROJECT INTO VENV ###
+# uv sync --active makes uv (re)create the currently
+# active venv and install into it.
+ENV VIRTUAL_ENV=/app
 
-FROM ubuntu:24.04
+### INSTALL PINNED DEPENDENCIES ###
+# --frozen makes uv install the versions which are pinned in uv.lock
+# Installing the dependencies first optimizes caching so if the app
+# changes but not the deps there is no need to rebuild this.
+COPY uv.lock pyproject.toml /app-source
+RUN --mount=type=cache,target=/uv-cache/ \
+    uv sync --active \
+            --frozen \
+            --no-install-project \
+    && chmod -R ugo=rX /app
 
-# Don't buffer stdout and stderr as it breaks realtime logging
-ENV PYTHONUNBUFFERED 1
+### INSTALL THE PROJECT ###
+# Then install the app.
+COPY . /app-source
+RUN --mount=type=cache,target=/uv-cache/ \
+    uv sync --active \
+            --frozen \
+    && chmod -R ugo=rX /app
 
-# Make httpx and requests use the system trust roots
-# By default, this means we use the roots baked into the image
-ENV SSL_CERT_FILE /etc/ssl/certs/ca-certificates.crt
-ENV REQUESTS_CA_BUNDLE /etc/ssl/certs/ca-certificates.crt
+### INSTALL CONFIG ###
+COPY ./api/etc/gunicorn /etc/gunicorn
+COPY ./api/etc/azimuth /etc/azimuth
+RUN chmod -R ugo=rX /etc/azimuth \
+    && chmod -R ugo=rX /etc/gunicorn
 
-# Create the user that will be used to run the app
-ENV APP_UID 1001
-ENV APP_GID 1001
-ENV APP_USER app
-ENV APP_GROUP app
-RUN groupadd --gid $APP_GID $APP_GROUP && \
-    useradd \
-      --no-create-home \
-      --no-user-group \
-      --gid $APP_GID \
-      --shell /sbin/nologin \
-      --uid $APP_UID \
-      $APP_USER
+### PERFORM SETUP TASKS ###
+# Collect the static files into /var/azimuth
+ENV DJANGO_SETTINGS_MODULE=flexi_settings.settings \
+    DJANGO_FLEXI_SETTINGS_ROOT=/etc/azimuth/settings.py
+RUN /app/bin/django-admin collectstatic \
+    && chmod -R ugo=rX /var/azimuth
 
-RUN apt-get update && \
-    apt-get install --no-install-recommends --no-install-suggests -y ca-certificates python3 tini && \
-    rm -rf /var/lib/apt/lists/*
+###########################
+### COMPILE FINAL IMAGE ###
+###########################
+FROM gcr.io/distroless/cc-debian13:$FINAL_IMAGE_TAG AS final
+# $FINAL_IMAGE_TAG is a build arg defined at the top.
+# In the final build this should be "nonroot".
+# For debugging, debug-nonroot
+# Note: distro should match build stage trixie=debian13
 
-COPY --from=python-builder /venv /venv
-COPY --from=python-builder /app /app
+### COPY IN APP ###
+# Files copied in must have their modes set so the nonroot user may read them.
+# You cannot do it here, chmod does not exist, and the docker flag doesn't work with podman yet.
+# Should be ordered the same as the stages are created above, to allow the parallel build to keep up.
+COPY --from=build /python /python
+COPY --from=build /app /app
+COPY --from=build /etc/gunicorn /etc/gunicorn
+COPY --from=build /etc/azimuth /etc/azimuth
+COPY --from=build /var/azimuth /var/azimuth
 
-# Install Gunicorn config
-COPY ./etc/gunicorn /etc/gunicorn
-
+### SETUP APPLICATION RUNTIME ###
 # Install application configuration using flexi-settings
-ENV DJANGO_SETTINGS_MODULE flexi_settings.settings
-ENV DJANGO_FLEXI_SETTINGS_ROOT /etc/azimuth/settings.py
-COPY ./etc/azimuth /etc/azimuth
-RUN mkdir -p /etc/azimuth/settings.d
-
-# Collect the static files
-RUN /venv/bin/django-admin collectstatic
-
-# By default, serve the app on port 8080 using the app user
+ENV DJANGO_SETTINGS_MODULE=flexi_settings.settings \
+    DJANGO_FLEXI_SETTINGS_ROOT=/etc/azimuth/settings.py
+# By default, serve the app on port 8080
 EXPOSE 8080
-USER $APP_UID
-ENTRYPOINT ["tini", "-g", "--"]
-CMD ["/venv/bin/gunicorn", "--config", "/etc/gunicorn/conf.py", "azimuth_site.wsgi:application"]
+CMD ["/app/bin/gunicorn", "--config", "/etc/gunicorn/conf.py", "azimuth_site.wsgi:application"]

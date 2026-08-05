@@ -1,16 +1,15 @@
+---
 name: Integration tests
 
 on:
-  push
-  # We use pull_request_target so that dependabot-created workflows can run
-  #pull_request_target:
-  #  types:
-  #    - opened
-  #    - synchronize
-  #    - ready_for_review
-  #    - reopened
-  #  branches:
-  #    - master
+  pull_request: #TODO: This change should not make it into the final PR.
+    types:
+      - opened
+      - synchronize
+      - ready_for_review
+      - reopened
+    #branches:
+    #  - master
 
 # Use the head ref for workflow concurrency, with cancellation
 # This should mean that any previous workflows for a PR get cancelled when a new commit is pushed

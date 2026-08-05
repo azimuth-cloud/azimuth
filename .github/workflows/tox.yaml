@@ -1,3 +1,4 @@
+---
 name: Tox unit tests
 
 on:
@@ -14,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.12']
+        python-version: ["3.12"]
 
     steps:
     - name: Check out the repository
@@ -22,21 +23,16 @@ jobs:
       with:
         ref: ${{ inputs.ref || github.ref }}
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+    - name: Set up uv
+      uses: astral-sh/setup-uv@eb1897b8dc4b5d5bfe39a428a8f2304605e0983c # v7.0.0
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install tox
-
     - name: Test with tox
-      run: tox
+      run: uv run tox
 
     - name: Generate coverage reports
-      run: tox -e cover
+      run: uv run tox -e cover
 
     - name: Archive code coverage results
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
