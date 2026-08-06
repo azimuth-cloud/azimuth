@@ -1662,7 +1662,7 @@ def kubernetes_clusters(request, tenant):
                 )
                 input_serializer.is_valid(raise_exception=True)
 
-                cluster_template = input_serializer.validated_data["cluster_template"]
+                cluster_template = input_serializer.validated_data["template"]
 
                 if not scheduling_util.check_max_platform_lifetime(
                     platform_data=input_serializer.validated_data,
