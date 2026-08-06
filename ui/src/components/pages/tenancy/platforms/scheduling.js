@@ -89,7 +89,7 @@ const ProjectedQuotas = ({ quotas }) => {
 const PLATFORM_DURATION_UNITS = ["hours", "days"];
 
 
-const PlatformDurationControl = ({ isInvalid, value, onChange, ...props }) => {
+const PlatformDurationControl = ({ isInvalid, value, onChange, maxLifetimeSeconds, ...props }) => {
     const [count, setCount] = useState(value ? value.count : null);
     const [units, setUnits] = useState(value ? value.units : "days");
 
@@ -103,12 +103,30 @@ const PlatformDurationControl = ({ isInvalid, value, onChange, ...props }) => {
         [count, units]
     );
 
+    // Work out the max value allowed for the currently selected unit, if any
+    const maxHours = maxLifetimeSeconds != null ? maxLifetimeSeconds / 3600 : null;
+    const max = maxHours != null ?
+        (units === "hours" ? Math.floor(maxHours) : Math.floor(maxHours / 24)) :
+        undefined;
+
+    // If the max lifetime is less than a day, "days" is not a usable unit
+    const daysAllowed = maxHours == null || maxHours >= 24;
+    const availableUnits = daysAllowed ?
+        PLATFORM_DURATION_UNITS :
+        PLATFORM_DURATION_UNITS.filter(u => u !== "days");
+
+    useEffect(
+        () => { if( !daysAllowed && units === "days" ) setUnits("hours"); },
+        [daysAllowed]
+    );
+
     return (
         <InputGroup className={isInvalid ? "is-invalid" : undefined}>
             <BSForm.Control
                 isInvalid={isInvalid}
                 type="number"
                 min="1"
+                max={max}
                 step="1"
                 value={count || ""}
                 onChange={handleCountChange}
@@ -117,7 +135,7 @@ const PlatformDurationControl = ({ isInvalid, value, onChange, ...props }) => {
             <BSForm.Control
                 as={Select}
                 required
-                options={PLATFORM_DURATION_UNITS.map(u => ({label: u, value: u}))}
+                options={availableUnits.map(u => ({label: u, value: u}))}
                 // Sort the options by their index in the units
                 sortOptions={opts => sortBy(opts, opt => PLATFORM_DURATION_UNITS.indexOf(opt.value))}
                 value={units}
@@ -134,15 +152,22 @@ export const PlatformSchedulingModal = ({
     useSchedulingData,
     isEdit,
     onCancel,
-    onConfirm
+    onConfirm,
+    maxLifetimeSeconds
 }) => {
     const { loading, fits, quotas, error } = useSchedulingData();
 
     const [platformDuration, setPlatformDuration] = useState(null);
+    // Only relevant when there is no enforced max lifetime, in which case the
+    // platform can be created with no auto-deletion time at all
+    const [noExpiry, setNoExpiry] = useState(false);
+
+    const maxLifetime = maxLifetimeSeconds != null ? parseFloat(maxLifetimeSeconds) : null;
+    const maxLifetimeHours = maxLifetime != null ? Math.floor(maxLifetime / 3600) : null;
 
     const handleConfirm = () => {
         let newSchedule = null;
-        if( platformDuration ) {
+        if( platformDuration && !(maxLifetime == null && noExpiry) ) {
             // On confirmation, convert the duration to an ISO-formatted end time
             const duration = { [platformDuration.units]: platformDuration.count };
             const endTime = DateTime.now().plus(duration);
@@ -163,22 +188,40 @@ export const PlatformSchedulingModal = ({
                     onSubmit={handleConfirm}
                 >
                     {(isEdit || !supportsScheduling) ? undefined : (
-                        <Field
-                            name="platform_duration"
-                            label="Platform auto-deletion time"
-                            helpText={
-                                <>
-                                    The platform will be automatically deleted after this time.<br />
-                                    It can still be manually deleted when no longer required.
-                                </>
-                            }
-                        >
-                            <PlatformDurationControl
-                                required
-                                value={platformDuration}
-                                onChange={setPlatformDuration}
-                            />
-                        </Field>
+                        <>
+                            {!noExpiry && (
+                                <Field
+                                    name="platform_duration"
+                                    label="Platform auto-deletion time"
+                                    helpText={
+                                        <>
+                                            The platform will be automatically deleted after this time.<br />
+                                            It can still be manually deleted when no longer required.
+                                            {maxLifetimeHours != null && (
+                                                <><br /><div className="text-danger">Maximum allowed lifetime: {maxLifetimeHours} hours.</div></>
+                                            )}
+                                        </>
+                                    }
+                                >
+                                    <PlatformDurationControl
+                                        required
+                                        value={platformDuration}
+                                        onChange={setPlatformDuration}
+                                        maxLifetimeSeconds={maxLifetime}
+                                    />
+                                </Field>
+                            )}
+                            {maxLifetime == null && (
+                                <Field name="no_expiry">
+                                    <BSForm.Check
+                                        type="checkbox"
+                                        label="Never automatically delete this platform"
+                                        checked={noExpiry}
+                                        onChange={evt => setNoExpiry(evt.target.checked)}
+                                    />
+                                </Field>
+                            )}
+                        </>
                     )}
                     <Card>
                         <Card.Header>Platform resource consumption</Card.Header>

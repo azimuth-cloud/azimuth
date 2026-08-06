@@ -16,6 +16,7 @@ from ..provider import dto as cloud_dto  # noqa: TID252
 from ..provider import errors as cloud_errors  # noqa: TID252
 from ..scheduling import dto as scheduling_dto  # noqa: TID252
 from ..scheduling import k8s as scheduling_k8s  # noqa: TID252
+from ..scheduling import util as scheduling_util  # noqa: TID252
 from . import dto, errors
 
 logger = logging.getLogger(__name__)
@@ -151,6 +152,9 @@ class Session:
             or 0,
             ct.spec.get("tags", []),
             dateutil.parser.parse(ct.metadata["creationTimestamp"]),
+            scheduling_util.lifetime_from_annotations(
+                ct.metadata.get("annotations", {})
+            ),
         )
 
     @convert_exceptions

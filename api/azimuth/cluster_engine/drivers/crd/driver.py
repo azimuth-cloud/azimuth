@@ -34,9 +34,10 @@ def get_k8s_client(ctx: dto.Context, ensure_namespace: bool = False):
 def _get_cluster_type_dto(raw):
     if raw.get("status") and raw.get("status", {}).get("phase") == "Available":
         return dto.ClusterType.from_dict(
-            raw.metadata.name,
-            raw.status.uiMeta,
-            raw.metadata.resourceVersion,
+            name=raw.metadata.name,
+            spec=raw.status.uiMeta,
+            version=raw.metadata.resourceVersion,
+            annotations=raw.metadata.get("annotations", {}),
         )
 
 
@@ -187,6 +188,23 @@ def create_cluster(
         for key, value in params.items():
             cluster_spec["extraVars"][key] = value
 
+    # Inject scheduling info cluster into the cluster parameters
+    if schedule is not None:
+        now = datetime.datetime.now(tz=datetime.timezone.utc)
+        cluster_spec.setdefault("extraVars", {}).update(
+            {
+                "schedule_start_time": now.isoformat(),
+                "schedule_deletion_time": schedule.end_time.isoformat(),
+                "schedule_lifetime_seconds": int(
+                    (schedule.end_time - now).total_seconds()
+                ),
+            }
+        )
+    if cluster_type.max_lifetime is not None:
+        cluster_spec.setdefault("extraVars", {})["clustertype_max_lifetime_hours"] = (
+            cluster_type.max_lifetime.total_seconds() / 3600
+        )
+
     cluster_resource = client.api(CAAS_API_VERSION).resource("clusters")
     cluster = cluster_resource.create(
         {
@@ -210,7 +228,12 @@ def create_cluster(
     # This may or may not create a Blazar lease to reserve the resources for the
     # platform
     scheduling_k8s.create_scheduling_resources(
-        client, f"caas-{safe_name}", cluster, secret_name, resources, schedule
+        client,
+        f"caas-{safe_name}",
+        cluster,
+        secret_name,
+        resources,
+        schedule,
     )
 
     return get_cluster_dto(cluster)

@@ -1,7 +1,6 @@
 from unittest import TestCase
 
-from ..provider.dto import Tenancy  # noqa: TID252
-from .acls import (
+from azimuth.acls.acls import (
     ACL_ALLOW_IDS_KEY,
     ACL_ALLOW_PATTERN_KEY,
     ACL_DENY_IDS_KEY,
@@ -9,6 +8,7 @@ from .acls import (
     ACL_KEYS,
     allowed_by_acls,
 )
+from azimuth.provider.dto import Tenancy
 
 
 class ACLTestCase(TestCase):

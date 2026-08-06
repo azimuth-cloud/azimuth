@@ -32,6 +32,8 @@ class ClusterTemplate:
     tags: list[str]
     #: The datetime at which the template was created
     created_at: datetime.datetime
+    # The maximum allowable lifetime for clusters
+    max_lifetime: datetime.timedelta | None
 
 
 @dataclasses.dataclass(frozen=True)
