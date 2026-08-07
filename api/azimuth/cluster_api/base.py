@@ -282,6 +282,21 @@ class Session:
             cluster_status.get("kubernetesVersion"),
             cluster_state,
             cluster_status.get("controlPlanePhase", "Unknown"),
+            (
+                dateutil.parser.parse(
+                    cluster_status["controlPlaneCertificateExpiryDate"]
+                )
+                if cluster_status.get("controlPlaneCertificateExpiryDate")
+                else None
+            ),
+            cluster_status.get("controlPlaneCertificateRotationDays"),
+            (
+                dateutil.parser.parse(
+                    cluster_status["controlPlaneCertificateRotationDate"]
+                )
+                if cluster_status.get("controlPlaneCertificateRotationDate")
+                else None
+            ),
             [
                 dto.Node(
                     name,
