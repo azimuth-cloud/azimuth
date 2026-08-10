@@ -1,3 +1,78 @@
+[project]
+name = "azimuth"
+description = "API for managing projects in an OpenStack cloud."
+readme = "README.md"
+requires-python = ">=3.12"
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
+dynamic = ["version"]
+dependencies = [
+    "django>=6.0.7,<7",
+    "django-flexi-settings>=0.1.2",
+    "django-settings-object>=0.1.dev10",
+    "rackit>=0.1.dev12",
+    "jasmin-ldap>=0.3",
+    "gunicorn>=26.0.0",
+    "tzdata>=2026.3",
+    "whitenoise>=6.12.0",
+    "certifi>=2026.6.17",
+    "cryptography>=49.0.0",
+    "djangorestframework>=3.17.1",
+    "docutils>=0.23",
+    "easykube>=0.6.0",
+    "easysemver>=0.2.0",
+    "httpx>=0.28.1",
+    "jinja2>=3.1.6",
+    "jsonschema>=4.26.0",
+    "jsonschema-specifications>=2025.9.1",
+    "oauthlib>=3.3.1",
+    "python-dateutil>=2.9.0.post0",
+    "requests>=2.34.2",
+    "pyrsistent>=0.20.0",
+    "pytz>=2026.2",
+    "rfc3986>=2.0.0",
+    "sniffio>=1.3.1",
+    "voluptuous>=0.16.0",
+    "exceptiongroup>=1.3.1",
+]
+
+[tool.uv.sources]
+django-flexi-settings = { git = "https://github.com/cedadev/django-flexi-settings.git" }
+django-settings-object = { git = "https://github.com/azimuth-cloud/django-settings-object.git" }
+jasmin-ldap = { git = "https://github.com/cedadev/jasmin-ldap.git" }
+rackit = { git = "https://github.com/stackhpc/rackit.git" }
+
+[dependency-groups]
+dev = [
+    "ruff>=0.11.8,<0.12",
+    "coverage>=7.15.2",
+    "python-subunit>=1.4.6",
+    "stestr>=4.2.1",
+    "testtools>=2.9.1",
+    "codespell>=2.4.3",
+    "autopep8>=2.3.2",
+    "mypy>=2.3.0",
+    "types-pyyaml>=6.0.12.20260518",
+    "tox>=4.58.0",
+    "tox-uv>=1.36.0",
+]
+
+# We use hatchling instead of uv's own build backend because UV does not have a way to dynamically get the version from git.
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+# All the python code for this project lives in the 'api' folder.
+[tool.hatch.build.targets.sdist]
+only-include = ["api"]
+sources = ["api"]
+[tool.hatch.build.targets.wheel]
+only-include = ["api"]
+sources = ["api"]
+[tool.hatch.version]
+source = "vcs"
+fallback-version = "0.0.1+unknown"
+
 [tool.ruff]
 line-length = 88
 target-version = "py312"
