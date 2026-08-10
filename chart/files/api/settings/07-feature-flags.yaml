@@ -1,0 +1,9 @@
+{{- if or (not .Values.tags.kubernetes) (not .Values.tags.clusters) -}}
+AZIMUTH:
+  {{- if not .Values.tags.kubernetes }}
+  CLUSTER_API_PROVIDER: null
+  {{- end }}
+  {{- if not .Values.tags.clusters }}
+  CLUSTER_ENGINE: null
+  {{- end }}
+{{- end }}

@@ -314,85 +314,8 @@ apps:
 
 # The cluster engine to use for Cluster-as-a-Service support
 clusterEngine:
-  # The type of cluster engine to use
-  #   Currently only CRD is functional, and AWX support is deprecated
+  # The type of cluster engine to use (only crd is supported)
   type: crd
-  # Parameters for the awx cluster engine
-  # By default, we use values that will work with the managed AWX
-  awx:
-    # The AWX or Ansible Tower URL
-    url:
-    # Whether to verify SSL with the AWX/Tower API
-    verifySsl: true
-    # The username to use for the AWX/Tower API
-    # This user must be at least an org admin for the CaaS organisation
-    username: admin
-    # The name of a secret to get the AWX password from
-    passwordSecretName:
-    # Indicates whether teams should be created automatically
-    createTeams: true
-    # Indicates whether automatically-created teams should be granted access
-    # to all cluster types
-    createTeamAllowAllPermission: true
-    # Indicates whether CaaS resources should be created in AWX
-    createResources: true
-    # Creating resources requires the admin user
-    # If the user specified above is not a global admin, a separate admin username and
-    # password secret should be specified
-    adminUsername:
-    adminPasswordSecretName:
-    # Definition of a custom execution environment for CaaS appliances
-    executionEnvironment:
-      # # The image to use for the execution environment (required)
-      # image: registry.example.com/azimuth/caas-ee:<tag>
-      # # Indicates if the image should be pulled for every job (defaults to false)
-      # # This can be useful in development, but in production the recommended method is
-      # # to set this to false and use immutable tags
-      # alwaysPull: false
-      # # Optional credentials if the image is in a private registry
-      # credentials:
-      #   # The registry host
-      #   host: registry.example.com
-      #   # The username to use to authenticate
-      #   username: <user>
-      #   # The token/password to use to authenticate
-      #   token: <registry token>
-    # Definition of the default projects and job templates.
-    # By default, the StackHPC demo appliances will be used
-    defaultProjects:
-      # - # The name of the project (required)
-      #   name: My Site Appliances
-      #   # The git URL of the project (required)
-      #   gitUrl: https://github.com/myorg/site-appliances.git
-      #   # The branch, tag or commit id to use (required)
-      #   gitVersion: master
-      #   # The base URL for cluster metadata files (required)
-      #   metadataRoot: https://raw.githubusercontent.com/myorg/site-appliances/master/ui-meta
-      #   ##
-      #   # OPTIONAL KEYS
-      #   ##
-      #   # Indicates if the project should be updated to the latest version on each job launch
-      #   # Can be useful during development but recommend to leave as false in production
-      #   # Defaults to false if not given
-      #   alwaysUpdate: true
-      #   # List of playbooks to create job templates for
-      #   # If not given, a job template is created for each playbook in the project
-      #   playbooks: ['cluster1-playbook.yml', 'cluster2-playbook.yml']
-      #   # Map whose keys are the playbooks and whose values are maps of Ansible extra_vars for those playbooks
-      #   extraVars:
-      #     # This special key can be used to set common extra_vars for all playbooks in a project
-      #     __ALL__: { var1: value1, var2: value2 }
-      #     cluster1-playbook.yml: { var1: "override value1" }
-  # Configuration for the Terraform backend
-  terraformBackend:
-    # Indicates if the Terraform backend should be configured
-    enabled: true
-    # The type of the Terraform backend to use (currently only consul is supported)
-    type: consul
-    # Configuration for the consul backend
-    consul:
-      # The address, including port, of the Consul server to use
-      address:
 
 # The SSH key store to use
 # The portal asks this store for the SSH key for a user
