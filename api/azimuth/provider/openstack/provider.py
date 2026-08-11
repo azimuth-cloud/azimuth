@@ -1225,9 +1225,11 @@ class ScopedSession(base.ScopedSession):
         params = dict(
             security_group_id=secgroup.id,
             ethertype="IPv4",
-            direction="ingress"
-            if direction is dto.FirewallRuleDirection.INBOUND
-            else "egress",
+            direction=(
+                "ingress"
+                if direction is dto.FirewallRuleDirection.INBOUND
+                else "egress"
+            ),
         )
         if protocol != dto.FirewallRuleProtocol.ANY:
             params.update(protocol=protocol.name.lower())
