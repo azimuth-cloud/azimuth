@@ -5,10 +5,10 @@ certifi==2026.7.22
 cffi==2.1.1
 charset-normalizer==3.4.9
 cryptography==50.0.0
-Django==6.0.8
+Django==6.1
 django-flexi-settings @ git+https://github.com/cedadev/django-flexi-settings.git@68eb74b00e28448279e7d800889d6e39466bf0ce
 django-settings-object @ git+https://github.com/azimuth-cloud/django-settings-object.git@e7d2b6be4f4141e79b1f437be423354a6265a8dc
-djangorestframework==3.17.1
+djangorestframework==3.18.0
 docutils==0.23
 easykube==0.6.0
 easysemver==0.2.0
