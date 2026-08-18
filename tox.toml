@@ -70,7 +70,6 @@ description = "Run Ruff checks"
 commands = [["ruff", "check", "{tox_root}/api"], ["ruff", "format", "{tox_root}/api", "--check"]]
 
 [env.cover]
-change_dir = "{toxinidir}/api"
 commands = [
   [
     "coverage",
@@ -100,9 +99,6 @@ commands = [
     "report",
   ],
 ]
-
-[env.cover.set_env]
-VIRTUAL_ENV = "{envdir}"
 
 [env.mypy]
 commands = [["mypy", "{tox_root}/api", { replace = "posargs", default = [], extend = true }]]
