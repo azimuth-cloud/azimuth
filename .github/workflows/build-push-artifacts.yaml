@@ -70,7 +70,8 @@ jobs:
         uses: azimuth-cloud/github-actions/docker-multiarch-build-push@master
         with:
           cache-key: ${{ matrix.component }}
-          context: ./${{ matrix.component }}
+          context: .
+          file: ./${{ matrix.component }}/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.image-meta.outputs.tags }}
