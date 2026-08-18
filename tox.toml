@@ -1,0 +1,108 @@
+---
+min_version = "4.0.0"
+env_list = [
+  "py3", # latest python
+  "ruff",
+  "codespell",
+  "autofix",
+]
+no_package = true
+
+[env_run_base]
+runner = "uv-venv-lock-runner"
+change_dir = "{toxinidir}/api"
+commands = [
+  [
+    'python',
+    '--version',
+  ],
+  [
+    "python",
+    "manage.py",
+    "test",
+    "tests",
+    { replace = "posargs", default = [
+    ], extend = true },
+  ],
+]
+
+[env_run_base.set_env]
+PYTHONWARNINGS = "default::DeprecationWarning"
+DJANGO_SETTINGS_MODULE = "tests.settings"
+
+[env.autofix]
+commands = [
+  [
+    "ruff",
+    "format",
+    "{tox_root}/api",
+  ],
+  [
+    "codespell",
+    "{tox_root}/api",
+    "-w",
+    "--ignore-words={tox_root}/.codespellignore",
+  ],
+  [
+    "ruff",
+    "check",
+    "{tox_root}/api",
+    "--fix",
+  ],
+]
+
+[env.black]
+commands = [["black", "{tox_root}/api", "{posargs}"]]
+
+[env.codespell]
+commands = [
+  [
+    "codespell",
+    "{tox_root}/api",
+    "--ignore-words={tox_root}/.codespellignore",
+    { replace = "posargs", default = [
+    ], extend = true },
+  ],
+]
+
+[env.ruff]
+description = "Run Ruff checks"
+commands = [["ruff", "check", "{tox_root}/api"], ["ruff", "format", "{tox_root}/api", "--check"]]
+
+[env.cover]
+change_dir = "{toxinidir}/api"
+commands = [
+  [
+    "coverage",
+    "run",
+    "--source",
+    "azimuth,azimuth_auth,azimuth_site",
+    "manage.py",
+    "test",
+    "tests",
+    { replace = "posargs", default = [
+    ], extend = true },
+  ],
+  [
+    "coverage",
+    "html",
+    "-d",
+    "{toxinidir}/cover",
+  ],
+  [
+    "coverage",
+    "xml",
+    "-o",
+    "{toxinidir}/cover/coverage.xml",
+  ],
+  [
+    "coverage",
+    "report",
+  ],
+]
+
+[env.cover.set_env]
+VIRTUAL_ENV = "{envdir}"
+
+[env.mypy]
+commands = [["mypy", "{tox_root}/api", { replace = "posargs", default = [], extend = true }]]
