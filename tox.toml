@@ -1,7 +1,6 @@
----
 min_version = "4.0.0"
 env_list = [
-  "py312", # prod python version (in .python_version)
+  "py314", # prod python version (in .python_version)
   "py3", # latest python
   "ruff",
   "codespell",
