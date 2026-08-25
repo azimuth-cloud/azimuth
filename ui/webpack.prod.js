@@ -1,3 +1,7 @@
+// Babel 8 requires explicitly setting the target env to prod
+// otherwise it doesn't build the app properly
+process.env.NODE_ENV = 'production';
+
 const webpack = require('webpack');
 const { merge } = require('webpack-merge');
 const TerserPlugin = require("terser-webpack-plugin");
