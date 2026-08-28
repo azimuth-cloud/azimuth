@@ -12,7 +12,7 @@ dependencies = [
     "django-settings-object>=0.1.dev10",
     "rackit>=0.1.dev12",
     "jasmin-ldap>=0.3",
-    "gunicorn>=26.1.0",
+    "gunicorn>=26.2.0",
     "tzdata>=2026.3",
     "whitenoise>=6.12.0",
     "certifi>=2026.7.22",
@@ -44,7 +44,7 @@ rackit = { git = "https://github.com/stackhpc/rackit.git" }
 
 [dependency-groups]
 dev = [
-    "ruff>=0.16.3,<0.17",
+    "ruff>=0.16.4,<0.17",
     "coverage>=7.15.4",
     "python-subunit>=1.4.6",
     "stestr>=4.2.1",
