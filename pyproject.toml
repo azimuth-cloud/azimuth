@@ -16,7 +16,7 @@ dependencies = [
     "tzdata>=2026.3",
     "whitenoise>=6.12.0",
     "certifi>=2026.7.22",
-    "cryptography>=50.0.0",
+    "cryptography>=50.0.1",
     "djangorestframework>=3.18.0",
     "docutils>=0.23",
     "easykube>=0.6.0",
@@ -44,8 +44,8 @@ rackit = { git = "https://github.com/stackhpc/rackit.git" }
 
 [dependency-groups]
 dev = [
-    "ruff>=0.16.4,<0.17",
-    "coverage>=7.15.4",
+    "ruff>=0.16.5,<0.17",
+    "coverage>=7.16.0",
     "python-subunit>=1.4.6",
     "stestr>=4.2.1",
     "testtools>=2.9.1",
@@ -53,7 +53,7 @@ dev = [
     "autopep8>=2.3.2",
     "mypy>=2.3.1",
     "types-pyyaml>=6.0.12.20260815",
-    "tox>=4.60.0",
+    "tox>=4.61.1",
     "tox-uv>=1.36.0",
 ]
 
