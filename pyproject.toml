@@ -47,7 +47,7 @@ rackit = { git = "https://github.com/stackhpc/rackit.git" }
 
 [dependency-groups]
 dev = [
-    "ruff>=0.16.4,<0.17",
+    "ruff>=0.16.5,<0.17",
     "coverage>=7.15.4",
     "python-subunit>=1.4.6",
     "stestr>=4.2.1",
