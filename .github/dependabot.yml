@@ -37,6 +37,8 @@ updates:
     commit-message:
     # Prefix all commit messages with "pip: "
       prefix: "pip"
+    cooldown:
+      default-days: 7
 
   # Automatically propose PRs for Python dependencies
   - package-ecosystem: npm
@@ -51,3 +53,5 @@ updates:
       - automation
       - javascript
       - ui
+    cooldown:
+      default-days: 7
