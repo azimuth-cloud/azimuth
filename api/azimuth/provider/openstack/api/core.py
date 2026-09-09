@@ -361,7 +361,13 @@ class ServiceDescriptor(rackit.CachedProperty):
         try:
             url = instance.endpoints[self.service_cls.catalog_type]
         except KeyError:
-            raise ServiceNotSupported(self.service_cls.catalog_type)
+            if self.service_cls.legacy_catalog_type:
+                try:
+                    url = instance.endpoints[self.service_cls.legacy_catalog_type]
+                except KeyError:
+                    raise ServiceNotSupported(self.service_cls.catalog_type)
+            else:
+                raise ServiceNotSupported(self.service_cls.catalog_type)
         return self.service_cls(url, instance.session)
 
 
@@ -373,7 +379,11 @@ class Service(rackit.Connection):
     #: The name of the catalog type that this service is for
     #: This is used to retrieve the endpoint from the service catalog
     catalog_type = None
-    #: The specific microversion to request, if required
+    #: Fallback catalog type for backwards compatibility if `catalog_type`
+    #: endpoint isn't found
+    legacy_catalog_type = None
+    #: The specific microversion to request, if required.
+    #: Only applies to `catalog_type`, incompatible with `legacy_catalog_type`.
     microversion = None
 
     def __init_subclass__(cls, **kwargs):

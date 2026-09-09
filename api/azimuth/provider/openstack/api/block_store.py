@@ -49,7 +49,8 @@ class BlockStoreService(Service):
     """
 
     name = "block_store"
-    catalog_type = "volumev3"
+    catalog_type = "block-storage"
+    legacy_catalog_type = "volumev3"
     path_prefix = "/v3/{project_id}"
 
     limits = Endpoint(Limits)
