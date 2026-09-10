@@ -32,19 +32,10 @@ port_forwards:
 
 local_resources:
   azimuth-ui-install:
-    cmd:
-      - yarn
-      - --cwd
-      - ./ui
-      - install
-      - --frozen-lockfile
+    cmd: "cd ./ui && yarn install --frozen-lockfile"
   azimuth-ui:
     resource_deps:
       - azimuth-ui-install
-    serve_cmd:
-      - yarn
-      - --cwd
-      - ./ui
-      - serve
+    serve_cmd: "cd ./ui && yarn serve"
     links:
       - http://localhost:3000
