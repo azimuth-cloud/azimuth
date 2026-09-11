@@ -7,7 +7,7 @@ license = "BSD-3-Clause"
 license-files = ["LICENSE"]
 dynamic = ["version"]
 dependencies = [
-    "django>=6.1,<7",
+    "django>=6.1.1,<7",
     "django-flexi-settings>=0.1.2",
     "django-settings-object>=0.1.dev10",
     "rackit>=0.1.dev12",
@@ -47,7 +47,7 @@ rackit = { git = "https://github.com/stackhpc/rackit.git" }
 
 [dependency-groups]
 dev = [
-    "ruff>=0.16.5,<0.17",
+    "ruff>=0.16.6,<0.17",
     "coverage>=7.16.0",
     "python-subunit>=1.4.6",
     "stestr>=4.2.1",
