@@ -2,6 +2,7 @@
 # act -W .github/workflows/helm-lint.yaml workflow_call -s GITHUB_TOKEN=$(gh auth token)
 name: Helm Lint
 on:
+  push:
   # For manual testing
   workflow_dispatch:
 
