@@ -1,0 +1,46 @@
+---
+name: Push OCI chart
+
+on:
+  # Publish artifacts on every push to master and every tag
+  push:
+
+jobs:
+  build_push_chart:
+    name: Push azimuth-flux helm chart
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      packages: none
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Get SemVer version for current commit
+        id: semver
+        uses: azimuth-cloud/github-actions/semver@master
+
+      - name: Publish Helm charts
+        uses: azimuth-cloud/github-actions/helm-publish@PLATFORM-1316-helm-charts
+        with:
+          directory: chart
+          username: ${{ secrets.QUAY_IO_USER }}
+          token: ${{ secrets.QUAY_IO_TOKEN }}
+          registry: quay.io
+          repository: azimuth/azimuth
+          version: ${{ steps.semver.outputs.version }}
+          app-version: ${{ steps.semver.outputs.short-sha }}
+
+      - name: Publish artifact metadata
+        uses: azimuth-cloud/github-actions/artifacthub-metadata@PLATFORM-1316-helm-charts
+        with:
+          directory: chart
+          registry: quay.io
+          repository: azimuth/azimuth
+          username: ${{ secrets.QUAY_IO_USER }}
+          token: ${{ secrets.QUAY_IO_TOKEN }}
