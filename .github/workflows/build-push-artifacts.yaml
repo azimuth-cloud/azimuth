@@ -79,24 +79,17 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
   build_push_chart:
-    name: Build and push Helm chart
+    name: Package and push azimuth helm chart
     runs-on: ubuntu-latest
-    # Only build and push the chart if the images built successfully
-    needs: [build_push_images]
-    outputs:
-      chart-version: ${{ steps.semver.outputs.version }}
     permissions:
-      contents: write
-      id-token: none
+      contents: read
+      id-token: write # Needed to sign the chart
       packages: none
-      security-events: none
     steps:
       - name: Check out the repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: ${{ inputs.ref || github.ref }}
-          # This is important for the semver action to work correctly
-          # when determining the number of commits since the last tag
           fetch-depth: 0
 
       - name: Get SemVer version for current commit
@@ -104,8 +97,21 @@ jobs:
         uses: azimuth-cloud/github-actions/semver@master
 
       - name: Publish Helm charts
-        uses: azimuth-cloud/github-actions/helm-publish@master
+        uses: azimuth-cloud/github-actions/helm-publish-oci@master
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          directory: chart
+          username: ${{ secrets.QUAY_IO_USER }}
+          token: ${{secrets.QUAY_IO_TOKEN}}
+          registry: quay.io
+          repository: azimuth/azimuth
           version: ${{ steps.semver.outputs.version }}
           app-version: ${{ steps.semver.outputs.short-sha }}
+
+      - name: Publish artifact metadata
+        uses: azimuth-cloud/github-actions/artifacthub-metadata@master
+        with:
+          directory: chart
+          registry: quay.io
+          repository: azimuth/azimuth
+          username: ${{ secrets.QUAY_IO_USER }}
+          token: ${{ secrets.QUAY_IO_TOKEN }}
