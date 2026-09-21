@@ -36,7 +36,7 @@ import { useKubernetesAppFormState, KubernetesAppForm } from './kubernetes_apps/
 
 
 const PlatformTypeSelectCard = ({ platformType, selected, onSelect }) => (
-    <Card className="platform-type-select-card">
+    <Card className="platform-type-select-card text-center">
         <Card.Header as="h5">{platformType.name}</Card.Header>
         <Card.Img src={platformType.logo} />
         <Card.Body className="small">
@@ -409,7 +409,7 @@ const CreatePlatformModal = ({
             show={show}
         >
             <Modal.Header closeButton>
-                <Modal.Title>Create a new platform</Modal.Title>
+                <Modal.Title className='text-center'>Create a new platform</Modal.Title>
             </Modal.Header>
             <Modal.Body>
                 <Nav
