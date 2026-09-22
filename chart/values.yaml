@@ -171,6 +171,8 @@ settings:
   sessionCookieName:
   # The SameSite policy for the session cookie (e.g. Lax, Strict, None)
   sessionCookieSameSite:
+  # Whether the session cookie should be marked as HttpOnly
+  sessionCookieHttpOnly:
   # The name of the next URL cookie
   nextUrlCookieName:
   # List of curated sizes
