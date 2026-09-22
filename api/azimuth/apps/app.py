@@ -113,6 +113,7 @@ class Session(base.Session):
         Converts an app template from the Kubernetes API to a DTO.
         """
         status = at.get("status", {})
+        annotations = at.metadata.get("annotations", {})
         return dto.AppTemplate(
             at.metadata.name,
             status.get("label", at.metadata.name),
@@ -128,6 +129,9 @@ class Session(base.Session):
                 )
                 for version in status.get("versions", [])
             ],
+            annotations.get("acl.azimuth.stackhpc.com/catalogue-name", "Uncategorized"),
+            annotations.get("acl.azimuth.stackhpc.com/catalogue-precedence", "100"),
+            annotations.get("acl.azimuth.stackhpc.com/catalogue-shown", "True"),
         )
 
     @convert_exceptions

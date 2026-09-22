@@ -108,6 +108,12 @@ class ClusterType:
     version: str | None
     # The maximum allowable lifetime for clusters
     max_lifetime: timedelta | None
+    #: The catalogue of the cluster
+    catalogue: str
+    #: The precedence of the catalogue
+    precedence: int
+    #:If the catalogue is shown or hidden by default
+    shown: bool
 
     @classmethod
     def from_dict(cls, name, spec, version=None, *, annotations):
@@ -154,6 +160,9 @@ class ClusterType:
             spec.get("usage_template", spec.get("usageTemplate", None)),
             version,
             scheduling_util.lifetime_from_annotations(annotations),
+            annotations.get("acl.azimuth.stackhpc.com/catalogue-name", "Uncategorized"),
+            annotations.get("acl.azimuth.stackhpc.com/catalogue-precedence", "100"),
+            annotations.get("acl.azimuth.stackhpc.com/catalogue-shown", "True"),
         )
 
     @classmethod

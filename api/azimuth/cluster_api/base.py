@@ -131,6 +131,7 @@ class Session:
         Converts a cluster template from the Kubernetes API to a DTO.
         """
         values = ct.spec["values"]
+        annotations = ct.metadata.get("annotations", {})
         # We only need to account for the etcd volume if it has type Volume
         etcd_volume_size = 0
         etcd_volume = values.get("etcd", {}).get("blockDevice")
@@ -155,6 +156,9 @@ class Session:
             scheduling_util.lifetime_from_annotations(
                 ct.metadata.get("annotations", {})
             ),
+            annotations.get("acl.azimuth.stackhpc.com/catalogue-name", "Uncategorized"),
+            annotations.get("acl.azimuth.stackhpc.com/catalogue-precedence", "100"),
+            annotations.get("acl.azimuth.stackhpc.com/catalogue-shown", "True"),
         )
 
     @convert_exceptions
@@ -322,7 +326,10 @@ class Session:
             ],
             [
                 dto.Service(
-                    name, service["label"], service["fqdn"], service.get("iconUrl")
+                    name,
+                    service["label"],
+                    service["fqdn"],
+                    service.get("iconUrl"),
                 )
                 for name, service in cluster_status.get("services", {}).items()
             ],

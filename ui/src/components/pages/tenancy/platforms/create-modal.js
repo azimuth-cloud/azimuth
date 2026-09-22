@@ -6,6 +6,7 @@ import Col from 'react-bootstrap/Col';
 import Modal from 'react-bootstrap/Modal';
 import Nav from 'react-bootstrap/Nav';
 import Row from 'react-bootstrap/Row';
+import Accordion from 'react-bootstrap/Accordion';
 
 import { StatusCodes } from 'http-status-codes';
 
@@ -36,7 +37,7 @@ import { useKubernetesAppFormState, KubernetesAppForm } from './kubernetes_apps/
 
 
 const PlatformTypeSelectCard = ({ platformType, selected, onSelect }) => (
-    <Card className="platform-type-select-card">
+    <Card className="platform-type-select-card text-center">
         <Card.Header as="h5">{platformType.name}</Card.Header>
         <Card.Img src={platformType.logo} />
         <Card.Body className="small">
@@ -65,13 +66,51 @@ const PlatformTypeSelectCard = ({ platformType, selected, onSelect }) => (
     </Card>
 );
 
-
 const PlatformTypeForm = ({ platformTypes, selected, onSelect, onCancel }) => {
     const sortedPlatformTypes = sortBy(Object.values(platformTypes), pt => pt.name);
+
+    //sort by precendence (ascending) with name as a tiebreaker (set used as unique filter)
+    const catalogue_names = new Set(sortedPlatformTypes
+        .toSorted((p1,p2) => p1.name - p2.name)
+        .toSorted((p1,p2) => p1.precedence - p2.precedence)
+        .map(pt => pt.catalogue))
+
+    const catalogues = new Array;
+
+    for (const name of catalogue_names){ 
+        let platform = sortedPlatformTypes.filter(pt => pt.catalogue === name)[0];
+        catalogues.push({name:name, precedence: platform.precedence, shown: platform.shown})
+    }
+
     return (
         <>
             <Modal.Body>
-                <Row className="justify-content-center g-3">
+                {catalogues.length > 1 ? (
+                    <Accordion defaultActiveKey={(selected) ? sortedPlatformTypes
+                        .filter((pt) => pt.id === selected)[0].catalogue : catalogues[0].name}>
+                        {catalogues.map(catalogue => (
+                            <Accordion.Item eventKey={catalogue.name} key={catalogue.name}>
+                                <Accordion.Header>
+                                    {catalogue.name}
+                                </Accordion.Header>
+                                <Accordion.Body>
+                                    <Row className="justify-content-center g-3">
+                                        {sortedPlatformTypes.filter((pt) => pt.catalogue === catalogue.name).map(pt => (
+                                            <Col key={pt.id} className="platform-type-select-card-wrapper">
+                                                <PlatformTypeSelectCard
+                                                    platformType={pt}
+                                                    selected={pt.id === selected}
+                                                    onSelect={() => onSelect(pt.id)}
+                                                />
+                                            </Col>
+                                        ))}
+                                    </Row>
+                                </Accordion.Body>
+                            </Accordion.Item>
+                        ))}
+                    </Accordion>
+                ) : (
+                    <Row className="justify-content-center g-3">
                     {sortedPlatformTypes.length > 0 ? (
                         sortedPlatformTypes.map(pt => (
                             <Col key={pt.id} className="platform-type-select-card-wrapper">
@@ -87,7 +126,8 @@ const PlatformTypeForm = ({ platformTypes, selected, onSelect, onCancel }) => {
                             No platform templates available.
                         </Col>
                     )}
-                </Row>
+                    </Row>
+                )}
             </Modal.Body>
             <Modal.Footer>
                 <Button variant="secondary" onClick={onCancel}>
@@ -354,7 +394,10 @@ const CreatePlatformModal = ({
                             description: (
                                 "Kubernetes cluster with optional addons including " +
                                 "monitoring and ingress."
-                            )
+                            ),
+                            catalogue: "TEMP",
+                            precedence: 100,
+                            shown: true
                         }
                     } :
                     undefined
@@ -367,6 +410,9 @@ const CreatePlatformModal = ({
                         name: value.label,
                         logo: value.logo,
                         description: value.description,
+                        catalogue: value.catalogue,
+                        precedence: parseInt(value.precedence),
+                        shown: value.shown,
                         object: value
                     }
                 })
@@ -379,6 +425,9 @@ const CreatePlatformModal = ({
                         name: value.label,
                         logo: value.logo,
                         description: value.description,
+                        catalogue: value.catalogue,
+                        precedence: parseInt(value.precedence),
+                        shown: value.shown !== "False", //so that it defaults to shown
                         object: value
                     }
                 })
@@ -409,7 +458,7 @@ const CreatePlatformModal = ({
             show={show}
         >
             <Modal.Header closeButton>
-                <Modal.Title>Create a new platform</Modal.Title>
+                <Modal.Title className='text-center'>Create a new platform</Modal.Title>
             </Modal.Header>
             <Modal.Body>
                 <Nav
