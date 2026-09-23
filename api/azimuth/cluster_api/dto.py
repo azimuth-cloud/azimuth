@@ -35,11 +35,9 @@ class ClusterTemplate:
     # The maximum allowable lifetime for clusters
     max_lifetime: datetime.timedelta | None
     #: The catalogue of the cluster
-    catalogue: str
+    catalogue_name: str
     #: The precedence of the catalogue
-    precedence: int
-    #:If the catalogue is shown or hidden by default
-    shown: bool
+    catalogue_precedence: int
 
 
 @dataclasses.dataclass(frozen=True)

@@ -118,9 +118,10 @@ class Session(base.Session):
                 )
                 for version in status.get("versions", [])
             ],
-            annotations.get("acl.azimuth.stackhpc.com/catalogue-name", "Default"),
-            annotations.get("acl.azimuth.stackhpc.com/catalogue-precedence", "100"),
-            annotations.get("acl.azimuth.stackhpc.com/catalogue-shown", "True"),
+            annotations.get(
+                "catalogue.azimuth.stackhpc.com/catalogue-name", "Uncategorized"
+            ),
+            annotations.get("catalogue.azimuth.stackhpc.com/catalogue-precedence", 100),
         )
 
     @convert_exceptions

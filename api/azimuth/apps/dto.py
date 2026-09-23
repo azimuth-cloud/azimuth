@@ -53,11 +53,9 @@ class AppTemplate:
     #: These should always be sorted from latest to oldest
     versions: list[Version]
     #: The catalogue of the app
-    catalogue: str
+    catalogue_name: str
     #: The precedence of the catalogue
-    precedence: int
-    #:If the catalogue is shown or hidden by default
-    shown: bool
+    catalogue_precedence: int
 
 
 @dataclasses.dataclass(frozen=True)
