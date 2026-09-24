@@ -6,6 +6,8 @@ import Col from 'react-bootstrap/Col';
 import Modal from 'react-bootstrap/Modal';
 import Nav from 'react-bootstrap/Nav';
 import Row from 'react-bootstrap/Row';
+import Tab from 'react-bootstrap/Tab';
+import Tabs from 'react-bootstrap/Tabs';
 
 import { StatusCodes } from 'http-status-codes';
 
@@ -65,29 +67,54 @@ const PlatformTypeSelectCard = ({ platformType, selected, onSelect }) => (
     </Card>
 );
 
-
 const PlatformTypeForm = ({ platformTypes, selected, onSelect, onCancel }) => {
     const sortedPlatformTypes = sortBy(Object.values(platformTypes), pt => pt.name);
+
+    //sort by precendence (ascending) with name as a tiebreaker (set used as unique filter)
+    const catalogue_names = new Set(sortedPlatformTypes
+        .toSorted((p1,p2) => p1.name - p2.name)
+        .toSorted((p1,p2) => p1.catalogue_precedence - p2.catalogue_precedence)
+        .map(pt => pt.catalogue_name))
+
+    const catalogues = new Array;
+
+    for (const name of catalogue_names){ 
+        let platform = sortedPlatformTypes.filter(pt => pt.catalogue_name === name)[0];
+        catalogues.push({catalogue_name:name, catalogue_precedence: platform.catalogue_precedence})
+    }
+
     return (
         <>
             <Modal.Body>
-                <Row className="justify-content-center g-3">
-                    {sortedPlatformTypes.length > 0 ? (
-                        sortedPlatformTypes.map(pt => (
-                            <Col key={pt.id} className="platform-type-select-card-wrapper">
-                                <PlatformTypeSelectCard
-                                    platformType={pt}
-                                    selected={pt.id === selected}
-                                    onSelect={() => onSelect(pt.id)}
-                                />
-                            </Col>
-                        ))
-                    ) : (
+                {sortedPlatformTypes.length > 0 ? (
+                    <Tabs defaultActiveKey={(selected) ? sortedPlatformTypes
+                        .filter((pt) => pt.id === selected)[0].catalogue_name : catalogues[0].catalogue_name}
+                    id="uncontrolled-tab-example"
+                    className="mb-0 nav nav-tabs nav-pills"
+                    >
+                        {catalogues.map(catalogue => (
+                            <Tab className="border border-primary border-2 py-3" eventKey={catalogue.catalogue_name} title={catalogue.catalogue_name} key={catalogue.catalogue_name}>
+                                <Row className="justify-content-center g-3">
+                                    {sortedPlatformTypes.filter((pt) => pt.catalogue_name === catalogue.catalogue_name).map(pt => (
+                                        <Col key={pt.id} className="platform-type-select-card-wrapper">
+                                            <PlatformTypeSelectCard
+                                                platformType={pt}
+                                                selected={pt.id === selected}
+                                                onSelect={() => onSelect(pt.id)}
+                                            />
+                                        </Col>
+                                    ))}
+                                </Row>
+                            </Tab>
+                        ))}
+                    </Tabs>
+                ) : (
+                    <Row className="justify-content-center g-3">
                         <Col className="text-center text-muted py-4">
                             No platform templates available.
                         </Col>
-                    )}
-                </Row>
+                    </Row>
+                )}
             </Modal.Body>
             <Modal.Footer>
                 <Button variant="secondary" onClick={onCancel}>
@@ -354,7 +381,9 @@ const CreatePlatformModal = ({
                             description: (
                                 "Kubernetes cluster with optional addons including " +
                                 "monitoring and ingress."
-                            )
+                            ), //kube is a special case, it's data is split into three objects with keys related to kube version, this is a hack to always get the first key
+                            catalogue_name: Object.values(tenancy.kubernetesClusterTemplates.data)[0].catalogue,
+                            catalogue_precedence: Object.values(tenancy.kubernetesClusterTemplates.data)[0].precedence,
                         }
                     } :
                     undefined
@@ -367,6 +396,8 @@ const CreatePlatformModal = ({
                         name: value.label,
                         logo: value.logo,
                         description: value.description,
+                        catalogue_name: value.catalogue_name,
+                        catalogue_precedence: value.catalogue_precedence,
                         object: value
                     }
                 })
@@ -379,6 +410,8 @@ const CreatePlatformModal = ({
                         name: value.label,
                         logo: value.logo,
                         description: value.description,
+                        catalogue_name: value.catalogue_name,
+                        catalogue_precedence: value.catalogue_precedence,
                         object: value
                     }
                 })

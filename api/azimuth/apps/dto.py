@@ -52,6 +52,10 @@ class AppTemplate:
     #: The available versions for the app template
     #: These should always be sorted from latest to oldest
     versions: list[Version]
+    #: The catalogue of the app
+    catalogue_name: str
+    #: The precedence of the catalogue
+    catalogue_precedence: int
 
 
 @dataclasses.dataclass(frozen=True)

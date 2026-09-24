@@ -108,6 +108,10 @@ class ClusterType:
     version: str | None
     # The maximum allowable lifetime for clusters
     max_lifetime: timedelta | None
+    #: The catalogue of the cluster
+    catalogue_name: str
+    #: The precedence of the catalogue
+    catalogue_precedence: int
 
     @classmethod
     def from_dict(cls, name, spec, version=None, *, annotations):
@@ -154,6 +158,12 @@ class ClusterType:
             spec.get("usage_template", spec.get("usageTemplate", None)),
             version,
             scheduling_util.lifetime_from_annotations(annotations),
+            annotations.get(
+                "catalogue.azimuth.stackhpc.com/catalogue-name", "Uncategorized"
+            ),
+            annotations.get(
+                "catalogue.azimuth.stackhpc.com/catalogue-precedence", "100"
+            ),
         )
 
     @classmethod
