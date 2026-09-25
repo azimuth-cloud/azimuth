@@ -15,10 +15,10 @@
   },
   "homepage": "https://github.com/azimuth-cloud/azimuth",
   "devDependencies": {
-    "@babel/core": "^8.0.5",
+    "@babel/core": "^8.0.6",
     "@babel/plugin-transform-class-properties": "^8.0.1",
     "@babel/plugin-transform-object-rest-spread": "^8.0.1",
-    "@babel/preset-env": "^8.0.5",
+    "@babel/preset-env": "^8.0.6",
     "@babel/preset-react": "^8.0.1",
     "add-asset-html-webpack-plugin": "^6.0.0",
     "assert": "^2.1.0",
@@ -34,7 +34,7 @@
     "style-loader": "^4.0.0",
     "terser-webpack-plugin": "5.6.1",
     "tslib": "2",
-    "webpack": "^5.111.0",
+    "webpack": "^5.111.1",
     "webpack-cli": "^7.2.3",
     "webpack-dev-server": "^6.0.0",
     "webpack-merge": "^6.0.1"
