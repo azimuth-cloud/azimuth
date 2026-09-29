@@ -7,6 +7,9 @@ CSRF_COOKIE_NAME: {{ . }}
 {{- with .Values.settings.sessionCookieSameSite }}
 SESSION_COOKIE_SAMESITE: {{ . | quote }}
 {{- end }}
+{{- with .Values.settings.sessionCookieHttpOnly }}
+SESSION_COOKIE_HTTPONLY: {{ . }}
+{{- end }}
 SESSION_COOKIE_SECURE: {{ .Values.ingress.tls.enabled }}
 {{- with .Values.settings.sessionCookieName }}
 SESSION_COOKIE_NAME: {{ . }}
