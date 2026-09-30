@@ -257,6 +257,9 @@ class AzimuthSettings(SettingsObject):
     #: from the underlying flavor
     CURATED_SIZES = Setting(default=None)
 
+    CATALOGUE_DEFAULT_NAME = Setting(default="General")
+    CATALOGUE_DEFAULT_PRECEDENCE = Setting(default=100)
+
     #: SSH key store configuration
     SSH_KEY_STORE = ObjectFactorySetting(
         # By default, use functionality from the provider to store SSH keys

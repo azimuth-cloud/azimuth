@@ -382,8 +382,8 @@ const CreatePlatformModal = ({
                                 "Kubernetes cluster with optional addons including " +
                                 "monitoring and ingress."
                             ), //kube is a special case, it's data is split into three objects with keys related to kube version, this is a hack to always get the first key
-                            catalogue_name: Object.values(tenancy.kubernetesClusterTemplates.data)[0].catalogue,
-                            catalogue_precedence: Object.values(tenancy.kubernetesClusterTemplates.data)[0].precedence,
+                            catalogue_name: Object.values(tenancy.kubernetesClusterTemplates.data)[0].catalogue_name,
+                            catalogue_precedence: Object.values(tenancy.kubernetesClusterTemplates.data)[0].catalogue_precedence,
                         }
                     } :
                     undefined

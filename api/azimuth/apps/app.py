@@ -10,6 +10,7 @@ from easykube import PRESENT, ApiError, Configuration, SyncClient
 from ..acls import allowed_by_acls  # noqa: TID252
 from ..cluster_api import dto as capi_dto  # noqa: TID252
 from ..provider import base as cloud_base  # noqa: TID252
+from ..settings import AzimuthSettings  # noqa: TID252
 from ..utils import get_namespace  # noqa: TID252
 from . import base, dto, errors
 
@@ -130,9 +131,13 @@ class Session(base.Session):
                 for version in status.get("versions", [])
             ],
             annotations.get(
-                "catalogue.azimuth.stackhpc.com/catalogue-name", "Uncategorized"
+                "catalogue.azimuth.stackhpc.com/catalogue-name",
+                AzimuthSettings.CATALOGUE_DEFAULT_NAME,
             ),
-            annotations.get("catalogue.azimuth.stackhpc.com/catalogue-precedence", 100),
+            annotations.get(
+                "catalogue.azimuth.stackhpc.com/catalogue-precedence",
+                AzimuthSettings.CATALOGUE_DEFAULT_PRECEDENCE,
+            ),
         )
 
     @convert_exceptions
