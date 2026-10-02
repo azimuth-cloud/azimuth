@@ -17,6 +17,7 @@ from ..provider import errors as cloud_errors  # noqa: TID252
 from ..scheduling import dto as scheduling_dto  # noqa: TID252
 from ..scheduling import k8s as scheduling_k8s  # noqa: TID252
 from ..scheduling import util as scheduling_util  # noqa: TID252
+from ..settings import AzimuthSettings  # noqa: TID252
 from . import dto, errors
 
 logger = logging.getLogger(__name__)
@@ -157,9 +158,13 @@ class Session:
                 ct.metadata.get("annotations", {})
             ),
             annotations.get(
-                "catalogue.azimuth.stackhpc.com/catalogue-name", "Uncategorized"
+                "catalogue.azimuth.stackhpc.com/catalogue-name",
+                AzimuthSettings.CATALOGUE_DEFAULT_NAME,
             ),
-            annotations.get("catalogue.azimuth.stackhpc.com/catalogue-precedence", 100),
+            annotations.get(
+                "catalogue.azimuth.stackhpc.com/catalogue-precedence",
+                AzimuthSettings.CATALOGUE_DEFAULT_PRECEDENCE,
+            ),
         )
 
     @convert_exceptions

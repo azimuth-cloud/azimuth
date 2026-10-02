@@ -28,3 +28,9 @@ AZIMUTH:
   {{- with .Values.settings.curatedSizes }}
   CURATED_SIZES: {{ toYaml . | nindent 8 }}
   {{- end }}
+  {{- with .Values.settings.catalogueDefaultName }}
+  CATALOGUE_DEFAULT_NAME:  {{ . }}
+  {{- end }}
+  {{- with .Values.settings.catalogueDefaultPrecedence }}
+  CATALOGUE_DEFAULT_PRECEDENCE:  {{int . }}
+  {{- end }}
