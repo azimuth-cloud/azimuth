@@ -184,6 +184,10 @@ settings:
     #   # and "ephemeral_disk" for the current flavor
     #   description: >-
     #     {{ cpus }} CPUs, {{ ram }} RAM, {{ disk }} disk, {{ ephemeral_disk }} ephemeral disk
+  # Name of default catalogue used for apps with no catalogue set
+  catalogueDefaultName: General
+  # Precedence of this default catalogue (lowest first, integer)
+  catalogueDefaultPrecedence: 100
   coralCredits:
     # uri:
     # tokenSecretRef:
