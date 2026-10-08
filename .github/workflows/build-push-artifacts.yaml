@@ -103,7 +103,7 @@ jobs:
           username: ${{ secrets.QUAY_IO_USER }}
           token: ${{secrets.QUAY_IO_TOKEN}}
           registry: quay.io
-          repository: azimuth/azimuth
+          repository: azimuth/azimuth-charts
           version: ${{ steps.semver.outputs.version }}
           app-version: ${{ steps.semver.outputs.short-sha }}
 
@@ -112,6 +112,6 @@ jobs:
         with:
           directory: chart
           registry: quay.io
-          repository: azimuth/azimuth
+          repository: azimuth/azimuth-charts
           username: ${{ secrets.QUAY_IO_USER }}
           token: ${{ secrets.QUAY_IO_TOKEN }}
