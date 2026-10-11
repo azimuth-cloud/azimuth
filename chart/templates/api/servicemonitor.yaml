@@ -1,0 +1,28 @@
+{{- $component := "api" -}}
+{{- $values := get .Values $component -}}
+{{- if $values.monitoring.enabled -}}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "azimuth.componentname" (list . $component) }}
+  # Labels must match .serviceMonitorSelector.matchLabels of the Prometheus cluster resource
+  # in order for kube-prometheus-stack to scrape the endpoints defined here
+  labels:
+    {{-
+      include "azimuth.componentLabels" (list . $component) |
+        fromYaml |
+        merge $values.monitoring.serviceMonitorLabels |
+        toYaml |
+        nindent 4
+    }}
+spec:
+  selector:
+    matchLabels: {{ include "azimuth.componentLabels" (list . $component) | nindent 6 }}
+  endpoints:
+    - port: metrics
+  namespaceSelector:
+    matchNames: 
+      # Restrict the ServiceMonitor to the relevant namespace
+      - {{ .Release.Namespace }}
+{{- end }}

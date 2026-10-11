@@ -231,7 +231,7 @@ export const Error = ({
 }) => (
     <Alert variant="danger" className="d-flex" {...props}>
         <Row>
-            <Col xs="auto">
+            <Col xs="auto m-auto">
                 <FontAwesomeIcon icon={faExclamationCircle} size={iconSize} />
             </Col>
             <Col>
@@ -458,7 +458,7 @@ export const Select = React.forwardRef(
                 <ReactSelect
                     {...props}
                     options={sortedOptions}
-                    value={selectedOption}
+                    value={selectedOption || ''}
                     onChange={handleSelectChange}
                     ref={selectRef}
                     isDisabled={disabled}

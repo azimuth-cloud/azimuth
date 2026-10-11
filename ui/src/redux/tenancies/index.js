@@ -12,10 +12,21 @@ import { combineEpics, ofType } from 'redux-observable';
 import { actions as sessionActions } from '../session';
 
 import {
+    actionCreators as capabilitiesActionCreators,
+    reducer as capabilitiesReducer
+} from './capabilities';
+
+import {
     actionCreators as quotaActionCreators,
     reducer as quotaReducer,
     epic as quotaEpic
 } from './quotas';
+
+import {
+    actionCreators as idpActionCreators,
+    reducer as idpReducer,
+    epic as idpEpic
+} from './idp';
 
 import {
     actionCreators as imageActionCreators,
@@ -113,7 +124,9 @@ const tenancyActionCreators = {
 
 export const actionCreators = {
     ...tenancyActionCreators,
+    capabilities: capabilitiesActionCreators,
     quota: quotaActionCreators,
+    idp: idpActionCreators,
     image: imageActionCreators,
     size: sizeActionCreators,
     externalIp: externalIpActionCreators,
@@ -166,7 +179,9 @@ export function reducer(state = initialState, action) {
                 ...state,
                 current: {
                     ...state.data[switchTo],
+                    capabilities: capabilitiesReducer(undefined, action),
                     quotas: quotaReducer(undefined, action),
+                    idp: idpReducer(undefined, action),
                     images: imageReducer(undefined, action),
                     sizes: sizeReducer(undefined, action),
                     externalIps: externalIpReducer(undefined, action),
@@ -189,7 +204,9 @@ export function reducer(state = initialState, action) {
                 ...state,
                 current: {
                     ...state.current,
+                    capabilities: capabilitiesReducer(state.current.capabilities, action),
                     quotas: quotaReducer(state.current.quotas, action),
+                    idp: idpReducer(state.current.idp, action),
                     images: imageReducer(state.current.images, action),
                     sizes: sizeReducer(state.current.sizes, action),
                     externalIps: externalIpReducer(state.current.externalIps, action),
@@ -259,6 +276,7 @@ export const epic = combineEpics(
         map(_ => tenancyActionCreators.switchTo(null))
     ),
     quotaEpic,
+    idpEpic,
     imageEpic,
     sizeEpic,
     externalIpEpic,

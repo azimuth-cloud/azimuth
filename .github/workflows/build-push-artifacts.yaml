@@ -1,6 +1,29 @@
+---
 name: Publish artifacts
-# Run the tasks on every push
-on: push
+
+on:
+  # Publish artifacts on every push to master and every tag
+  push:
+    branches:
+      - master
+    tags:
+      - "*"
+  # Also allow publication to be done via a workflow call
+  # In this case, the chart version is returned as an output
+  workflow_call:
+    inputs:
+      ref:
+        type: string
+        description: The ref to build.
+        required: true
+    outputs:
+      chart-version:
+        description: The chart version that was published
+        value: ${{ jobs.build_push_chart.outputs.chart-version }}
+
+env:
+  NGINX_VERSION: 1.31.6
+
 jobs:
   build_push_images:
     name: Build and push images
@@ -10,58 +33,85 @@ jobs:
         include:
           - component: api
           - component: ui
+    permissions:
+      contents: read
+      id-token: write         # needed for signing the images with GitHub OIDC Token
+      packages: write         # required for pushing container images
+      security-events: write  # required for pushing SARIF files
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref || github.ref }}
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v1
+        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Get SemVer version for current commit
+        id: semver
+        uses: azimuth-cloud/github-actions/semver@master
+
       - name: Calculate metadata for image
         id: image-meta
-        uses: docker/metadata-action@v3
+        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6.0.0
         with:
-          images: ghcr.io/stackhpc/azimuth-${{ matrix.component }}
+          images: ghcr.io/azimuth-cloud/azimuth-${{ matrix.component }}
           # Produce the branch name or tag and the SHA as tags
           tags: |
             type=ref,event=branch
             type=ref,event=tag
-            type=sha,prefix=
+            type=raw,value=${{ steps.semver.outputs.short-sha }}
 
       - name: Build and push image
-        uses: stackhpc/github-actions/docker-multiarch-build-push@master
+        uses: azimuth-cloud/github-actions/docker-multiarch-build-push@master
         with:
           cache-key: ${{ matrix.component }}
-          context: ./${{ matrix.component }}
+          context: .
+          file: ./${{ matrix.component }}/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.image-meta.outputs.tags }}
           labels: ${{ steps.image-meta.outputs.labels }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
   build_push_chart:
-    name: Build and push Helm chart
+    name: Package and push azimuth helm chart
     runs-on: ubuntu-latest
-    # Only build and push the chart if the images built successfully
-    needs: [build_push_images]
+    permissions:
+      contents: read
+      id-token: write # Needed to sign the chart
+      packages: none
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # This is important for the semver action to work correctly
-          # when determining the number of commits since the last tag
+          ref: ${{ inputs.ref || github.ref }}
           fetch-depth: 0
 
       - name: Get SemVer version for current commit
         id: semver
-        uses: stackhpc/github-actions/semver@master
+        uses: azimuth-cloud/github-actions/semver@master
 
       - name: Publish Helm charts
-        uses: stackhpc/github-actions/helm-publish@master
+        uses: azimuth-cloud/github-actions/helm-publish-oci@master
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          directory: chart
+          username: ${{ secrets.QUAY_IO_USER }}
+          token: ${{secrets.QUAY_IO_TOKEN}}
+          registry: quay.io
+          repository: azimuth/azimuth-charts
           version: ${{ steps.semver.outputs.version }}
           app-version: ${{ steps.semver.outputs.short-sha }}
+
+      - name: Publish artifact metadata
+        uses: azimuth-cloud/github-actions/artifacthub-metadata@master
+        with:
+          directory: chart
+          registry: quay.io
+          repository: azimuth/azimuth-charts
+          username: ${{ secrets.QUAY_IO_USER }}
+          token: ${{ secrets.QUAY_IO_TOKEN }}

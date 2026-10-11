@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import Button from 'react-bootstrap/Button';
 import Col from 'react-bootstrap/Col';
@@ -9,13 +9,75 @@ import Row from 'react-bootstrap/Row';
 import get from 'lodash/get';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSave } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faSave } from '@fortawesome/free-solid-svg-icons';
 
-import { Field, Form } from '../../../../utils';
+import Cookies from 'js-cookie';
 
+import { Error, Field, Form } from '../../../../utils';
+
+import { PlatformSchedulingModal } from '../scheduling';
 import { PlatformTypeCard } from '../utils';
 
 import { ClusterParameterField } from './parameter-field';
+
+
+const useSchedulingData = (tenancyId, formState) => {
+    const [state, setState] = useState({
+        loading: true,
+        fits: false,
+        quotas: null,
+        error: null
+    });
+
+    const setData = (fits, data) => setState({
+        loading: false,
+        fits,
+        quotas: data.quotas,
+        error: null
+    });
+    const setError = error => setState({
+        loading: false,
+        fits: false,
+        quotas: null,
+        error
+    });
+
+    useEffect(
+        () => {
+            const fetchData = async () => {
+                const headers = { 'Content-Type': 'application/json' };
+                const csrfToken = Cookies.get('csrftoken');
+                if( csrfToken ) headers['X-CSRFToken'] = csrfToken;
+                const url = formState.id ?
+                    `/api/tenancies/${tenancyId}/clusters/${formState.id}/_schedule/` :
+                    `/api/tenancies/${tenancyId}/clusters/_schedule/`;
+                const response = await fetch(
+                    url,
+                    {
+                        method: "POST",
+                        headers,
+                        credentials: "same-origin",
+                        body: JSON.stringify({
+                            name: formState.name,
+                            cluster_type: formState.clusterType.name,
+                            parameter_values: formState.parameterValues
+                        })
+                    }
+                );
+                if( response.ok || response.status === 409 ) {
+                    const data = await response.json();
+                    setData(response.ok, data);
+                }
+                else {
+                    setError(new Error("HTTP request failed"));
+                }
+            };
+            fetchData().catch(setError);
+        },
+        []
+    );
+    return state;
+};
 
 
 const initialParameterValues = (clusterType, cluster) => {
@@ -43,6 +105,7 @@ const initialParameterValues = (clusterType, cluster) => {
 
 
 export const useClusterFormState = (clusterType, cluster) => {
+    const [id, _] = useState(cluster ? cluster.id : "");
     const [name, setName] = useState(cluster ? cluster.name : "");
     const [parameterValues, setParameterValues] = useState(
         initialParameterValues(clusterType, cluster)
@@ -51,6 +114,7 @@ export const useClusterFormState = (clusterType, cluster) => {
         {
             clusterType,
             isEdit: !!cluster,
+            id,
             name,
             setName,
             parameterValues,
@@ -63,15 +127,16 @@ export const useClusterFormState = (clusterType, cluster) => {
     ]
 };
 
-
-
 export const ClusterForm = ({
     formState,
     onSubmit,
     tenancy,
     tenancyActions,
+    capabilities,
     ...props
 }) => {
+    const [showScheduling, setShowScheduling] = useState(false);
+
     const handleNameChange = evt => formState.setName(evt.target.value);
     const handleParameterValueChange = (name) => (value) => formState.setParameterValues(
         prevState => {
@@ -86,42 +151,57 @@ export const ClusterForm = ({
     );
     const handleSubmit = (evt) => {
         evt.preventDefault();
-        onSubmit({
-            name: formState.name,
-            parameterValues: formState.parameterValues
-        });
+        setShowScheduling(true);
     };
-
+    const handleCancel = () => setShowScheduling(false);
+    const handleConfirm = schedule => onSubmit({
+        name: formState.name,
+        parameterValues: formState.parameterValues,
+        schedule
+    });
     return (
-        <Form {...props} onSubmit={handleSubmit}>
-            <Field
-                name="name"
-                label="Platform name"
-                helpText="Must start with a lowercase letter, and only contain lower-case alphanumeric characters & dashes (-)."
+        <>
+            <Form {...props} onSubmit={handleSubmit}>
+                <Field
+                    name="name"
+                    label="Platform name"
+                    helpText="Must start with a lowercase letter, and only contain lower-case alphanumeric characters & dashes (-)."
             >
-                <BSForm.Control
-                    type="text"
-                    placeholder="Platform name"
-                    required
-                    pattern="^[a-z][a-z0-9-]+[a-z0-9]$"
-                    autoComplete="off"
-                    disabled={formState.isEdit}
-                    value={formState.name}
-                    onChange={handleNameChange}
+                    <BSForm.Control
+                        type="text"
+                        placeholder="Platform name"
+                        required
+                        pattern="^[a-z][a-z0-9\-]+[a-z0-9]$"
+                        autoComplete="off"
+                        disabled={formState.isEdit}
+                        value={formState.name}
+                        onChange={handleNameChange}
+                        autoFocus
+                    />
+                </Field>
+                {formState.clusterType.parameters.map(p => (
+                    <ClusterParameterField
+                        key={p.name}
+                        tenancy={tenancy}
+                        tenancyActions={tenancyActions}
+                        isCreate={!formState.isEdit}
+                        parameter={p}
+                        value={formState.parameterValues[p.name] || ''}
+                        onChange={handleParameterValueChange(p.name)}
+                    />
+                ))}
+            </Form>
+            {showScheduling && (
+                <PlatformSchedulingModal
+                    supportsScheduling={capabilities.supports_scheduling}
+                    useSchedulingData={() => useSchedulingData(tenancy.id, formState)}
+                    isEdit={formState.isEdit}
+                    onCancel={handleCancel}
+                    onConfirm={handleConfirm}
+                    maxLifetimeSeconds={formState.clusterType.max_lifetime}
                 />
-            </Field>
-            {formState.clusterType.parameters.map(p => (
-                <ClusterParameterField
-                    key={p.name}
-                    tenancy={tenancy}
-                    tenancyActions={tenancyActions}
-                    isCreate={!formState.isEdit}
-                    parameter={p}
-                    value={formState.parameterValues[p.name] || ''}
-                    onChange={handleParameterValueChange(p.name)}
-                />
-            ))}
-        </Form>
+            )}
+        </>
     );
 };
 
@@ -134,6 +214,7 @@ export const ClusterModalForm = ({
     onCancel,
     tenancy,
     tenancyActions,
+    capabilities,
     ...props
 }) => {
     const formId = (
@@ -180,6 +261,7 @@ export const ClusterModalForm = ({
                     onSubmit={onSubmit}
                     tenancy={tenancy}
                     tenancyActions={tenancyActions}
+                    capabilities={capabilities}
                 />
             </Modal.Body>
             <Modal.Footer>

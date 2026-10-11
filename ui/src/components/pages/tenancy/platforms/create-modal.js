@@ -6,6 +6,8 @@ import Col from 'react-bootstrap/Col';
 import Modal from 'react-bootstrap/Modal';
 import Nav from 'react-bootstrap/Nav';
 import Row from 'react-bootstrap/Row';
+import Tab from 'react-bootstrap/Tab';
+import Tabs from 'react-bootstrap/Tabs';
 
 import { StatusCodes } from 'http-status-codes';
 
@@ -16,7 +18,6 @@ import ReactMarkdown from 'react-markdown';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faArrowCircleLeft,
-    faArrowCircleRight,
     faCheckCircle,
     faPlus,
     faSitemap,
@@ -66,38 +67,58 @@ const PlatformTypeSelectCard = ({ platformType, selected, onSelect }) => (
     </Card>
 );
 
-
-const PlatformTypeForm = ({ platformTypes, selected, onSelect, goNext }) => {
+const PlatformTypeForm = ({ platformTypes, selected, onSelect, onCancel }) => {
     const sortedPlatformTypes = sortBy(Object.values(platformTypes), pt => pt.name);
+
+    //sort by precendence (ascending) with name as a tiebreaker (set used as unique filter)
+    const catalogue_names = new Set(sortedPlatformTypes
+        .toSorted((p1,p2) => p1.name - p2.name)
+        .toSorted((p1,p2) => p1.catalogue_precedence - p2.catalogue_precedence)
+        .map(pt => pt.catalogue_name))
+
+    const catalogues = new Array;
+
+    for (const name of catalogue_names){ 
+        let platform = sortedPlatformTypes.filter(pt => pt.catalogue_name === name)[0];
+        catalogues.push({catalogue_name:name, catalogue_precedence: platform.catalogue_precedence})
+    }
+
     return (
         <>
             <Modal.Body>
-                <Row className="justify-content-center g-3">
-                    {sortedPlatformTypes.length > 0 ? (
-                        sortedPlatformTypes.map(pt => (
-                            <Col key={pt.id} className="platform-type-select-card-wrapper">
-                                <PlatformTypeSelectCard
-                                    platformType={pt}
-                                    selected={pt.id === selected}
-                                    onSelect={() => onSelect(pt.id)}
-                                />
-                            </Col>
-                        ))
-                    ) : (
+                {sortedPlatformTypes.length > 0 ? (
+                    <Tabs defaultActiveKey={(selected) ? sortedPlatformTypes
+                        .filter((pt) => pt.id === selected)[0].catalogue_name : catalogues[0].catalogue_name}
+                    id="uncontrolled-tab-example"
+                    className="mb-0 nav nav-tabs nav-pills"
+                    >
+                        {catalogues.map(catalogue => (
+                            <Tab className="border border-primary border-2 py-3" eventKey={catalogue.catalogue_name} title={catalogue.catalogue_name} key={catalogue.catalogue_name}>
+                                <Row className="justify-content-center g-3">
+                                    {sortedPlatformTypes.filter((pt) => pt.catalogue_name === catalogue.catalogue_name).map(pt => (
+                                        <Col key={pt.id} className="platform-type-select-card-wrapper">
+                                            <PlatformTypeSelectCard
+                                                platformType={pt}
+                                                selected={pt.id === selected}
+                                                onSelect={() => onSelect(pt.id)}
+                                            />
+                                        </Col>
+                                    ))}
+                                </Row>
+                            </Tab>
+                        ))}
+                    </Tabs>
+                ) : (
+                    <Row className="justify-content-center g-3">
                         <Col className="text-center text-muted py-4">
                             No platform templates available.
                         </Col>
-                    )}
-                </Row>
+                    </Row>
+                )}
             </Modal.Body>
             <Modal.Footer>
-                <Button
-                    variant="primary"
-                    onClick={goNext}
-                    disabled={!selected}
-                >
-                    <FontAwesomeIcon icon={faArrowCircleRight} className="me-2" />
-                    Next
+                <Button variant="secondary" onClick={onCancel}>
+                    Cancel
                 </Button>
             </Modal.Footer>
         </>
@@ -112,7 +133,8 @@ const ClusterConfigurationForm = ({
     onCancel,
     sshKey,
     tenancy,
-    tenancyActions
+    tenancyActions,
+    capabilities
 }) => {
     const [formState, _] = useClusterFormState(clusterType, undefined);
 
@@ -131,12 +153,14 @@ const ClusterConfigurationForm = ({
                     tenancyActions.cluster.create({
                         name: data.name,
                         cluster_type: clusterType.name,
-                        parameter_values: data.parameterValues
+                        parameter_values: data.parameterValues,
+                        schedule: data.schedule
                     });
                     onSuccess();
                 }}
                 tenancy={tenancy}
                 tenancyActions={tenancyActions}
+                capabilities={capabilities}
             />
             <ConnectedSSHKeyUpdateModal
                 show={showSSHKeyModal}
@@ -155,7 +179,11 @@ const KubernetesConfigurationForm = ({
     kubernetesClusterTemplates,
     kubernetesClusterTemplateActions,
     sizes,
-    sizeActions
+    sizeActions,
+    externalIps,
+    externalIpActions,
+    tenancy,
+    capabilities
 }) => {
     const [formState, _] = useKubernetesClusterFormState(undefined);
     return (
@@ -170,6 +198,10 @@ const KubernetesConfigurationForm = ({
             kubernetesClusterTemplateActions={kubernetesClusterTemplateActions}
             sizes={sizes}
             sizeActions={sizeActions}
+            externalIps={externalIps}
+            externalIpActions={externalIpActions}
+            tenancy={tenancy}
+            capabilities={capabilities}
         />
     );
 };
@@ -181,7 +213,8 @@ const KubernetesAppConfigurationForm = ({
     onSuccess,
     kubernetesAppActions,
     tenancy,
-    tenancyActions
+    tenancyActions,
+    capabilities
 }) => {
     const [formState, _] = useKubernetesAppFormState(kubernetesAppTemplate, undefined);
     return (
@@ -199,6 +232,7 @@ const KubernetesAppConfigurationForm = ({
             }}
             tenancy={tenancy}
             tenancyActions={tenancyActions}
+            capabilities={capabilities}
         />
     );
 };
@@ -209,8 +243,10 @@ const PlatformConfigurationForm = ({
     sshKey,
     tenancy,
     tenancyActions,
+    capabilities,
     goBack,
-    onSuccess
+    onSuccess,
+    onCancel
 }) => {
     return (
         <>
@@ -229,6 +265,7 @@ const PlatformConfigurationForm = ({
                         sshKey={sshKey}
                         tenancy={tenancy}
                         tenancyActions={tenancyActions}
+                        capabilities={capabilities}
                     />
                 )}
                 {platformType.kind === "kubernetes" && (
@@ -240,6 +277,10 @@ const PlatformConfigurationForm = ({
                         kubernetesClusterTemplateActions={tenancyActions.kubernetesClusterTemplate}
                         sizes={tenancy.sizes}
                         sizeActions={tenancyActions.size}
+                        externalIps={tenancy.externalIps}
+                        externalIpActions={tenancyActions.externalIp}
+                        tenancy={tenancy}
+                        capabilities={capabilities}
                     />
                 )}
                 {platformType.kind === "kubernetesAppTemplate" && (
@@ -250,10 +291,14 @@ const PlatformConfigurationForm = ({
                         kubernetesAppActions={tenancyActions.kubernetesApp}
                         tenancy={tenancy}
                         tenancyActions={tenancyActions}
+                        capabilities={capabilities}
                     />
                 )}
             </Modal.Body>
             <Modal.Footer>
+                <Button variant="secondary" onClick={onCancel}>
+                    Cancel
+                </Button>
                 <Button variant="primary" onClick={goBack}>
                     <FontAwesomeIcon icon={faArrowCircleLeft} className="me-2" />
                     Back
@@ -274,13 +319,19 @@ const CreatePlatformModal = ({
     onCancel,
     sshKey,
     tenancy,
-    tenancyActions
+    tenancyActions,
+    capabilities
 }) => {
     const [activeTab, setActiveTab] = useState("platformType");
     const [platformTypeId, setPlatformTypeId] = useState("");
+
     const reset = () => {
         setActiveTab("platformType");
         setPlatformTypeId("");
+    };
+    const setSelectedPlatformTypeId = platformId => {
+        setPlatformTypeId(platformId);
+        setActiveTab("platformConfiguration");
     };
 
     const clusterTypesNotFound = (
@@ -296,6 +347,11 @@ const CreatePlatformModal = ({
         clusterTypesNotFound &&
         kubernetesClusterTemplatesNotFound &&
         kubernetesAppTemplatesNotFound
+    );
+
+    const kubernetesTemplatesAvailable = (
+        tenancy.kubernetesClusterTemplates.initialised &&
+        Object.getOwnPropertyNames(tenancy.kubernetesClusterTemplates.data).length > 0
     );
 
     // Get the aggregate resource for available cluster types + Kubernetes + Kubernetes apps
@@ -315,7 +371,7 @@ const CreatePlatformModal = ({
         data: Object.assign(
             {},
             (
-                !kubernetesClusterTemplatesNotFound ?
+                kubernetesTemplatesAvailable ?
                     {
                         kubernetes: {
                             id: "kubernetes",
@@ -323,9 +379,11 @@ const CreatePlatformModal = ({
                             name: "Kubernetes",
                             logo: KubernetesIcon,
                             description: (
-                                "Kubernetes cluster with optional addons including Kubernetes dashboard, " +
+                                "Kubernetes cluster with optional addons including " +
                                 "monitoring and ingress."
-                            )
+                            ), //kube is a special case, it's data is split into three objects with keys related to kube version, this is a hack to always get the first key
+                            catalogue_name: Object.values(tenancy.kubernetesClusterTemplates.data)[0].catalogue_name,
+                            catalogue_precedence: Object.values(tenancy.kubernetesClusterTemplates.data)[0].catalogue_precedence,
                         }
                     } :
                     undefined
@@ -338,6 +396,8 @@ const CreatePlatformModal = ({
                         name: value.label,
                         logo: value.logo,
                         description: value.description,
+                        catalogue_name: value.catalogue_name,
+                        catalogue_precedence: value.catalogue_precedence,
                         object: value
                     }
                 })
@@ -350,6 +410,8 @@ const CreatePlatformModal = ({
                         name: value.label,
                         logo: value.logo,
                         description: value.description,
+                        catalogue_name: value.catalogue_name,
+                        catalogue_precedence: value.catalogue_precedence,
                         object: value
                     }
                 })
@@ -391,7 +453,7 @@ const CreatePlatformModal = ({
                 >
                     <Nav.Item>
                         <Nav.Link eventKey="platformType" className="p-3">
-                            Pick a platform type
+                            1. Pick a platform type
                         </Nav.Link>
                     </Nav.Item>
                     <Nav.Item>
@@ -400,7 +462,7 @@ const CreatePlatformModal = ({
                             disabled={!platformTypeId}
                             className="p-3"
                         >
-                            Configure platform
+                            2. Configure platform
                         </Nav.Link>
                     </Nav.Item>
                 </Nav>
@@ -410,8 +472,8 @@ const CreatePlatformModal = ({
                     <PlatformTypeForm
                         platformTypes={resource.data}
                         selected={platformTypeId}
-                        onSelect={setPlatformTypeId}
-                        goNext={() => setActiveTab("platformConfiguration")}
+                        onSelect={setSelectedPlatformTypeId}
+                        onCancel={onCancel}
                     />
                 ) : (
                     <PlatformConfigurationForm
@@ -419,8 +481,10 @@ const CreatePlatformModal = ({
                         sshKey={sshKey}
                         tenancy={tenancy}
                         tenancyActions={tenancyActions}
-                        goBack={() => setActiveTab("platformType")}
+                        capabilities={capabilities}
+                        goBack={reset}
                         onSuccess={onSuccess}
+                        onCancel={onCancel}
                     />
                 )
             ) : (

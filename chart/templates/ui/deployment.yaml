@@ -15,7 +15,7 @@ spec:
       labels:
         {{- include "azimuth.componentSelectorLabels" (list . $component) | nindent 8 }}
       annotations:
-        azimuth.stackhpc.com/theme-hash: {{ include (print $.Template.BasePath "/configmap-theme.yaml") . | sha256sum }}
+        azimuth.stackhpc.com/theme-checksum: {{ include (print $.Template.BasePath "/configmap-theme.yaml") . | sha256sum }}
         {{- with $values.podAnnotations }}
         {{ toYaml . | indent 8 | trim }}
         {{- end }}
@@ -33,14 +33,12 @@ spec:
             - name: http
               containerPort: 8080
               protocol: TCP
-          livenessProbe:
-            httpGet:
-              path: /
-              port: http
-          readinessProbe:
-            httpGet:
-              path: /
-              port: http
+          {{- with $values.livenessProbe }}
+          livenessProbe: {{ toYaml $values.livenessProbe | nindent 12 }}
+          {{- end }}
+          {{- with $values.readinessProbe }}
+          readinessProbe: {{ toYaml $values.readinessProbe | nindent 12 }}
+          {{- end }}
           resources: {{ toYaml $values.resources | nindent 12 }}
           volumeMounts:
             - name: theme-css

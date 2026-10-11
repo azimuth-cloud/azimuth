@@ -13,8 +13,6 @@ import Popover from 'react-bootstrap/Popover';
 import ProgressBar from 'react-bootstrap/ProgressBar';
 import Table from 'react-bootstrap/Table';
 
-import { DateTime } from 'luxon';
-
 import get from 'lodash/get';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -195,7 +193,7 @@ const MachineRow = ({
             <td className="text-wrap">{machine.name}</td>
             {/* Allow long image names to wrap */}
             <td className="text-wrap">{get(machine.image, 'name', '-')}</td>
-            <td><MachineSizeLink sizes={sizes} sizeId={machine.size.id} /></td>
+            <td><MachineSizeLink sizes={sizes} size={machine.size} /></td>
             <td><MachineStatus machine={machine} /></td>
             <td>{machine.power_state}</td>
             <td>

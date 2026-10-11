@@ -11,12 +11,19 @@ import { DateTime } from 'luxon';
 import { createTenancyResource, nextStateEntry } from './resource';
 
 
+const transformSchedule = schedule => ({
+    ...schedule,
+    end_time: DateTime.fromISO(schedule.end_time)
+});
+
+
 // Just convert the string dates to Date objects
 const transform = cluster => ({
     ...cluster,
     created: !!cluster.created ? DateTime.fromISO(cluster.created) : undefined,
     updated: !!cluster.updated ? DateTime.fromISO(cluster.updated) : undefined,
-    patched: !!cluster.patched ? DateTime.fromISO(cluster.patched) : undefined
+    patched: !!cluster.patched ? DateTime.fromISO(cluster.patched) : undefined,
+    schedule: !!cluster.schedule ? transformSchedule(cluster.schedule) : null
 });
 
 

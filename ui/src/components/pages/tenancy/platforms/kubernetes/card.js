@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useId, useState } from 'react';
 
 import Badge from 'react-bootstrap/Badge';
 import Button from 'react-bootstrap/Button';
@@ -6,12 +6,13 @@ import Card from 'react-bootstrap/Card';
 import Col from 'react-bootstrap/Col';
 import Modal from 'react-bootstrap/Modal';
 import Nav from 'react-bootstrap/Nav';
+import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
+import Popover from 'react-bootstrap/Popover';
 import Row from 'react-bootstrap/Row';
 import Table from 'react-bootstrap/Table';
 import Tab from 'react-bootstrap/Tab';
 
 import get from 'lodash/get';
-
 import { DateTime } from 'luxon';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -26,11 +27,17 @@ import {
     faTimesCircle
 } from '@fortawesome/free-solid-svg-icons';
 
-import { sortBy } from '../../../../utils';
+import { sortBy, Error } from '../../../../utils';
 
 import { MachineSizeLink } from '../../resource-utils';
 
-import { PlatformServicesListGroup, PlatformDeleteButton } from '../utils';
+import {
+    PlatformCardHeader,
+    PlatformServicesListGroup,
+    PlatformDeleteButton,
+    PlatformExpires,
+    expiresSoon
+} from '../utils';
 
 import { UpgradeKubernetesClusterButton } from './upgrade-modal';
 import { KubeconfigButton } from './kubeconfig-modal';
@@ -243,6 +250,78 @@ const WorkersStatus = ({ kubernetesCluster }) => {
 };
 
 
+const CertificateExpiry = ({ expiryDate }) => {
+    const expired = expiryDate <= DateTime.now();
+    const expiresSoon = expiryDate <= DateTime.now().plus({ days: 30 });
+
+    if( expired ) {
+        return (
+            <strong className="text-danger">
+                <FontAwesomeIcon icon={faTimesCircle} className="me-2" />
+                Expired on {expiryDate.toFormat('d LLLL yyyy')}
+            </strong>
+        );
+    }
+    else if( expiresSoon ) {
+        return (
+            <strong className="text-warning">
+                <FontAwesomeIcon icon={faExclamationTriangle} className="me-2" />
+                Expires {expiryDate.toFormat('d LLLL yyyy')}
+            </strong>
+        );
+    }
+    else {
+        return <>Expires {expiryDate.toFormat('d LLLL yyyy')}</>;
+    }
+};
+
+
+const CertificateRenewal = ({ renewalDate }) => {
+    const popoverId = useId();
+    return (
+        <>
+            <OverlayTrigger
+                placement="top"
+                overlay={(
+                    <Popover id={popoverId}>
+                        <Popover.Header>
+                            <FontAwesomeIcon
+                                icon={faExclamationTriangle}
+                                className="text-warning me-2"
+                            />
+                            Automatic certificate renewal
+                        </Popover.Header>
+                        <Popover.Body>
+                            Azimuth renews Kubernetes API server certificates by replacing
+                            the affected control plane nodes. During renewal, the control
+                            plane may temporarily operate with reduced redundancy. Renewal
+                            starts automatically before the certificates expire to prevent
+                            loss of access to the Kubernetes API.
+                        </Popover.Body>
+                    </Popover>
+                )}
+                trigger="click"
+                rootClose
+            >
+                <Button
+                    type="button"
+                    variant="link"
+                    className={
+                        "certificate-renewal-trigger small text-muted text-start " +
+                        "text-decoration-underline p-0 align-baseline"
+                    }
+                >
+                Will renew automatically on
+                </Button>
+            </OverlayTrigger>
+            <span className="d-block small text-muted text-nowrap">
+                {renewalDate.toFormat('d LLLL yyyy')}
+            </span>
+        </>
+    );
+};
+
+
 const ClusterOverviewCard = ({ kubernetesCluster, kubernetesClusterTemplates }) => (
     <Card className="mb-3">
         <Card.Header className="text-center">Cluster details</Card.Header>
@@ -298,6 +377,20 @@ const ClusterOverviewCard = ({ kubernetesCluster, kubernetesClusterTemplates }) 
                     <th>Created</th>
                     <td>{kubernetesCluster.created_at.toRelative()}</td>
                 </tr>
+                <tr>
+                    <th>Created by</th>
+                    <td>{kubernetesCluster.created_by_username || '-'}</td>
+                </tr>
+                <tr>
+                    <th>Updated by</th>
+                    <td>{kubernetesCluster.updated_by_username || '-'}</td>
+                </tr>
+                {kubernetesCluster.schedule && (
+                    <tr>
+                        <th>Expires</th>
+                        <td><PlatformExpires schedule={kubernetesCluster.schedule} /></td>
+                    </tr>
+                )}
             </tbody>
         </Table>
     </Card>
@@ -323,7 +416,7 @@ const ControlPlaneCard = ({ kubernetesCluster, sizes }) => (
                     <td>
                         <MachineSizeLink
                             sizes={sizes}
-                            sizeId={kubernetesCluster.control_plane_size.id}
+                            size={kubernetesCluster.control_plane_size}
                         />
                     </td>
                 </tr>
@@ -331,6 +424,34 @@ const ControlPlaneCard = ({ kubernetesCluster, sizes }) => (
                     <th>Node Count</th>
                     <td>{kubernetesCluster.nodes.filter(n => n.role === "control-plane").length}</td>
                 </tr>
+                {(kubernetesCluster.control_plane_certificate_expiry_date ||
+                    kubernetesCluster.control_plane_certificate_rotation_date) && (
+                    <tr>
+                        <th className="align-top">Kubernetes API Certificate</th>
+                        <td>
+                            {kubernetesCluster.control_plane_certificate_expiry_date && (
+                                <CertificateExpiry
+                                    expiryDate={
+                                        kubernetesCluster
+                                            .control_plane_certificate_expiry_date
+                                    }
+                                />
+                            )}
+                            {kubernetesCluster.control_plane_certificate_rotation_date && (
+                                <>
+                                    {kubernetesCluster
+                                        .control_plane_certificate_expiry_date && <br />}
+                                    <CertificateRenewal
+                                        renewalDate={
+                                            kubernetesCluster
+                                                .control_plane_certificate_rotation_date
+                                        }
+                                    />
+                                </>
+                            )}
+                        </td>
+                    </tr>
+                )}
             </tbody>
         </Table>
     </Card>
@@ -443,7 +564,7 @@ const NodesTable = ({ kubernetesCluster, sizes }) => {
                             />
                         </td>
                         <td>
-                            <MachineSizeLink sizes={sizes} sizeId={node.size.id} />
+                            <MachineSizeLink sizes={sizes} size={node.size} />
                         </td>
                         <td>{node.kubelet_version || '-'}</td>
                         <td>{node.ip || '-'}</td>
@@ -463,6 +584,10 @@ const UpdateKubernetesClusterButton = ({
     kubernetesClusterTemplateActions,
     sizes,
     sizeActions,
+    externalIps,
+    externalIpActions,
+    tenancy,
+    capabilities,
     disabled,
     ...props
 }) => {
@@ -480,7 +605,7 @@ const UpdateKubernetesClusterButton = ({
     const handleSubmit = data => {
         // Remove the name and template from the data for an update
         const { name, template, ...patchData } = data;
-        kubernetesClusterActions.update(patchData, true);
+        kubernetesClusterActions.update(patchData);
         setInFlight(true);
         close();
     };
@@ -509,6 +634,10 @@ const UpdateKubernetesClusterButton = ({
                 kubernetesClusterTemplateActions={kubernetesClusterTemplateActions}
                 sizes={sizes}
                 sizeActions={sizeActions}
+                externalIps={externalIps}
+                externalIpActions={externalIpActions}
+                tenancy={tenancy}
+                capabilities={capabilities}
             />
         </>
     );
@@ -521,14 +650,21 @@ const KubernetesClusterDetailsButton = ({
     kubernetesClusterTemplates,
     kubernetesClusterTemplateActions,
     sizes,
-    sizeActions
+    sizeActions,
+    externalIps,
+    externalIpActions,
+    tenancy,
+    capabilities
 }) => {
     const [visible, setVisible] = useState(false);
     const open = () => setVisible(true);
     const close = () => setVisible(false);
 
     const inFlight = !!kubernetesCluster.updating || !!kubernetesCluster.deleting;
-    const working = kubernetesCluster.status.endsWith("ing");
+    const kubernetesTemplatesAvailable = (
+        kubernetesClusterTemplates.initialised &&
+        Object.getOwnPropertyNames(kubernetesClusterTemplates.data).length > 0
+    );
 
     return (
         <>
@@ -538,6 +674,16 @@ const KubernetesClusterDetailsButton = ({
                     <Modal.Title>Cluster details for {kubernetesCluster.name}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
+                    { kubernetesTemplatesAvailable ||
+                        <Row className="justify-content-center">
+                            <Col xs="auto">
+                                <Error
+                                    className="text-center"
+                                    message="WARNING: Kubernetes functionality is no longer available in this tenancy."
+                                />
+                            </Col>
+                        </Row>
+                    }
                     <Tab.Container defaultActiveKey="overview">
                         <Row className="mb-4">
                             <Col>
@@ -586,7 +732,11 @@ const KubernetesClusterDetailsButton = ({
                                             kubernetesClusterTemplateActions={kubernetesClusterTemplateActions}
                                             sizes={sizes}
                                             sizeActions={sizeActions}
-                                            disabled={inFlight || working}
+                                            externalIps={externalIps}
+                                            externalIpActions={externalIpActions}
+                                            tenancy={tenancy}
+                                            capabilities={capabilities}
+                                            disabled={inFlight || kubernetesCluster.status === "Deleting" || !kubernetesTemplatesAvailable}
                                             className="me-2"
                                         />
                                         <UpgradeKubernetesClusterButton
@@ -594,7 +744,7 @@ const KubernetesClusterDetailsButton = ({
                                             kubernetesClusterActions={kubernetesClusterActions}
                                             kubernetesClusterTemplates={kubernetesClusterTemplates}
                                             kubernetesClusterTemplateActions={kubernetesClusterTemplateActions}
-                                            disabled={inFlight || working}
+                                            disabled={inFlight || kubernetesCluster.status === "Deleting" || !kubernetesTemplatesAvailable}
                                             className="me-2"
                                         />
                                         <PlatformDeleteButton
@@ -671,15 +821,36 @@ export const KubernetesCard = ({
     kubernetesCluster,
     kubernetesClusterActions,
     tenancy,
-    tenancyActions
+    tenancyActions,
+    capabilities,
+    userId
 }) => {
+    const clusterExpiresSoon = (
+        kubernetesCluster.schedule ?
+            expiresSoon(kubernetesCluster.schedule) :
+            false
+    );
+
+    const clusterTemplate = get(tenancy.kubernetesClusterTemplates.data, kubernetesCluster.template.id);
+
+    // Decide if we need to apply a notification class to the card
+    const notifyClass = (
+        clusterTemplate && clusterTemplate.deprecated ?
+            "platform-patch-needed" :
+            (clusterExpiresSoon ? "platform-expiring" : "")
+    );
+
     return (
-        <Card className="platform-card">
-            <Card.Header>
+        <Card className={`platform-card ${notifyClass}`}>
+            <PlatformCardHeader
+                currentUserIsOwner={userId === kubernetesCluster.created_by_user_id}
+                expiresSoon={clusterExpiresSoon}
+                patchAvailable={clusterTemplate && clusterTemplate.deprecated}
+            >
                 <Badge bg={statusBadgeBg[kubernetesCluster.status]}>
                     {kubernetesCluster.status.toUpperCase()}
                 </Badge>
-            </Card.Header>
+            </PlatformCardHeader>
             <Card.Img src={KubernetesIcon} />
             <Card.Body>
                 <Card.Title>{kubernetesCluster.name}</Card.Title>
@@ -692,6 +863,12 @@ export const KubernetesCard = ({
             )}
             <Card.Body className="small text-muted">
                 Created {kubernetesCluster.created_at.toRelative()}
+                {kubernetesCluster.schedule && (
+                    <>
+                        <br/>
+                        Expires {kubernetesCluster.schedule.end_time.toRelative()}
+                    </>
+                )}
             </Card.Body>
             <Card.Footer>
                 <KubernetesClusterDetailsButton
@@ -701,6 +878,10 @@ export const KubernetesCard = ({
                     kubernetesClusterTemplateActions={tenancyActions.kubernetesClusterTemplate}
                     sizes={tenancy.sizes}
                     sizeActions={tenancyActions.size}
+                    externalIps={tenancy.externalIps}
+                    externalIpActions={tenancyActions.externalIp}
+                    tenancy={tenancy}
+                    capabilities={capabilities}
                 />
             </Card.Footer>
         </Card>

@@ -54,6 +54,7 @@ const initialState = {
     fetching: true,
     updating: false,
     ssh_public_key: null,
+    ssh_key_is_public: true,
     can_update: false,
     allowed_key_types: [],
     rsa_min_bits: 0

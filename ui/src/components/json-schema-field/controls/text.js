@@ -28,6 +28,7 @@ export const TextControl = ({
             as={InputWithCustomValidity}
             autoComplete="off"
             placeholder={schema.title || path}
+            type={uiSchemaControlProps.secret ? "password" : "text"}
             required={required}
             minLength={schema.minLength}
             maxLength={schema.maxLength}

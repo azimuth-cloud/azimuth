@@ -1,0 +1,42 @@
+---
+name: Tox unit tests
+
+on:
+  push:
+  workflow_call:
+    inputs:
+      ref:
+        type: string
+        description: The ref to build.
+        required: true
+
+jobs:
+  build:
+    name: Tox unit tests and linting
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12", "3.14"]
+
+    steps:
+    - name: Check out the repository
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        ref: ${{ inputs.ref || github.ref }}
+
+    - name: Set up uv
+      uses: astral-sh/setup-uv@eb1897b8dc4b5d5bfe39a428a8f2304605e0983c # v7.0.0
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Test with tox
+      run: uv run tox
+
+    - name: Generate coverage reports
+      run: uv run tox -e cover
+
+    - name: Archive code coverage results
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: "code-coverage-report-${{ matrix.python-version }}"
+        path: cover/

@@ -1,0 +1,27 @@
+AZIMUTH:
+  PROVIDER:
+    {{- if (eq .Values.provider.type "openstack") }}
+    FACTORY: azimuth.provider.openstack.Provider
+    PARAMS:
+      {{- with .Values.provider.openstack.internalNetTemplate }}
+      INTERNAL_NET_TEMPLATE: {{ . | quote }}
+      {{- end }}
+      {{- with .Values.provider.openstack.externalNetTemplate }}
+      EXTERNAL_NET_TEMPLATE: {{ . | quote }}
+      {{- end }}
+      CREATE_INTERNAL_NET: {{ .Values.provider.openstack.createInternalNet }}
+      ALLOW_SHARED_INTERNAL_NET: {{ .Values.provider.openstack.allowSharedInternalNet }}
+      MANILA_PROJECT_SHARE_GB: {{ .Values.provider.openstack.manilaProjectShareGB }}
+      {{- with .Values.provider.openstack.internalNetCidr }}
+      INTERNAL_NET_CIDR: {{ . | quote }}
+      {{- end }}
+      {{- with .Values.provider.openstack.internalNetDNSNameservers }}
+      INTERNAL_NET_DNS_NAMESERVERS: {{ toYaml . | nindent 8 }}
+      {{- end }}
+      SUPPORTS_MACHINES: {{ .Values.provider.openstack.supportsMachines }}
+    {{- else if (eq .Values.provider.type "null")}}
+    FACTORY: azimuth.provider.null.Provider
+    PARAMS: {}
+    {{- else }}
+    {{- fail (printf "Unrecognised cloud provider '%s'" .Values.provider.type) }}
+    {{- end }}

@@ -8,8 +8,14 @@ metadata:
 spec:
   type: {{ $values.service.type }}
   ports:
-    - port: {{ $values.service.port }}
+    - name: http
+      port: {{ $values.service.port }}
       targetPort: http
       protocol: TCP
-      name: http
+    {{- if $values.monitoring.enabled }}
+    - name: metrics
+      port: {{ $values.monitoring.service.port }}
+      targetPort: metrics
+      protocol: TCP
+    {{- end }}
   selector: {{ include "azimuth.componentSelectorLabels" (list . $component) | nindent 4 }}

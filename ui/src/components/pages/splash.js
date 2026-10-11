@@ -21,6 +21,13 @@ import { faCloud } from '@fortawesome/free-solid-svg-icons';
 
 import { Loading } from '../utils';
 
+import DaskLogo from './dask-logo.svg';
+import JupyterLogo from './jupyter-logo.png';
+import KubeflowLogo from './kubeflow-logo.jpg';
+import KubernetesLogo from './kubernetes-logo.png';
+import OpenStackLogo from './openstack-logo.png';
+import SlurmLogo from './slurm-logo.png';
+
 
 export const SplashPage = ({ cloudsFetching, clouds, currentCloud, links }) => {
     // Set the page title
@@ -66,40 +73,16 @@ export const SplashPage = ({ cloudsFetching, clouds, currentCloud, links }) => {
                     <Col className="splash-images">
                         <Row className="mb-3">
                             <Col>
-                                <Image
-                                    thumbnail
-                                    title="OpenStack"
-                                    src="https://object-storage-ca-ymq-1.vexxhost.net/swift/v1/6e4619c416ff4bd19e1c087f27a43eea/www-images-prod/openstack-logo/OpenStack-Logo-Vertical.png"
-                                />
-                                <Image
-                                    thumbnail
-                                    title="Slurm"
-                                    src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Slurm_logo.svg/158px-Slurm_logo.svg.png"
-                                />
-                                <Image
-                                    thumbnail
-                                    title="Kubernetes"
-                                    src="https://cncf-branding.netlify.app/img/projects/kubernetes/stacked/color/kubernetes-stacked-color.png"
-                                />
+                                <Image thumbnail title="OpenStack" src={OpenStackLogo} />
+                                <Image thumbnail title="Slurm" src={SlurmLogo} />
+                                <Image thumbnail title="Kubernetes" src={KubernetesLogo} />
                             </Col>
                         </Row>
                         <Row>
                             <Col>
-                                <Image
-                                    thumbnail
-                                    title="Jupyter"
-                                    src="https://raw.githubusercontent.com/jupyter/design/master/logos/Square%20Logo/squarelogo-greytext-orangebody-greymoons/squarelogo-greytext-orangebody-greymoons.png"
-                                />
-                                <Image
-                                    thumbnail
-                                    title="Kubeflow"
-                                    src="https://user-images.githubusercontent.com/5319646/37641015-10cb00f6-2c53-11e8-9195-65f2dbc60955.jpg"
-                                />
-                                <Image
-                                    thumbnail
-                                    title="Dask"
-                                    src="https://docs.dask.org/en/stable/_images/dask_horizontal.svg"
-                                />
+                                <Image thumbnail title="Jupyter" src={JupyterLogo} />
+                                <Image thumbnail title="Kubeflow" src={KubeflowLogo} />
+                                <Image thumbnail title="Dask" src={DaskLogo} />
                             </Col>
                         </Row>
                     </Col>

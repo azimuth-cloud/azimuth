@@ -1,3 +1,4 @@
+---
 # Tags for optional features
 tags:
   # Setting this tag to true enables apps via a Zenith app proxy
@@ -10,11 +11,11 @@ tags:
 api:
   # The image to use for the api component
   image:
-    repository: ghcr.io/stackhpc/azimuth-api
+    repository: ghcr.io/azimuth-cloud/azimuth-api
     pullPolicy: IfNotPresent
     tag: # Defaults to the chart appVersion
   imagePullSecrets: []
-  # The number of replicas for the api deployment
+  # The number of replicas for the api deployment
   replicaCount: 1
   # Pod-level security context for the api component
   podSecurityContext:
@@ -25,27 +26,68 @@ api:
     capabilities:
       drop: [ALL]
     readOnlyRootFilesystem: true
+  # The liveness probe for the api container
+  livenessProbe:
+    httpGet:
+      path: /_status/
+      port: http
+  # The readiness probe for the ui container
+  readinessProbe:
+    httpGet:
+      path: /_status/
+      port: http
   # Service details for the api component
   service:
     type: ClusterIP
     port: 80
-  # Resource requests and limits for the api containers
+  # Resource requests and limits for the api container
   resources: {}
-  # Node selector for api pods
+  # Node selector for api pods
   nodeSelector: {}
   # Tolerations for api pods
   tolerations: []
   # Affinity rules for api pods
   affinity: {}
+  # Monitoring settings
+  monitoring:
+    enabled: false
+    service:
+      port: 9102
+    # Labels added to ServiceMonitor resource & dashboard ConfigMap
+    # which must match .serviceMonitorSelector.matchLabels of cluster's Prometheus resource
+    serviceMonitorLabels: {}
+    # Statsd exporter config
+    statsd:
+      # The image for the statsd exporter
+      image:
+        repository: prom/statsd-exporter
+        tag: v0.31.0
+        pullPolicy: IfNotPresent
+      # Container-level security context for the statsd container
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: [ALL]
+        readOnlyRootFilesystem: true
+      # Resource requests and limits for the statsd container
+      resources: {}
+    # Custom grafana dashboard settings
+    dashboard:
+      labels:
+        # Required for Grafana to pick up the dashboard
+        grafana_dashboard: "1"
+    # Indicates whether to create the alerting rule
+    prometheusRule:
+      enabled: true
 
 ui:
   # The image to use for the ui component
   image:
-    repository: ghcr.io/stackhpc/azimuth-ui
+    repository: ghcr.io/azimuth-cloud/azimuth-ui
     pullPolicy: IfNotPresent
     tag: # Defaults to the chart appVersion
   imagePullSecrets: []
-  # The number of replicas for the ui deployment
+  # The number of replicas for the ui deployment
   replicaCount: 1
   # Pod-level security context for the api component
   podSecurityContext:
@@ -56,13 +98,23 @@ ui:
     capabilities:
       drop: [ALL]
     readOnlyRootFilesystem: true
+  # The liveness probe for the ui container
+  livenessProbe:
+    httpGet:
+      path: /
+      port: http
+  # The readiness probe for the ui container
+  readinessProbe:
+    httpGet:
+      path: /
+      port: http
   # Service details for the ui component
   service:
     type: ClusterIP
     port: 80
   # Resource requests and limits for ui containers
   resources: {}
-  # Node selector for ui pods
+  # Node selector for ui pods
   nodeSelector: {}
   # Tolerations for ui pods
   tolerations: []
@@ -85,14 +137,12 @@ ingress:
     # TLS-specific ingress annotations, e.g. for cert-manager configuration
     annotations: {}
 
-# The name of a configmap containing additional trusted CAs
-# These will be merged with the default trusted CAs from certifi
-trustBundleConfigMapName:
+# A bundle of trusted CAs to use instead of the defaults
+trustBundle:
 
 settings:
   # The Django secret key
-  # If not given, a randomly generated key will be used
-  # However this will be different on each deployment which may cause sessions to be terminated
+  # Required for Django to run, and should be kept secret
   secretKey:
   # Use debug mode (recommended false in production)
   debug: false
@@ -108,16 +158,19 @@ settings:
   # The metrics URLs, if available
   metrics:
     # The URL for the cloud metrics dashboard
-    # cloudMetricsUrl:
+    # cloudMetricsUrl:
     # The URL template for the tenant metrics dashboards
     # tenantMetricsUrlTemplate:
   # The URL for documentation
-  # By default, the standard Azimuth user documentation will be used
+  # By default, the standard Azimuth user documentation will be used
   documentationUrl:
+  supportUrl:
   # The name of the CSRF cookie
   csrfCookieName:
   # The name of the session cookie
   sessionCookieName:
+  # The SameSite policy for the session cookie (e.g. Lax, Strict, None)
+  sessionCookieSameSite:
   # The name of the next URL cookie
   nextUrlCookieName:
   # List of curated sizes
@@ -131,91 +184,115 @@ settings:
     #   # and "ephemeral_disk" for the current flavor
     #   description: >-
     #     {{ cpus }} CPUs, {{ ram }} RAM, {{ disk }} disk, {{ ephemeral_disk }} ephemeral disk
+  # Name of default catalogue used for apps with no catalogue set
+  catalogueDefaultName: General
+  # Precedence of this default catalogue (lowest first, integer)
+  catalogueDefaultPrecedence: 100
+  coralCredits:
+    # uri:
+    # tokenSecretRef:
+    #   name:
+    #   namespace:
+    #   key:
 
-# The authenticators to use
-# The parameters for the provider will be re-used where appropriate, e.g. the auth URL
-# The authenticators appear to the user in the order they are defined here, so the
-# first authenticator will be selected by default
-authenticators: []
-  # - # The name of the authenticator
-  #   name: password
-  #   # The human-readable name for the authenticator (defaults to name if not given)
-  #   label: Username + Password
-  #   # The type of authenticator to use
-  #   # Currently only openstack-{password,application-credential,federation} are supported
-  #   type: openstack-password
-  #   # Parameters for the OpenStack password authenticator
-  #   openstackPassword:
-  #     # The Keystone auth URL
-  #     # By default, the auth URL from the provider will be used
-  #     authUrl:
-  #     # The domain to use
-  #     # By default, the domain from the provider will be used
-  #     domain:
-  #     # Whether or not to verify SSL
-  #     # By default, the setting from the provider will used
-  #     verifySsl:
-  #   # Parameters for the OpenStack application credential authenticator
-  #   openstackApplicationCredential:
-  #     # The Keystone auth URL
-  #     # By default, the auth URL from the provider will be used
-  #     authUrl:
-  #     # Whether or not to verify SSL
-  #     # By default, the setting from the provider will used
-  #     verifySsl:
-  #   # Parameters for the OpenStack federation authenticator
-  #   openstackFederation:
-  #     # The Keystone auth URL
-  #     # By default, the auth URL from the provider will be used
-  #     authUrl:
-  #     # A list of identity providers to make available
-  #     identityProviders:
-  #       - # The name of the IDP that identifies the IDP in code
-  #         name: azuread
-  #         # The human-readble name for the IDP in the selection form
-  #         label: Azure AD
-  #         # The Keystone identity provider and protocol to use
-  #         # The provider is optional, and if it IS NOT given, URLs will be of the form:
-  #         #   <auth url>/auth/OS-FEDERATION/websso/<protocol>
-  #         # If a provider IS given, URLs will be of the following form:
-  #         #   <auth_url>/auth/OS-FEDERATION/identity_providers/<provider>/protocols/<protocol>/websso
-  #         # It is recommended to specify a provider if known, as it redirects straight to the IdP
-  #         # instead of via the ugly Keystone splash page
-  #         provider: azure
-  #         protocol: oidc
+# Configuration for authentication
+authentication:
+  # The type of authentication to use (valid options are oidc, openstack)
+  type: openstack
+  # Parameters for OpenStack authentication
+  openstack:
+    # The OpenStack auth URL to use
+    authUrl:
+    # The region to use when discovering OpenStack services
+    region:
+    # The interface to use for communicating with OpenStack
+    interface: public
+    # Indicates whether or not to verify SSL when interacting with OpenStack
+    verifySsl: true
+    # Configuration for appcred authentication
+    appcred:
+      # Indicates if the appcred authentication should be hidden from users
+      hidden: true
+    # Configuration for username/password authentication
+    password:
+      # Indicates if password authentication should be enabled
+      enabled: true
+      # The list of domains to make available in Azimuth
+      domains:
+          # The name of the domain
+        - name: default
+          # The human-readable name for the domain in the auth selection form
+          label: Username + Password
+    # Configuration for federated authentication
+    federated:
+      # Indicates if federated authentication should be enabled
+      enabled: false
+      # A list of Keystone identity providers to make available in Azimuth
+      identityProviders:
+          # The Keystone identity protocol and provider to use
+          # The provider is optional, and if it IS NOT given, URLs will be of the form:
+          #   <auth url>/auth/OS-FEDERATION/websso/<protocol>
+          # If a provider IS given, URLs will be of the following form:
+          #   <auth_url>/auth/OS-FEDERATION/identity_providers/<provider>/protocols/<protocol>/websso
+          # It is recommended to specify a provider if known, as it redirects straight to the IdP
+          # instead of via the Keystone selection page
+        - protocol: oidc
+          # provider:
+          # The human-readble name for the IDP in the auth selection form
+          label: OpenID Connect
+  # Parameters for OIDC authentication
+  oidc:
+    # The URL of the issuer
+    # Azimuth will use OIDC discovery to discover the rest of the configuration
+    issuerUrl:
+    # The scope to use - leave blank for the default
+    scope:
+    # The claims to use for user ID, username, email and groups
+    claims:
+      userid: sub
+      username: preferred_username
+      email: email
+      groups: groups
+    # The client ID and secret for Azimuth to use
+    clientID:
+    clientSecret:
+    # Indicates whether to verify SSL for OIDC operations
+    verifySsl: true
 
 # The cloud provider to use
 provider:
-  # The type of provider to use (currently only openstack is supported)
+  # The type of provider to use - openstack and null are supported
+  # The null provider does not support any cloud functionality, but does support deploying
+  # apps on a pre-configured Kubernetes cluster
   type: openstack
   # Parameters for the openstack provider
   openstack:
-    # The Keystone authentication URL
-    authUrl:
-    # The domain to use
-    domain: default
-    # The OpenStack interface to use
-    # Should rarely need to be changed from the default
-    interface:
-    # Whether or not to verify SSL
-    verifySsl: true
     # The template to use for the name of the internal network
     # If this is given, then auto-created tenant internal networks are disabled
     # The fragment '{tenant_name}' is replaced with the current tenancy name, e.g.:
-    #   internalNetTemplate: "{tenant_name}-private"
+    #   internalNetTemplate: "{tenant_name}-private"
     internalNetTemplate:
     # The template to use for the name of the external network
     # As with internalNetTemplate above, the current tenancy name is interpolated into
-    # the given template
+    # the given template
     # If not given and there is exactly one external network available to a tenant then
     # that is used, otherwise an error is raised when operations requiring an external
-    # network are attempted
+    # network are attempted
     externalNetTemplate:
     # Indicates whether tenant internal networks should be auto-created if not present
     createInternalNet: true
+    # Indicates whether networks shared into the project may be considered for internal network
+    allowSharedInternalNet: false
+    # If larger than zero, project specific manila share should be auto-created
+    manilaProjectShareGB: 0
     # The CIDR to use for auto-created tenant internal networks
     # Defaults to 192.168.3.0/24 if not given, which should be OK for most circumstances
     internalNetCidr:
+    # The nameservers to use for auto-created tenant internal networks
+    # Defaults to an empty list if not given.
+    internalNetDNSNameservers:
+    # Indicates whether support for operations on OpenStack machines is enabled
+    supportsMachines: true
 
 # Settings for apps
 apps:
@@ -234,89 +311,15 @@ apps:
   registrarExternalUrl:
   # The admin URL for the Zenith registrar
   registrarAdminUrl:
-  # The URL of the post-deploy script to execute for web consoles
-  postDeployScriptUrl:
+  # Query parameters that should be added to the Zenith URL before redirecting
+  # For example, this can be used to indicate to Keycloak that a specific IdP should be
+  # used by specifying kc_idp_hint
+  queryParams: {}
 
 # The cluster engine to use for Cluster-as-a-Service support
 clusterEngine:
-  # The type of cluster engine to use (currently only AWX is supported)
-  type: awx
-  # Parameters for the awx cluster engine
-  # By default, we use values that will work with the managed AWX
-  awx:
-    # The AWX or Ansible Tower URL
-    url:
-    # Whether to verify SSL with the AWX/Tower API
-    verifySsl: true
-    # The username to use for the AWX/Tower API
-    # This user must be at least an org admin for the CaaS organisation
-    username: admin
-    # The name of a secret to get the AWX password from
-    passwordSecretName:
-    # Indicates whether teams should be created automatically
-    createTeams: true
-    # Indicates whether automatically-created teams should be granted access
-    # to all cluster types
-    createTeamAllowAllPermission: true
-    # Indicates whether CaaS resources should be created in AWX
-    createResources: true
-    # Creating resources requires the admin user
-    # If the user specified above is not a global admin, a separate admin username and
-    # password secret should be specified
-    adminUsername:
-    adminPasswordSecretName:
-    # Definition of a custom execution environment for CaaS appliances
-    executionEnvironment:
-      # # The image to use for the execution environment (required)
-      # image: registry.example.com/azimuth/caas-ee:<tag>
-      # # Indicates if the image should be pulled for every job (defaults to false)
-      # # This can be useful in development, but in production the recommended method is
-      # # to set this to false and use immutable tags
-      # alwaysPull: false
-      # # Optional credentials if the image is in a private registry
-      # credentials:
-      #   # The registry host
-      #   host: registry.example.com
-      #   # The username to use to authenticate
-      #   username: <user>
-      #   # The token/password to use to authenticate
-      #   token: <registry token>
-    # Definition of the default projects and job templates.
-    # By default, the StackHPC demo appliances will be used
-    defaultProjects:
-      # - # The name of the project (required)
-      #   name: My Site Appliances
-      #   # The git URL of the project (required)
-      #   gitUrl: https://github.com/myorg/site-appliances.git
-      #   # The branch, tag or commit id to use (required)
-      #   gitVersion: master
-      #   # The base URL for cluster metadata files (required)
-      #   metadataRoot: https://raw.githubusercontent.com/myorg/site-appliances/master/ui-meta
-      #   ##
-      #   # OPTIONAL KEYS
-      #   ##
-      #   # Indicates if the project should be updated to the latest version on each job launch
-      #   # Can be useful during development but recommend to leave as false in production
-      #   # Defaults to false if not given
-      #   alwaysUpdate: true
-      #   # List of playbooks to create job templates for
-      #   # If not given, a job template is created for each playbook in the project
-      #   playbooks: ['cluster1-playbook.yml', 'cluster2-playbook.yml']
-      #   # Map whose keys are the playbooks and whose values are maps of Ansible extra_vars for those playbooks
-      #   extraVars:
-      #     # This special key can be used to set common extra_vars for all playbooks in a project
-      #     __ALL__: { var1: value1, var2: value2 }
-      #     cluster1-playbook.yml: { var1: "override value1" }
-  # Configuration for the Terraform backend
-  terraformBackend:
-    # Indicates if the Terraform backend should be configured
-    enabled: true
-    # The type of the Terraform backend to use (currently only consul is supported)
-    type: consul
-    # Configuration for the consul backend
-    consul:
-      # The address, including port, of the Consul server to use
-      address:
+  # The type of cluster engine to use (only crd is supported)
+  type: crd
 
 # The SSH key store to use
 # The portal asks this store for the SSH key for a user
@@ -327,6 +330,8 @@ sshKeyStore:
   dummy:
     # The SSH public key to use
     key:
+    # Whether the SSH public key should be visible in the Azimuth UI
+    ssh_key_is_public: true
   # Parameters for the LDAP key store
   ldap:
     # The LDAP primary server
@@ -335,6 +340,21 @@ sshKeyStore:
     replicas: []
     # The base DN where users exist
     baseDn: OU=Users,DC=example,DC=com
+
+# Scheduling settings
+scheduling:
+  # Indicates whether scheduling should be enabled
+  enabled: false
+
+# Settings for the Kubernetes apps provider
+appsProvider:
+  # Indicates if the apps provider should be enabled
+  enabled: true
+  # The apps provider to use - valid options are default, helmrelease and app
+  #   If default is specified then the helmrelease provider is used if Cluster
+  #   API is available (for backwards compatibility), and the app provider is
+  #   used when Cluster API is not available
+  type: default
 
 # Properties for applying themes
 theme:

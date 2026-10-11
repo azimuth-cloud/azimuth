@@ -5,6 +5,7 @@ import ButtonGroup from 'react-bootstrap/ButtonGroup';
 import Card from 'react-bootstrap/Card';
 import Col from 'react-bootstrap/Col';
 import Collapse from 'react-bootstrap/Collapse';
+import InputGroup from 'react-bootstrap/InputGroup';
 import BSForm from 'react-bootstrap/Form';
 import Modal from 'react-bootstrap/Modal';
 import Row from 'react-bootstrap/Row';
@@ -14,17 +15,25 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faBan,
     faEdit,
+    faExclamationTriangle,
     faPlus,
     faSave
 } from '@fortawesome/free-solid-svg-icons';
 
+import Cookies from 'js-cookie';
+
+import get from 'lodash/get';
+
 import { Error, Form, Field, withCustomValidity } from '../../../../utils';
 
 import {
-    MachineSizeLink,
+    ExternalIpSelectControl,
     KubernetesClusterTemplateSelectControl,
+    MachineSizeLink,
     SizeSelectControl
 } from '../../resource-utils';
+
+import { PlatformSchedulingModal } from '../scheduling';
 
 
 const InputWithCustomValidity = withCustomValidity("input");
@@ -113,16 +122,17 @@ const NodeGroupModalForm = ({
                             type="text"
                             placeholder="Name"
                             required
-                            pattern="^[a-z][a-z0-9-]+[a-z0-9]$"
+                            pattern="^[a-z][a-z0-9\-]+[a-z0-9]$"
                             autoComplete="off"
                             value={getStateKey('name')}
                             onChange={setStateKeyFromInputEvent('name')}
                             validationMessage={nameInUseMessage}
+                            autoFocus
                         />
                     </Field>
                     <Field
                         name="machine_size"
-                        label="Node Size"
+                        label="Node size"
                         helpText="The size to use for nodes in the group."
                     >
                         <SizeSelectControl
@@ -153,11 +163,11 @@ const NodeGroupModalForm = ({
                             <Field
                                 as={Col}
                                 name="min_count"
-                                label="Minimum Node Count"
+                                label="Minimum node count"
                                 helpText="The minimum number of nodes in the group."
                             >
                                 <BSForm.Control
-                                    placeholder="Minimum Node Count"
+                                    placeholder="Minimum node count"
                                     type="number"
                                     required
                                     min="1"
@@ -169,12 +179,12 @@ const NodeGroupModalForm = ({
                             <Field
                                 as={Col}
                                 name="max_count"
-                                label="Maximum Node Count"
+                                label="Maximum node count"
                                 helpText="The maximum number of nodes in the group."
                             >
                                 <BSForm.Control
                                     as={InputWithCustomValidity}
-                                    placeholder="Maximum Node Count"
+                                    placeholder="Maximum node count"
                                     type="number"
                                     required
                                     min="1"
@@ -188,11 +198,11 @@ const NodeGroupModalForm = ({
                     ) : (
                         <Field
                             name="count"
-                            label="Node Count"
+                            label="Node count"
                             helpText="The target number of nodes in the group."
                         >
                             <BSForm.Control
-                                placeholder="Node Count"
+                                placeholder="Node count"
                                 type="number"
                                 required
                                 min="0"
@@ -220,10 +230,11 @@ const initialState = kubernetesCluster => {
         return {
             name: kubernetesCluster.name,
             template: kubernetesCluster.template.id,
-            control_plane_size: kubernetesCluster.control_plane_size.id,
+            control_plane_size: kubernetesCluster.control_plane_size ? kubernetesCluster.control_plane_size.id : "",
+            control_plane_count: kubernetesCluster.control_plane_count || 3,
             node_groups: kubernetesCluster.node_groups.map(ng => ({
                 name: ng.name,
-                machine_size: ng.machine_size.id,
+                machine_size: ng.machine_size ? ng.machine_size.id : "",
                 autoscale: ng.autoscale,
                 count: ng.count,
                 min_count: ng.min_count,
@@ -232,7 +243,10 @@ const initialState = kubernetesCluster => {
             autohealing_enabled: kubernetesCluster.autohealing_enabled,
             dashboard_enabled: kubernetesCluster.dashboard_enabled,
             ingress_enabled: kubernetesCluster.ingress_enabled,
-            monitoring_enabled: kubernetesCluster.monitoring_enabled
+            ingress_controller_load_balancer_ip: kubernetesCluster.ingress_controller_load_balancer_ip,
+            monitoring_enabled: kubernetesCluster.monitoring_enabled,
+            monitoring_metrics_volume_size: kubernetesCluster.monitoring_metrics_volume_size,
+            monitoring_logs_volume_size: kubernetesCluster.monitoring_logs_volume_size
         };
     }
     else {
@@ -241,11 +255,15 @@ const initialState = kubernetesCluster => {
             name: '',
             template: '',
             control_plane_size: '',
+            control_plane_count: 3,
             node_groups: [],
             autohealing_enabled: true,
             dashboard_enabled: true,
             ingress_enabled: false,
-            monitoring_enabled: true
+            ingress_controller_load_balancer_ip: null,
+            monitoring_enabled: true,
+            monitoring_metrics_volume_size: 10,
+            monitoring_logs_volume_size: 10
         };
     }
 };
@@ -268,6 +286,7 @@ export const useKubernetesClusterFormState = kubernetesCluster => {
 
     return [
         {
+            kubernetesCluster,
             isEdit: !!kubernetesCluster,
             data,
             setData,
@@ -291,6 +310,79 @@ export const useKubernetesClusterFormState = kubernetesCluster => {
 };
 
 
+const VolumeSizeControl = ({ isInvalid, ...props }) => (
+    <InputGroup className={isInvalid ? "is-invalid" : undefined}>
+        <BSForm.Control
+            isInvalid={isInvalid}
+            type="number"
+            min="1"
+            step="1"
+            {...props}
+        />
+        <InputGroup.Text>GB</InputGroup.Text>
+    </InputGroup>
+);
+
+
+const useSchedulingData = (tenancyId, formState) => {
+    const [state, setState] = useState({
+        loading: true,
+        fits: false,
+        quotas: null,
+        error: null
+    });
+
+    const setData = (fits, data) => setState({
+        loading: false,
+        fits,
+        quotas: data.quotas,
+        error: null
+    });
+    const setError = error => setState({
+        loading: false,
+        fits: false,
+        quotas: null,
+        error
+    });
+
+    useEffect(
+        () => {
+            const fetchData = async () => {
+                const headers = { 'Content-Type': 'application/json' };
+                const csrfToken = Cookies.get('csrftoken');
+                if( csrfToken ) headers['X-CSRFToken'] = csrfToken;
+                const clusterId = formState.kubernetesCluster?.id;
+                const url = clusterId ?
+                    `/api/tenancies/${tenancyId}/kubernetes_clusters/${clusterId}/_schedule/` :
+                    `/api/tenancies/${tenancyId}/kubernetes_clusters/_schedule/`;
+                // When querying for an update, don't include the template
+                const { name, template, ...data } = formState.data;
+                const requestData = clusterId ? data : formState.data;
+                const response = await fetch(
+                    url,
+                    {
+                        method: "POST",
+                        headers,
+                        credentials: "same-origin",
+                        body: JSON.stringify(requestData)
+                    }
+                );
+                if( response.ok || response.status === 409 ) {
+                    const data = await response.json();
+                    setData(response.ok, data);
+                }
+                else {
+                    setError(new Error("HTTP request failed"));
+                }
+            };
+            fetchData().catch(setError);
+        },
+        []
+    );
+    return state;
+};
+
+
 export const KubernetesClusterForm = ({
     formState,
     onSubmit,
@@ -298,12 +390,39 @@ export const KubernetesClusterForm = ({
     kubernetesClusterTemplateActions,
     sizes,
     sizeActions,
+    externalIps,
+    externalIpActions,
+    tenancy,
+    capabilities,
     ...props
 }) => {
+    const [showScheduling, setShowScheduling] = useState(false);
+
     const getStateKey = key => formState.data[key] || '';
     const setStateKey = key => value => formState.setData(state => ({ ...state, [key]: value }));
     const setStateKeyFromInputEvent = key => evt => setStateKey(key)(evt.target.value);
     const setStateFromCheckboxEvent = key => evt => setStateKey(key)(evt.target.checked);
+    const setIngressEnabled = evt => formState.setData(state => {
+        if( evt.target.checked ) {
+            return {
+                ...state,
+                ingress_enabled: true,
+                // When ingress moves to enabled, restore the previous IP if there is one
+                ingress_controller_load_balancer_ip: (
+                    formState.kubernetesCluster?.ingress_controller_load_balancer_ip ||
+                    null
+                )
+            };
+        }
+        else {
+            return {
+                ...state,
+                ingress_enabled: false,
+                // When ingress is disabled, make sure the IP is set to null
+                ingress_controller_load_balancer_ip: null
+            };
+        }
+    });
 
     const cancelNodeGroupEdit = () => formState.setNodeGroupEditIdx(-1);
     const handleNodeGroupEdit = ngState => {
@@ -334,8 +453,12 @@ export const KubernetesClusterForm = ({
 
     const handleSubmit = (evt) => {
         evt.preventDefault();
-        onSubmit(formState.data);
+        setShowScheduling(true);
     };
+    const handleCancel = () => setShowScheduling(false);
+    const handleConfirm = schedule => onSubmit({ ...formState.data, schedule });
+
+    const selectedTemplate = get(kubernetesClusterTemplates.data, formState.data.template);
 
     return (
         <>
@@ -353,11 +476,12 @@ export const KubernetesClusterForm = ({
                         type="text"
                         placeholder="Cluster name"
                         required
-                        pattern="^[a-z][a-z0-9-]+[a-z0-9]$"
+                        pattern="^[a-z][a-z0-9\-]+[a-z0-9]$"
                         autoComplete="off"
                         disabled={formState.isEdit}
                         value={getStateKey('name')}
                         onChange={setStateKeyFromInputEvent('name')}
+                        autoFocus
                     />
                 </Field>
                 <Field
@@ -366,6 +490,7 @@ export const KubernetesClusterForm = ({
                     helpText="The template determines the Kubernetes version for the cluster."
                 >
                     <KubernetesClusterTemplateSelectControl
+                        kubernetesCluster={formState.kubernetesCluster}
                         resource={kubernetesClusterTemplates}
                         resourceActions={kubernetesClusterTemplateActions}
                         required
@@ -376,21 +501,45 @@ export const KubernetesClusterForm = ({
                 </Field>
                 <Field
                     name="control_plane_size"
-                    label="Control Plane Size"
+                    label="Control plane size"
                     helpText="The size to use for the Kubernetes control plane node(s)."
                 >
                     <SizeSelectControl
                         resource={sizes}
                         resourceActions={sizeActions}
                         // Kubernetes can only use sizes with at least 2 CPUs and 20GB disk
-                        resourceFilter={size => size.cpus >= 2 && size.disk >= 20}
+                        resourceFilter={size => size.cpus >= 2 && size.disk >= 20 && size.ram >= 4096}
                         required
                         value={getStateKey('control_plane_size')}
                         onChange={setStateKey('control_plane_size')}
                     />
                 </Field>
+                <Field
+                    name="control_plane_count"
+                    label="Control plane count"
+                    helpText="Number of control plane nodes. Use 3 for high availability (recommended for production)."
+                >
+                    <div>
+                        <BSForm.Check
+                            inline
+                            type="radio"
+                            id="control_plane_count_1"
+                            label="1 (single node)"
+                            checked={getStateKey('control_plane_count') === 1}
+                            onChange={() => setStateKey('control_plane_count')(1)}
+                        />
+                        <BSForm.Check
+                            inline
+                            type="radio"
+                            id="control_plane_count_3"
+                            label="3 (HA)"
+                            checked={getStateKey('control_plane_count') === 3}
+                            onChange={() => setStateKey('control_plane_count')(3)}
+                        />
+                    </div>
+                </Field>
                 <Card className="mb-3">
-                    <Card.Header>Node Groups</Card.Header>
+                    <Card.Header>Node groups</Card.Header>
                     {formState.showWorkerCountMessage && workerCountMessage !== '' && (
                         <Card.Body>
                             <Row xs="auto" className="justify-content-center">
@@ -417,7 +566,7 @@ export const KubernetesClusterForm = ({
                                             {ng.name}
                                         </td>
                                         <td className="align-middle">
-                                            <MachineSizeLink sizes={sizes} sizeId={ng.machine_size} />
+                                            <MachineSizeLink sizes={sizes} size={ng.machine_size} />
                                         </td>
                                         <td className="align-middle">
                                             {ng.autoscale ? (
@@ -452,7 +601,7 @@ export const KubernetesClusterForm = ({
                                 {formState.data.node_groups.length === 0 && (
                                     <tr>
                                         <td className="p-3 text-muted text-center" colSpan="4">
-                                            No node groups configured yet.    
+                                            No node groups configured yet.
                                         </td>
                                     </tr>
                                 )}
@@ -476,7 +625,7 @@ export const KubernetesClusterForm = ({
                     </div>
                 </Card>
                 <CollapsibleCard
-                    title="Cluster Addons"
+                    title="Cluster addons"
                     show={formState.showAddons}
                     toggle={formState.toggleShowAddons}
                     className="mb-3"
@@ -487,7 +636,7 @@ export const KubernetesClusterForm = ({
                             helpText="Allows you to view and manage resources in your cluster using a web browser."
                         >
                             <BSForm.Check
-                                label="Enable Kubernetes Dashboard?"
+                                label="Enable Headlamp Dashboard?"
                                 checked={getStateKey('dashboard_enabled')}
                                 onChange={setStateFromCheckboxEvent('dashboard_enabled')}
                             />
@@ -505,7 +654,7 @@ export const KubernetesClusterForm = ({
                     </Card.Body>
                 </CollapsibleCard>
                 <CollapsibleCard
-                    title="Advanced Options"
+                    title="Advanced options"
                     show={formState.showAdvancedOptions}
                     toggle={formState.toggleShowAdvancedOptions}
                 >
@@ -532,17 +681,96 @@ export const KubernetesClusterForm = ({
                                         Kubernetes Ingress
                                     </a>{" "}
                                     to expose services in the cluster via a load balancer.
-                                    <br />
-                                    <span className="text-danger">
-                                        Requires an external IP for the load balancer.
-                                    </span>
                                 </>
                             }
                         >
                             <BSForm.Check
                                 label="Enable Kubernetes Ingress?"
                                 checked={getStateKey('ingress_enabled')}
-                                onChange={setStateFromCheckboxEvent('ingress_enabled')}
+                                onChange={setIngressEnabled}
+                            />
+                        </Field>
+                        <Field
+                            name="ingress_controller_load_balancer_ip"
+                            label="Ingress controller external IP"
+                            helpText={
+                                <>
+                                    The IP address that will be associated with the ingress controller.
+                                    <br />
+                                    Each <code>Ingress</code> resource created in your Kubernetes cluster{" "}
+                                    must have a DNS record pointing to this IP address.{" "}
+                                    This will <strong>not</strong> happen automatically.
+                                </>
+                            }
+                        >
+                            <ExternalIpSelectControl
+                                resource={externalIps}
+                                resourceActions={externalIpActions}
+                                required={getStateKey('ingress_enabled')}
+                                disabled={
+                                    !getStateKey('ingress_enabled') ||
+                                    formState.kubernetesCluster?.ingress_enabled
+                                }
+                                value={getStateKey('ingress_controller_load_balancer_ip')}
+                                onChange={setStateKey('ingress_controller_load_balancer_ip')}
+                                // Use the IP address itself as the value
+                                getOptionValue={ip => ip.external_ip}
+                            />
+                        </Field>
+                        <Field
+                            name="monitoring_metrics_volume_size"
+                            label="Metrics volume size"
+                            helpText={
+                                <>
+                                    Metrics will be retained for 90 days or until this volume is full,
+                                    whichever occurs first.
+                                    <br />
+                                    The rate at which metrics are produced depends on the cluster usage.
+                                </>
+                            }
+                        >
+                            <VolumeSizeControl
+                                placeholder="Metrics volume size"
+                                required={getStateKey('monitoring_enabled')}
+                                disabled={!getStateKey('monitoring_enabled')}
+                                // The volume cannot be smaller than the previous size
+                                min={
+                                    formState.kubernetesCluster?.monitoring_enabled &&
+                                    formState.kubernetesCluster.monitoring_metrics_volume_size ||
+                                    1
+                                }
+                                value={getStateKey('monitoring_metrics_volume_size')}
+                                onChange={setStateKeyFromInputEvent('monitoring_metrics_volume_size')}
+                            />
+                        </Field>
+                        <Field
+                            name="monitoring_logs_volume_size"
+                            label="Logs volume size"
+                            helpText={
+                                <>
+                                    Logs are retained for 72 hours. The rate at which logs are produced
+                                    depends on the cluster usage.
+                                    <br />
+                                    <strong className="text-warning">
+                                        <FontAwesomeIcon icon={faExclamationTriangle} className="me-2" />
+                                        If this volume becomes full, no new logs will be recorded and
+                                        existing logs may be corrupted.
+                                    </strong>
+                                </>
+                            }
+                        >
+                            <VolumeSizeControl
+                                placeholder="Logs volume size"
+                                required={getStateKey('monitoring_enabled')}
+                                disabled={!getStateKey('monitoring_enabled')}
+                                // The volume cannot be smaller than the previous size
+                                min={
+                                    formState.kubernetesCluster?.monitoring_enabled &&
+                                    formState.kubernetesCluster.monitoring_logs_volume_size ||
+                                    1
+                                }
+                                value={getStateKey('monitoring_logs_volume_size')}
+                                onChange={setStateKeyFromInputEvent('monitoring_logs_volume_size')}
                             />
                         </Field>
                     </Card.Body>
@@ -579,6 +807,16 @@ export const KubernetesClusterForm = ({
                 sizes={sizes}
                 sizeActions={sizeActions}
             />
+            {showScheduling && (
+                <PlatformSchedulingModal
+                    supportsScheduling={capabilities.supports_scheduling}
+                    useSchedulingData={() => useSchedulingData(tenancy.id, formState)}
+                    isEdit={formState.isEdit}
+                    onCancel={handleCancel}
+                    onConfirm={handleConfirm}
+                    maxLifetimeSeconds={selectedTemplate?.max_lifetime}
+                />
+            )}
         </>
     );
 };
@@ -592,6 +830,10 @@ export const KubernetesClusterModalForm = ({
     kubernetesClusterTemplateActions,
     sizes,
     sizeActions,
+    externalIps,
+    externalIpActions,
+    tenancy,
+    capabilities,
     show,
     ...props
 }) => {
@@ -628,6 +870,10 @@ export const KubernetesClusterModalForm = ({
                     kubernetesClusterTemplateActions={kubernetesClusterTemplateActions}
                     sizes={sizes}
                     sizeActions={sizeActions}
+                    externalIps={externalIps}
+                    externalIpActions={externalIpActions}
+                    tenancy={tenancy}
+                    capabilities={capabilities}
                 />
             </Modal.Body>
             <Modal.Footer>

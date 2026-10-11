@@ -52,9 +52,6 @@ coverage.xml
 # PyBuilder
 target/
 
-# pyenv version file
-.python-version
-
 # Settings
 api/azimuth_site/settings.py
 
@@ -66,3 +63,4 @@ node_modules
 
 Chart.lock
 chart/charts
+.stestr

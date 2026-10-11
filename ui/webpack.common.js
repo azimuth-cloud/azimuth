@@ -23,8 +23,8 @@ module.exports = {
                             "@babel/preset-react"
                         ],
                         "plugins": [
-                            "@babel/plugin-proposal-object-rest-spread",
-                            "@babel/plugin-proposal-class-properties"
+                            "@babel/plugin-transform-object-rest-spread",
+                            "@babel/plugin-transform-class-properties"
                         ]
                     }
                 }
@@ -45,6 +45,7 @@ module.exports = {
         // Required for sshpk
         new webpack.ProvidePlugin({
             Buffer: ['buffer', 'Buffer'],
+	    process: 'process/browser.js',
         }),
         new HtmlWebpackPlugin({
             title: 'Cloud Portal',
@@ -79,8 +80,9 @@ module.exports = {
             assert: require.resolve('assert'),
             buffer: require.resolve('buffer'),
             crypto: require.resolve('crypto-browserify'),
-            process: require.resolve('process/browser'),
+            process: require.resolve('process/browser.js'),
             stream: require.resolve('stream-browserify'),
+            vm: require.resolve('vm-browserify')
         }
     }
 };

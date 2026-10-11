@@ -12,8 +12,6 @@ import Row from 'react-bootstrap/Row';
 import { LinkContainer } from 'react-router-bootstrap';
 import { Navigate } from 'react-router-dom';
 
-import get from 'lodash/get';
-
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faDatabase,
@@ -23,15 +21,18 @@ import {
     faSitemap,
     faSlidersH,
     faTachometerAlt,
-    faTools
+    faTools,
+    faUsers
 } from '@fortawesome/free-solid-svg-icons';
 
-import { bindArgsToActions } from '../../utils';
-
+import { TenancyIdpPanel } from './idp';
 import { TenancyQuotasPanel } from './quotas';
 import { TenancyMachinesPanel } from './machines';
 import { TenancyVolumesPanel } from './volumes';
 import { TenancyPlatformsPanel } from './platforms';
+import { useResourceInitialised } from './resource-utils';
+
+import { Error, Loading } from '../../utils';
 
 import { SSHKeyUpdateModal } from '../../ssh-key-update-modal';
 
@@ -72,31 +73,60 @@ const TenancyNav = ({
     sshKeyActions,
     capabilities,
     currentTenancy,
-    selectedResource
+    selectedResource,
+    supportsPlatforms,
 }) => {
+    // When the nav is mounted, we show the sidebar by applying a class
+    // The class is removed on a timer, after which the hover CSS rules take over
+    const [sidebarExpanded, setSidebarExpanded] = useState(true);
+    useEffect(
+        () => {
+            const timeout = setTimeout(() => setSidebarExpanded(false), 500);
+            return () => clearTimeout(timeout);
+        },
+        []
+    );
+
+    // Determine whether to show the advanced menu items or not
     const [userExpanded, setUserExpanded] = useState(false);
     const toggleUserExpanded = () => setUserExpanded(expanded => !expanded);
-    const supportsPlatforms = capabilities.supports_clusters || capabilities.supports_kubernetes;
     const selectedResourceIsAdvanced = ['machines', 'volumes'].includes(selectedResource);
+    
     // If the cloud doesn't support platforms, always show the advanced resources
-    // If the user is on an advanced tab, show the items even if they are not expanded
-    const expanded = (userExpanded || !supportsPlatforms || selectedResourceIsAdvanced);
+    // If the cloud doesn't support machines or volumes, don't show the advanced tab
+    const showAdvanced = (capabilities.supports_machines && capabilities.supports_volumes) || !supportsPlatforms
+    // If the cloud doesn't support platforms, always show the advanced resources
+    // If the user is on an advanced tab, expand the items even if they are not expanded
+    const expandAdvanced = (userExpanded || !supportsPlatforms || selectedResourceIsAdvanced);
 
     return (
-        <>
+        <div className={`sidebar${sidebarExpanded ? " expanded" : ""}`}>
             <Nav as="ul" variant="pills" className="sidebar-nav">
                 {supportsPlatforms && (
-                    <Nav.Item as="li">
-                        <LinkContainer to={`/tenancies/${currentTenancy.id}/platforms`}>
-                            <Nav.Link title="Platforms">
-                                <FontAwesomeIcon
-                                    icon={faSitemap}
-                                    fixedWidth
-                                />
-                                <span className="nav-link-text">Platforms</span>
-                            </Nav.Link>
-                        </LinkContainer>
-                    </Nav.Item>
+                    <>
+                        <Nav.Item as="li">
+                            <LinkContainer to={`/tenancies/${currentTenancy.id}/platforms`}>
+                                <Nav.Link title="Platforms">
+                                    <FontAwesomeIcon
+                                        icon={faSitemap}
+                                        fixedWidth
+                                    />
+                                    <span className="nav-link-text">Platforms</span>
+                                </Nav.Link>
+                            </LinkContainer>
+                        </Nav.Item>
+                        <Nav.Item as="li">
+                            <LinkContainer to={`/tenancies/${currentTenancy.id}/idp`}>
+                                <Nav.Link title="Identity Provider">
+                                    <FontAwesomeIcon
+                                        icon={faUsers}
+                                        fixedWidth
+                                    />
+                                    <span className="nav-link-text">Identity Provider</span>
+                                </Nav.Link>
+                            </LinkContainer>
+                        </Nav.Item>
+                    </>
                 )}
                 <Nav.Item as="li">
                     <LinkContainer to={`/tenancies/${currentTenancy.id}/quotas`}>
@@ -125,13 +155,13 @@ const TenancyNav = ({
                         </Nav.Link>
                     </Nav.Item>
                 )}
-                {supportsPlatforms && (
+                {showAdvanced && (
                     <Nav.Item as="li">
                         <Nav.Link
                             title="Advanced"
                             onClick={toggleUserExpanded}
                             disabled={selectedResourceIsAdvanced}
-                            className={`nav-toggle toggle-${expanded ? "show" : "hide"}`}
+                            className={`nav-toggle toggle-${expandAdvanced ? "show" : "hide"}`}
                         >
                             <FontAwesomeIcon
                                 icon={faTools}
@@ -141,7 +171,7 @@ const TenancyNav = ({
                         </Nav.Link>
                     </Nav.Item>
                 )}
-                {expanded && (
+                {expandAdvanced && (
                     <>
                         <Nav.Item as="li" className={supportsPlatforms ? "nav-item-nested" : undefined}>
                             <LinkContainer to={`/tenancies/${currentTenancy.id}/machines`}>
@@ -185,35 +215,38 @@ const TenancyNav = ({
                 </Nav.Item>
                 <SSHKeyUpdateNavLink sshKey={sshKey} sshKeyActions={sshKeyActions} />
             </Nav>
-        </>
+        </div>
     );
+};
+
+
+// A map of platform names to the panel components
+const PlatformPanelComponents = {
+    "idp": TenancyIdpPanel,
+    "platforms": TenancyPlatformsPanel,
+    "quotas": TenancyQuotasPanel,
+    "machines": TenancyMachinesPanel,
+    "volumes": TenancyVolumesPanel,
 };
 
 
 export const TenancyResourcePage = ({
     resource,
-    capabilities,
+    userId,
+    supportsPlatforms,
     sshKey,
     sshKeyActions,
-    tenancies: { current: currentTenancy },
+    currentTenancy,
     tenancyActions,
     notificationActions
 }) => {
-    // When the component is mounted, we show the sidebar by applying a class
-    // The class is removed on a timer, after which the hover CSS rules take over
-    const [sidebarExpanded, setSidebarExpanded] = useState(true);
-    useEffect(
-        () => {
-            const timeout = setTimeout(() => setSidebarExpanded(false), 500);
-            return () => clearTimeout(timeout);
-        },
-        []
-    );
+    // Ensure that the tenancy capabilities are loaded
+    useResourceInitialised(currentTenancy.capabilities, tenancyActions.capabilities.fetch);
 
     // If a resource has been selected that we don't support, emit a notification
     useEffect(
         () => {
-            if( !["platforms", "quotas", "machines", "volumes"].includes(resource) ) {
+            if( !PlatformPanelComponents.hasOwnProperty(resource) ) {
                 notificationActions.error({
                     title: 'Not Found',
                     message: `Resource '${resource}' does not exist.`
@@ -223,73 +256,57 @@ export const TenancyResourcePage = ({
         [resource]
     );
 
+    // Calculate the panel component to use
+    // For unsupported resources, we redirect to the main tenancy page
     let PanelComponent;
-    if( resource === "platforms" ) {
-        PanelComponent = TenancyPlatformsPanel;
-    }
-    else if( resource === "quotas" ) {
-        PanelComponent = TenancyQuotasPanel;
-    }
-    else if( resource === "machines" ) {
-        PanelComponent = TenancyMachinesPanel;
-    }
-    else if( resource === "volumes" ) {
-        PanelComponent = TenancyVolumesPanel;
+    if( PlatformPanelComponents.hasOwnProperty(resource) ) {
+        PanelComponent = PlatformPanelComponents[resource];
     }
     else {
         return <Navigate to={`/tenancies/${currentTenancy.id}`} />;
     }
+
+    // We only render the page once the capabilities have initialised
     return (
         <Container fluid className="flex-grow-1 d-flex flex-column">
             <Row className="flex-grow-1">
                 <div className="sidebar-container">
-                    <div className={`sidebar${sidebarExpanded ? " expanded" : ""}`}>
-                        <TenancyNav
-                            sshKey={sshKey}
-                            sshKeyActions={sshKeyActions}
-                            capabilities={capabilities}
-                            currentTenancy={currentTenancy}
-                            selectedResource={resource}
-                        />
-                    </div>
+                    <TenancyNav
+                        sshKey={sshKey}
+                        sshKeyActions={sshKeyActions}
+                        capabilities={currentTenancy.capabilities}
+                        currentTenancy={currentTenancy}
+                        selectedResource={resource}
+                        supportsPlatforms={supportsPlatforms}
+                    />
                 </div>
                 <Col>
                     <h1 className="border-bottom border-2 pb-1 mb-4">
                         <code>{currentTenancy.name}</code>
                     </h1>
-                    <PanelComponent
-                        sshKey={sshKey}
-                        capabilities={capabilities}
-                        tenancy={currentTenancy}
-                        // Bind all the actions to the current tenancy
-                        tenancyActions={{
-                            quota: bindArgsToActions(tenancyActions.quota, currentTenancy.id),
-                            image: bindArgsToActions(tenancyActions.image, currentTenancy.id),
-                            size: bindArgsToActions(tenancyActions.size, currentTenancy.id),
-                            externalIp: bindArgsToActions(tenancyActions.externalIp, currentTenancy.id),
-                            volume: bindArgsToActions(tenancyActions.volume, currentTenancy.id),
-                            machine: bindArgsToActions(tenancyActions.machine, currentTenancy.id),
-                            kubernetesClusterTemplate: bindArgsToActions(
-                                tenancyActions.kubernetesClusterTemplate,
-                                currentTenancy.id
-                            ),
-                            kubernetesCluster: bindArgsToActions(
-                                tenancyActions.kubernetesCluster,
-                                currentTenancy.id
-                            ),
-                            kubernetesAppTemplate: bindArgsToActions(
-                                tenancyActions.kubernetesAppTemplate,
-                                currentTenancy.id
-                            ),
-                            kubernetesApp: bindArgsToActions(
-                                tenancyActions.kubernetesApp,
-                                currentTenancy.id
-                            ),
-                            clusterType: bindArgsToActions(tenancyActions.clusterType, currentTenancy.id),
-                            cluster: bindArgsToActions(tenancyActions.cluster, currentTenancy.id)
-                        }}
-                        notificationActions={notificationActions}
-                    />
+                    {currentTenancy.capabilities.initialised ? (
+                        <PanelComponent
+                            userId={userId}
+                            sshKey={sshKey}
+                            capabilities={currentTenancy.capabilities}
+                            tenancy={currentTenancy}
+                            tenancyActions={tenancyActions}
+                            notificationActions={notificationActions}
+                            supportsPlatforms={supportsPlatforms}
+                        />
+                    ) : (
+                        <Row className="justify-content-center">
+                            {(currentTenancy.capabilities.fetchError && !currentTenancy.capabilities.fetching) ? (
+                                <Col xs="auto py-3">
+                                    <Error message={currentTenancy.capabilities.fetchError.message} />
+                                </Col>
+                            ) : (
+                                <Col xs="auto py-5" className="mt-5">
+                                    <Loading iconSize="lg" size="lg" message="Loading..." />
+                                </Col>
+                            )}
+                        </Row>
+                    )}
                 </Col>
             </Row>
         </Container>

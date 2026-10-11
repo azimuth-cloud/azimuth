@@ -27,10 +27,31 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 
 import { sortBy } from '../../../../utils';
+import sadFace from "../../../../../../assets/face-frown-regular.svg";
 
-import { PlatformTypeCard, PlatformServicesListGroup, PlatformDeleteButton } from '../utils';
+import {
+    PlatformTypeCard,
+    PlatformCardHeader,
+    PlatformServicesListGroup,
+    PlatformDeleteButton,
+    PlatformExpires,
+    expiresSoon
+} from '../utils';
 
 import { KubernetesAppModalForm } from './form';
+
+
+// Placeholder object which holds the minimum set of fields required for a successful UI render
+const kubernetesAppTemplatePlaceholder = {
+    logo: sadFace,
+    label: "Platform type unavailable",
+    description: "",
+    versions: [{
+        name: "deprecated"
+    }],
+    // Used to conditionally render UI components when placeholder is in use
+    placeholder: true,
+}
 
 
 const Usage = ({ kubernetesApp }) => {
@@ -194,7 +215,7 @@ const StatusText = ({ kubernetesApp }) => {
 };
 
 
-const StatusCard = ({ kubernetesAppTemplate, kubernetesApp }) => (
+const StatusCard = ({ kubernetesAppTemplate, kubernetesCluster, kubernetesApp }) => (
     <Card className="mb-3">
         <Card.Header className="text-center">App status</Card.Header>
         <Table borderless className="details-table">
@@ -203,10 +224,12 @@ const StatusCard = ({ kubernetesAppTemplate, kubernetesApp }) => (
                     <th>Name</th>
                     <td>{kubernetesApp.name}</td>
                 </tr>
-                <tr>
-                    <th>Kubernetes cluster</th>
-                    <td>{kubernetesApp.kubernetes_cluster.id}</td>
-                </tr>
+                {kubernetesCluster && (
+                    <tr>
+                        <th>Kubernetes cluster</th>
+                        <td>{kubernetesCluster?.name || '-'}</td>
+                    </tr>
+                )}
                 <tr>
                     <th>Template</th>
                     <td>{kubernetesAppTemplate.label}</td>
@@ -230,6 +253,20 @@ const StatusCard = ({ kubernetesAppTemplate, kubernetesApp }) => (
                     <th>Created</th>
                     <td>{kubernetesApp.created_at.toRelative()}</td>
                 </tr>
+                <tr>
+                    <th>Created by</th>
+                    <td>{kubernetesApp.created_by_username || '-'}</td>
+                </tr>
+                <tr>
+                    <th>Updated by</th>
+                    <td>{kubernetesApp.updated_by_username || '-'}</td>
+                </tr>
+                {kubernetesCluster?.schedule && (
+                    <tr>
+                        <th>Expires</th>
+                        <td><PlatformExpires schedule={kubernetesCluster.schedule} /></td>
+                    </tr>
+                )}
             </tbody>
         </Table>
     </Card>
@@ -260,6 +297,7 @@ const KubernetesAppUpdateButton = ({
     kubernetesApp,
     tenancy,
     tenancyActions,
+    capabilities,
     disabled,
     onSubmit,
     ...props
@@ -270,7 +308,8 @@ const KubernetesAppUpdateButton = ({
 
     const kubernetesAppTemplate = get(
         tenancy.kubernetesAppTemplates.data,
-        kubernetesApp.template.id
+        kubernetesApp.template.id,
+        kubernetesAppTemplatePlaceholder,
     );
 
     const handleSubmit = data => {
@@ -302,6 +341,7 @@ const KubernetesAppUpdateButton = ({
                     onCancel={close}
                     tenancy={tenancy}
                     tenancyActions={tenancyActions}
+                    capabilities={capabilities}
                 />
             )}
         </>
@@ -311,10 +351,12 @@ const KubernetesAppUpdateButton = ({
 
 const KubernetesAppDetailsButton = ({
     kubernetesApp,
+    kubernetesCluster,
     kubernetesAppTemplate,
     kubernetesAppActions,
     tenancy,
     tenancyActions,
+    capabilities,
     ...props
 }) => {
     const [visible, setVisible] = useState(false);
@@ -354,8 +396,9 @@ const KubernetesAppDetailsButton = ({
                                 kubernetesApp={kubernetesApp}
                                 tenancy={tenancy}
                                 tenancyActions={tenancyActions}
-                                disabled={inFlight || working}
-                                onSubmit={data => kubernetesAppActions.update(data, true)}
+                                capabilities={capabilities}
+                                disabled={inFlight || working || kubernetesAppTemplate.placeholder}
+                                onSubmit={kubernetesAppActions.update}
                                 className="me-2"
                             />
                             <PlatformDeleteButton
@@ -380,6 +423,7 @@ const KubernetesAppDetailsButton = ({
                         <Col xl={5}>
                             <StatusCard
                                 kubernetesApp={kubernetesApp}
+                                kubernetesCluster={kubernetesCluster}
                                 kubernetesAppTemplate={kubernetesAppTemplate}
                             />
                             <ServicesCard kubernetesApp={kubernetesApp} />
@@ -409,71 +453,87 @@ const statusBadgeBg = {
 };
 
 
-const StatusBadge = ({ kubernetesAppTemplate, kubernetesApp }) => {
-    // Indicate if the deployed version is unsupported or updates are available
-    const version = kubernetesAppTemplate.versions.find(v => v.name === kubernetesApp.version);
-    const versionIsLatest = (
-        version &&
-        version.name === kubernetesAppTemplate.versions[0].name
-    );
-    let statusText = kubernetesApp.status, statusBg = statusBadgeBg[kubernetesApp.status];
-    if( kubernetesApp.status === "Deployed" ) {
-        if( !version ) {
-            statusText = "Unsupported";
-            statusBg = "danger";
-        }
-        else if( !versionIsLatest ) {
-            statusText = "Upgrade available";
-            statusBg = "warning";
-        }
-    }
-    return <Badge bg={statusBg}>{statusText.toUpperCase()}</Badge>;
-};
-
-
 export const KubernetesAppCard = ({
     kubernetesApp,
     kubernetesAppTemplates,
     kubernetesAppActions,
     tenancy,
-    tenancyActions
+    tenancyActions,
+    capabilities,
+    userId
 }) => {
-    const kubernetesAppTemplate = get(kubernetesAppTemplates.data, kubernetesApp.template.id);
-    if( kubernetesAppTemplate ) {
-        return (
-            <Card className="platform-card">
-                <Card.Header>
-                    <StatusBadge
-                        kubernetesAppTemplate={kubernetesAppTemplate}
-                        kubernetesApp={kubernetesApp}
-                    />
-                </Card.Header>
-                <Card.Img src={kubernetesAppTemplate.logo} />
-                <Card.Body>
-                    <Card.Title>{kubernetesApp.name}</Card.Title>
-                    <Card.Subtitle>{kubernetesAppTemplate.label}</Card.Subtitle>
-                </Card.Body>
-                {kubernetesApp.services.length > 0 && (
-                    <PlatformServicesListGroup
-                        services={sortBy(kubernetesApp.services, s => s.label)}
-                    />
+    const kubernetesAppTemplate = get(
+        kubernetesAppTemplates.data,
+        kubernetesApp.template.id,
+        kubernetesAppTemplatePlaceholder
+    );
+
+    const kubernetesCluster = (
+        kubernetesApp.kubernetes_cluster ?
+            get(tenancy.kubernetesClusters.data, kubernetesApp.kubernetes_cluster.id) :
+            null
+    );
+
+    // Kubernetes apps expire at the same time as the underlying cluster
+    const appExpiresSoon = (
+        kubernetesCluster?.schedule ?
+            expiresSoon(kubernetesCluster.schedule) :
+            false
+    );
+    const version = kubernetesAppTemplate.versions.find(v => v.name === kubernetesApp.version);
+    const versionIsLatest = (
+        version &&
+        version.name === kubernetesAppTemplate.versions[0].name
+    );
+
+    // Decide if we need to apply a notification class to the card
+    const notifyClass = (
+        versionIsLatest ?
+            (appExpiresSoon ? "platform-expiring" : "") :
+            "platform-patch-needed"
+    );
+
+    return (
+        <Card className={`platform-card ${notifyClass}`}>
+            <PlatformCardHeader
+                currentUserIsOwner={userId === kubernetesApp.created_by_user_id}
+                expiresSoon={appExpiresSoon}
+                patchAvailable={!versionIsLatest}
+            >
+                <Badge bg={statusBadgeBg[kubernetesApp.status]}>
+                    {kubernetesApp.status.toUpperCase()}
+                </Badge>
+            </PlatformCardHeader>
+            <Card.Img src={kubernetesAppTemplate.logo} />
+            <Card.Body>
+                <Card.Title>{kubernetesApp.name}</Card.Title>
+                <Card.Subtitle>{kubernetesAppTemplate.label}</Card.Subtitle>
+            </Card.Body>
+            {kubernetesApp.services.length > 0 && (
+                <PlatformServicesListGroup
+                    services={sortBy(kubernetesApp.services, s => s.label)}
+                />
+            )}
+            <Card.Body className="small text-muted">
+                Created {kubernetesApp.created_at.toRelative()}
+                {kubernetesCluster?.schedule && (
+                    <>
+                        <br/>
+                        Expires {kubernetesCluster.schedule.end_time.toRelative()}
+                    </>
                 )}
-                <Card.Body className="small text-muted">
-                    Created {kubernetesApp.created_at.toRelative()}
-                </Card.Body>
-                <Card.Footer>
-                    <KubernetesAppDetailsButton
-                        kubernetesApp={kubernetesApp}
-                        kubernetesAppTemplate={kubernetesAppTemplate}
-                        kubernetesAppActions={kubernetesAppActions}
-                        tenancy={tenancy}
-                        tenancyActions={tenancyActions}
-                    />
-                </Card.Footer>
-            </Card>
-        );
-    }
-    else {
-        return null;
-    }
+            </Card.Body>
+            <Card.Footer>
+                <KubernetesAppDetailsButton
+                    kubernetesApp={kubernetesApp}
+                    kubernetesCluster={kubernetesCluster}
+                    kubernetesAppTemplate={kubernetesAppTemplate}
+                    kubernetesAppActions={kubernetesAppActions}
+                    tenancy={tenancy}
+                    tenancyActions={tenancyActions}
+                    capabilities={capabilities}
+                />
+            </Card.Footer>
+        </Card>
+    );
 };

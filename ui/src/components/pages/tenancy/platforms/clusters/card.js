@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 
+import Alert from 'react-bootstrap/Alert';
 import Badge from 'react-bootstrap/Badge';
 import Button from 'react-bootstrap/Button';
 import Card from 'react-bootstrap/Card';
@@ -10,11 +11,10 @@ import ProgressBar from 'react-bootstrap/ProgressBar';
 import Row from 'react-bootstrap/Row';
 import Table from 'react-bootstrap/Table';
 import Tooltip from 'react-bootstrap/Tooltip';
+import sadFace from "../../../../../../assets/face-frown-regular.svg";
 
 import get from 'lodash/get';
 import truncate from 'lodash/truncate';
-
-import { DateTime } from 'luxon';
 
 import ReactMarkdown from 'react-markdown';
 
@@ -30,7 +30,16 @@ import {
     faSyncAlt,
 } from '@fortawesome/free-solid-svg-icons';
 
-import { PlatformTypeCard, PlatformServicesListGroup, PlatformDeleteButton } from '../utils';
+import {
+    PlatformTypeCard,
+    PlatformCardHeader,
+    PlatformServicesListGroup,
+    PlatformDeleteButton,
+    PlatformExpires,
+    expiresSoon
+} from '../utils';
+import { Error } from '../../../../utils';
+
 
 import { ClusterModalForm } from './form';
 
@@ -124,25 +133,26 @@ const ClusterTask = ({ cluster: { task } }) => {
 };
 
 
-const ClusterPatched = ({ cluster: { patched }}) => {
-    const threshold = DateTime.now().minus({ weeks: 2 });
-    return patched > threshold ?
-        patched.toRelative() :
+const ClusterPatched = ({ cluster, clusterType }) => {
+    const patched = cluster.patched ? cluster.patched.toRelative() : cluster.created.toRelative()
+    const newVersionAvailable = cluster.cluster_type_version && (cluster.cluster_type_version != clusterType.version);
+    return !newVersionAvailable ?
+        patched :
         <OverlayTrigger
             placement="top"
-            overlay={<Tooltip>This cluster has not been patched recently.</Tooltip>}
+            overlay={<Tooltip>A new version is available, please patch this cluster.</Tooltip>}
             trigger="click"
             rootClose
         >
             <strong className="text-danger overlay-trigger">
                 <FontAwesomeIcon icon={faExclamationCircle} className="me-2" />
-                {patched.toRelative()}
+                {patched}
             </strong>
         </OverlayTrigger>;
 };
 
 
-const ClusterStatusCard = ({ cluster }) => (
+const ClusterStatusCard = ({ cluster, clusterType }) => (
     <Card className="mb-3">
         <Card.Header className="text-center">Cluster status</Card.Header>
         <Table borderless className="details-table">
@@ -166,13 +176,27 @@ const ClusterStatusCard = ({ cluster }) => (
                     <td>{cluster.created.toRelative()}</td>
                 </tr>
                 <tr>
+                    <th>Created by</th>
+                    <td>{cluster.created_by_username || '-'}</td>
+                </tr>
+                <tr>
                     <th>Updated</th>
                     <td>{cluster.updated ? cluster.updated.toRelative() : '-'}</td>
                 </tr>
                 <tr>
-                    <th>Patched</th>
-                    <td>{cluster.patched ? <ClusterPatched cluster={cluster} /> : '-'}</td>
+                    <th>Updated by</th>
+                    <td>{cluster.updated_by_username || '-'}</td>
                 </tr>
+                <tr>
+                    <th>Patched</th>
+                    <td><ClusterPatched cluster={cluster} clusterType={clusterType} /></td>
+                </tr>
+                {cluster.schedule && (
+                    <tr>
+                        <th>Expires</th>
+                        <td><PlatformExpires schedule={cluster.schedule} /></td>
+                    </tr>
+                )}
             </tbody>
         </Table>
     </Card>
@@ -212,6 +236,7 @@ const ClusterUpdateButton = ({
     cluster,
     tenancy,
     tenancyActions,
+    capabilities,
     disabled,
     onSubmit,
     ...props
@@ -220,10 +245,13 @@ const ClusterUpdateButton = ({
     const open = () => setVisible(true);
     const close = () => setVisible(false);
 
-    const clusterType = get(tenancy.clusterTypes.data, cluster.cluster_type);
+    const clusterType = get(tenancy.clusterTypes.data, cluster.cluster_type) || clusterTypePlaceholder;
 
     const handleSubmit = data => {
-        onSubmit({ parameter_values: data.parameterValues });
+        onSubmit({
+            parameter_values: data.parameterValues,
+            schedule: data.schedule
+        });
         close();
     };
 
@@ -250,6 +278,7 @@ const ClusterUpdateButton = ({
                 onCancel={close}
                 tenancy={tenancy}
                 tenancyActions={tenancyActions}
+                capabilities={capabilities}
             />
         </>
     );
@@ -282,6 +311,14 @@ const ClusterPatchButton = ({ name, inFlight, disabled, onConfirm, ...props }) =
                             workloads on the platform. Once started, it cannot be stopped.
                         </strong>
                     </p>
+                    <Alert variant="warning">
+                        <p><strong>There is a risk of data loss with this operation.</strong></p>
+                        <p className="mb-0">
+                            Only data stored in explicitly documented persistent locations will
+                            be retained. All other platform data and any platform modifications,
+                            e.g. packages installed using the package manager, will be lost.
+                        </p>
+                    </Alert>
                 </Modal.Body>
                 <Modal.Footer>
                     <Button variant="secondary" onClick={close}>Cancel</Button>
@@ -301,12 +338,14 @@ const ClusterDetailsButton = ({
     clusterActions,
     tenancy,
     tenancyActions,
+    capabilities,
     ...props
 }) => {
     const [visible, setVisible] = useState(false);
     const open = () => setVisible(true);
     const close = () => setVisible(false);
 
+    const missingClusterType = clusterType.placeholder;
     const inFlight = !!cluster.updating || !!cluster.patching || !!cluster.deleting;
     const working = ['CONFIGURING', 'DELETING'].includes(cluster.status);
 
@@ -320,6 +359,13 @@ const ClusterDetailsButton = ({
                     <Modal.Title>Platform details for {cluster.name}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
+                    { missingClusterType && 
+                        <Row className="justify-content-center">
+                            <Col xs="auto">
+                                <Error className="text-center" message={"WARNING: This cluster type is no longer available."} />
+                            </Col>
+                        </Row>
+                    }
                     <Row className="justify-content-end mb-2">
                         <Col xs="auto">
                             <Button
@@ -340,14 +386,15 @@ const ClusterDetailsButton = ({
                                 cluster={cluster}
                                 tenancy={tenancy}
                                 tenancyActions={tenancyActions}
-                                disabled={inFlight || working}
+                                capabilities={capabilities}
+                                disabled={inFlight || working || missingClusterType}
                                 onSubmit={clusterActions.update}
                                 className="me-2"
                             />
                             <ClusterPatchButton
                                 name={cluster.name}
                                 inFlight={!!cluster.patching}
-                                disabled={inFlight || working}
+                                disabled={inFlight || working || missingClusterType}
                                 onConfirm={clusterActions.patch}
                                 className="me-2"
                             />
@@ -371,7 +418,7 @@ const ClusterDetailsButton = ({
                             <ClusterUsage cluster={cluster} clusterType={clusterType} />
                         </Col>
                         <Col xl={5}>
-                            <ClusterStatusCard cluster={cluster} />
+                            <ClusterStatusCard cluster={cluster} clusterType={clusterType} />
                             <ClusterServicesCard cluster={cluster} />
                         </Col>
                     </Row>
@@ -394,21 +441,62 @@ const statusBadgeBg = {
     'ERROR': 'danger'
 };
 
+// Placeholder object which holds the minimum set of fields required for a successful UI render
+const clusterTypePlaceholder = {
+    logo: sadFace,
+    label: "Cluster type unavailable",
+    description: "",
+    usage_template: "",
+    version: null,
+    parameters: [],
+    // Used to conditionally render UI components when placeholder is in use
+    placeholder: true,
+}
 
 export const ClusterCard = ({
     cluster,
     clusterTypes,
     clusterActions,
     tenancy,
-    tenancyActions
+    tenancyActions,
+    capabilities,
+    userId,
+    notificationActions
 }) => {
-    const clusterType = clusterTypes.data[cluster.cluster_type];
-    const updatedAt = cluster.updated || cluster.created;
+    // If cluster type is no longer available from the API (e.g. due to ACL changes in the tenancy) then use a placeholder.
+    // NOTE(sd109) We set the placeholder's version to match the current cluster version so that users do not get prompted to patch their cluster.
+    const clusterType = (
+        clusterTypes.data[cluster.cluster_type] ||
+        {...clusterTypePlaceholder, version: cluster.cluster_type_version}
+    );
+    if (!clusterType.version) {
+        notificationActions.error({
+            title: 'Cluster type not found',
+            message: `Unable to load cluster type '${cluster.cluster_type}' for cluster '${cluster.name}'`
+        });
+    }
+
+    const clusterExpiresSoon = cluster.schedule ? expiresSoon(cluster.schedule) : false;
+    const patchAvailable = (
+        cluster.cluster_type_version &&
+        cluster.cluster_type_version != clusterType.version
+    );
+    // Decide if we need to apply a notification class to the card
+    const notifyClass = (
+        patchAvailable ?
+            "platform-patch-needed" :
+            (clusterExpiresSoon ? "platform-expiring" : "")
+    );
+
     return (
-        <Card className="platform-card">
-            <Card.Header>
+        <Card className={`platform-card ${notifyClass}`}>
+            <PlatformCardHeader
+                currentUserIsOwner={userId === cluster.created_by_user_id}
+                expiresSoon={clusterExpiresSoon}
+                patchAvailable={patchAvailable}
+            >
                 <Badge bg={statusBadgeBg[cluster.status]}>{cluster.status}</Badge>
-            </Card.Header>
+            </PlatformCardHeader>
             <Card.Img src={clusterType.logo} />
             <Card.Body>
                 <Card.Title>{cluster.name}</Card.Title>
@@ -423,7 +511,13 @@ export const ClusterCard = ({
                 </Card.Body>
             )}
             <Card.Body className="small text-muted">
-                Updated {updatedAt.toRelative()}
+                Created {cluster.created.toRelative()}
+                {cluster.schedule && (
+                    <>
+                        <br/>
+                        Expires {cluster.schedule.end_time.toRelative()}
+                    </>
+                )}
             </Card.Body>
             <Card.Footer>
                 <ClusterDetailsButton
@@ -432,6 +526,7 @@ export const ClusterCard = ({
                     clusterActions={clusterActions}
                     tenancy={tenancy}
                     tenancyActions={tenancyActions}
+                    capabilities={capabilities}
                 />
             </Card.Footer>
         </Card>

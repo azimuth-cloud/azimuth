@@ -56,9 +56,13 @@ const clustersWithLinks = tenancy => {
 
 
 export const TenancyPlatformsPanel = ({
+    userId,
     sshKey,
     tenancy,
-    tenancyActions
+    tenancyActions,
+    capabilities,
+    notificationActions,
+    supportsPlatforms,
 }) => {
     usePageTitle('Platforms');
 
@@ -115,7 +119,9 @@ export const TenancyPlatformsPanel = ({
                         id: `clusters/${key}`,
                         kind: "cluster",
                         name: value.name,
-                        object: value
+                        object: value,
+                        createdByUserId: value.created_by_user_id,
+                        schedule: value.schedule
                     }
                 })
             ),
@@ -125,7 +131,9 @@ export const TenancyPlatformsPanel = ({
                         id: `kubernetesClusters/${key}`,
                         kind: "kubernetesCluster",
                         name: value.name,
-                        object: value
+                        object: value,
+                        createdByUserId: value.created_by_user_id,
+                        schedule: value.schedule
                     }
                 })
             ),
@@ -135,7 +143,8 @@ export const TenancyPlatformsPanel = ({
                         id: `kubernetesApps/${key}`,
                         kind: "kubernetesApp",
                         name: value.name,
-                        object: value
+                        object: value,
+                        createdByUserId: value.created_by_user_id
                     }
                 })
             )
@@ -180,6 +189,7 @@ export const TenancyPlatformsPanel = ({
                             sshKey={sshKey}
                             tenancy={tenancy}
                             tenancyActions={tenancyActions}
+                            capabilities={capabilities}
                         />
                         <Button
                             variant="primary"
@@ -197,19 +207,22 @@ export const TenancyPlatformsPanel = ({
                     </ButtonGroup>
                 </Col>
             </Row>
-            {resource.initialised ? (
+            {(resource.initialised && supportsPlatforms) ? (
                 <PlatformsGrid
+                    userId={userId}
                     showCreateModal={() => setCreateModalVisible(true)}
                     creating={resource.creating}
                     platforms={resource.data}
                     tenancy={tenancy}
                     tenancyActions={tenancyActions}
+                    capabilities={capabilities}
+                    notificationActions={notificationActions}
                 />
             ) : (
                 <Row className="justify-content-center">
-                    {platformsNotFound ? (
+                    {!supportsPlatforms ? (
                         <Col xs="auto py-3">
-                            <Error message="Platforms are not supported." />
+                            <Error message="Platforms are not available in this tenancy." />
                         </Col>
                     ) : (
                         (resource.fetchErrors && !resource.fetching) ? (

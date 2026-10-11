@@ -5,6 +5,18 @@ metadata:
   labels: {{ include "azimuth.componentLabels" (list . "api") | nindent 4 }}
 rules:
   - apiGroups:
+      - identity.azimuth.stackhpc.com
+    resources:
+      - realms
+      - platforms
+    verbs:
+      - list
+      - get
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
       - azimuth.stackhpc.com
     resources:
       - clustertemplates
@@ -35,17 +47,64 @@ rules:
       - patch
       - delete
   - apiGroups:
+      - apps.azimuth-cloud.io
+    resources:
+      - apptemplates
+    verbs:
+      - list
+      - get
+  - apiGroups:
+      - apps.azimuth-cloud.io
+    resources:
+      - apps
+    verbs:
+      - list
+      - get
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
       - ""
     resources:
       - namespaces
     verbs:
+      - list
+      - get
       - create
+      - patch
   - apiGroups:
       - ""
     resources:
       - secrets
     verbs:
+      - list
       - get
       - create
       - update
+      - patch
+      - delete
+  - apiGroups:
+      - caas.azimuth.stackhpc.com
+    resources:
+      - clusters
+      - clustertypes
+    verbs:
+      - list
+      - get
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - scheduling.azimuth.stackhpc.com
+    resources:
+      - schedules
+      - leases
+    verbs:
+      - list
+      - get
+      - create
+      - update
+      - patch
       - delete

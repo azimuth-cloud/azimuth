@@ -3,6 +3,8 @@ import React, { useMemo } from 'react';
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 
+import get from 'lodash/get';
+
 import { PropertyField } from './property-field';
 
 
@@ -62,7 +64,7 @@ const getSchemaLeafNodes = schema => {
         }
     };
 
-    return new Map(leafNodePairs(schema));
+    return [...leafNodePairs(schema)];
 };
 
 
@@ -100,8 +102,28 @@ export const SchemaField = ({ value, onChange, schema, uiSchema }) => {
     // Use memoization to avoid recomputing this unless the schema changes
     const schemaLeafNodes = useMemo(() => getSchemaLeafNodes(schema), [schema]);
 
+    // Get the sorting function for the nodes
+    const sortFn = useMemo(
+        () => {
+            const sortOrder = get(uiSchema, "sortOrder") || [];
+            return ([pathA, _], [pathB, __]) => {
+                const idxA = [...sortOrder, pathA].indexOf(pathA);
+                const idxB = [...sortOrder, pathB].indexOf(pathB);
+                return idxA < idxB ? -1 : (idxA > idxB ? 1 : 0);
+            };
+        },
+        [uiSchema]
+    );
+
+   // Get the sorted leaf nodes of the schema
+    // Use memoization to avoid recomputing this unless the leaf nodes or the uiSchema changes
+    const sortedLeafNodes = useMemo(
+        () => [...schemaLeafNodes].sort(sortFn),
+        [schemaLeafNodes, sortFn]
+    );
+
     // Produce a property field for each leaf node
-    return Array.from(schemaLeafNodes).map(
+    return sortedLeafNodes.map(
         ([path, props]) => (
             <PropertyField
                 key={path}

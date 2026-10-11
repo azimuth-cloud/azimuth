@@ -1,0 +1,57 @@
+---
+
+version: 2
+
+updates:
+  # Automatically propose PRs for out-of-date GitHub actions
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      # Check for new versions weekly
+      interval: weekly
+    # Update all actions in a single PR
+    groups:
+      github-actions:
+        patterns: ["*"]
+    labels:
+      - automation
+      - gha-update
+    # Only allow updates for actions maintained by GitHub
+    allow:
+      - dependency-name: "actions/*"
+      - dependency-name: "azimuth-cloud/github-actions/*"
+
+  # Automatically propose PRs for Python dependencies
+  - package-ecosystem: uv
+    directory: "/"
+    schedule:
+      # Check for new versions daily
+      interval: daily
+    groups:
+      pip-updates:
+        patterns: ["*"]
+    labels:
+      - automation
+      - pip-update
+      - api
+    commit-message:
+    # Prefix all commit messages with "pip: "
+      prefix: "pip"
+    cooldown:
+      default-days: 7
+
+  # Automatically propose PRs for Python dependencies
+  - package-ecosystem: npm
+    directory: "/ui"
+    schedule:
+      # Check for new versions daily
+      interval: daily
+    groups:
+      npm-updates:
+        patterns: ["*"]
+    labels:
+      - automation
+      - javascript
+      - ui
+    cooldown:
+      default-days: 7
