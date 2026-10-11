@@ -47,17 +47,17 @@ rackit = { git = "https://github.com/stackhpc/rackit.git" }
 
 [dependency-groups]
 dev = [
-    "ruff>=0.16.9,<0.17",
+    "ruff>=0.16.10,<0.17",
     "coverage>=7.16.2",
     "python-subunit>=1.4.6",
     "stestr>=4.2.1",
     "testtools>=2.9.1",
     "codespell>=2.4.3",
     "autopep8>=2.3.2",
-    "mypy>=2.3.1",
+    "mypy>=2.4.0",
     "types-pyyaml>=6.0.12.20260906",
-    "tox>=4.64.5",
-    "tox-uv>=1.36.0",
+    "tox>=4.64.7",
+    "tox-uv>=1.36.1",
 ]
 
 # We use hatchling instead of uv's own build backend because UV does not have a way to dynamically get the version from git.
