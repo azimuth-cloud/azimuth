@@ -2,14 +2,7 @@ name: Integration tests
 
 on:
   # We use pull_request_target so that dependabot-created workflows can run
-  pull_request_target:
-    types:
-      - opened
-      - synchronize
-      - ready_for_review
-      - reopened
-    branches:
-      - master
+  pull_request:
 
 # Use the head ref for workflow concurrency, with cancellation
 # This should mean that any previous workflows for a PR get cancelled when a new commit is pushed
@@ -18,15 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # This job exists so that PRs from outside the main repo are rejected
-  fail_on_remote:
-    runs-on: ubuntu-latest
-    steps:
-      - name: PR must be from a branch in the azimuth-cloud/azimuth repo
-        run: exit ${{ github.event.pull_request.head.repo.full_name == 'azimuth-cloud/azimuth' && '0' || '1' }}
-
   publish_artifacts:
-    needs: [fail_on_remote]
     uses: ./.github/workflows/build-push-artifacts.yaml
     with:
       ref: ${{ github.event.pull_request.head.sha }}
