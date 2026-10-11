@@ -39,7 +39,8 @@ See those files for when each workflow runs.
 You can also run the checks locally using the commands on this page.
 
 The [integration workflow](./.github/workflows/test-pr.yaml) provisions an Azimuth deployment using cloud credentials.
-For PRs from a fork, its `fail_on_remote` job fails and blocks the integration jobs.
+For PRs from a fork the PR checks won't run, PRs should be made against a feature branch.
+Once merged to an internal branch by a maintainer a second PR will be raised to merge into the default branch and run the full test suite.
 This means fork PRs can't complete that workflow.
 Include your local check results in the PR, and mention any integration testing that still needs to be done.
 Once approved, an internal team member will merge your fork into a feature branch inside the organization and will then complete the testing process to merge into the default branch.

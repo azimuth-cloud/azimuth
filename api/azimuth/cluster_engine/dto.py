@@ -17,6 +17,7 @@ import yaml
 from ..provider import dto as cloud_dto  # noqa: TID252
 from ..scheduling import dto as scheduling_dto  # noqa: TID252
 from ..scheduling import util as scheduling_util  # noqa: TID252
+from ..settings import cloud_settings  # noqa: TID252
 
 
 @dataclass(frozen=True)
@@ -159,10 +160,12 @@ class ClusterType:
             version,
             scheduling_util.lifetime_from_annotations(annotations),
             annotations.get(
-                "catalogue.azimuth.stackhpc.com/catalogue-name", "Uncategorized"
+                "catalogue.azimuth.stackhpc.com/catalogue-name",
+                cloud_settings.CATALOGUE_DEFAULT_NAME,
             ),
             annotations.get(
-                "catalogue.azimuth.stackhpc.com/catalogue-precedence", "100"
+                "catalogue.azimuth.stackhpc.com/catalogue-precedence",
+                cloud_settings.CATALOGUE_DEFAULT_PRECEDENCE,
             ),
         )
 

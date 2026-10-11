@@ -28,3 +28,5 @@ AZIMUTH:
   {{- with .Values.settings.curatedSizes }}
   CURATED_SIZES: {{ toYaml . | nindent 8 }}
   {{- end }}
+  CATALOGUE_DEFAULT_NAME: {{required "A default catalogue name must be provided" .Values.settings.catalogueDefaultName }}
+  CATALOGUE_DEFAULT_PRECEDENCE: {{required "A default catalogue precedence must be provided" .Values.settings.catalogueDefaultPrecedence | int }}
