@@ -205,7 +205,7 @@ export const KubernetesAppForm = ({
             <Field
                 name="name"
                 label="Platform name"
-                helpText="Must start with a letter, and only contain lower-case alphanumeric characters & dashes (-)."
+                helpText="Must start with a lowercase letter, and only contain lower-case alphanumeric characters & dashes (-)."
             >
                 <BSForm.Control
                     type="text"
