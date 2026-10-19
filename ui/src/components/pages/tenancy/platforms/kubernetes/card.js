@@ -47,6 +47,10 @@ import KubernetesIcon from './kubernetes-logo.png';
 
 const statusStyles = {
     cluster: {
+       "Pending": {
+            icon: faClock,
+            className: 'text-muted'
+        },
         "Initialising": {
             icon: faSyncAlt,
             className: 'text-muted',
