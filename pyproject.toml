@@ -56,8 +56,8 @@ dev = [
     "autopep8>=2.3.2",
     "mypy>=2.4.0",
     "types-pyyaml>=6.0.12.20260906",
-    "tox>=4.64.10",
-    "tox-uv>=1.36.1",
+    "tox>=4.65.4",
+    "tox-uv>=1.37.0",
 ]
 
 # We use hatchling instead of uv's own build backend because UV does not have a way to dynamically get the version from git.
