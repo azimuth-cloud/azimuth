@@ -38,6 +38,8 @@ class ClusterTemplate:
     catalogue_name: str
     #: The precedence of the catalogue
     catalogue_precedence: int
+    #: If the platform is being dropped from azimuth
+    platform_eol: bool
 
 
 @dataclasses.dataclass(frozen=True)

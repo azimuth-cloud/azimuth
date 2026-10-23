@@ -127,6 +127,10 @@ class Session(base.Session):
                 "catalogue.azimuth.stackhpc.com/catalogue-precedence",
                 cloud_settings.CATALOGUE_DEFAULT_PRECEDENCE,
             ),
+            annotations.get(
+                "catalogue.azimuth.stackhpc.com/eol",
+                False,
+            ),
         )
 
     @convert_exceptions

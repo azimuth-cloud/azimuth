@@ -113,6 +113,8 @@ class ClusterType:
     catalogue_name: str
     #: The precedence of the catalogue
     catalogue_precedence: int
+    #: If the platform is being dropped from azimuth
+    platform_eol: bool
 
     @classmethod
     def from_dict(cls, name, spec, version=None, *, annotations):
@@ -167,6 +169,7 @@ class ClusterType:
                 "catalogue.azimuth.stackhpc.com/catalogue-precedence",
                 cloud_settings.CATALOGUE_DEFAULT_PRECEDENCE,
             ),
+            annotations.get("catalogue.azimuth.stackhpc.com/eol", False),
         )
 
     @classmethod
