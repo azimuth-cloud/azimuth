@@ -384,7 +384,7 @@ const CreatePlatformModal = ({
                             ), //kube is a special case, it's data is split into three objects with keys related to kube version, this is a hack to always get the first key
                             catalogue_name: Object.values(tenancy.kubernetesClusterTemplates.data)[0].catalogue_name,
                             catalogue_precedence: Object.values(tenancy.kubernetesClusterTemplates.data)[0].catalogue_precedence,
-                            platform_eol: false,
+                            platform_eol: Object.values(tenancy.kubernetesClusterTemplates.data)[0].platform_eol,
                         }
                     } :
                     undefined
@@ -399,7 +399,7 @@ const CreatePlatformModal = ({
                         description: value.description,
                         catalogue_name: value.catalogue_name,
                         catalogue_precedence: value.catalogue_precedence,
-                        platform_eol: value.platform_eol === "True",
+                        platform_eol: value.platform_eol,
                         object: value
                     }
                 })
@@ -414,7 +414,7 @@ const CreatePlatformModal = ({
                         description: value.description,
                         catalogue_name: value.catalogue_name,
                         catalogue_precedence: value.catalogue_precedence,
-                        platform_eol: value.platform_eol === "True",
+                        platform_eol: value.platform_eol,
                         object: value
                     }
                 })

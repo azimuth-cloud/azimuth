@@ -348,7 +348,7 @@ const ClusterDetailsButton = ({
     const missingClusterType = clusterType.placeholder;
     const inFlight = !!cluster.updating || !!cluster.patching || !!cluster.deleting;
     const working = ['CONFIGURING', 'DELETING'].includes(cluster.status);
-    const platform_eol = clusterType.platform_eol === "True" ;
+    const platform_eol = clusterType.platform_eol;
 
     return (
         <>
@@ -490,7 +490,7 @@ export const ClusterCard = ({
         cluster.cluster_type_version != clusterType.version
     );
 
-    const platform_eol = clusterType.platform_eol === "True";
+    const platform_eol = clusterType.platform_eol;
 
     // Decide if we need to apply a notification class to the card
     const notifyClass = (

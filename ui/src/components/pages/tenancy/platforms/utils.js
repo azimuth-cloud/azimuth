@@ -98,7 +98,7 @@ export const PlatformCardHeader = ({
             )}
             {patchAvailable && (
                 <PlatformCardHeaderIcon
-                    className="icon-patch-available"
+                    className="icon-patch-available me-3"
                     icon={faRedo}
                     tooltip="An update is available for this platform."
                 />
