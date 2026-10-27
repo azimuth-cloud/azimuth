@@ -18,6 +18,7 @@ from ..provider import dto as cloud_dto  # noqa: TID252
 from ..scheduling import dto as scheduling_dto  # noqa: TID252
 from ..scheduling import util as scheduling_util  # noqa: TID252
 from ..settings import cloud_settings  # noqa: TID252
+from ..utils import eol_from_annotations  # noqa: TID252
 
 
 @dataclass(frozen=True)
@@ -113,6 +114,8 @@ class ClusterType:
     catalogue_name: str
     #: The precedence of the catalogue
     catalogue_precedence: int
+    #: If the platform is being dropped from azimuth
+    platform_eol: bool
 
     @classmethod
     def from_dict(cls, name, spec, version=None, *, annotations):
@@ -167,6 +170,7 @@ class ClusterType:
                 "catalogue.azimuth.stackhpc.com/catalogue-precedence",
                 cloud_settings.CATALOGUE_DEFAULT_PRECEDENCE,
             ),
+            eol_from_annotations(annotations),
         )
 
     @classmethod

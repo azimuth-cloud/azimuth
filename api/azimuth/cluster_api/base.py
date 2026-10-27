@@ -18,6 +18,7 @@ from ..scheduling import dto as scheduling_dto  # noqa: TID252
 from ..scheduling import k8s as scheduling_k8s  # noqa: TID252
 from ..scheduling import util as scheduling_util  # noqa: TID252
 from ..settings import cloud_settings  # noqa: TID252
+from ..utils import eol_from_annotations  # noqa: TID252
 from . import dto, errors
 
 logger = logging.getLogger(__name__)
@@ -165,6 +166,7 @@ class Session:
                 "catalogue.azimuth.stackhpc.com/catalogue-precedence",
                 cloud_settings.CATALOGUE_DEFAULT_PRECEDENCE,
             ),
+            eol_from_annotations(annotations),
         )
 
     @convert_exceptions

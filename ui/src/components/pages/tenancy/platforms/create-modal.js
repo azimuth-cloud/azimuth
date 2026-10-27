@@ -38,7 +38,7 @@ import { useKubernetesAppFormState, KubernetesAppForm } from './kubernetes_apps/
 
 
 const PlatformTypeSelectCard = ({ platformType, selected, onSelect }) => (
-    <Card className="platform-type-select-card">
+    <Card className={"platform-type-select-card ".concat((platformType.platform_eol) ? "platform-patch-needed" : "")}>
         <Card.Header as="h5">{platformType.name}</Card.Header>
         <Card.Img src={platformType.logo} />
         <Card.Body className="small">
@@ -384,6 +384,7 @@ const CreatePlatformModal = ({
                             ), //kube is a special case, it's data is split into three objects with keys related to kube version, this is a hack to always get the first key
                             catalogue_name: Object.values(tenancy.kubernetesClusterTemplates.data)[0].catalogue_name,
                             catalogue_precedence: Object.values(tenancy.kubernetesClusterTemplates.data)[0].catalogue_precedence,
+                            platform_eol: Object.values(tenancy.kubernetesClusterTemplates.data)[0].platform_eol,
                         }
                     } :
                     undefined
@@ -398,6 +399,7 @@ const CreatePlatformModal = ({
                         description: value.description,
                         catalogue_name: value.catalogue_name,
                         catalogue_precedence: value.catalogue_precedence,
+                        platform_eol: value.platform_eol,
                         object: value
                     }
                 })
@@ -412,6 +414,7 @@ const CreatePlatformModal = ({
                         description: value.description,
                         catalogue_name: value.catalogue_name,
                         catalogue_precedence: value.catalogue_precedence,
+                        platform_eol: value.platform_eol,
                         object: value
                     }
                 })

@@ -75,7 +75,8 @@ export const PlatformCardHeader = ({
     children,
     currentUserIsOwner,
     expiresSoon,
-    patchAvailable
+    patchAvailable,
+    platform_eol
 }) => (
     <Card.Header>
         <div className="icons">
@@ -97,9 +98,16 @@ export const PlatformCardHeader = ({
             )}
             {patchAvailable && (
                 <PlatformCardHeaderIcon
-                    className="icon-patch-available"
+                    className="icon-patch-available me-3"
                     icon={faRedo}
                     tooltip="An update is available for this platform."
+                />
+            )}
+            {platform_eol && (
+                <PlatformCardHeaderIcon
+                    className="icon-patch-available"
+                    icon={faExclamationTriangle}
+                    tooltip="This platform is end of life and will be removed in a future release"
                 />
             )}
         </div>

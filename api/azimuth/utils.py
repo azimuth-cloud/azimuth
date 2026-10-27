@@ -35,6 +35,16 @@ class NamespaceOwnershipError(Exception):
         )
 
 
+def eol_from_annotations(annotations: dict[str, str]) -> bool:
+    return annotations.get("catalogue.azimuth.stackhpc.com/eol", False) in [
+        "true",
+        "True",
+        "1",
+        1,
+        True,
+    ]
+
+
 def sanitise(value):
     """
     Returns a sanitised form of the given value suitable for Kubernetes resource names.

@@ -14,7 +14,7 @@ from ..acls import allowed_by_acls  # noqa: TID252
 from ..cluster_api import dto as capi_dto  # noqa: TID252
 from ..provider import base as cloud_base  # noqa: TID252
 from ..settings import cloud_settings  # noqa: TID252
-from ..utils import get_namespace  # noqa: TID252
+from ..utils import eol_from_annotations, get_namespace  # noqa: TID252
 from . import base, dto, errors
 
 logger = logging.getLogger(__name__)
@@ -127,6 +127,7 @@ class Session(base.Session):
                 "catalogue.azimuth.stackhpc.com/catalogue-precedence",
                 cloud_settings.CATALOGUE_DEFAULT_PRECEDENCE,
             ),
+            eol_from_annotations(annotations),
         )
 
     @convert_exceptions

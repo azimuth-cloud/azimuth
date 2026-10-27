@@ -302,7 +302,8 @@
 .platform-card.platform-expiring {
     border: 3px solid var(--bs-warning);
 }
-.platform-card.platform-patch-needed {
+.platform-card.platform-patch-needed,
+.platform-type-select-card.platform-patch-needed {
     border: 3px solid var(--bs-danger);
 }
 .platform-card > .card-header {
@@ -313,7 +314,8 @@
     background-color: rgba(var(--bs-warning-rgb), 0.1);
     border-bottom-color: var(--bs-warning)
 }
-.platform-card.platform-patch-needed > .card-header {
+.platform-card.platform-patch-needed > .card-header,
+.platform-type-select-card.platform-patch-needed > .card-header {
     background-color: rgba(var(--bs-danger-rgb), 0.1);
     border-bottom-color: var(--bs-danger)
 }
