@@ -35,11 +35,11 @@ pip-delete-this-directory.txt
 # Unit test / coverage reports
 htmlcov/
 .tox/
-.coverage
-.coverage.*
+.coverage*
 .cache
 nosetests.xml
 coverage.xml
+diff-cover.md
 *,cover
 
 # Translations
@@ -63,4 +63,3 @@ node_modules
 
 Chart.lock
 chart/charts
-.stestr

@@ -30,20 +30,18 @@ Install the dependencies from the lockfile into `.venv`:
 uv sync --locked
 ```
 
-Run the unit tests, Ruff lint and formatting checks, and codespell:
+Run the linters (Ruff and codespell), the unit tests, mypy and the coverage report:
 
 ```sh
-uv run --locked tox -e py314,ruff,codespell
+uv run --locked tox
 ```
 
 The test environments are in [tox.toml](../tox.toml).
-Tox runs the tests from `api/` with `DJANGO_SETTINGS_MODULE=tests.settings`.
+The tests run with pytest and pytest-django, using `DJANGO_SETTINGS_MODULE=tests.settings` (configured in [pyproject.toml](../pyproject.toml)).
 These [settings](../api/tests/settings.py) skip Kubernetes configuration and use a placeholder OpenStack endpoint.
 They're only for tests, so they won't give you a working API to use with the UI.
 
-> [!WARNING]
-> Running `uv run tox` also runs `autofix`, which changes source files.
-> The command above just checks them.
+To apply Ruff and codespell fixes to the source files, run `uv run --locked tox -e autofix`.
 
 The API gets its runtime settings from [api/etc/azimuth](../api/etc/azimuth) and the Helm chart.
 To run it against a cloud, follow the [Tilt setup](#integration-development-with-openstack-and-tilt) below.

@@ -1,26 +1,22 @@
 min_version = "4.0.0"
 env_list = [
-  "py314", # prod python version (in .python_version)
-  "py3", # latest python
-  "ruff",
-  "codespell",
-  "autofix",
+  "lint",
+  "3.14", # prod python version (in .python-version)
+  "mypy",
+  "coverage",
 ]
 no_package = true
 
 [env_run_base]
 runner = "uv-venv-lock-runner"
-change_dir = "{toxinidir}/api"
+dependency_groups = ["dev"]
 commands = [
   [
-    'python',
-    '--version',
-  ],
-  [
-    "python",
-    "manage.py",
-    "test",
-    "tests",
+    "pytest",
+    "--cov=azimuth",
+    "--cov=azimuth_auth",
+    "--cov=azimuth_site",
+    "--cov-report=",
     { replace = "posargs", default = [
     ], extend = true },
   ],
@@ -28,9 +24,31 @@ commands = [
 
 [env_run_base.set_env]
 PYTHONWARNINGS = "default::DeprecationWarning"
-DJANGO_SETTINGS_MODULE = "tests.settings"
+COVERAGE_FILE = "{tox_root}/.coverage.{env_name}"
+
+[env.lint]
+description = "Run linters and formatting checks"
+commands = [
+  [
+    "ruff",
+    "check",
+    "{tox_root}/api",
+  ],
+  [
+    "ruff",
+    "format",
+    "{tox_root}/api",
+    "--check",
+  ],
+  [
+    "codespell",
+    "{tox_root}/api",
+    "--ignore-words={tox_root}/.codespellignore",
+  ],
+]
 
 [env.autofix]
+description = "Apply linter and formatting fixes"
 commands = [
   [
     "ruff",
@@ -51,54 +69,26 @@ commands = [
   ],
 ]
 
-[env.black]
-commands = [["black", "{tox_root}/api", "{posargs}"]]
-
-[env.codespell]
-commands = [
-  [
-    "codespell",
-    "{tox_root}/api",
-    "--ignore-words={tox_root}/.codespellignore",
-    { replace = "posargs", default = [
-    ], extend = true },
-  ],
-]
-
-[env.ruff]
-description = "Run Ruff checks"
-commands = [["ruff", "check", "{tox_root}/api"], ["ruff", "format", "{tox_root}/api", "--check"]]
-
-[env.cover]
-commands = [
-  [
-    "coverage",
-    "run",
-    "--source",
-    "azimuth,azimuth_auth,azimuth_site",
-    "manage.py",
-    "test",
-    "tests",
-    { replace = "posargs", default = [
-    ], extend = true },
-  ],
-  [
-    "coverage",
-    "html",
-    "-d",
-    "{toxinidir}/cover",
-  ],
-  [
-    "coverage",
-    "xml",
-    "-o",
-    "{toxinidir}/cover/coverage.xml",
-  ],
-  [
-    "coverage",
-    "report",
-  ],
-]
-
 [env.mypy]
-commands = [["mypy", "{tox_root}/api", { replace = "posargs", default = [], extend = true }]]
+description = "Run mypy on the API and its tests"
+change_dir = "{tox_root}/api"
+commands = [["mypy", ".", { replace = "posargs", default = [], extend = true }]]
+
+[env.coverage]
+description = "Combine coverage from the test envs and report diff coverage"
+depends = ["3.*"]
+pass_env = ["DIFF_COVER_COMPARE_BRANCH"]
+set_env = { COVERAGE_FILE = "{tox_root}/.coverage" }
+commands = [
+  ["coverage", "combine"],
+  ["coverage", "report"],
+  ["coverage", "xml", "-o", "{tox_root}/coverage.xml"],
+  [
+    "diff-cover",
+    "{tox_root}/coverage.xml",
+    "--compare-branch",
+    "{env:DIFF_COVER_COMPARE_BRANCH:origin/master}",
+    "--format",
+    "markdown:{tox_root}/diff-cover.md,github-annotations:warning",
+  ],
+]
