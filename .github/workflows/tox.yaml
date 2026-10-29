@@ -14,13 +14,14 @@ jobs:
   build:
     name: Tox unit tests and linting
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
     - name: Check out the repository
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         ref: ${{ inputs.ref || github.ref }}
-        # diff-cover needs the base branch history
         fetch-depth: 0
 
     # Uses the Python version in .python-version
@@ -30,6 +31,8 @@ jobs:
     - name: Test with tox
       run: uv run --locked tox
       env:
+        # On the default branch, compare against the previous commit.
+        # On other branches compare against the default branch (or the PR's target branch)
         DIFF_COVER_COMPARE_BRANCH: >-
           ${{
             github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
@@ -37,8 +40,8 @@ jobs:
             || format('origin/{0}', github.base_ref || github.event.repository.default_branch)
           }}
 
-    - name: Add coverage to the job summary
-      if: ${{ !cancelled() }}
+    - name: Add coverage reports to the job summary
       run: |
-        if [ -f diff-cover.md ]; then cat diff-cover.md >> "$GITHUB_STEP_SUMMARY"; fi
-        uv run --locked coverage report --format=markdown >> "$GITHUB_STEP_SUMMARY"
+        cat diff-cover.md >> "$GITHUB_STEP_SUMMARY"
+        echo "# Coverage" >> "$GITHUB_STEP_SUMMARY"
+        uv run --locked coverage report --data-file .coverage --format=markdown >> "$GITHUB_STEP_SUMMARY"
