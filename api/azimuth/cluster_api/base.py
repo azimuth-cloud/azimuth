@@ -1,4 +1,6 @@
 import base64
+import dataclasses
+from datetime import datetime
 import functools
 import importlib
 import json
@@ -61,6 +63,16 @@ def convert_exceptions(f):
 
     return wrapper
 
+def condition_from_dict(condition: dict[str, str]) -> dto.ClusterCondition:
+
+    return dto.ClusterCondition(
+        condition.get("type"),
+        condition.get("status"),
+        datetime.fromisoformat(condition.get("lastTransitionTime")),
+        condition.get("reason"),
+        condition.get("severity", None),
+        condition.get("message", None),
+    )
 
 class Provider:
     """
@@ -297,6 +309,10 @@ class Session:
             cluster_addons.get("monitoringLokiVolumeSize", 10),
             cluster_status.get("kubernetesVersion"),
             cluster_state,
+            [
+                dataclasses.asdict(condition_from_dict(c))
+                for c in (cluster_status.get("v2beta2Conditions") or [])
+            ],
             cluster_status.get("controlPlanePhase", "Unknown"),
             (
                 dateutil.parser.parse(
