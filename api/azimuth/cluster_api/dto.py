@@ -114,6 +114,7 @@ class Service:
     #: The URL of an ico for the service
     icon_url: str | None
 
+
 @enum.unique
 class ConditionSeverity(enum.StrEnum):
     """
@@ -124,14 +125,17 @@ class ConditionSeverity(enum.StrEnum):
     WARNING = "Warning"
     INFO = "Info"
 
+
 @enum.unique
 class ConditionStatus(enum.StrEnum):
     """
     Status of a cluster condition (does the status currently apply)
     """
+
     TRUE = "True"
     FALSE = "False"
     UNKNOWN = "Unknown"
+
 
 @dataclasses.dataclass(frozen=True, slots=True)
 class ClusterCondition:
@@ -141,13 +145,13 @@ class ClusterCondition:
 
     #: Type of the condition (CamelCase)
     type: str
-    #: enum describing the status of the condition 
+    #: enum describing the status of the condition
     status: ConditionStatus
     #: The last time the Cluster condition transitioned from one status to another.
     last_transition_time: datetime.datetime
-    #: programmatic identifier indicating the reason for the condition 
-    reason: str 
-    #: enum describing severity of the condition 
+    #: programmatic identifier indicating the reason for the condition
+    reason: str
+    #: enum describing severity of the condition
     severity: ConditionSeverity | None = None
     #: Human readable details about the condition (may be empty)
     message: str | None = None
@@ -192,8 +196,8 @@ class Cluster:
     kubernetes_version: str | None
     #: The overall status of the cluster
     status: str | None
-    #: status conditions associated with the cluster 
-    conditions: list[ClusterCondition] 
+    #: status conditions associated with the cluster
+    conditions: list[ClusterCondition]
     #: The status of the control plane
     control_plane_status: str | None
     #: The earliest known kube-api server certificate expiry date

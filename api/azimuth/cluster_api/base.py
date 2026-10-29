@@ -1,11 +1,11 @@
 import base64
 import dataclasses
-from datetime import datetime
 import functools
 import importlib
 import json
 import logging
 import typing as t
+from datetime import datetime
 
 import dateutil.parser
 import httpx
@@ -63,6 +63,7 @@ def convert_exceptions(f):
 
     return wrapper
 
+
 def condition_from_dict(condition: dict[str, str]) -> dto.ClusterCondition:
 
     return dto.ClusterCondition(
@@ -73,6 +74,7 @@ def condition_from_dict(condition: dict[str, str]) -> dto.ClusterCondition:
         condition.get("severity", None),
         condition.get("message", None),
     )
+
 
 class Provider:
     """
