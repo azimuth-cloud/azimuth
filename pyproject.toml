@@ -50,15 +50,16 @@ rackit = { git = "https://github.com/stackhpc/rackit.git" }
 dev = [
     "ruff>=0.17.1,<0.18",
     "coverage>=7.16.2",
-    "python-subunit>=1.4.6",
-    "stestr>=4.2.1",
-    "testtools>=2.9.1",
     "codespell>=2.4.3",
     "autopep8>=2.3.2",
     "mypy>=2.4.0",
     "types-pyyaml>=6.0.12.20260906",
     "tox>=4.66.0",
     "tox-uv>=1.37.0",
+    "pytest>=9",
+    "pytest-django>=4.14.0",
+    "pytest-cov>=7.1.0",
+    "diff-cover>=10.6.0",
 ]
 
 # We use hatchling instead of uv's own build backend because UV does not have a way to dynamically get the version from git.
@@ -117,6 +118,43 @@ follow_imports = "silent"
 warn_redundant_casts = true
 warn_unused_ignores = true
 check_untyped_defs = true
+
+# These modules do not pass mypy yet. Remove entries from this list once they pass.
+[[tool.mypy.overrides]]
+module = [
+    "azimuth.apps.*",
+    "azimuth.authentication",
+    "azimuth.cluster_api.*",
+    "azimuth.cluster_engine.*",
+    "azimuth.keystore.*",
+    "azimuth.management.*",
+    "azimuth.provider.*",
+    "azimuth.scheduling.calculator",
+    "azimuth.serializers",
+    "azimuth.settings",
+    "azimuth.templatetags.*",
+    "azimuth.urls",
+    "azimuth.views",
+    "azimuth_auth.*",
+    "azimuth_site.*",
+    "manage",
+    "conf",
+    "defaults",
+    "settings",
+    "tests.settings",
+    "tests.test_cluster_api",
+    "tests.test_scheduling_util",
+    "tests.unit.test_acls",
+]
+ignore_errors = true
+
+[tool.pytest]
+testpaths = ["api/tests"]
+pythonpath = ["api"]
+DJANGO_SETTINGS_MODULE = "tests.settings"
+
+[tool.coverage.run]
+relative_files = true
 
 [tool.ruff.lint.mccabe]
 # Flag errors (`C901`) whenever the complexity level exceeds 5.

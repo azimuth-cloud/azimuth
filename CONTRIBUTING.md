@@ -22,14 +22,23 @@ Once you've followed the setup in the [development guide](./docs/local-developme
 
 | Change | Check |
 | --- | --- |
-| API / Python | From the repository root: `uv run --locked tox -e py314,ruff,codespell` |
+| API / Python | From the repository root: `uv run --locked tox` (see [Running tests](#running-tests)) |
 | UI | From `ui/`: `yarn install --immutable` and `yarn build` |
 | Helm templates or values | Run the chart checks below and review any snapshot changes. |
 | Documentation | Check links and examples. If you change a command, try running it. |
 
-> [!NOTE]
-> Running `uv run tox` also runs `autofix`, which rewrites source files.
-> The command above selects just the test and lint environments, so it won't apply fixes.
+## Running tests
+
+The API tests live in `api/tests/` and use pytest with pytest-django.
+From the repository root:
+
+```sh
+uv run --locked tox                         # lint, tests, mypy and coverage
+uv run --locked tox -e 3.14 -- -k <expr>    # run selected tests only
+uv run --locked tox -e autofix              # apply Ruff and codespell fixes
+```
+
+The `coverage` environment prints a coverage report and the coverage of lines changed since `origin/master`.
 
 ## CI and fork pull requests
 
