@@ -26,7 +26,7 @@ dependencies = [
     "jsonschema>=4.26.0",
     "jsonschema-specifications>=2025.9.1",
     "oauthlib>=4.0.0",
-    "python-dateutil>=2.9.0.post0",
+    "python-dateutil>=3.0.0",
     "requests>=2.34.2",
     "pyrsistent>=0.20.0",
     "pytz>=2026.5",
@@ -48,13 +48,13 @@ rackit = { git = "https://github.com/stackhpc/rackit.git" }
 
 [dependency-groups]
 dev = [
-    "ruff>=0.17.1,<0.18",
-    "coverage>=7.16.2",
+    "ruff>=0.17.2,<0.18",
+    "coverage>=7.17.0",
     "codespell>=2.4.3",
     "autopep8>=2.3.2",
     "mypy>=2.4.0",
     "types-pyyaml>=6.0.12.20260906",
-    "tox>=4.66.0",
+    "tox>=4.67.1",
     "tox-uv>=1.37.0",
     "pytest>=9",
     "pytest-django>=4.14.0",
