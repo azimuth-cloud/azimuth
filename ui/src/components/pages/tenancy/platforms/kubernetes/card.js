@@ -580,6 +580,38 @@ const NodesTable = ({ kubernetesCluster, sizes }) => {
     );
 };
 
+const ConditionsTable = ({ kubernetesCluster}) => {
+    const conditions = sortBy(kubernetesCluster.conditions, condition => condition.name)
+    const d = new Date(conditions[0].last_transition_time)
+    return (
+        <Table striped hover responsive className="resource-table mb-0">
+            <caption className="px-2">
+                {conditions.length} condition{conditions.length !== 1 && 's'}
+            </caption>
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Last Transition</th>
+                    <th>Reason</th>
+                    <th>Message</th>
+                </tr>
+            </thead>
+            <tbody>
+                {conditions.map(condition => (
+                    <tr key={condition.type}>
+                        <td>{condition.type}</td>
+                        <td>{condition.status}</td>
+                        <td>{new Date(condition.last_transition_time).toLocaleString()}</td>
+                        <td>{condition.reason}</td>
+                        <td>{condition.message ||  '-'}</td>
+                    </tr>
+                ))}
+            </tbody>
+        </Table>
+    );
+};
+
 
 const UpdateKubernetesClusterButton = ({
     kubernetesCluster,
@@ -702,6 +734,11 @@ const KubernetesClusterDetailsButton = ({
                                             Nodes
                                         </Nav.Link>
                                     </Nav.Item>
+                                    <Nav.Item>
+                                        <Nav.Link eventKey="conditions" className="p-3">
+                                            Conditions
+                                        </Nav.Link>
+                                    </Nav.Item>
                                 </Nav>
                             </Col>
                         </Row>
@@ -787,6 +824,29 @@ const KubernetesClusterDetailsButton = ({
                                 <NodesTable
                                     kubernetesCluster={kubernetesCluster}
                                     sizes={sizes}
+                                />
+                            </Tab.Pane>
+                            <Tab.Pane eventKey="conditions">
+                                <Row className="justify-content-end mb-2">
+                                    <Col xs="auto">
+                                        <Button
+                                            variant="primary"
+                                            disabled={kubernetesCluster.fetching}
+                                            onClick={kubernetesClusterActions.fetchOne}
+                                            title="Refresh"
+                                            className="me-2"
+                                        >
+                                            <FontAwesomeIcon
+                                                icon={faSyncAlt}
+                                                spin={kubernetesCluster.fetching}
+                                                className="me-2"
+                                            />
+                                            Refresh
+                                        </Button>
+                                    </Col>
+                                </Row>
+                                <ConditionsTable
+                                    kubernetesCluster={kubernetesCluster}
                                 />
                             </Tab.Pane>
                         </Tab.Content>
