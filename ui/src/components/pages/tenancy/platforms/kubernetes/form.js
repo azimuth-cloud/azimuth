@@ -231,7 +231,12 @@ const initialState = kubernetesCluster => {
             name: kubernetesCluster.name,
             template: kubernetesCluster.template.id,
             control_plane_size: kubernetesCluster.control_plane_size ? kubernetesCluster.control_plane_size.id : "",
-            control_plane_count: kubernetesCluster.control_plane_count || 3,
+            // Old clusters use the count from their template and have no value here.
+            ...(
+                kubernetesCluster.control_plane_count != null ?
+                    { control_plane_count: kubernetesCluster.control_plane_count } :
+                    {}
+            ),
             node_groups: kubernetesCluster.node_groups.map(ng => ({
                 name: ng.name,
                 machine_size: ng.machine_size ? ng.machine_size.id : "",
@@ -514,30 +519,30 @@ export const KubernetesClusterForm = ({
                         onChange={setStateKey('control_plane_size')}
                     />
                 </Field>
-                <Field
-                    name="control_plane_count"
-                    label="Control plane count"
-                    helpText="Number of control plane nodes. Use 3 for high availability (recommended for production)."
-                >
+                <BSForm.Group className="mb-3">
+                    <BSForm.Label>Control plane node count</BSForm.Label>
                     <div>
                         <BSForm.Check
                             inline
                             type="radio"
-                            id="control_plane_count_1"
-                            label="1 (single node)"
-                            checked={getStateKey('control_plane_count') === 1}
-                            onChange={() => setStateKey('control_plane_count')(1)}
+                            id="control_plane_count_3"
+                            label="3 (Highly Available)"
+                            checked={getStateKey('control_plane_count') === 3}
+                            onChange={() => setStateKey('control_plane_count')(3)}
                         />
                         <BSForm.Check
                             inline
                             type="radio"
-                            id="control_plane_count_3"
-                            label="3 (HA)"
-                            checked={getStateKey('control_plane_count') === 3}
-                            onChange={() => setStateKey('control_plane_count')(3)}
+                            id="control_plane_count_1"
+                            label="1 (for Testing and Development)"
+                            checked={getStateKey('control_plane_count') === 1}
+                            onChange={() => setStateKey('control_plane_count')(1)}
                         />
                     </div>
-                </Field>
+                    <BSForm.Text>
+                        Number of control plane nodes. Always use three for important clusters. If you choose to use one your cluster may experience periods of unexpected downtime.
+                    </BSForm.Text>
+                </BSForm.Group>
                 <Card className="mb-3">
                     <Card.Header>Node groups</Card.Header>
                     {formState.showWorkerCountMessage && workerCountMessage !== '' && (

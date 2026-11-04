@@ -1522,6 +1522,7 @@ def kubernetes_cluster_check_quotas(session, cluster, template, **data):
                 if cluster.control_plane_size_id in known_sizes
                 else session.find_size(cluster.control_plane_size_id)
             ),
+            "control_plane_count": cluster.control_plane_count,
             "node_groups": [
                 {
                     "name": ng.name,
