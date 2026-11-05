@@ -1004,6 +1004,7 @@ class UpdateKubernetesClusterSerializer(
 ):
     template = serializers.RegexField("^[a-z0-9-]+$", required=False)
     control_plane_size = serializers.RegexField(ID_REGEX, required=False)
+    control_plane_count = serializers.ChoiceField(choices=[1, 3], required=False)
     node_groups = NodeGroupSpecSerializer(many=True, required=False)
     autohealing_enabled = serializers.BooleanField(required=False)
     dashboard_enabled = serializers.BooleanField(required=False)
