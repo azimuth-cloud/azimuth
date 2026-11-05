@@ -15,7 +15,7 @@
   },
   "homepage": "https://github.com/azimuth-cloud/azimuth",
   "devDependencies": {
-    "@babel/core": "^8.0.9",
+    "@babel/core": "^8.0.10",
     "@babel/plugin-transform-class-properties": "^8.0.1",
     "@babel/plugin-transform-object-rest-spread": "^8.0.1",
     "@babel/preset-env": "^8.0.7",
