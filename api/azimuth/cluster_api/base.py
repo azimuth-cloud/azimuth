@@ -66,9 +66,14 @@ def convert_exceptions(f):
 
 def condition_from_dict(condition: dict[str, str]) -> dto.ClusterCondition:
 
+    status = condition.get("status")
+
+    if status != "True" and status != "False":
+        status = "Unknown"
+
     return dto.ClusterCondition(
         condition.get("type"),
-        condition.get("status"),
+        status,
         datetime.fromisoformat(condition.get("lastTransitionTime")),
         condition.get("reason"),
         condition.get("severity", None),

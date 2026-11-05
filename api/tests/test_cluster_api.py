@@ -136,3 +136,14 @@ class ClusterApiTest(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             condition_from_dict(invalid_time_test_dict)
+
+        invalid_enums_test_dict = {
+            "lastTransitionTime": "2026-02-02T22:57:26.000Z",
+            "reason": "testReason",
+            "status": "INVALID",
+            "type": "Testing",
+            "severity": "INVALID",
+        }
+
+        test_condition = condition_from_dict(invalid_enums_test_dict)
+        self.assertEqual(test_condition.status, capi_dto.ConditionStatus.UNKNOWN)
