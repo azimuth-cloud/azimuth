@@ -6,6 +6,7 @@ import unittest
 # Load the DTO definitions before the base module to match the application import order.
 import azimuth.cluster_api.dto as capi_dto
 from azimuth.cluster_api import base
+from azimuth.cluster_api.base import condition_from_dict
 
 
 class AttrDict(dict):
@@ -85,3 +86,64 @@ class ClusterApiTest(unittest.TestCase):
         self.assertIsNone(result.control_plane_certificate_expiry_date)
         self.assertIsNone(result.control_plane_certificate_rotation_days)
         self.assertIsNone(result.control_plane_certificate_rotation_date)
+
+    def test_condition_from_dict(self):
+
+        valid_test_dict_full = {
+            "lastTransitionTime": "2026-11-02T10:31:24Z",
+            "message": "test message",
+            "reason": "testReason",
+            "status": "True",
+            "severity": "Info",
+            "type": "Testing",
+        }
+
+        test_condition = condition_from_dict(valid_test_dict_full)
+
+        self.assertEqual(
+            test_condition.last_transition_time,
+            datetime.datetime(2026, 11, 2, 10, 31, 24, tzinfo=datetime.timezone.utc),
+        )
+        self.assertEqual(test_condition.message, "test message")
+        self.assertEqual(test_condition.reason, "testReason")
+        self.assertEqual(test_condition.status, capi_dto.ConditionStatus.TRUE)
+        self.assertEqual(test_condition.severity, capi_dto.ConditionSeverity.INFO)
+        self.assertEqual(test_condition.type, "Testing")
+
+        valid_test_dict_min = {
+            "lastTransitionTime": "2026-11-02T10:31:24Z",
+            "reason": "testReason",
+            "status": "Unknown",
+            "type": "Testing",
+        }
+
+        test_condition = condition_from_dict(valid_test_dict_min)
+
+        self.assertEqual(
+            test_condition.last_transition_time,
+            datetime.datetime(2026, 11, 2, 10, 31, 24, tzinfo=datetime.timezone.utc),
+        )
+        self.assertEqual(test_condition.reason, "testReason")
+        self.assertEqual(test_condition.status, capi_dto.ConditionStatus.UNKNOWN)
+        self.assertEqual(test_condition.type, "Testing")
+
+        invalid_time_test_dict = {
+            "lastTransitionTime": "notATime",
+            "reason": "testReason",
+            "status": "True",
+            "type": "Testing",
+        }
+
+        with self.assertRaises(ValueError):
+            condition_from_dict(invalid_time_test_dict)
+
+        invalid_enums_test_dict = {
+            "lastTransitionTime": "2026-02-02T22:57:26.000Z",
+            "reason": "testReason",
+            "status": "INVALID",
+            "type": "Testing",
+            "severity": "INVALID",
+        }
+
+        test_condition = condition_from_dict(invalid_enums_test_dict)
+        self.assertEqual(test_condition.status, capi_dto.ConditionStatus.UNKNOWN)
