@@ -11,6 +11,7 @@ from azimuth.cluster_api import dto as capi_dto
 from azimuth.provider import base as cloud_base
 from easykube import SyncClient
 from easykube.rest.util import PropertyDict
+from pytest_mock import MockerFixture
 
 
 @dataclasses.dataclass
@@ -125,6 +126,24 @@ def test_cluster_without_control_plane_count_exposes_none(
     data = find_cluster_as_json(make_cluster(), cloud_session)
 
     assert data["control_plane_count"] is None
+
+
+def test_legacy_cluster_update_keeps_template_count(
+    cloud_session: t.Any, mocker: MockerFixture
+) -> None:
+    """Check that updating a cluster with no count set doesn't set one."""
+    client = mocker.MagicMock()
+    resource = client.api.return_value.resource.return_value
+    resource.patch.return_value = make_cluster()
+    session = base.Session(
+        t.cast(SyncClient, client), t.cast(cloud_base.ScopedSession, cloud_session)
+    )
+
+    session.update_cluster("test-cluster", control_plane_size=cloud_session.sizes()[0])
+
+    resource.patch.assert_called_once()
+    _, patch = resource.patch.call_args.args
+    assert "controlPlaneMachineCount" not in patch["spec"]
 
 
 def make_template(control_plane_count: int) -> capi_dto.ClusterTemplate:

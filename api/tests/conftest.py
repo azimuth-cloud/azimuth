@@ -16,6 +16,10 @@ class FakeCloudSession:
         """Return a fixed username."""
         return "test-user"
 
+    def user_id(self) -> str:
+        """Return a fixed user id."""
+        return "test-user-id"
+
     def tenancy(self) -> cloud_dto.Tenancy:
         """Return a fixed tenancy."""
         return cloud_dto.Tenancy(id="tenancy-id", name="tenancy")
