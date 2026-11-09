@@ -540,7 +540,7 @@ export const KubernetesClusterForm = ({
                         />
                     </div>
                     <BSForm.Text>
-                        Number of control plane nodes. Always use three for important clusters. If you choose to use one your cluster may experience periods of unexpected downtime.
+                        Number of control plane nodes. Always use three for important clusters. If you choose to use one, your cluster may experience periods of unexpected downtime.
                     </BSForm.Text>
                 </BSForm.Group>
                 <Card className="mb-3">
