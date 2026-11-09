@@ -1,5 +1,6 @@
 import React, { useEffect, useId, useState } from 'react';
 
+import Alert from 'react-bootstrap/Alert';
 import Badge from 'react-bootstrap/Badge';
 import Button from 'react-bootstrap/Button';
 import Card from 'react-bootstrap/Card';
@@ -11,6 +12,7 @@ import Popover from 'react-bootstrap/Popover';
 import Row from 'react-bootstrap/Row';
 import Table from 'react-bootstrap/Table';
 import Tab from 'react-bootstrap/Tab';
+import Tooltip from 'react-bootstrap/Tooltip';
 
 import get from 'lodash/get';
 import { DateTime } from 'luxon';
@@ -19,6 +21,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faCheck,
     faClock,
+    faInfoCircle,
     faExclamationTriangle,
     faPen,
     faQuestionCircle,
@@ -629,6 +632,7 @@ const ConditionsTable = ({ kubernetesCluster}) => {
     );
 
     return (
+
         <Table striped hover responsive className="resource-table mb-0">
             <caption className="px-2">
                 {conditions.length} condition{conditions.length !== 1 && 's'}
@@ -774,7 +778,7 @@ const KubernetesClusterDetailsButton = ({
                                     </Nav.Item>
                                     <Nav.Item>
                                         <Nav.Link eventKey="conditions" className="p-3">
-                                            Conditions
+                                            Cluster Status
                                         </Nav.Link>
                                     </Nav.Item>
                                 </Nav>
@@ -865,14 +869,26 @@ const KubernetesClusterDetailsButton = ({
                                 />
                             </Tab.Pane>
                             <Tab.Pane eventKey="conditions">
-                                <Row className="justify-content-end mb-2">
-                                    <Col xs="auto">
+                                <Row className="justify-content-end mb-3">
+                                    <Col xs="auto" className="d-flex align-items-stretch gap-3">
+                                        <Alert variant="info" className="mb-0 d-flex align-items-center">
+                                            <p className="mb-0">
+                                                 <FontAwesomeIcon
+                                                icon={faInfoCircle}
+                                                className="me-2"
+                                                />
+                                                This page shows technical information as to the state of your cluster, 
+                                                to allow debugging. Some condition names are unintuitive. 
+                                                It is normal for some statuses to be True and some to be False, 
+                                                even in a healthy cluster.
+                                            </p>
+                                        </Alert>
                                         <Button
                                             variant="primary"
                                             disabled={kubernetesCluster.fetching}
                                             onClick={kubernetesClusterActions.fetchOne}
                                             title="Refresh"
-                                            className="me-2"
+                                            className="me-2 d-flex align-items-center justify-content-center px-4"
                                         >
                                             <FontAwesomeIcon
                                                 icon={faSyncAlt}
