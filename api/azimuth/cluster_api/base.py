@@ -1,5 +1,4 @@
 import base64
-import dataclasses
 import functools
 import importlib
 import json
@@ -65,19 +64,21 @@ def convert_exceptions(f):
 
 
 def condition_from_dict(condition: dict[str, str]) -> dto.ClusterCondition:
-
-    status = condition.get("status")
-
-    if status != "True" and status != "False":
-        status = "Unknown"
+    """
+    Takes the JSON Dict fetched from the API and creates a ClusterCondition dto
+    """
 
     return dto.ClusterCondition(
         condition.get("type"),
-        status,
+        dto.ConditionStatus(status)
+        if (status := condition.get("status")) in {"True", "False"}
+        else dto.ConditionStatus.UNKNOWN,
         datetime.fromisoformat(condition.get("lastTransitionTime")),
         condition.get("reason"),
-        condition.get("severity", None),
-        condition.get("message", None),
+        dto.ConditionSeverity(severity)
+        if (severity := condition.get("severity")) in {"Error", "Warning", "Info"}
+        else None,
+        condition.get("message"),
     )
 
 
@@ -317,7 +318,7 @@ class Session:
             cluster_status.get("kubernetesVersion"),
             cluster_state,
             [
-                dataclasses.asdict(condition_from_dict(c))
+                condition_from_dict(c)
                 for c in (cluster_status.get("v2beta2Conditions") or [])
             ],
             cluster_status.get("controlPlanePhase", "Unknown"),

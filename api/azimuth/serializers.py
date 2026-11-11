@@ -706,6 +706,12 @@ class KubernetesClusterNodeSerializer(
     size = SizeRefSerializer(source="size_id", read_only=True)
 
 
+class KubernetesClusterConditionSerializer(
+    make_dto_serializer(capi_dto.ClusterCondition, exclude=["size_id"])
+):
+    size = SizeRefSerializer(source="size_id", read_only=True)
+
+
 class KubernetesClusterAddonSerializer(make_dto_serializer(capi_dto.Addon)):
     pass
 
@@ -730,6 +736,7 @@ class KubernetesClusterSerializer(
         exclude=[
             "template_id",
             "control_plane_size_id",
+            "conditions",
             "node_groups",
             "nodes",
             "addons",
@@ -744,6 +751,7 @@ class KubernetesClusterSerializer(
     control_plane_size = SizeRefSerializer(
         source="control_plane_size_id", read_only=True
     )
+    conditions = KubernetesClusterConditionSerializer(many=True, read_only=True)
     node_groups = KubernetesClusterNodeGroupSerializer(many=True, read_only=True)
     nodes = KubernetesClusterNodeSerializer(many=True, read_only=True)
     addons = KubernetesClusterAddonSerializer(many=True, read_only=True)

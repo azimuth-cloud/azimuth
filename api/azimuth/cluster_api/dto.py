@@ -156,11 +156,6 @@ class ClusterCondition:
     #: Human readable details about the condition (may be empty)
     message: str | None = None
 
-    # Known condition types are Available, InfrastructureReady, ControlPlaneInitialized,
-    # ControlPlaneAvailable, WorkersAvailable, MachinesReady, MachinesUpToDate,
-    # RemoteConnectionProbe, ScalingUp, ScalingDown, Remediating, Deleting,
-    # Paused,TopologyReconciled
-
 
 @dataclasses.dataclass(frozen=True)
 class Cluster:

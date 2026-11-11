@@ -88,7 +88,12 @@ class ClusterApiTest(unittest.TestCase):
         self.assertIsNone(result.control_plane_certificate_rotation_date)
 
     def test_condition_from_dict(self):
+        """
+        Tests the function designed to parse dicts from capi-operator and
+        create condition objects
+        """
 
+        # Test correct parsing of valid dict with all data
         valid_test_dict_full = {
             "lastTransitionTime": "2026-11-02T10:31:24Z",
             "message": "test message",
@@ -110,6 +115,7 @@ class ClusterApiTest(unittest.TestCase):
         self.assertEqual(test_condition.severity, capi_dto.ConditionSeverity.INFO)
         self.assertEqual(test_condition.type, "Testing")
 
+        # Test correct parsing of valid dict with minimal data
         valid_test_dict_min = {
             "lastTransitionTime": "2026-11-02T10:31:24Z",
             "reason": "testReason",
@@ -127,6 +133,7 @@ class ClusterApiTest(unittest.TestCase):
         self.assertEqual(test_condition.status, capi_dto.ConditionStatus.UNKNOWN)
         self.assertEqual(test_condition.type, "Testing")
 
+        # Check that parsing an invalid time raises an exception
         invalid_time_test_dict = {
             "lastTransitionTime": "notATime",
             "reason": "testReason",
@@ -137,6 +144,7 @@ class ClusterApiTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             condition_from_dict(invalid_time_test_dict)
 
+        # Test invalid values for enums default correctly
         invalid_enums_test_dict = {
             "lastTransitionTime": "2026-02-02T22:57:26.000Z",
             "reason": "testReason",
