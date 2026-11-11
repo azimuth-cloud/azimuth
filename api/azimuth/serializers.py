@@ -707,9 +707,9 @@ class KubernetesClusterNodeSerializer(
 
 
 class KubernetesClusterConditionSerializer(
-    make_dto_serializer(capi_dto.ClusterCondition, exclude=["size_id"])
+    make_dto_serializer(capi_dto.ClusterCondition)
 ):
-    size = SizeRefSerializer(source="size_id", read_only=True)
+    pass
 
 
 class KubernetesClusterAddonSerializer(make_dto_serializer(capi_dto.Addon)):
