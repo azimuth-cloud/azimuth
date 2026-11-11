@@ -49,12 +49,12 @@ class ClusterApiTest(unittest.TestCase):
         self.assertIsInstance(result, capi_dto.Cluster)
         self.assertEqual(
             result.control_plane_certificate_expiry_date,
-            datetime.datetime(2027, 7, 31, 12, tzinfo=datetime.timezone.utc),
+            datetime.datetime(2027, 7, 31, 12, tzinfo=datetime.UTC),
         )
         self.assertEqual(result.control_plane_certificate_rotation_days, 21)
         self.assertEqual(
             result.control_plane_certificate_rotation_date,
-            datetime.datetime(2027, 7, 10, 12, tzinfo=datetime.timezone.utc),
+            datetime.datetime(2027, 7, 10, 12, tzinfo=datetime.UTC),
         )
 
     def test_missing_cluster_certificate_status_is_supported(self):
@@ -107,7 +107,7 @@ class ClusterApiTest(unittest.TestCase):
 
         self.assertEqual(
             test_condition.last_transition_time,
-            datetime.datetime(2026, 11, 2, 10, 31, 24, tzinfo=datetime.timezone.utc),
+            datetime.datetime(2026, 11, 2, 10, 31, 24, tzinfo=datetime.UTC),
         )
         self.assertEqual(test_condition.message, "test message")
         self.assertEqual(test_condition.reason, "testReason")
@@ -127,7 +127,7 @@ class ClusterApiTest(unittest.TestCase):
 
         self.assertEqual(
             test_condition.last_transition_time,
-            datetime.datetime(2026, 11, 2, 10, 31, 24, tzinfo=datetime.timezone.utc),
+            datetime.datetime(2026, 11, 2, 10, 31, 24, tzinfo=datetime.UTC),
         )
         self.assertEqual(test_condition.reason, "testReason")
         self.assertEqual(test_condition.status, capi_dto.ConditionStatus.UNKNOWN)

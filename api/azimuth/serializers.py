@@ -508,15 +508,15 @@ ProjectedQuotaSerializer = make_dto_serializer(scheduling_dto.ProjectedQuota)
 
 
 class PlatformScheduleSerializer(serializers.Serializer):
-    end_time = serializers.DateTimeField(default_timezone=datetime.timezone.utc)
+    end_time = serializers.DateTimeField(default_timezone=datetime.UTC)
 
     def validate_end_time(self, value):
         # Ensure that the end time is in the future
-        now = datetime.datetime.now(tz=datetime.timezone.utc)
+        now = datetime.datetime.now(tz=datetime.UTC)
         if value <= now:
             raise serializers.ValidationError("End time cannot be in the past.")
         # Ensure that the end time is UTC
-        return value.astimezone(datetime.timezone.utc)
+        return value.astimezone(datetime.UTC)
 
     def to_internal_value(self, data):
         data = super().to_internal_value(data)
