@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { Table } from "react-bootstrap";
 
+import { DateTime } from 'luxon';
+
+
 const ConditionRow = ({ condition }) => {
     const [expanded, setExpanded] = useState(false);
     const hasMessage = Boolean(condition.message);
@@ -23,7 +26,7 @@ const ConditionRow = ({ condition }) => {
                 </td>
                 <td>{condition.status}</td>
                 <td>
-                    {new Date(condition.last_transition_time).toLocaleString()}
+                    {condition.last_transition_time.toLocaleString(DateTime.DATETIME_SHORT_WITH_SECONDS)}
                 </td>
                 <td><code>{condition.reason}</code></td>
             </tr>
@@ -46,7 +49,7 @@ const ConditionRow = ({ condition }) => {
 
 export const ConditionsTable = ({ kubernetesCluster}) => {
     const conditions = [...(kubernetesCluster?.conditions || [])].sort((a, b) =>
-        (b.last_transition_time || '').localeCompare(a.last_transition_time || '')
+        (b.last_transition_time || '') < (a.last_transition_time || '')
     );
 
     return (
