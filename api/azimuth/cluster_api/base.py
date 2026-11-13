@@ -313,6 +313,7 @@ class Session:
                 ),
                 None,
             ),
+            cluster.spec.get("controlPlaneMachineCount"),
             [
                 dto.NodeGroup(
                     ng["name"],
