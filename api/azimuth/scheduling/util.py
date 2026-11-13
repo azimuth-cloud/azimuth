@@ -17,7 +17,7 @@ def check_max_platform_lifetime(platform_data, max_lifetime: dt.timedelta) -> bo
     if max_lifetime is None or not cloud_settings.SCHEDULING.ENABLED:
         return True
     end_time = platform_data["schedule"].end_time
-    now = dt.datetime.now(tz=dt.timezone.utc)
+    now = dt.datetime.now(tz=dt.UTC)
     lifetime = end_time - now
     if lifetime < max_lifetime:
         return True

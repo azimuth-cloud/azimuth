@@ -190,7 +190,7 @@ def create_cluster(
 
     # Inject scheduling info cluster into the cluster parameters
     if schedule is not None:
-        now = datetime.datetime.now(tz=datetime.timezone.utc)
+        now = datetime.datetime.now(tz=datetime.UTC)
         cluster_spec.setdefault("extraVars", {}).update(
             {
                 "schedule_start_time": now.isoformat(),
@@ -277,7 +277,7 @@ def update_cluster(
     safe_name = utils.sanitise(name)
 
     # trigger updates even when params are same as create or last update
-    now = datetime.datetime.now(tz=datetime.timezone.utc)
+    now = datetime.datetime.now(tz=datetime.UTC)
     now_string = now.strftime("%Y-%m-%dT%H:%M:%SZ")
     params["azimuth_requested_update_at"] = now_string
     params["azimuth_update_reason"] = "unknown"

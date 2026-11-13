@@ -4,6 +4,7 @@ import importlib
 import json
 import logging
 import typing as t
+from datetime import UTC, datetime
 
 import dateutil.parser
 import httpx
@@ -60,6 +61,44 @@ def convert_exceptions(f):
             raise errors.CommunicationError("Could not connect to Kubernetes API.")
 
     return wrapper
+
+
+def condition_from_dict(condition: dict[str, str]) -> dto.ClusterCondition:
+    """
+    Takes the JSON Dict fetched from the API and creates a ClusterCondition dto
+    """
+    condition_type = condition.get("type")
+
+    raw_status = condition.get("status")
+    status = (
+        dto.ConditionStatus(raw_status)
+        if raw_status in {"True", "False"}
+        else dto.ConditionStatus.UNKNOWN
+    )
+
+    last_transition_time = datetime.fromisoformat(
+        condition.get("lastTransitionTime")
+    ).replace(tzinfo=UTC)
+
+    reason = condition.get("reason")
+
+    raw_severity = condition.get("severity")
+    severity = (
+        dto.ConditionSeverity(raw_severity)
+        if raw_severity in {"Error", "Warning", "Info"}
+        else None
+    )
+
+    message = condition.get("message")
+
+    return dto.ClusterCondition(
+        condition_type,
+        status,
+        last_transition_time,
+        reason,
+        severity,
+        message,
+    )
 
 
 class Provider:
@@ -298,6 +337,10 @@ class Session:
             cluster_addons.get("monitoringLokiVolumeSize", 10),
             cluster_status.get("kubernetesVersion"),
             cluster_state,
+            [
+                condition_from_dict(c)
+                for c in (cluster_status.get("v2beta2Conditions") or [])
+            ],
             cluster_status.get("controlPlanePhase", "Unknown"),
             (
                 dateutil.parser.parse(
