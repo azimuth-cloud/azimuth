@@ -128,6 +128,8 @@ class Cluster:
     template_id: str
     #: The id of the size of the control plane nodes
     control_plane_size_id: str
+    #: The number of control plane nodes (None if not set on the cluster)
+    control_plane_count: int | None
     #: The node groups in the cluster
     node_groups: list[NodeGroup]
     #: Indicates if autohealing is enabled
