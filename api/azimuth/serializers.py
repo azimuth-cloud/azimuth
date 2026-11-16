@@ -508,15 +508,15 @@ ProjectedQuotaSerializer = make_dto_serializer(scheduling_dto.ProjectedQuota)
 
 
 class PlatformScheduleSerializer(serializers.Serializer):
-    end_time = serializers.DateTimeField(default_timezone=datetime.timezone.utc)
+    end_time = serializers.DateTimeField(default_timezone=datetime.UTC)
 
     def validate_end_time(self, value):
         # Ensure that the end time is in the future
-        now = datetime.datetime.now(tz=datetime.timezone.utc)
+        now = datetime.datetime.now(tz=datetime.UTC)
         if value <= now:
             raise serializers.ValidationError("End time cannot be in the past.")
         # Ensure that the end time is UTC
-        return value.astimezone(datetime.timezone.utc)
+        return value.astimezone(datetime.UTC)
 
     def to_internal_value(self, data):
         data = super().to_internal_value(data)
@@ -706,6 +706,12 @@ class KubernetesClusterNodeSerializer(
     size = SizeRefSerializer(source="size_id", read_only=True)
 
 
+class KubernetesClusterConditionSerializer(
+    make_dto_serializer(capi_dto.ClusterCondition)
+):
+    pass
+
+
 class KubernetesClusterAddonSerializer(make_dto_serializer(capi_dto.Addon)):
     pass
 
@@ -730,6 +736,7 @@ class KubernetesClusterSerializer(
         exclude=[
             "template_id",
             "control_plane_size_id",
+            "conditions",
             "node_groups",
             "nodes",
             "addons",
@@ -744,6 +751,7 @@ class KubernetesClusterSerializer(
     control_plane_size = SizeRefSerializer(
         source="control_plane_size_id", read_only=True
     )
+    conditions = KubernetesClusterConditionSerializer(many=True, read_only=True)
     node_groups = KubernetesClusterNodeGroupSerializer(many=True, read_only=True)
     nodes = KubernetesClusterNodeSerializer(many=True, read_only=True)
     addons = KubernetesClusterAddonSerializer(many=True, read_only=True)

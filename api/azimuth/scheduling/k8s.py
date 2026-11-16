@@ -32,7 +32,7 @@ def create_scheduling_resources(
     # Get the formatted time from the schedule object
     if schedule is not None:
         # Convert the start and end times from the schedule to UTC and format them
-        end_time_utc = schedule.end_time.astimezone(datetime.timezone.utc)
+        end_time_utc = schedule.end_time.astimezone(datetime.UTC)
         ends_at = end_time_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
     else:
         ends_at = None

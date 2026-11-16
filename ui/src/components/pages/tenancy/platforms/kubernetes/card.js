@@ -1,5 +1,6 @@
 import React, { useEffect, useId, useState } from 'react';
 
+import Alert from 'react-bootstrap/Alert';
 import Badge from 'react-bootstrap/Badge';
 import Button from 'react-bootstrap/Button';
 import Card from 'react-bootstrap/Card';
@@ -19,6 +20,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faCheck,
     faClock,
+    faInfoCircle,
     faExclamationTriangle,
     faPen,
     faQuestionCircle,
@@ -38,6 +40,8 @@ import {
     PlatformExpires,
     expiresSoon
 } from '../utils';
+
+import { ConditionsTable } from './conditions'
 
 import { UpgradeKubernetesClusterButton } from './upgrade-modal';
 import { KubeconfigButton } from './kubeconfig-modal';
@@ -702,6 +706,11 @@ const KubernetesClusterDetailsButton = ({
                                             Nodes
                                         </Nav.Link>
                                     </Nav.Item>
+                                    <Nav.Item>
+                                        <Nav.Link eventKey="conditions" className="p-3">
+                                            Cluster Status
+                                        </Nav.Link>
+                                    </Nav.Item>
                                 </Nav>
                             </Col>
                         </Row>
@@ -787,6 +796,41 @@ const KubernetesClusterDetailsButton = ({
                                 <NodesTable
                                     kubernetesCluster={kubernetesCluster}
                                     sizes={sizes}
+                                />
+                            </Tab.Pane>
+                            <Tab.Pane eventKey="conditions">
+                                <Row className="justify-content-end mb-3">
+                                    <Col xs="auto" className="d-flex align-items-stretch gap-3">
+                                        <Alert variant="info" className="mb-0 d-flex align-items-center">
+                                            <p className="mb-0">
+                                                 <FontAwesomeIcon
+                                                icon={faInfoCircle}
+                                                className="me-2"
+                                                />
+                                                This page shows technical information as to the state of your cluster, 
+                                                to allow debugging. Some condition names are unintuitive. 
+                                                It is normal for some statuses to be True and some to be False, 
+                                                even in a healthy cluster.
+                                            </p>
+                                        </Alert>
+                                        <Button
+                                            variant="primary"
+                                            disabled={kubernetesCluster.fetching}
+                                            onClick={kubernetesClusterActions.fetchOne}
+                                            title="Refresh"
+                                            className="me-2 d-flex align-items-center justify-content-center px-4"
+                                        >
+                                            <FontAwesomeIcon
+                                                icon={faSyncAlt}
+                                                spin={kubernetesCluster.fetching}
+                                                className="me-2"
+                                            />
+                                            Refresh
+                                        </Button>
+                                    </Col>
+                                </Row>
+                                <ConditionsTable
+                                    kubernetesCluster={kubernetesCluster}
                                 />
                             </Tab.Pane>
                         </Tab.Content>

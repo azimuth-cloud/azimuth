@@ -251,3 +251,72 @@ def test_update_rejects_even_control_plane_count() -> None:
 
     assert not serializer.is_valid()
     assert "control_plane_count" in serializer.errors
+
+
+def test_condition_from_dict() -> None:
+    """
+    Tests the function designed to parse dicts from capi-operator and
+    create condition objects
+    """
+
+    # Test correct parsing of valid dict with all data
+    valid_test_dict_full = {
+        "lastTransitionTime": "2026-11-02T10:31:24Z",
+        "message": "test message",
+        "reason": "testReason",
+        "status": "True",
+        "severity": "Info",
+        "type": "Testing",
+    }
+
+    test_condition = base.condition_from_dict(valid_test_dict_full)
+
+    assert test_condition.last_transition_time == datetime.datetime(
+        2026, 11, 2, 10, 31, 24, tzinfo=datetime.UTC
+    )
+
+    assert test_condition.message == "test message"
+    assert test_condition.reason == "testReason"
+    assert test_condition.status == capi_dto.ConditionStatus.TRUE
+    assert test_condition.severity == capi_dto.ConditionSeverity.INFO
+    assert test_condition.type == "Testing"
+
+    # Test correct parsing of valid dict with minimal data
+    valid_test_dict_min = {
+        "lastTransitionTime": "2026-11-02T10:31:24Z",
+        "reason": "testReason",
+        "status": "Unknown",
+        "type": "Testing",
+    }
+
+    test_condition = base.condition_from_dict(valid_test_dict_min)
+
+    assert test_condition.last_transition_time == datetime.datetime(
+        2026, 11, 2, 10, 31, 24, tzinfo=datetime.UTC
+    )
+    assert test_condition.reason == "testReason"
+    assert test_condition.status == capi_dto.ConditionStatus.UNKNOWN
+    assert test_condition.type == "Testing"
+
+    # Check that parsing an invalid time raises an exception
+    invalid_time_test_dict = {
+        "lastTransitionTime": "notATime",
+        "reason": "testReason",
+        "status": "True",
+        "type": "Testing",
+    }
+
+    with pytest.raises(ValueError):
+        base.condition_from_dict(invalid_time_test_dict)
+
+    # Test invalid values for enums default correctly
+    invalid_enums_test_dict = {
+        "lastTransitionTime": "2026-02-02T22:57:26.000Z",
+        "reason": "testReason",
+        "status": "INVALID",
+        "type": "Testing",
+        "severity": "INVALID",
+    }
+
+    test_condition = base.condition_from_dict(invalid_enums_test_dict)
+    assert test_condition.status == capi_dto.ConditionStatus.UNKNOWN

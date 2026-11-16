@@ -11,7 +11,7 @@ from azimuth.scheduling.util import (
 
 from tests.helpers import override_cloud_settings
 
-FIXED_NOW = dt.datetime(2026, 1, 1, tzinfo=dt.timezone.utc)
+FIXED_NOW = dt.datetime(2026, 1, 1, tzinfo=dt.UTC)
 
 
 class LifetimeFromAnnotationsTestCase(TestCase):

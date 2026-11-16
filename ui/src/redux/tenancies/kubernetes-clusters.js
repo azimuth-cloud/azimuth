@@ -29,6 +29,12 @@ const {
     // Just convert the string dates to Date objects
     transform: cluster => ({
         ...cluster,
+        conditions: cluster.conditions.map(
+            condition => ({
+                ...condition,
+                last_transition_time: DateTime.fromISO(condition.last_transition_time),
+            })
+        ),
         nodes: cluster.nodes.map(
             node => ({
                 ...node,

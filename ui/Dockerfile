@@ -1,18 +1,20 @@
-FROM docker.io/library/node:24 AS build
+FROM docker.io/library/node:24-slim AS build
 
 # yarn is provided by corepack
 RUN corepack enable
 
+WORKDIR /application
 # Install the dependencies separately using only the required files
 # This allows better use of the build cache (by making them seperate
 # steps, install of deps does not have to happen if application code
 # changes.)
-COPY ui/package.json ui/yarn.lock /application/
-RUN yarn install --cwd /application --immutable --network-timeout 3600000
+COPY ui/package.json ui/yarn.lock ui/.yarnrc.yml /application/
+RUN --mount=type=cache,target=/root/.yarn/berry/cache \
+    yarn install --immutable --network-timeout 3600000
 
 # Build the application
 COPY ui /application
-RUN yarn --cwd /application build
+RUN yarn build
 
 # This intermediate image is used to fetch the GPG key for the NGINX repo
 # without polluting the runtime image with GPG packages
