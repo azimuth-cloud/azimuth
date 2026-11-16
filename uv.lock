@@ -213,8 +213,8 @@ dev = [
     { name = "pytest-django", specifier = ">=4.14.0" },
     { name = "pytest-mock", specifier = ">=3.17.0" },
     { name = "ruff", specifier = ">=0.17.4,<0.18" },
-    { name = "tox", specifier = ">=4.67.12" },
-    { name = "tox-uv", specifier = ">=1.37.5" },
+    { name = "tox", specifier = ">=4.67.13" },
+    { name = "tox-uv", specifier = ">=1.37.7" },
     { name = "types-pyyaml", specifier = ">=6.0.12.20261103" },
 ]
 
@@ -1650,7 +1650,7 @@ wheels = [
 
 [[package]]
 name = "tox"
-version = "4.67.12"
+version = "4.67.13"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cachetools" },
@@ -1665,34 +1665,34 @@ dependencies = [
     { name = "typing-extensions", marker = "python_full_version < '3.13'" },
     { name = "virtualenv" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/8c/41/3e3d9dee587244fadd8f4227958a19cf83eb2f5a4df7318fb4e2b19d12bb/tox-4.67.12.tar.gz", hash = "sha256:d94739a6830f8a8b113cc0f95a505bdfd34289a237c70160c8ba785b7fceef6c", size = 424991, upload-time = "2026-11-05T23:31:33.879Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/da/4e/703160b580afbecef60e764708adbbf37f102aadfcbce9bb122e924e994d/tox-4.67.13.tar.gz", hash = "sha256:9f70b44ca2e31d91d8fe2e2917f505554950adc3961c0ee70bb42db16d903f62", size = 425618, upload-time = "2026-11-06T15:33:01.95Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6f/8d/20c1fd28ed9b899a518bab1908e519454ea383f588b659627c2f0b5c6c07/tox-4.67.12-py3-none-any.whl", hash = "sha256:d3ba259e8e28d3a2c69219d1aa979acfcc6a031a41d4b5ce099667bb47fccbfb", size = 263266, upload-time = "2026-11-05T23:31:31.905Z" },
+    { url = "https://files.pythonhosted.org/packages/d2/f0/f32e73acb872b67b97b51d67d7241838136f58127d763afcde7762832655/tox-4.67.13-py3-none-any.whl", hash = "sha256:4d6fa08dbe5e841f2abfee1dd4f5cdf31af30d68a3d78b85a7bf57eced5f3c6c", size = 263353, upload-time = "2026-11-06T15:33:00.306Z" },
 ]
 
 [[package]]
 name = "tox-uv"
-version = "1.37.5"
+version = "1.37.7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "tox-uv-bare" },
     { name = "uv" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a5/e4/425b97dbf64516e376a9675e800be0042e15537dff2cd97ab6cfbbdc9291/tox_uv-1.37.5-py3-none-any.whl", hash = "sha256:d74a5c1937a6d0f7498284c3767f95e2e9c0e28e8e2d9c3a6343c8c8b5905fae", size = 7823, upload-time = "2026-11-04T05:48:59.608Z" },
+    { url = "https://files.pythonhosted.org/packages/52/24/ba4c9829ef4183d0b1da35db17009b8dc88389f060007118c4d935e8070f/tox_uv-1.37.7-py3-none-any.whl", hash = "sha256:ab2a06e336d12b40a0de3b157ba52032762204c863343dcc57b6f3b77bec337b", size = 7995, upload-time = "2026-11-07T08:14:26.49Z" },
 ]
 
 [[package]]
 name = "tox-uv-bare"
-version = "1.37.5"
+version = "1.37.7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "packaging" },
     { name = "tox" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/51/4f/d8909e69db5697e3eb41d662fd240ae95287e842362c2e9d5c5ec076890d/tox_uv_bare-1.37.5.tar.gz", hash = "sha256:65026a7964c610c84f30f8e7e9d27f69109bcd0e303e31693015be4e8db568bf", size = 34955, upload-time = "2026-11-04T05:49:02.217Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/78/9f/cc5a6323ce97973dade2ce6c1e31c943cec5652bf46edda5429785b44c5c/tox_uv_bare-1.37.7.tar.gz", hash = "sha256:2453b801163e8b0e128aa73c6057aa1eb635d0919166b2b7b2e93a62006bbd6e", size = 39291, upload-time = "2026-11-07T08:14:29.197Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/70/a6/6585101c4e435c51fe9ca9321562d26322899d99e559465d111699ffaf6d/tox_uv_bare-1.37.5-py3-none-any.whl", hash = "sha256:38a88874153100baf0d2911779e4f928846689a66b0d45fb65dcdb2f0f28ad9d", size = 22793, upload-time = "2026-11-04T05:49:00.778Z" },
+    { url = "https://files.pythonhosted.org/packages/fe/a0/ca490d5e13ada234821c690bdd97c0ffa776d30b3d67b5786bcbb8add542/tox_uv_bare-1.37.7-py3-none-any.whl", hash = "sha256:82eb929961a8d193b05332a717c906a6c95ca21689800cbae0fe3b337cb8dfd1", size = 24542, upload-time = "2026-11-07T08:14:27.83Z" },
 ]
 
 [[package]]
