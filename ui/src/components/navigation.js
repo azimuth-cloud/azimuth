@@ -41,10 +41,6 @@ export const Navigation = ({
             .filter(cloud => cloud.name !== currentCloudName),
         cloud => cloud.label
     );
-    const sortedTenancies = sortBy(
-        Object.values(tenancies || {}),
-        tenancy => tenancy.name
-    );
     return (
         <Navbar bg="dark" variant="dark" expand="lg">
             <Container fluid>
