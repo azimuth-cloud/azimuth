@@ -454,6 +454,17 @@
     border-bottom: 0;
 }
 
+/**
+ * Custom styles for Alerts
+ */
+.alert-hover {
+  transition: all 0.2s ease-in-out;
+  cursor: pointer; /* Indicate it's clickable */
+}
+
+.alert-hover:hover {
+  filter: brightness(0.95); /* Slightly darkens the background */
+}
 
 /**
  * Custom styles for collapsible cards.

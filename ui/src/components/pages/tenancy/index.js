@@ -4,6 +4,8 @@
 
 import React, { useEffect, useState } from 'react';
 
+import Alert from 'react-bootstrap/Alert';
+import Button from 'react-bootstrap/Button';
 import Col from 'react-bootstrap/Col';
 import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
@@ -22,7 +24,9 @@ import {
     faSlidersH,
     faTachometerAlt,
     faTools,
-    faUsers
+    faUsers,
+    faExclamationTriangle,
+    faClose
 } from '@fortawesome/free-solid-svg-icons';
 
 import { TenancyIdpPanel } from './idp';
@@ -67,6 +71,61 @@ const SSHKeyUpdateNavLink = ({ sshKey, sshKeyActions }) => {
     );
 };
 
+const QuotaPopup = ({
+    currentTenancy
+}) => {
+    const quotas = currentTenancy.quotas
+    if (quotas.initialised){
+        const highUsage = Object.values(quotas.data).filter(
+            ({ used, allocated }) => used / allocated > 0.8
+        );
+
+        if(highUsage.length > 0){
+            const criticalUsage = highUsage.some( 
+            ({ used, allocated }) => used / allocated > 0.95
+            );
+
+            if(criticalUsage){
+                return (
+                    <LinkContainer to={`/tenancies/${currentTenancy.id}/quotas`}>
+                    <Alert variant='danger' className='text-danger'>
+                        <FontAwesomeIcon
+                            icon={faExclamationTriangle}
+                            size="md"
+                        />
+                         <span className="text-danger text-decoration-underline">quota critical</span>
+                    </Alert>
+                    </LinkContainer>
+                )
+            }else {
+                const [show, setShow] = useState(true);
+
+                return (
+                    <LinkContainer to={`/tenancies/${currentTenancy.id}/quotas`}>
+                    <Alert
+                    show={show}
+                    variant="warning"
+                    className="d-flex align-items-center justify-content-between text-warning alert-hover"
+                    >
+                        <div>
+                            <FontAwesomeIcon icon={faExclamationTriangle} size="lg" className="me-2" />
+                            <span className="text-warning text-decoration-underline">quota warning</span>
+                        </div>
+
+                        <Button
+                            variant="outline-warning"
+                            onClick={() => setShow(false)}
+                            aria-label="Close"
+                        >
+                            <FontAwesomeIcon icon={faClose} size="lg" />
+                        </Button>
+                    </Alert>
+                    </LinkContainer>
+                )
+            }
+        }
+    }
+}
 
 const TenancyNav = ({
     sshKey,
@@ -242,6 +301,7 @@ export const TenancyResourcePage = ({
 }) => {
     // Ensure that the tenancy capabilities are loaded
     useResourceInitialised(currentTenancy.capabilities, tenancyActions.capabilities.fetch);
+    useResourceInitialised(currentTenancy.quotas, tenancyActions.quota.fetchList);
 
     // If a resource has been selected that we don't support, emit a notification
     useEffect(
@@ -282,7 +342,16 @@ export const TenancyResourcePage = ({
                 </div>
                 <Col>
                     <h1 className="border-bottom border-2 pb-1 mb-4">
-                        <code>{currentTenancy.name}</code>
+                    <Row>
+                        <Col>
+                            <code>{currentTenancy.name}</code>
+                        </Col>
+                        <Col>
+                            <QuotaPopup
+                            currentTenancy={currentTenancy}
+                            />
+                        </Col>
+                    </Row>
                     </h1>
                     {currentTenancy.capabilities.initialised ? (
                         <PanelComponent
