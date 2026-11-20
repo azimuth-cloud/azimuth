@@ -15,7 +15,13 @@ import { sortBy, usePageTitle, formatSize } from '../../utils';
 
 import { ResourcePanel } from './resource-utils';
 
+// extracts the primary colour from a bootstrap style 
+const getBsColor = (variant) =>
+  getComputedStyle(document.documentElement)
+    .getPropertyValue(`--bs-${variant}`)
+    .trim();
 
+    
 const QuotaProgress = ({ quota: { label, units, allocated, used, quota_type }, addPrefix }) => {
     const percent = allocated > 0 ? (used * 100) / allocated : 0;
     const formatAmount = amount => (
@@ -28,7 +34,7 @@ const QuotaProgress = ({ quota: { label, units, allocated, used, quota_type }, a
             `${formatAmount(used)} of ${formatAmount(allocated)} used` :
             `${formatAmount(used)} used`
     );
-    const colour = (percent <= 60 ? '#5cb85c' : (percent <= 80 ? '#f0ad4e' : '#d9534f'));
+    const colour = (percent <= 80 ? getBsColor('success') : (percent <= 95 ? getBsColor('warning') : getBsColor('danger')));
     
     let labelPrefix = ""
     if(addPrefix){
