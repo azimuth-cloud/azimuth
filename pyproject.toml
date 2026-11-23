@@ -12,7 +12,7 @@ dependencies = [
     "django-settings-object>=0.1.dev10",
     "rackit>=0.1.dev12",
     "jasmin-ldap>=0.3",
-    "gunicorn>=26.2.0",
+    "gunicorn>=27.0.1",
     "tzdata>=2026.6",
     "whitenoise>=6.12.0",
     "certifi>=2026.10.23",
@@ -48,19 +48,19 @@ rackit = { git = "https://github.com/stackhpc/rackit.git" }
 
 [dependency-groups]
 dev = [
-    "ruff>=0.17.4,<0.18",
-    "coverage>=7.17.2",
+    "ruff>=0.17.5,<0.18",
+    "coverage>=7.17.3",
     "codespell>=2.4.3",
     "autopep8>=2.3.2",
     "mypy>=2.4.1",
-    "types-pyyaml>=6.0.12.20261103",
-    "tox>=4.67.12",
-    "tox-uv>=1.37.5",
+    "types-pyyaml>=6.0.12.20261113",
+    "tox>=4.67.13",
+    "tox-uv>=1.37.7",
     "pytest>=9.2.0",
     "pytest-django>=4.14.0",
     "pytest-cov>=7.1.0",
     "pytest-mock>=3.17.0",
-    "diff-cover>=11.0.1",
+    "diff-cover>=11.0.2",
 ]
 
 # We use hatchling instead of uv's own build backend because UV does not have a way to dynamically get the version from git.
