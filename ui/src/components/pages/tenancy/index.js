@@ -75,46 +75,58 @@ const QuotaPopup = ({
     currentTenancy
 }) => {
     const quotas = currentTenancy.quotas
+
+    const quota_warn = 0.8;
+    const quota_critical = 0.95;
+
     if (quotas.initialised){
+        const [show, setShow] = useState(true);
         const highUsage = Object.values(quotas.data).filter(
-            ({ used, allocated }) => used / allocated > 0.8
+            ({ used, allocated }) => used / allocated > quota_warn
         );
 
         if(highUsage.length > 0){
             const criticalUsage = highUsage.some( 
-            ({ used, allocated }) => used / allocated > 0.95
+            ({ used, allocated }) => used / allocated > quota_critical
             );
 
             if(criticalUsage){
                 return (
                     <LinkContainer to={`/tenancies/${currentTenancy.id}/quotas`}>
-                    <Alert variant='danger' className='text-danger'>
+                    <Alert 
+                        variant='danger'
+                        className="d-inline-flex gap-3 py-2 px-2 small align-items-center text-danger alert-hover"
+                    >
                         <FontAwesomeIcon
                             icon={faExclamationTriangle}
-                            size="md"
+                            size="md" className="me-2"
                         />
-                         <span className="text-danger text-decoration-underline">quota critical</span>
+                         <span className="text-decoration-underline">Critical: resource over {quota_critical * 100}% used</span>
                     </Alert>
                     </LinkContainer>
                 )
             }else {
-                const [show, setShow] = useState(true);
-
                 return (
                     <LinkContainer to={`/tenancies/${currentTenancy.id}/quotas`}>
                     <Alert
                     show={show}
                     variant="warning"
-                    className="d-flex align-items-center justify-content-between text-warning alert-hover"
+                    className="d-inline-flex gap-3 py-2 px-2 small align-items-center text-warning alert-hover"
                     >
                         <div>
-                            <FontAwesomeIcon icon={faExclamationTriangle} size="lg" className="me-2" />
-                            <span className="text-warning text-decoration-underline">quota warning</span>
+                            <FontAwesomeIcon
+                                icon={faExclamationTriangle}
+                                size="md" className="me-2"
+                            />
+                            <span className="text-decoration-underline">Warning: resource over {quota_warn * 100}% used</span>
                         </div>
 
                         <Button
                             variant="outline-warning"
-                            onClick={() => setShow(false)}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShow(false);
+                            }}
                             aria-label="Close"
                         >
                             <FontAwesomeIcon icon={faClose} size="lg" />
@@ -343,10 +355,10 @@ export const TenancyResourcePage = ({
                 <Col>
                     <h1 className="border-bottom border-2 pb-1 mb-4">
                     <Row>
-                        <Col>
+                        <Col lg={4}>
                             <code>{currentTenancy.name}</code>
                         </Col>
-                        <Col>
+                        <Col lg={8} className="d-flex justify-content-end">
                             <QuotaPopup
                             currentTenancy={currentTenancy}
                             />
