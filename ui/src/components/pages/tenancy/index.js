@@ -75,15 +75,17 @@ const QuotaPopup = ({
     currentTenancy
 }) => {
     const quotas = currentTenancy.quotas
+    const [show, setShow] = useState(true);
 
     const quota_warn = 0.8;
     const quota_critical = 0.95;
 
     if (quotas.initialised){
-        const [show, setShow] = useState(true);
-        const highUsage = Object.values(quotas.data).filter(
-            ({ used, allocated }) => used / allocated > quota_warn
-        );
+        
+        const highUsage = Object.values(quotas.data)
+            .filter(({allocated}) => allocated > 0)
+            .filter(({ used, allocated }) => used / allocated > quota_warn);
+        // extracts data, filters out resources which do not have limits, then filters based on threshold
 
         if(highUsage.length > 0){
             const criticalUsage = highUsage.some( 

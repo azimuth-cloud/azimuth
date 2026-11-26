@@ -11,15 +11,9 @@ import Row from 'react-bootstrap/Row';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 
-import { sortBy, usePageTitle, formatSize } from '../../utils';
+import { sortBy, usePageTitle, formatSize, getBsColor } from '../../utils';
 
 import { ResourcePanel } from './resource-utils';
-
-// extracts the primary colour from a bootstrap style 
-const getBsColor = (variant) =>
-  getComputedStyle(document.documentElement)
-    .getPropertyValue(`--bs-${variant}`)
-    .trim();
 
     
 const QuotaProgress = ({ quota: { label, units, allocated, used, quota_type }, addPrefix }) => {
@@ -32,7 +26,7 @@ const QuotaProgress = ({ quota: { label, units, allocated, used, quota_type }, a
     const usage = (
         allocated >= 0 ?
             `${formatAmount(used)} of ${formatAmount(allocated)} used` :
-            `${formatAmount(used)} used`
+            "No limit"
     );
     const colour = (percent <= 80 ? getBsColor('success') : (percent <= 95 ? getBsColor('warning') : getBsColor('danger')));
     
@@ -50,7 +44,7 @@ const QuotaProgress = ({ quota: { label, units, allocated, used, quota_type }, a
                     <CircularProgressbar
                         className={allocated < 0 ? "quota-no-limit" : undefined}
                         value={percent}
-                        text={allocated >= 0 ? `${Math.round(percent)}%` : "No limit"}
+                        text={allocated >= 0 ? `${Math.round(percent)}%` : `${formatAmount(used)} used`}
                         styles={buildStyles({
                             rotation: 0.5,
                             pathColor: colour
