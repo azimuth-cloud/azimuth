@@ -38,6 +38,11 @@ export const bindArgsToActions = (actions, ...args) => Object.assign(
         }))
 );
 
+// extracts the primary colour from a bootstrap style 
+export const getBsColor = (variant) =>
+  getComputedStyle(document.documentElement)
+    .getPropertyValue(`--bs-${variant}`)
+    .trim();
 
 const compare = (x, y) => (x > y ? 1 : (x < y ? -1 : 0));
 

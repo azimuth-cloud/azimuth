@@ -4,6 +4,8 @@
 
 import React, { useEffect, useState } from 'react';
 
+import Alert from 'react-bootstrap/Alert';
+import Button from 'react-bootstrap/Button';
 import Col from 'react-bootstrap/Col';
 import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
@@ -22,7 +24,9 @@ import {
     faSlidersH,
     faTachometerAlt,
     faTools,
-    faUsers
+    faUsers,
+    faExclamationTriangle,
+    faClose
 } from '@fortawesome/free-solid-svg-icons';
 
 import { TenancyIdpPanel } from './idp';
@@ -67,6 +71,75 @@ const SSHKeyUpdateNavLink = ({ sshKey, sshKeyActions }) => {
     );
 };
 
+const QuotaPopup = ({
+    currentTenancy
+}) => {
+    const quotas = currentTenancy.quotas
+    const [show, setShow] = useState(true);
+
+    const quota_warn = 0.8;
+    const quota_critical = 0.95;
+
+    if (quotas.initialised){
+        
+        const highUsage = Object.values(quotas.data)
+            .filter(({allocated}) => allocated > 0)
+            .filter(({ used, allocated }) => used / allocated > quota_warn);
+        // extracts data, filters out resources which do not have limits, then filters based on threshold
+
+        if(highUsage.length > 0){
+            const criticalUsage = highUsage.some( 
+            ({ used, allocated }) => used / allocated > quota_critical
+            );
+
+            if(criticalUsage){
+                return (
+                    <LinkContainer to={`/tenancies/${currentTenancy.id}/quotas`}>
+                    <Alert 
+                        variant='danger'
+                        className="d-inline-flex gap-3 py-2 px-2 small align-items-center text-danger alert-hover"
+                    >
+                        <FontAwesomeIcon
+                            icon={faExclamationTriangle}
+                            size="md" className="me-2"
+                        />
+                         <span className="text-decoration-underline">Critical: resource over {quota_critical * 100}% used</span>
+                    </Alert>
+                    </LinkContainer>
+                )
+            }else {
+                return (
+                    <LinkContainer to={`/tenancies/${currentTenancy.id}/quotas`}>
+                    <Alert
+                    show={show}
+                    variant="warning"
+                    className="d-inline-flex gap-3 py-2 px-2 small align-items-center text-warning alert-hover"
+                    >
+                        <div>
+                            <FontAwesomeIcon
+                                icon={faExclamationTriangle}
+                                size="md" className="me-2"
+                            />
+                            <span className="text-decoration-underline">Warning: resource over {quota_warn * 100}% used</span>
+                        </div>
+
+                        <Button
+                            variant="outline-warning"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShow(false);
+                            }}
+                            aria-label="Close"
+                        >
+                            <FontAwesomeIcon icon={faClose} size="lg" />
+                        </Button>
+                    </Alert>
+                    </LinkContainer>
+                )
+            }
+        }
+    }
+}
 
 const TenancyNav = ({
     sshKey,
@@ -242,6 +315,7 @@ export const TenancyResourcePage = ({
 }) => {
     // Ensure that the tenancy capabilities are loaded
     useResourceInitialised(currentTenancy.capabilities, tenancyActions.capabilities.fetch);
+    useResourceInitialised(currentTenancy.quotas, tenancyActions.quota.fetchList);
 
     // If a resource has been selected that we don't support, emit a notification
     useEffect(
@@ -282,7 +356,16 @@ export const TenancyResourcePage = ({
                 </div>
                 <Col>
                     <h1 className="border-bottom border-2 pb-1 mb-4">
-                        <code>{currentTenancy.name}</code>
+                    <Row>
+                        <Col lg={4}>
+                            <code>{currentTenancy.name}</code>
+                        </Col>
+                        <Col lg={8} className="d-flex justify-content-end">
+                            <QuotaPopup
+                            currentTenancy={currentTenancy}
+                            />
+                        </Col>
+                    </Row>
                     </h1>
                     {currentTenancy.capabilities.initialised ? (
                         <PanelComponent
